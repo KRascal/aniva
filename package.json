@@ -1,0 +1,22 @@
+{
+  "name": "aniva",
+  "version": "0.1.0",
+  "private": true,
+  "description": "推しが実在する世界。アニメキャラクターのOnlyFans × デジタルツイン プラットフォーム。",
+  "workspaces": [
+    "web",
+    "mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm -r lint",
+    "type-check": "pnpm -r type-check"
+  },
+  "packageManager": "pnpm@10.30.1",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
