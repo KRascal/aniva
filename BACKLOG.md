@@ -58,11 +58,11 @@
 
 ## Sprint 2: Week 2 (Voice & Visual)
 
-### 2.1 Voice Engine [P0]
-- [ ] ElevenLabs API統合 (MVP)
-- [ ] ボイスメッセージ生成 API
-- [ ] 音声ファイル保存 (S3/R2)
-- [ ] チャットUIに音声再生プレーヤー統合
+### 2.1 Voice Engine [P0] [✅]
+- [✅] ElevenLabs API統合 (MVP) — fetchベース、SDKなし
+- [✅] ボイスメッセージ生成 API (`/api/voice/generate`)
+- [✅] 音声ファイル保存 (ローカル `public/audio/`) 
+- [✅] チャットUIに音声再生プレーヤー統合
 - **見積:** 3-4時間
 
 ### 2.2 Live2D Integration [P0]
