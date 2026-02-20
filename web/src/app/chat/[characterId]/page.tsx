@@ -11,6 +11,7 @@ interface Message {
   content: string;
   metadata?: { emotion?: string };
   createdAt: string;
+  audioUrl?: string | null; // undefined = loading, null = unavailable, string = ready
 }
 
 interface RelationshipInfo {
@@ -133,6 +134,32 @@ export default function ChatCharacterPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
 
+  const generateVoiceForMessage = async (messageId: string, text: string, charId: string) => {
+    try {
+      const res = await fetch('/api/voice/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, text, characterId: charId }),
+      });
+      const data = await res.json();
+      if (data.audioUrl) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, audioUrl: data.audioUrl } : m))
+        );
+      } else {
+        // voice_unavailable or error → mark as null so spinner goes away
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, audioUrl: null } : m))
+        );
+      }
+    } catch {
+      // 音声生成失敗はサイレント（チャット自体は続行）
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, audioUrl: null } : m))
+      );
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputText.trim() || isSending || !userId) return;
 
@@ -175,11 +202,23 @@ export default function ChatCharacterPage() {
       const data = await res.json();
 
       // Replace temp message with real ones
+      const characterMsg: Message = data.characterMessage
+        ? { ...data.characterMessage, audioUrl: undefined }
+        : data.characterMessage;
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== tempUserMsg.id),
         data.userMessage,
-        data.characterMessage,
+        characterMsg,
       ]);
+
+      // 非同期で音声生成（UIをブロックしない）
+      if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
+        generateVoiceForMessage(
+          data.characterMessage.id,
+          data.characterMessage.content,
+          characterId
+        );
+      }
 
       // Update relationship info
       if (data.relationship) {
@@ -310,6 +349,23 @@ export default function ChatCharacterPage() {
                   {msg.content}
                   {emotionEmoji && (
                     <span className="ml-1 inline-block">{emotionEmoji}</span>
+                  )}
+                  {/* 音声プレーヤー（キャラクターメッセージのみ） */}
+                  {!isUser && msg.audioUrl && (
+                    <audio
+                      controls
+                      className="mt-2 w-full max-w-xs h-8"
+                      src={msg.audioUrl}
+                    >
+                      <source src={msg.audioUrl} type="audio/mpeg" />
+                    </audio>
+                  )}
+                  {/* 音声読み込み中スピナー（audioUrl が undefined = まだロード中） */}
+                  {!isUser && msg.audioUrl === undefined && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                      <span>🔊</span>
+                      <span className="animate-pulse">音声生成中...</span>
+                    </div>
                   )}
                 </div>
               </div>
