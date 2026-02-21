@@ -81,11 +81,12 @@
 - [ ] チャットUIに画像表示
 - **見積:** 4-5時間
 
-### 2.4 Moments (Timeline) [P1]
-- [ ] Moments API (CRUD)
-- [ ] 自動投稿スケジューラ
-- [ ] Moments UI (フィード形式)
-- [ ] いいね & コメント
+### 2.4 Moments (Timeline) [P1] ✅
+- [✅] Moments API (CRUD)
+- [✅] Moments UI (フィード形式)
+- [✅] いいね (toggle like)
+- [✅] ロックコンテンツ (blur + badge)
+- [✅] 開発用シーディングAPI
 - **見積:** 3-4時間
 
 ## Sprint 3: Week 3-4 (Payment & Polish)
