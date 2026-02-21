@@ -117,10 +117,11 @@
 - **完了:** 2026-02-21 — commit 52c8dc3
 
 ### 3.4 First Experience (Onboarding) [P0]
-- [ ] 初回体験フロー (キャラが名前を聞く)
-- [ ] 音声付き自己紹介
-- [ ] Live2D演出
+- [✅] 初回体験フロー (キャラが名前を聞く)
+- [✅] 音声付き自己紹介
+- [ ] Live2D演出（将来対応）
 - **見積:** 2-3時間
+- **完了:** 2026-02-21 — OnboardingOverlay + /api/chat/greet + ルフィ自動挨拶
 
 ### 3.5 UI Polish & Responsive [P1]
 - [ ] 全画面レスポンシブ対応

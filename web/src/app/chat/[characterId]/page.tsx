@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
+import { OnboardingOverlay } from '@/components/chat/OnboardingOverlay';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -74,6 +75,10 @@ export default function ChatCharacterPage() {
     milestone?: Milestone;
   } | null>(null);
 
+  // オンボーディング用 state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isGreeting, setIsGreeting] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +131,11 @@ export default function ChatCharacterPage() {
         const relRes = await fetch(`/api/relationship/${characterId}?userId=${userId}`);
         const relData = await relRes.json();
         setRelationship(relData);
+      }
+
+      // totalMessages=0 または未ログ → オンボーディング表示
+      if (!data.relationship || data.messages?.length === 0) {
+        setShowOnboarding(true);
       }
 
       setIsLoadingHistory(false);
@@ -265,6 +275,34 @@ export default function ChatCharacterPage() {
     }
   };
 
+  const handleStartChat = async () => {
+    setShowOnboarding(false);
+    setIsGreeting(true);
+    try {
+      const res = await fetch('/api/chat/greet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, characterId }),
+      });
+      const data = await res.json();
+      if (data.message && !data.alreadyGreeted) {
+        setMessages([data.message]);
+        // 音声生成（非同期 - APIが返した audioUrl をすぐ反映）
+        if (data.audioUrl) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === data.message.id ? { ...m, audioUrl: data.audioUrl } : m
+            )
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Greeting failed:', e);
+    } finally {
+      setIsGreeting(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -285,6 +323,14 @@ export default function ChatCharacterPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 max-w-lg mx-auto">
+      {/* オンボーディングオーバーレイ */}
+      {showOnboarding && character && (
+        <OnboardingOverlay
+          character={character}
+          onStart={handleStartChat}
+        />
+      )}
+
       {/* レベルアップモーダル */}
       {levelUpData && (
         <LevelUpModal
@@ -468,12 +514,12 @@ export default function ChatCharacterPage() {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
-            disabled={isSending}
+            disabled={isSending || isGreeting}
             className="flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 border border-gray-700"
           />
           <button
             onClick={sendMessage}
-            disabled={isSending || !inputText.trim()}
+            disabled={isSending || isGreeting || !inputText.trim()}
             className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center disabled:opacity-40 hover:from-purple-700 hover:to-pink-700 transition-all"
             aria-label="送信"
           >
