@@ -4,8 +4,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
+import { RELATIONSHIP_LEVELS } from '@/types/character';
+import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 
 interface Message {
   id: string;
@@ -64,6 +67,12 @@ export default function ChatCharacterPage() {
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // レベルアップモーダル用 state
+  const [levelUpData, setLevelUpData] = useState<{
+    newLevel: number;
+    milestone?: Milestone;
+  } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -228,13 +237,23 @@ export default function ChatCharacterPage() {
         );
       }
 
-      // Update relationship info
+      // Update relationship info & レベルアップ判定
       if (data.relationship) {
         setRelationship((prev) => ({
           ...(prev || { levelName: '', xp: 0, nextLevelXp: null, totalMessages: 0 }),
           level: data.relationship.level,
           xp: data.relationship.xp,
         }));
+
+        if (data.relationship.leveledUp && data.relationship.newLevel) {
+          const milestone = LUFFY_MILESTONES.find(
+            (m) => m.level === data.relationship.newLevel
+          );
+          setLevelUpData({
+            newLevel: data.relationship.newLevel,
+            milestone,
+          });
+        }
       }
     } catch (err) {
       console.error('Send message error:', err);
@@ -266,6 +285,16 @@ export default function ChatCharacterPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 max-w-lg mx-auto">
+      {/* レベルアップモーダル */}
+      {levelUpData && (
+        <LevelUpModal
+          newLevel={levelUpData.newLevel}
+          levelName={RELATIONSHIP_LEVELS[Math.min(levelUpData.newLevel - 1, RELATIONSHIP_LEVELS.length - 1)].name}
+          milestone={levelUpData.milestone}
+          onClose={() => setLevelUpData(null)}
+        />
+      )}
+
       {/* Header */}
       <header className="flex-shrink-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center gap-3">
         <button
@@ -292,9 +321,13 @@ export default function ChatCharacterPage() {
           )}
         </div>
 
-        {/* Name + level */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-white font-bold leading-tight truncate">
+        {/* Name + level (クリックでプロフィールへ) */}
+        <button
+          className="flex-1 min-w-0 text-left"
+          onClick={() => router.push(`/profile/${characterId}`)}
+          aria-label="絆プロフィールを見る"
+        >
+          <h1 className="text-white font-bold leading-tight truncate hover:text-purple-300 transition-colors">
             {character?.name ?? 'キャラクター'}
           </h1>
           <div className="flex items-center gap-1">
@@ -303,7 +336,16 @@ export default function ChatCharacterPage() {
               <span className="text-xs text-gray-400">Lv.{level} {relationship.levelName}</span>
             )}
           </div>
-        </div>
+        </button>
+
+        {/* 絆を見るリンク */}
+        <button
+          onClick={() => router.push(`/profile/${characterId}`)}
+          className="text-xs text-purple-400 hover:text-purple-300 transition-colors px-2 py-1 rounded-lg border border-purple-500/30 hover:border-purple-400/50 flex-shrink-0"
+          aria-label="絆プロフィール"
+        >
+          絆を見る
+        </button>
 
         {/* Emotion indicator in header */}
         <EmotionIndicator emotion={currentEmotion} level={level} />

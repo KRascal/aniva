@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 送信前のlevelを記憶
+    const prevLevel = relationship?.level ?? 1;
+
     // 2. 会話取得 or 作成
     let conversation = await prisma.conversation.findFirst({
       where: { relationshipId: relationship.id },
@@ -91,13 +94,23 @@ export async function POST(req: NextRequest) {
       data: { updatedAt: new Date() },
     });
 
+    // 8. 更新後のrelationshipを再取得してleveledUpを判定
+    const updatedRelationship = await prisma.relationship.findUnique({
+      where: { id: relationship.id },
+    });
+
+    const leveledUp = (updatedRelationship?.level ?? 1) > prevLevel;
+    const newLevel = updatedRelationship?.level ?? 1;
+
     return NextResponse.json({
       userMessage: userMsg,
       characterMessage: charMsg,
       emotion: response.emotion,
       relationship: {
-        level: relationship.level,
-        xp: relationship.experiencePoints,
+        level: updatedRelationship?.level ?? 1,
+        xp: updatedRelationship?.experiencePoints ?? 0,
+        leveledUp,
+        newLevel: leveledUp ? newLevel : undefined,
       },
     });
   } catch (error) {
