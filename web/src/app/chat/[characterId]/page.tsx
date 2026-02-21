@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import Live2DViewer from '@/components/live2d/Live2DViewer';
+import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 
 interface Message {
   id: string;
@@ -59,6 +61,7 @@ export default function ChatCharacterPage() {
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -211,6 +214,11 @@ export default function ChatCharacterPage() {
         characterMsg,
       ]);
 
+      // Update emotion from character's latest response
+      if (data.characterMessage?.metadata?.emotion) {
+        setCurrentEmotion(data.characterMessage.metadata.emotion);
+      }
+
       // 非同期で音声生成（UIをブロックしない）
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
         generateVoiceForMessage(
@@ -296,7 +304,20 @@ export default function ChatCharacterPage() {
             )}
           </div>
         </div>
+
+        {/* Emotion indicator in header */}
+        <EmotionIndicator emotion={currentEmotion} level={level} />
       </header>
+
+      {/* Live2D Character Viewer */}
+      <div className="flex-shrink-0 flex flex-col items-center py-3 bg-gray-900/80 border-b border-gray-800">
+        <Live2DViewer
+          emotion={currentEmotion}
+          isSpeaking={isSending}
+          width={200}
+          height={240}
+        />
+      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
