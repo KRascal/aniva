@@ -10,6 +10,7 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   turbopack: {
     root: '/home/openclaw/.openclaw/workspace/projects/aniva',
   },

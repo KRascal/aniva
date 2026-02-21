@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3050:3000"
+    environment:
+      - DATABASE_URL=postgresql://aniva:aniva_prod_2026@postgres:5432/aniva
+      - NEXTAUTH_URL=https://aniva.app
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aniva
+      POSTGRES_USER: aniva
+      POSTGRES_PASSWORD: aniva_prod_2026
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
