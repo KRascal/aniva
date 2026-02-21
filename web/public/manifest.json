@@ -1,10 +1,10 @@
 {
   "name": "ANIVA - 推しが実在する世界",
   "short_name": "ANIVA",
-  "description": "アニメキャラクターのOnlyFans × デジタルツイン プラットフォーム",
+  "description": "アニメキャラクターと会話できるAIプラットフォーム",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
+  "background_color": "#000000",
   "theme_color": "#8b5cf6",
   "orientation": "portrait",
   "icons": [
@@ -18,6 +18,11 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
     }
   ]
 }
