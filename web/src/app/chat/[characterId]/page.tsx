@@ -559,6 +559,7 @@ export default function ChatCharacterPage() {
 
       {/* Input */}
       <div className="flex-shrink-0 border-t border-gray-800 bg-gray-900/95 backdrop-blur-sm px-4 py-3">
+        <div className="flex-1 flex flex-col">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -566,9 +567,10 @@ export default function ChatCharacterPage() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="メッセージを入力..."
+            placeholder="メッセージを入力... (Enter送信)"
+            maxLength={200}
             disabled={isSending || isGreeting}
-            className="flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 border border-gray-700"
+            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 border ${isSending ? 'border-purple-500' : 'border-gray-700'}`}
           />
           <button
             onClick={sendMessage}
@@ -580,6 +582,10 @@ export default function ChatCharacterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
+        </div>
+        <div className="text-xs text-gray-600 text-right mt-1 pr-12">
+          {inputText.length}/200
+        </div>
         </div>
       </div>
     </div>

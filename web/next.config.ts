@@ -10,10 +10,10 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {},
-  experimental: {
-    outputFileTracingRoot: '/home/openclaw/.openclaw/workspace/projects/aniva/web',
+  turbopack: {
+    root: '/home/openclaw/.openclaw/workspace/projects/aniva',
   },
+  outputFileTracingRoot: '/home/openclaw/.openclaw/workspace/projects/aniva',
 };
 
 export default pwaConfig(nextConfig);
