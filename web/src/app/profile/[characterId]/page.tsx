@@ -86,8 +86,8 @@ export default function ProfilePage() {
     const load = async () => {
       try {
         const [relRes, msRes] = await Promise.all([
-          fetch(`/api/relationship/${characterId}?userId=${userId}`),
-          fetch(`/api/relationship/${characterId}/milestones?userId=${userId}`),
+          fetch(`/api/relationship/${characterId}`),
+          fetch(`/api/relationship/${characterId}/milestones`),
         ]);
         const [relData, msData] = await Promise.all([relRes.json(), msRes.json()]);
         setRelationship(relData);

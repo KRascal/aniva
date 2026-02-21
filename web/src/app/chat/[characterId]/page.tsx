@@ -120,7 +120,7 @@ export default function ChatCharacterPage() {
     try {
       // Use combined endpoint to get both history and relationship info
       const res = await fetch(
-        `/api/chat/history-by-user?userId=${userId}&characterId=${characterId}&limit=50`
+        `/api/chat/history-by-user?characterId=${characterId}&limit=50`
       );
       const data = await res.json();
 
@@ -131,7 +131,7 @@ export default function ChatCharacterPage() {
       if (data.relationship) {
         setRelationshipId(data.relationship.id);
         // Also fetch the full relationship info for levelName etc.
-        const relRes = await fetch(`/api/relationship/${characterId}?userId=${userId}`);
+        const relRes = await fetch(`/api/relationship/${characterId}`);
         const relData = await relRes.json();
         setRelationship(relData);
       }
@@ -205,7 +205,7 @@ export default function ChatCharacterPage() {
       const res = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, characterId, message: text }),
+        body: JSON.stringify({ characterId, message: text }),
       });
 
       if (!res.ok) {
@@ -285,7 +285,7 @@ export default function ChatCharacterPage() {
       const res = await fetch('/api/chat/greet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, characterId }),
+        body: JSON.stringify({ characterId }),
       });
       const data = await res.json();
       if (data.message && !data.alreadyGreeted) {
