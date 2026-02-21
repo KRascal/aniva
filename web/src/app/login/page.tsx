@@ -2,6 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -69,6 +70,13 @@ export default function LoginPage() {
               Googleでログイン
             </button>
           </div>
+
+          <p className="mt-6 text-center text-sm text-gray-400">
+            アカウントをお持ちでない方は{' '}
+            <Link href="/signup" className="text-purple-400 hover:text-purple-300 underline">
+              新規登録
+            </Link>
+          </p>
         </div>
       </div>
     </div>

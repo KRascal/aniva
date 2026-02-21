@@ -1,9 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from './prisma';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function getAnthropicClient(): Anthropic {
+  return new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+}
 
 interface CharacterResponse {
   text: string;
@@ -51,7 +53,7 @@ export class CharacterEngine {
     const systemPrompt = this.buildSystemPrompt(character, relationship, memory);
     
     // 6. LLM呼び出し
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: systemPrompt,

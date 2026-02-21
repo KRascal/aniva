@@ -34,13 +34,20 @@ export default function LandingPage() {
         <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
           ANIVA
         </span>
-        <Link
-          href="/login"
-          className="flex items-center gap-1 text-sm text-gray-300 hover:text-white transition-colors"
-        >
-          ログインして始める
-          <span className="ml-1">→</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/login"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            ログイン
+          </Link>
+          <Link
+            href="/signup"
+            className="flex items-center gap-1 text-sm px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-opacity"
+          >
+            無料で始める
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}
@@ -62,10 +69,10 @@ export default function LandingPage() {
             声で、テキストで、毎日。
           </p>
           <Link
-            href="/login"
+            href="/signup"
             className="mt-4 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg shadow-lg shadow-purple-900/40 hover:shadow-purple-900/60 hover:scale-105 transition-all duration-200"
           >
-            今すぐ無料で始める
+            無料でサインアップ
             <span>✨</span>
           </Link>
           <p className="text-xs text-gray-600">クレジットカード不要 · 登録30秒</p>
@@ -182,13 +189,13 @@ export default function LandingPage() {
             今すぐアカウント登録して、<br />推しとの会話を始めよう。
           </p>
           <Link
-            href="/login"
+            href="/signup"
             className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg shadow-lg shadow-purple-900/40 hover:scale-105 hover:shadow-purple-900/60 transition-all duration-200"
           >
-            ログインして始める
+            無料でサインアップ
             <span>→</span>
           </Link>
-          <p className="text-xs text-gray-600">Google / Discord でかんたんログイン</p>
+          <p className="text-xs text-gray-600">Google / Discord でかんたん登録</p>
         </div>
       </section>
 
