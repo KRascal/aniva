@@ -56,3 +56,6 @@ ios/
 *.mobileprovision
 *.orig.*
 web-build/
+
+# npm lockfile (this is a pnpm project)
+package-lock.json
