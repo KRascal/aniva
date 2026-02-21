@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/lib/stripe';
+import { prisma } from '@/lib/prisma';
+import Stripe from 'stripe';
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const sig = req.headers.get('stripe-signature')!;
+  
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err) {
+    console.error('Webhook signature verification failed');
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+  
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.userId;
+      const plan = session.metadata?.plan as 'STANDARD' | 'PREMIUM';
+      
+      if (userId && plan) {
+        await prisma.subscription.create({
+          data: {
+            userId,
+            plan,
+            stripeSubscriptionId: session.subscription as string,
+            status: 'ACTIVE',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+        
+        await prisma.user.update({
+          where: { id: userId },
+          data: { plan },
+        });
+      }
+      break;
+    }
+    
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object as Stripe.Subscription;
+      await prisma.subscription.updateMany({
+        where: { stripeSubscriptionId: sub.id },
+        data: { status: 'CANCELED' },
+      });
+      
+      const dbSub = await prisma.subscription.findFirst({
+        where: { stripeSubscriptionId: sub.id },
+      });
+      if (dbSub) {
+        await prisma.user.update({
+          where: { id: dbSub.userId },
+          data: { plan: 'FREE' },
+        });
+      }
+      break;
+    }
+    
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (invoice.subscription) {
+        await prisma.subscription.updateMany({
+          where: { stripeSubscriptionId: invoice.subscription as string },
+          data: { status: 'PAST_DUE' },
+        });
+      }
+      break;
+    }
+  }
+  
+  return NextResponse.json({ received: true });
+}
