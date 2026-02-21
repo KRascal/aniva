@@ -102,6 +102,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 認証チェック（管理者操作のため必須）
+    const postSession = await auth();
+    const postUserId = (postSession?.user as any)?.id as string | undefined;
+    if (!postUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { characterId, type, content, mediaUrl, visibility, levelRequired, scheduledAt } = body;
 

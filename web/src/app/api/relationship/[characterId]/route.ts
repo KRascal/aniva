@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
+import { auth } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> }
 ) {
-  const { characterId } = await params;
-  const url = new URL(req.url);
-  const userId = url.searchParams.get('userId');
-
+  // 認証チェック（IDOR修正: userIdはセッションから取得）
+  const session = await auth();
+  const userId = (session?.user as any)?.id as string | undefined;
   if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const { characterId } = await params;
 
   const relationship = await prisma.relationship.findUnique({
     where: { userId_characterId: { userId, characterId } },

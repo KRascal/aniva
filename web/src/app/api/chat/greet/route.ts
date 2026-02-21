@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
+import { auth } from '@/lib/auth';
 
 // ルフィのデフォルトElevenLabs voice ID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
@@ -13,9 +14,16 @@ const LUFFY_GREETING = `やあ！俺はモンキー・D・ルフィ！海賊王�
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, characterId } = await req.json();
+    // 認証チェック（IDOR修正: userIdはセッションから取得）
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!userId || !characterId) {
+    const { characterId } = await req.json();
+
+    if (!characterId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 

@@ -2,12 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
+import { auth } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import path from 'path';
 
 // ルフィのデフォルトElevenLabs voice ID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
 
 export async function POST(request: NextRequest) {
   try {
+    // 認証チェック
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate Limit: 5req/min per user
+    const rl = checkRateLimit(`voice:${userId}`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+      );
+    }
+
     const body = await request.json();
     const { messageId, text, characterId } = body as {
       messageId: string;
@@ -20,6 +39,12 @@ export async function POST(request: NextRequest) {
         { error: 'messageId, text, characterId are required' },
         { status: 400 }
       );
+    }
+
+    // パストラバーサル対策: messageId をサニタイズ
+    const safeMessageId = path.basename(messageId).replace(/[^a-zA-Z0-9\-_]/g, '');
+    if (!safeMessageId) {
+      return NextResponse.json({ error: 'Invalid messageId' }, { status: 400 });
     }
 
     // VoiceEngineが利用不可（APIキーなし）の場合
@@ -45,7 +70,7 @@ export async function POST(request: NextRequest) {
     });
 
     // ファイル保存
-    const audioUrl = await audioStorage.save(messageId, audioBuffer);
+    const audioUrl = await audioStorage.save(safeMessageId, audioBuffer);
 
     // DBのMessageのaudioUrlを更新
     await prisma.message.update({
@@ -56,8 +81,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ audioUrl });
   } catch (error) {
     console.error('Voice generation error:', error);
+    // 内部エラー詳細はクライアントに返さない（H-6修正）
     return NextResponse.json(
-      { audioUrl: null, reason: 'error', error: String(error) },
+      { audioUrl: null, reason: 'voice_error' },
       { status: 500 }
     );
   }

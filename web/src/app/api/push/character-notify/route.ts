@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 webpush.setVapidDetails(
@@ -37,8 +37,14 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    // 内部シークレットトークン認証（cronジョブからのみ呼び出し可）
+    const token = req.headers.get('x-internal-secret');
+    if (!token || token !== process.env.INTERNAL_SECRET) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const timeOfDay = getTimeOfDay();
     const messageBody = pickRandom(LUFFY_PROACTIVE_MESSAGES[timeOfDay]);
 

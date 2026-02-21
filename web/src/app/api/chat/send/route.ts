@@ -1,13 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { characterEngine } from '@/lib/character-engine';
+import { auth } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, characterId, message } = await req.json();
+    // 認証チェック（IDOR修正: userIdはセッションから取得）
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!userId || !characterId || !message) {
+    // Rate Limit: 30req/min per user
+    const rl = checkRateLimit(`chat:${userId}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+      );
+    }
+
+    const { characterId, message } = await req.json();
+
+    if (!characterId || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // メッセージ長バリデーション
+    if (message.length > 2000) {
+      return NextResponse.json({ error: 'Message too long (max 2000 chars)' }, { status: 400 });
     }
 
     // 1. Relationship取得 or 作成
@@ -36,16 +59,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. ユーザーメッセージ保存
-    const userMsg = await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: 'USER',
-        content: message,
-      },
-    });
-
-    // 4. レート制限チェック（Free: 3msg/日）
+    // 3. デイリーレート制限チェック（Free: 3msg/日）—メッセージ保存前にチェック
     const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
     if (user.plan === 'FREE') {
       const today = new Date();
@@ -57,7 +71,7 @@ export async function POST(req: NextRequest) {
           createdAt: { gte: today },
         },
       });
-      if (todayMsgCount > 3) {
+      if (todayMsgCount >= 3) {
         return NextResponse.json({
           error: 'Daily message limit reached',
           limit: 3,
@@ -66,6 +80,15 @@ export async function POST(req: NextRequest) {
         }, { status: 429 });
       }
     }
+
+    // 4. ユーザーメッセージ保存（レート制限通過後）
+    const userMsg = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'USER',
+        content: message,
+      },
+    });
 
     // 5. Character Engine で応答生成
     const response = await characterEngine.generateResponse(

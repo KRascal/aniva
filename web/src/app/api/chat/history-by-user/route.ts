@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth';
 
 /**
- * GET /api/chat/history-by-user?userId=...&characterId=...&limit=50
- * Loads chat history for a user+character pair without needing the relationshipId.
+ * GET /api/chat/history-by-user?characterId=...&limit=50
+ * Loads chat history for the authenticated user + character pair.
  */
 export async function GET(req: NextRequest) {
   try {
+    // 認証チェック（IDOR修正: userIdはセッションから取得）
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const url = new URL(req.url);
-    const userId = url.searchParams.get('userId');
     const characterId = url.searchParams.get('characterId');
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const before = url.searchParams.get('before');
 
-    if (!userId || !characterId) {
-      return NextResponse.json({ error: 'userId and characterId are required' }, { status: 400 });
+    if (!characterId) {
+      return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
     }
 
     const relationship = await prisma.relationship.findUnique({
