@@ -106,12 +106,15 @@
 - [ ] 通知スケジューラ (朝・昼・夜)
 - **見積:** 3-4時間
 
-### 3.3 Relationship System [P0]
-- [ ] レベルアップロジック完成
-- [ ] レベル別キャラ態度変化
-- [ ] マイルストーン演出 (仲間宣言等)
-- [ ] 記念日トラッキング
+### 3.3 Relationship System [✅]
+- [x] レベルアップロジック完成（leveledUp検知 + API返却）
+- [x] レベルアップモーダル（LevelUpModal）
+- [x] マイルストーン演出 (仲間宣言等) — LUFFY_MILESTONES + /api/relationship/[characterId]/milestones
+- [x] 関係性プロフィール画面 (/profile/[characterId])
+- [ ] レベル別キャラ態度変化（将来対応）
+- [ ] 記念日トラッキング（将来対応）
 - **見積:** 3-4時間
+- **完了:** 2026-02-21 — commit 52c8dc3
 
 ### 3.4 First Experience (Onboarding) [P0]
 - [ ] 初回体験フロー (キャラが名前を聞く)
