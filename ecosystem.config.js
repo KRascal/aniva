@@ -9,6 +9,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: '3050',
+        AUTH_TRUST_HOST: '1',
       },
       max_memory_restart: '500M',
       restart_delay: 3000,
