@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+// @ts-ignore - no types for next-pwa
 import withPWA from "next-pwa";
 
 const pwaConfig = withPWA({
@@ -10,6 +11,7 @@ const pwaConfig = withPWA({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  turbopack: {},
 };
 
 export default pwaConfig(nextConfig);

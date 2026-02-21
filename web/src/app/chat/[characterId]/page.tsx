@@ -79,6 +79,9 @@ export default function ChatCharacterPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
 
+  // プッシュ通知用 state
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -310,6 +313,46 @@ export default function ChatCharacterPage() {
     }
   };
 
+  const handleSubscribePush = async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('このブラウザはプッシュ通知に対応していません');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('通知の許可が必要です');
+        return;
+      }
+
+      const sw = await navigator.serviceWorker.ready;
+      const existingSub = await sw.pushManager.getSubscription();
+      if (existingSub) {
+        setIsPushSubscribed(true);
+        return;
+      }
+
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+      const sub = await sw.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      });
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+
+      setIsPushSubscribed(true);
+      alert('ルフィからの通知をONにしました 🔔');
+    } catch (err) {
+      console.error('Push subscribe error:', err);
+      alert('通知の設定に失敗しました');
+    }
+  };
+
   if (status === 'loading' || isLoadingHistory) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -391,6 +434,16 @@ export default function ChatCharacterPage() {
           aria-label="絆プロフィール"
         >
           絆を見る
+        </button>
+
+        {/* Push通知ベルアイコン */}
+        <button
+          onClick={handleSubscribePush}
+          className="text-gray-400 hover:text-purple-400 transition-colors text-xl flex-shrink-0"
+          title={isPushSubscribed ? '通知ON' : '通知OFF'}
+          aria-label={isPushSubscribed ? '通知ON' : '通知をONにする'}
+        >
+          {isPushSubscribed ? '🔔' : '🔕'}
         </button>
 
         {/* Emotion indicator in header */}
