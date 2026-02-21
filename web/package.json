@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:api": "playwright test tests/api/"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -33,6 +35,7 @@
     "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^20",
     "@types/react": "^19",
