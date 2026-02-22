@@ -8,9 +8,10 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isAuthPage = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup');
   const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth');
+  const isHealthCheck = req.nextUrl.pathname === '/api/health';
   const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about';
 
-  if (isApiAuth || isPublicPage) {
+  if (isApiAuth || isPublicPage || isHealthCheck) {
     return NextResponse.next();
   }
 
