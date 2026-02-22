@@ -1,7 +1,8 @@
-import Replicate from 'replicate';
+import { fal } from "@fal-ai/client";
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
+// Configure fal.ai with FAL_KEY from environment
+fal.config({
+  credentials: process.env.FAL_KEY,
 });
 
 interface ImageGenerationOptions {
@@ -57,28 +58,17 @@ export class ImageEngine {
     ].filter(Boolean).join(', ');
     
     try {
-      // Using Flux (via Replicate) for anime-style generation
-      const output = await replicate.run(
-        'black-forest-labs/flux-1.1-pro',
-        {
-          input: {
-            prompt: fullPrompt,
-            num_outputs: 1,
-            aspect_ratio: '1:1',
-            output_format: 'webp',
-            output_quality: 90,
-            safety_tolerance: 2,
-            prompt_upsampling: true,
-          },
-        }
-      );
+      // Using Flux 1.1 Pro via fal.ai
+      const result = await fal.subscribe("fal-ai/flux-pro/v1.1", {
+        input: {
+          prompt: fullPrompt,
+          image_size: "square_hd",
+        },
+      });
       
-      // output is typically an array of URLs
-      if (Array.isArray(output) && output.length > 0) {
-        return output[0] as string;
-      }
-      if (typeof output === 'string') {
-        return output;
+      const imageUrl = result.data?.images?.[0]?.url;
+      if (imageUrl) {
+        return imageUrl;
       }
       
       return null;

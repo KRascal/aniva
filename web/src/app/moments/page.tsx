@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -24,6 +24,8 @@ interface Moment {
   isLocked: boolean;
 }
 
+/* ────────────────────────────────── helpers ── */
+
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const seconds = Math.floor(diff / 1000);
@@ -37,23 +39,169 @@ function relativeTime(dateStr: string): string {
   return 'たった今';
 }
 
-function Avatar({ character }: { character: MomentCharacter }) {
-  if (character.avatarUrl) {
-    return (
-      <img
-        src={character.avatarUrl}
-        alt={character.name}
-        className="w-10 h-10 rounded-full object-cover"
-      />
-    );
-  }
+function fullDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/* ── Avatar ── */
+function Avatar({
+  character,
+  size = 'md',
+  ring = false,
+  online = false,
+}: {
+  character: MomentCharacter;
+  size?: 'sm' | 'md' | 'lg';
+  ring?: boolean;
+  online?: boolean;
+}) {
+  const sizeClass = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-14 h-14 text-base' : 'w-10 h-10 text-sm';
+  const ringClass = ring ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-gray-900' : '';
+
   return (
-    <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">
-      {character.name.charAt(0)}
+    <div className={`relative flex-shrink-0 ${sizeClass}`}>
+      <div className={`${sizeClass} rounded-full overflow-hidden ${ringClass}`}>
+        {character.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
+            {character.name.charAt(0)}
+          </div>
+        )}
+      </div>
+      {online && (
+        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full ring-2 ring-gray-900" />
+      )}
     </div>
   );
 }
 
+/* ── Stories Bar ── */
+function StoriesBar({ moments }: { moments: Moment[] }) {
+  // deduplicate by character
+  const seen = new Set<string>();
+  const characters: MomentCharacter[] = [];
+  for (const m of moments) {
+    if (!seen.has(m.characterId)) {
+      seen.add(m.characterId);
+      characters.push(m.character);
+    }
+  }
+
+  if (characters.length === 0) return null;
+
+  return (
+    <div className="sticky top-[57px] z-10 bg-gray-950/80 backdrop-blur-xl border-b border-white/5 -mx-4 px-4">
+      <div className="flex gap-4 overflow-x-auto py-3 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {characters.map((char, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+            {/* Ring gradient animation */}
+            <div className="relative p-0.5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500">
+              <div className="bg-gray-950 rounded-full p-0.5">
+                <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
+                  {char.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                      {char.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <span className="text-white/60 text-[10px] text-center w-14 truncate">{char.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Floating Hearts animation ── */
+interface FloatingHeart {
+  id: number;
+  x: number;
+}
+
+function FloatingHearts({ hearts }: { hearts: FloatingHeart[] }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {hearts.map((h) => (
+        <div
+          key={h.id}
+          className="absolute text-red-400 text-lg"
+          style={{
+            left: h.x,
+            bottom: 24,
+            animation: 'floatHeart 1.2s ease-out forwards',
+          }}
+        >
+          ❤️
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Media placeholder ── */
+function MediaPlaceholder({ type, mediaUrl }: { type: string; mediaUrl: string | null }) {
+  if (type === 'IMAGE') {
+    if (mediaUrl) {
+      return (
+        <div className="rounded-2xl overflow-hidden mb-3 bg-gray-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mediaUrl} alt="" className="w-full max-h-72 object-cover" />
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-2xl overflow-hidden mb-3 bg-gradient-to-br from-gray-800 to-gray-750 flex flex-col items-center justify-center h-40 border border-white/5">
+        <div className="text-4xl mb-2">🖼️</div>
+        <p className="text-white/30 text-xs">画像を準備中…</p>
+      </div>
+    );
+  }
+
+  if (type === 'AUDIO' || type === 'VOICE') {
+    return (
+      <div className="rounded-2xl mb-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-500/20 p-4">
+        <div className="flex items-center gap-3">
+          {/* Play button */}
+          <button className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0 hover:scale-105 transition-transform">
+            <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+          {/* Waveform bars */}
+          <div className="flex items-center gap-0.5 flex-1">
+            {Array.from({ length: 28 }).map((_, i) => {
+              const h = [20, 35, 50, 65, 45, 70, 55, 30, 60, 80, 45, 65, 35, 55, 75, 40, 60, 50, 70, 35, 55, 65, 45, 30, 55, 70, 40, 25][i] ?? 30;
+              return (
+                <div
+                  key={i}
+                  className="w-1 rounded-full bg-gradient-to-t from-purple-500 to-pink-400"
+                  style={{ height: `${h}%`, minHeight: 3, maxHeight: 28 }}
+                />
+              );
+            })}
+          </div>
+          <span className="text-white/40 text-xs flex-shrink-0">0:30</span>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+/* ── Moment Card ── */
 function MomentCard({
   moment,
   onLike,
@@ -61,73 +209,175 @@ function MomentCard({
   moment: Moment;
   onLike: (id: string) => void;
 }) {
+  const [hearts, setHearts] = useState<FloatingHeart[]>([]);
+  const [bouncing, setBouncing] = useState(false);
+  const likeRef = useRef<HTMLButtonElement>(null);
+
+  const handleLike = () => {
+    onLike(moment.id);
+    // Float hearts
+    const newHeart: FloatingHeart = {
+      id: Date.now(),
+      x: Math.random() * 40 - 10,
+    };
+    setHearts((prev) => [...prev, newHeart]);
+    setTimeout(() => setHearts((prev) => prev.filter((h) => h.id !== newHeart.id)), 1300);
+    // Bounce icon
+    setBouncing(true);
+    setTimeout(() => setBouncing(false), 400);
+  };
+
   return (
-    <div className="bg-gray-800/60 hover:bg-gray-800/80 transition-colors rounded-2xl p-4 border border-gray-700/50">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-3">
-        <Avatar character={moment.character} />
-        <div>
-          <p className="font-semibold text-white text-sm">{moment.character.name}</p>
-          <p className="text-gray-400 text-xs">{relativeTime(moment.publishedAt)}</p>
+    <div className="bg-gray-900/70 backdrop-blur-sm border border-white/6 rounded-3xl overflow-hidden shadow-lg hover:border-white/12 transition-colors">
+      {/* Instagram-style header */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+        <Avatar character={moment.character} ring online />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-white text-sm leading-tight">{moment.character.name}</p>
+          <p className="text-white/40 text-xs" title={fullDateTime(moment.publishedAt)}>
+            {relativeTime(moment.publishedAt)}
+          </p>
         </div>
+        {/* kebab */}
+        <button className="text-white/30 hover:text-white/60 transition-colors px-1">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+          </svg>
+        </button>
       </div>
 
+      {/* Visibility badge */}
+      {!moment.isLocked && moment.visibility === 'STANDARD' && (
+        <div className="px-4 mb-2">
+          <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
+            ⭐ STANDARDメンバー限定
+          </span>
+        </div>
+      )}
+      {!moment.isLocked && moment.visibility === 'PREMIUM' && (
+        <div className="px-4 mb-2">
+          <span className="inline-flex items-center gap-1 bg-yellow-500/15 text-yellow-300 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/20">
+            👑 PREMIUMメンバー限定
+          </span>
+        </div>
+      )}
+
       {/* Content */}
-      {moment.isLocked ? (
-        <div className="relative mb-3">
-          <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none">
-            ロックされたコンテンツです。レベルを上げて解放しましょう！
-          </p>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-gray-900/80 rounded-xl px-4 py-2 flex items-center gap-2">
-              <span className="text-lg">🔒</span>
-              <span className="text-white text-xs font-medium">
-                レベル{moment.levelRequired}以上で解放
-              </span>
+      <div className="px-4 pb-1">
+        {moment.isLocked ? (
+          <div className="relative rounded-2xl overflow-hidden mb-3">
+            <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
+              ロックされたコンテンツです。レベルを上げることで解放されます。もう少し頑張ってみてください！
+            </p>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-[2px]">
+              <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl">
+                <span className="text-2xl">🔒</span>
+                <div>
+                  <p className="text-white text-xs font-semibold">まだ見られません</p>
+                  <p className="text-white/50 text-[10px]">レベル {moment.levelRequired} 以上で解放</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        moment.content && (
-          <p className="text-gray-200 text-sm leading-relaxed mb-3">{moment.content}</p>
-        )
-      )}
+        ) : (
+          <>
+            {/* Media */}
+            {(moment.type === 'IMAGE' || moment.type === 'AUDIO' || moment.type === 'VOICE') && (
+              <MediaPlaceholder type={moment.type} mediaUrl={moment.mediaUrl} />
+            )}
+            {/* Text */}
+            {moment.content && (
+              <p className="text-gray-100 text-sm leading-relaxed mb-3">{moment.content}</p>
+            )}
+          </>
+        )}
+      </div>
 
-      {/* Visibility badge */}
-      {moment.visibility === 'STANDARD' && !moment.isLocked && (
-        <span className="inline-block bg-blue-600/30 text-blue-300 text-xs px-2 py-0.5 rounded-full mb-3">
-          STANDARDメンバー限定
-        </span>
-      )}
-      {moment.visibility === 'PREMIUM' && !moment.isLocked && (
-        <span className="inline-block bg-yellow-600/30 text-yellow-300 text-xs px-2 py-0.5 rounded-full mb-3">
-          PREMIUMメンバー限定
-        </span>
-      )}
+      {/* Divider */}
+      <div className="h-px bg-white/5 mx-4" />
 
       {/* Actions */}
-      <div className="flex items-center justify-between mt-2">
-        <button
-          onClick={() => onLike(moment.id)}
-          className="flex items-center gap-1.5 text-sm transition-transform active:scale-110"
-        >
-          <span className={moment.userHasLiked ? 'text-red-400' : 'text-gray-400'}>
-            {moment.userHasLiked ? '❤️' : '🤍'}
-          </span>
-          <span className="text-gray-400">{moment.reactionCount}</span>
-        </button>
+      <div className="relative flex items-center justify-between px-4 py-3">
+        {/* Floating hearts container */}
+        <FloatingHearts hearts={hearts} />
 
-        <Link
-          href={`/chat/${moment.characterId}`}
-          className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
-        >
-          <span>💬</span>
-          <span>チャットで話す</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          {/* Like */}
+          <button
+            ref={likeRef}
+            onClick={handleLike}
+            className="flex items-center gap-1.5 group"
+          >
+            <span
+              className={`text-xl transition-transform duration-150 ${bouncing ? 'scale-150' : 'scale-100'}`}
+              style={{ display: 'inline-block' }}
+            >
+              {moment.userHasLiked ? '❤️' : '🤍'}
+            </span>
+            <span className={`text-sm font-medium transition-colors ${moment.userHasLiked ? 'text-red-400' : 'text-white/40 group-hover:text-white/60'}`}>
+              {moment.reactionCount > 0 ? moment.reactionCount.toLocaleString() : ''}
+            </span>
+          </button>
+
+          {/* Comment */}
+          <Link
+            href={`/chat/${moment.characterId}`}
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span className="text-xs">チャット</span>
+          </Link>
+        </div>
+
+        {/* Share */}
+        <button className="text-white/30 hover:text-white/60 transition-colors">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
+          </svg>
+        </button>
       </div>
     </div>
   );
 }
+
+/* ── Pull-to-refresh indicator ── */
+function RefreshIndicator({ visible, spinning }: { visible: boolean; spinning: boolean }) {
+  return (
+    <div
+      className="flex items-center justify-center gap-2 overflow-hidden transition-all duration-300"
+      style={{ height: visible ? 44 : 0, opacity: visible ? 1 : 0 }}
+    >
+      <div className={`w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full ${spinning ? 'animate-spin' : ''}`} />
+      <span className="text-purple-400 text-xs font-medium">
+        {spinning ? '更新中…' : '↓ 引いて更新'}
+      </span>
+    </div>
+  );
+}
+
+/* ── skeleton card ── */
+function SkeletonCard() {
+  return (
+    <div className="bg-gray-900/70 border border-white/6 rounded-3xl overflow-hidden animate-pulse">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+        <div className="w-10 h-10 rounded-full bg-gray-700" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3 bg-gray-700 rounded-full w-24" />
+          <div className="h-2.5 bg-gray-800 rounded-full w-16" />
+        </div>
+      </div>
+      <div className="px-4 pb-4 space-y-2">
+        <div className="h-3 bg-gray-700 rounded-full w-full" />
+        <div className="h-3 bg-gray-700 rounded-full w-4/5" />
+        <div className="h-3 bg-gray-800 rounded-full w-3/5" />
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────── page ── */
 
 export default function MomentsPage() {
   const { data: session } = useSession();
@@ -135,8 +385,14 @@ export default function MomentsPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
+
+  // touch pull-to-refresh state
+  const touchStartY = useRef<number | null>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   const fetchMoments = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
@@ -158,6 +414,41 @@ export default function MomentsPage() {
     });
   }, [fetchMoments]);
 
+  /* pull-to-refresh */
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setShowRefreshHint(true);
+    const data = await fetchMoments();
+    if (data) {
+      setMoments(data.moments);
+      setNextCursor(data.nextCursor);
+    }
+    setRefreshing(false);
+    setTimeout(() => setShowRefreshHint(false), 300);
+  }, [refreshing, fetchMoments]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (mainRef.current?.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 60 && !refreshing) {
+      setShowRefreshHint(true);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (showRefreshHint && !refreshing) {
+      handleRefresh();
+    }
+    touchStartY.current = null;
+  };
+
   const handleLoadMore = async () => {
     if (!nextCursor) return;
     setLoadingMore(true);
@@ -172,16 +463,11 @@ export default function MomentsPage() {
   const handleLike = async (momentId: string) => {
     if (!session?.user) return;
 
-    // Optimistic update
     setMoments((prev) =>
       prev.map((m) => {
         if (m.id !== momentId) return m;
         const liked = !m.userHasLiked;
-        return {
-          ...m,
-          userHasLiked: liked,
-          reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1,
-        };
+        return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
       })
     );
 
@@ -193,24 +479,16 @@ export default function MomentsPage() {
       });
       if (res.ok) {
         const { liked, reactionCount } = await res.json();
-        // Sync with server
         setMoments((prev) =>
-          prev.map((m) =>
-            m.id === momentId ? { ...m, userHasLiked: liked, reactionCount } : m
-          )
+          prev.map((m) => (m.id === momentId ? { ...m, userHasLiked: liked, reactionCount } : m))
         );
       }
     } catch {
-      // Revert optimistic update on error
       setMoments((prev) =>
         prev.map((m) => {
           if (m.id !== momentId) return m;
           const liked = !m.userHasLiked;
-          return {
-            ...m,
-            userHasLiked: liked,
-            reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1,
-          };
+          return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
         })
       );
     }
@@ -224,7 +502,6 @@ export default function MomentsPage() {
       const data = await res.json();
       if (res.ok) {
         setSeedMessage(`✅ ${data.message}`);
-        // Reload moments
         const fresh = await fetchMoments();
         if (fresh) {
           setMoments(fresh.moments);
@@ -240,77 +517,138 @@ export default function MomentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-gray-900/90 backdrop-blur border-b border-gray-800">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-white">タイムライン</h1>
-          <div className="flex gap-3">
-            <Link
-              href="/chat"
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              💬 チャット
-            </Link>
-          </div>
-        </div>
-      </header>
+    <>
+      {/* keyframes for floating hearts */}
+      <style>{`
+        @keyframes floatHeart {
+          0%   { transform: translateY(0) scale(1);   opacity: 1; }
+          60%  { transform: translateY(-60px) scale(1.3); opacity: 0.9; }
+          100% { transform: translateY(-100px) scale(0.8); opacity: 0; }
+        }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+      `}</style>
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-3">
-        {/* DEV seed banner */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div className="bg-gray-800 border border-yellow-600/40 rounded-xl p-3 flex items-center justify-between gap-3">
-            <span className="text-yellow-400 text-xs">🔧 開発モード</span>
+      <div className="min-h-screen bg-gray-950">
+        {/* Ambient blobs */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-purple-700/15 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-pink-700/10 blur-3xl" />
+        </div>
+
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {seedMessage && (
-                <span className="text-xs text-gray-300">{seedMessage}</span>
+              <h1 className="text-lg font-bold text-white">タイムライン</h1>
+              {/* Unread dot */}
+              {moments.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
               )}
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Refresh button */}
               <button
-                onClick={handleSeed}
-                disabled={seeding}
-                className="text-xs bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
               >
-                {seeding ? '投入中...' : '🔧 DEV: サンプルデータ投入'}
+                <svg
+                  className={`w-4 h-4 text-white/60 ${refreshing ? 'animate-spin' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
               </button>
+              <Link
+                href="/chat"
+                className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full"
+              >
+                <span>💬</span>
+                <span>チャット</span>
+              </Link>
             </div>
           </div>
-        )}
+        </header>
 
-        {/* Feed */}
-        {loading ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="text-3xl mb-2">⏳</div>
-            <p className="text-sm">読み込み中...</p>
-          </div>
-        ) : moments.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="text-4xl mb-3">📭</div>
-            <p className="text-sm">まだ投稿がありません</p>
-            <p className="text-xs mt-1 text-gray-500">
-              開発中バナーの「サンプルデータ投入」を試してみてください
-            </p>
-          </div>
-        ) : (
-          <>
-            {moments.map((moment) => (
-              <MomentCard key={moment.id} moment={moment} onLike={handleLike} />
-            ))}
+        {/* Stories bar */}
+        {!loading && moments.length > 0 && <StoriesBar moments={moments} />}
 
-            {nextCursor && (
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="w-full py-3 text-sm text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-800 rounded-2xl transition-colors disabled:opacity-50"
-              >
-                {loadingMore ? '読み込み中...' : 'もっと見る'}
-              </button>
-            )}
-          </>
-        )}
-      </main>
+        <main
+          ref={mainRef}
+          className="relative z-10 max-w-lg mx-auto px-4 py-4 space-y-4"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Pull-to-refresh indicator */}
+          <RefreshIndicator visible={showRefreshHint} spinning={refreshing} />
 
-      {/* Bottom padding for mobile */}
-      <div className="h-8" />
-    </div>
+          {/* DEV seed banner */}
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="bg-gray-800/80 border border-yellow-500/30 rounded-2xl p-3 flex items-center justify-between gap-3">
+              <span className="text-yellow-400 text-xs font-mono">🔧 DEV</span>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {seedMessage && (
+                  <span className="text-xs text-gray-300">{seedMessage}</span>
+                )}
+                <button
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="text-xs bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  {seeding ? '投入中…' : 'サンプルデータ投入'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Feed */}
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : moments.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="relative inline-block mb-4">
+                <div className="text-6xl">📭</div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-700 rounded-full animate-pulse" />
+              </div>
+              <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
+              <p className="text-white/25 text-xs mt-1">
+                「DEVサンプルデータ投入」で試してみよう
+              </p>
+            </div>
+          ) : (
+            <>
+              {moments.map((moment) => (
+                <MomentCard key={moment.id} moment={moment} onLike={handleLike} />
+              ))}
+
+              {nextCursor && (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="w-full py-3.5 text-sm text-white/40 hover:text-white/70 bg-gray-900/50 hover:bg-gray-900/80 rounded-2xl transition-all disabled:opacity-50 border border-white/5"
+                >
+                  {loadingMore ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      読み込み中…
+                    </span>
+                  ) : (
+                    'もっと見る ↓'
+                  )}
+                </button>
+              )}
+            </>
+          )}
+        </main>
+
+        <div className="h-10" />
+      </div>
+    </>
   );
 }

@@ -11,13 +11,50 @@ import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 
+/* ─────────────── 共通スタイル（keyframes） ─────────────── */
+const GLOBAL_STYLES = `
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sendBounce {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(0.82); }
+    60%  { transform: scale(1.18); }
+    80%  { transform: scale(0.94); }
+    100% { transform: scale(1); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+    50%       { box-shadow: 0 0 16px 4px rgba(168,85,247,0.55); }
+  }
+  @keyframes viewerSlide {
+    from { opacity: 0; max-height: 0; }
+    to   { opacity: 1; max-height: 340px; }
+  }
+  @keyframes audioSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .msg-animate   { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
+  .send-bounce   { animation: sendBounce 0.38s ease-out; }
+  .send-glow     { animation: glowPulse 1.6s ease-in-out infinite; }
+  .viewer-slide  { animation: viewerSlide 0.3s ease-out; }
+  .audio-spin    { animation: audioSpin 1.4s linear infinite; }
+  /* Thin custom scrollbar */
+  .chat-scroll::-webkit-scrollbar { width: 4px; }
+  .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+  .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+`;
+
+/* ─────────────── 型定義 ─────────────── */
 interface Message {
   id: string;
   role: 'USER' | 'CHARACTER';
   content: string;
   metadata?: { emotion?: string };
   createdAt: string;
-  audioUrl?: string | null; // undefined = loading, null = unavailable, string = ready
+  audioUrl?: string | null;
 }
 
 interface RelationshipInfo {
@@ -53,12 +90,58 @@ function getEmotionEmoji(emotion?: string): string {
   return EMOTION_EMOJI[emotion] || '';
 }
 
+/* ─────────────── ミニ音声プレーヤー ─────────────── */
+function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
+  audioUrl: string;
+  messageId: string;
+  playingId: string | null;
+  onToggle: (id: string, url: string) => void;
+}) {
+  const isPlaying = playingId === messageId;
+  return (
+    <button
+      onClick={() => onToggle(messageId, audioUrl)}
+      className={`mt-2 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none ${
+        isPlaying
+          ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+          : 'bg-gray-700/60 text-gray-400 border border-gray-600/40 hover:bg-gray-600/60 hover:text-gray-200'
+      }`}
+      aria-label={isPlaying ? '停止' : '音声を再生'}
+    >
+      {isPlaying ? (
+        <>
+          {/* 音符アイコン（回転） */}
+          <span className="text-purple-400 audio-spin inline-block">♪</span>
+          <span>停止</span>
+          {/* 波形バー */}
+          <span className="flex items-end gap-0.5 h-3">
+            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '40%', animationDelay: '0ms' }} />
+            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '100%', animationDelay: '100ms' }} />
+            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '60%', animationDelay: '200ms' }} />
+            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '80%', animationDelay: '50ms' }} />
+          </span>
+        </>
+      ) : (
+        <>
+          {/* 再生アイコン */}
+          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span>音声を再生</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+/* ─────────────── メインページ ─────────────── */
 export default function ChatCharacterPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const characterId = params.characterId as string;
 
+  /* ── 既存 state（変更なし） ── */
   const [character, setCharacter] = useState<Character | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [relationship, setRelationship] = useState<RelationshipInfo | null>(null);
@@ -68,79 +151,80 @@ export default function ChatCharacterPage() {
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-
-  // レベルアップモーダル用 state
-  const [levelUpData, setLevelUpData] = useState<{
-    newLevel: number;
-    milestone?: Milestone;
-  } | null>(null);
-
-  // オンボーディング用 state
+  const [levelUpData, setLevelUpData] = useState<{ newLevel: number; milestone?: Milestone } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
-
-  // プッシュ通知用 state
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
 
+  /* ── 新規 UI state ── */
+  const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
+  const [isSendBouncing, setIsSendBouncing] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+
+  /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Redirect if not authenticated
+  /* ─────────── 音声ミニプレーヤー制御 ─────────── */
+  const handleAudioToggle = useCallback((messageId: string, audioUrl: string) => {
+    if (playingAudioId === messageId) {
+      // 同じメッセージ → 停止
+      audioRef.current?.pause();
+      setPlayingAudioId(null);
+    } else {
+      // 別メッセージ → 切り替え
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setPlayingAudioId(null);
+      audio.play().catch(() => setPlayingAudioId(null));
+      setPlayingAudioId(messageId);
+    }
+  }, [playingAudioId]);
+
+  // ページ離脱時に音声停止
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  /* ─────────── 既存ロジック（変更なし） ─────────── */
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
 
-  // Get userId from session
   useEffect(() => {
     if (session?.user) {
       const user = session.user as { id?: string; email?: string };
-      if (user.id) {
-        setUserId(user.id);
-      }
+      if (user.id) setUserId(user.id);
     }
   }, [session]);
 
-  // Load character info
   useEffect(() => {
     if (!characterId) return;
     fetch(`/api/characters/id/${characterId}`)
       .then((res) => res.json())
-      .then((data) => {
-        if (data.character) setCharacter(data.character);
-      })
+      .then((data) => { if (data.character) setCharacter(data.character); })
       .catch(console.error);
   }, [characterId]);
 
-  // Load relationship + chat history
   const loadRelationshipAndHistory = useCallback(async () => {
     if (!userId || !characterId) return;
-
     try {
-      // Use combined endpoint to get both history and relationship info
-      const res = await fetch(
-        `/api/chat/history-by-user?characterId=${characterId}&limit=50`
-      );
+      const res = await fetch(`/api/chat/history-by-user?characterId=${characterId}&limit=50`);
       const data = await res.json();
-
-      if (data.messages) {
-        setMessages(data.messages);
-      }
-
+      if (data.messages) setMessages(data.messages);
       if (data.relationship) {
         setRelationshipId(data.relationship.id);
-        // Also fetch the full relationship info for levelName etc.
         const relRes = await fetch(`/api/relationship/${characterId}`);
         const relData = await relRes.json();
         setRelationship(relData);
       }
-
-      // totalMessages=0 または未ログ → オンボーディング表示
-      if (!data.relationship || data.messages?.length === 0) {
-        setShowOnboarding(true);
-      }
-
+      if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
       setIsLoadingHistory(false);
     } catch (err) {
       console.error('Failed to load relationship:', err);
@@ -149,12 +233,9 @@ export default function ChatCharacterPage() {
   }, [userId, characterId]);
 
   useEffect(() => {
-    if (userId && characterId) {
-      loadRelationshipAndHistory();
-    }
+    if (userId && characterId) loadRelationshipAndHistory();
   }, [userId, characterId, loadRelationshipAndHistory]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
@@ -168,31 +249,21 @@ export default function ChatCharacterPage() {
       });
       const data = await res.json();
       if (data.audioUrl) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? { ...m, audioUrl: data.audioUrl } : m))
-        );
+        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: data.audioUrl } : m));
       } else {
-        // voice_unavailable or error → mark as null so spinner goes away
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? { ...m, audioUrl: null } : m))
-        );
+        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
       }
     } catch {
-      // 音声生成失敗はサイレント（チャット自体は続行）
-      setMessages((prev) =>
-        prev.map((m) => (m.id === messageId ? { ...m, audioUrl: null } : m))
-      );
+      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
     }
   };
 
   const sendMessage = async () => {
     if (!inputText.trim() || isSending || !userId) return;
-
     const text = inputText.trim();
     setInputText('');
     setIsSending(true);
 
-    // Optimistically add user message
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       role: 'USER',
@@ -211,7 +282,6 @@ export default function ChatCharacterPage() {
       if (!res.ok) {
         const errData = await res.json();
         if (res.status === 429) {
-          // Rate limit hit
           const errMsg: Message = {
             id: `err-${Date.now()}`,
             role: 'CHARACTER',
@@ -225,8 +295,6 @@ export default function ChatCharacterPage() {
       }
 
       const data = await res.json();
-
-      // Replace temp message with real ones
       const characterMsg: Message = data.characterMessage
         ? { ...data.characterMessage, audioUrl: undefined }
         : data.characterMessage;
@@ -236,41 +304,27 @@ export default function ChatCharacterPage() {
         characterMsg,
       ]);
 
-      // Update emotion from character's latest response
       if (data.characterMessage?.metadata?.emotion) {
         setCurrentEmotion(data.characterMessage.metadata.emotion);
       }
 
-      // 非同期で音声生成（UIをブロックしない）
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
-        generateVoiceForMessage(
-          data.characterMessage.id,
-          data.characterMessage.content,
-          characterId
-        );
+        generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
 
-      // Update relationship info & レベルアップ判定
       if (data.relationship) {
         setRelationship((prev) => ({
           ...(prev || { levelName: '', xp: 0, nextLevelXp: null, totalMessages: 0 }),
           level: data.relationship.level,
           xp: data.relationship.xp,
         }));
-
         if (data.relationship.leveledUp && data.relationship.newLevel) {
-          const milestone = LUFFY_MILESTONES.find(
-            (m) => m.level === data.relationship.newLevel
-          );
-          setLevelUpData({
-            newLevel: data.relationship.newLevel,
-            milestone,
-          });
+          const milestone = LUFFY_MILESTONES.find((m) => m.level === data.relationship.newLevel);
+          setLevelUpData({ newLevel: data.relationship.newLevel, milestone });
         }
       }
     } catch (err) {
       console.error('Send message error:', err);
-      // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setIsSending(false);
@@ -278,6 +332,48 @@ export default function ChatCharacterPage() {
     }
   };
 
+  /* ── 送信ボタンクリック（バウンスアニメ付き） ── */
+  const handleSendClick = () => {
+    if (!inputText.trim() || isSending || isGreeting) return;
+    setIsSendBouncing(true);
+    setTimeout(() => setIsSendBouncing(false), 400);
+    sendMessage();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendClick();
+    }
+  };
+
+  const handleSubscribePush = async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('このブラウザはプッシュ通知に対応していません');
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { alert('通知の許可が必要です'); return; }
+      const sw = await navigator.serviceWorker.ready;
+      const existingSub = await sw.pushManager.getSubscription();
+      if (existingSub) { setIsPushSubscribed(true); return; }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+      const sub = await sw.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      setIsPushSubscribed(true);
+      alert('ルフィからの通知をONにしました 🔔');
+    } catch (err) {
+      console.error('Push subscribe error:', err);
+      alert('通知の設定に失敗しました');
+    }
+  };
+
+  /* ─────────── handleStartChat ─────────── */
   const handleStartChat = async () => {
     setShowOnboarding(false);
     setIsGreeting(true);
@@ -290,12 +386,9 @@ export default function ChatCharacterPage() {
       const data = await res.json();
       if (data.message && !data.alreadyGreeted) {
         setMessages([data.message]);
-        // 音声生成（非同期 - APIが返した audioUrl をすぐ反映）
         if (data.audioUrl) {
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === data.message.id ? { ...m, audioUrl: data.audioUrl } : m
-            )
+            prev.map((m) => m.id === data.message.id ? { ...m, audioUrl: data.audioUrl } : m)
           );
         }
       }
@@ -306,72 +399,31 @@ export default function ChatCharacterPage() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const handleSubscribePush = async () => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      alert('このブラウザはプッシュ通知に対応していません');
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        alert('通知の許可が必要です');
-        return;
-      }
-
-      const sw = await navigator.serviceWorker.ready;
-      const existingSub = await sw.pushManager.getSubscription();
-      if (existingSub) {
-        setIsPushSubscribed(true);
-        return;
-      }
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-      const sub = await sw.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
-      });
-
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-      });
-
-      setIsPushSubscribed(true);
-      alert('ルフィからの通知をONにしました 🔔');
-    } catch (err) {
-      console.error('Push subscribe error:', err);
-      alert('通知の設定に失敗しました');
-    }
-  };
-
   if (status === 'loading' || isLoadingHistory) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-white text-lg animate-pulse">読み込み中...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+          <p className="text-gray-400 text-sm animate-pulse">読み込み中...</p>
+        </div>
       </div>
     );
   }
 
   const level = relationship?.level ?? 1;
-  const stars = '⭐'.repeat(Math.min(level, 5));
+  // ⭐ の数は最大5個、レベルに応じて比例
+  const starCount = Math.max(1, Math.min(5, Math.ceil(level / 2)));
+  const stars = '⭐'.repeat(starCount);
+  const hasInput = inputText.length > 0;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 max-w-lg mx-auto">
+    <div className="flex flex-col h-screen bg-gray-900 max-w-lg mx-auto relative">
+      {/* グローバルスタイル */}
+      <style>{GLOBAL_STYLES}</style>
+
       {/* オンボーディングオーバーレイ */}
       {showOnboarding && character && (
-        <OnboardingOverlay
-          character={character}
-          onStart={handleStartChat}
-        />
+        <OnboardingOverlay character={character} onStart={handleStartChat} />
       )}
 
       {/* レベルアップモーダル */}
@@ -384,170 +436,212 @@ export default function ChatCharacterPage() {
         />
       )}
 
-      {/* Header */}
-      <header className="flex-shrink-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center gap-3">
+      {/* ══════════════ ヘッダー ══════════════ */}
+      <header className="flex-shrink-0 bg-gray-900/95 backdrop-blur-md border-b border-gray-800/80 px-3 py-2.5 flex items-center gap-2.5 z-10">
+        {/* 戻るボタン */}
         <button
           onClick={() => router.push('/chat')}
-          className="text-gray-400 hover:text-white transition-colors p-1 -ml-1"
+          className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0"
           aria-label="戻る"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
-          {character?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={character.avatarUrl}
-              alt={character.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-xl">🏴‍☠️</span>
-          )}
-        </div>
-
-        {/* Name + level (クリックでプロフィールへ) */}
+        {/* アバター（タップでキャラ詳細） */}
         <button
-          className="flex-1 min-w-0 text-left"
           onClick={() => router.push(`/profile/${characterId}`)}
-          aria-label="絆プロフィールを見る"
+          className="flex-shrink-0 relative"
+          aria-label="キャラクタープロフィール"
         >
-          <h1 className="text-white font-bold leading-tight truncate hover:text-purple-300 transition-colors">
-            {character?.name ?? 'キャラクター'}
-          </h1>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-yellow-400">{stars}</span>
-            {relationship?.levelName && (
-              <span className="text-xs text-gray-400">Lv.{level} {relationship.levelName}</span>
+          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
+            {character?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                🏴‍☠️
+              </div>
             )}
           </div>
+          {/* オンラインドット */}
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
         </button>
 
-        {/* 絆を見るリンク */}
+        {/* 名前 + ⭐ */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-white font-semibold text-sm leading-tight truncate">
+            {character?.name ?? 'キャラクター'}
+          </h1>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs leading-none">{stars}</span>
+            <span className="text-xs text-gray-500">Lv.{level}</span>
+          </div>
+        </div>
+
+        {/* Emotion indicator */}
+        <EmotionIndicator emotion={currentEmotion} level={level} />
+
+        {/* Live2Dトグルボタン */}
         <button
-          onClick={() => router.push(`/profile/${characterId}`)}
-          className="text-xs text-purple-400 hover:text-purple-300 transition-colors px-2 py-1 rounded-lg border border-purple-500/30 hover:border-purple-400/50 flex-shrink-0"
-          aria-label="絆プロフィール"
+          onClick={() => setIsViewerExpanded((v) => !v)}
+          className={`flex-shrink-0 p-1.5 rounded-full transition-all ${
+            isViewerExpanded
+              ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/40'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+          }`}
+          aria-label={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
+          title={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
         >
-          絆を見る
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d={isViewerExpanded
+                ? 'M19 9l-7 7-7-7'       // 下矢印 → 閉じる
+                : 'M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z'  // キャラアイコン
+              }
+            />
+          </svg>
         </button>
 
         {/* Push通知ベルアイコン */}
         <button
           onClick={handleSubscribePush}
-          className="text-gray-400 hover:text-purple-400 transition-colors text-xl flex-shrink-0"
-          title={isPushSubscribed ? '通知ON' : '通知OFF'}
+          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+          title={isPushSubscribed ? '通知ON' : '通知をONにする'}
           aria-label={isPushSubscribed ? '通知ON' : '通知をONにする'}
         >
-          {isPushSubscribed ? '🔔' : '🔕'}
+          {isPushSubscribed ? (
+            <span className="text-base leading-none">🔔</span>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          )}
         </button>
-
-        {/* Emotion indicator in header */}
-        <EmotionIndicator emotion={currentEmotion} level={level} />
       </header>
 
-      {/* Live2D Character Viewer */}
-      <div className="flex-shrink-0 flex flex-col items-center py-3 bg-gray-900/80 border-b border-gray-800">
-        <Live2DViewer
-          emotion={currentEmotion}
-          isSpeaking={isSending}
-          width={200}
-          height={240}
-        />
-      </div>
+      {/* ══════════════ Live2D ビューアー（トグル） ══════════════ */}
+      {isViewerExpanded && (
+        <div className="flex-shrink-0 viewer-slide overflow-hidden">
+          <div className="flex flex-col items-center py-3 bg-gradient-to-b from-gray-900/90 to-gray-900 border-b border-gray-800/60">
+            <Live2DViewer
+              emotion={currentEmotion}
+              isSpeaking={isSending}
+              width={200}
+              height={240}
+            />
+            {/* 閉じるバー */}
+            <button
+              onClick={() => setIsViewerExpanded(false)}
+              className="mt-1 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              <span>縮小する</span>
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* ══════════════ メッセージリスト ══════════════ */}
+      <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-3">
         {messages.length === 0 && !isSending && (
-          <div className="text-center text-gray-500 py-12">
-            <div className="text-4xl mb-3">💬</div>
-            <p className="text-sm">最初のメッセージを送ろう！</p>
+          <div className="text-center text-gray-500 py-16">
+            <div className="text-5xl mb-4 opacity-60">💬</div>
+            <p className="text-sm font-medium text-gray-400">最初のメッセージを送ろう！</p>
+            <p className="text-xs text-gray-600 mt-1">{character?.name ?? 'キャラクター'}が待ってるぞ</p>
           </div>
         )}
 
-        {messages.map((msg) => {
+        {messages.map((msg, idx) => {
           const isUser = msg.role === 'USER';
           const emotion = msg.metadata?.emotion;
           const emotionEmoji = getEmotionEmoji(emotion);
+          // 連続メッセージの最後にだけアバター表示
+          const nextMsg = messages[idx + 1];
+          const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
 
           return (
             <div
               key={msg.id}
-              className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
+              className={`msg-animate flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
+              style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}
             >
-              {/* Character avatar (left side) */}
+              {/* キャラクターアバター */}
               {!isUser && (
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0 mb-1">
+                <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-opacity ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
                   {character?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={character.avatarUrl}
-                      alt={character.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-sm">🏴‍☠️</span>
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
+                      🏴‍☠️
+                    </div>
                   )}
                 </div>
               )}
 
-              <div className={`max-w-[75%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                {!isUser && (
-                  <span className="text-xs text-gray-500 px-1">
+              <div className={`max-w-[78%] flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
+                {!isUser && showAvatar && (
+                  <span className="text-xs text-gray-500 px-1 ml-0.5">
                     {character?.name ?? 'キャラクター'}
                   </span>
                 )}
+
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
                     isUser
-                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-none'
-                      : 'bg-gray-800 text-gray-100 rounded-tl-none'
+                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
+                      : 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-sm border border-gray-700/40'
                   }`}
                 >
-                  {msg.content}
+                  <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                   {emotionEmoji && (
-                    <span className="ml-1 inline-block">{emotionEmoji}</span>
+                    <span className="ml-1.5 text-base">{emotionEmoji}</span>
                   )}
-                  {/* 音声プレーヤー（キャラクターメッセージのみ） */}
+
+                  {/* ミニ音声プレーヤー */}
                   {!isUser && msg.audioUrl && (
-                    <audio
-                      controls
-                      className="mt-2 w-full max-w-xs h-8"
-                      src={msg.audioUrl}
-                    >
-                      <source src={msg.audioUrl} type="audio/mpeg" />
-                    </audio>
+                    <MiniAudioPlayer
+                      audioUrl={msg.audioUrl}
+                      messageId={msg.id}
+                      playingId={playingAudioId}
+                      onToggle={handleAudioToggle}
+                    />
                   )}
-                  {/* 音声読み込み中スピナー（audioUrl が undefined = まだロード中） */}
+
+                  {/* 音声生成中スピナー */}
                   {!isUser && msg.audioUrl === undefined && (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                      <span>🔊</span>
-                      <span className="animate-pulse">音声生成中...</span>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                      <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
+                      <span>音声生成中...</span>
                     </div>
                   )}
                 </div>
+
+                {/* タイムスタンプ */}
+                <span className="text-[10px] text-gray-600 px-1">
+                  {new Date(msg.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             </div>
           );
         })}
 
-        {/* Typing indicator */}
+        {/* タイピングインジケーター */}
         {isSending && (
-          <div className="flex justify-start items-end gap-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+          <div className="flex justify-start items-end gap-2 msg-animate">
+            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1">
               {character?.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={character.avatarUrl}
-                  alt={character?.name ?? ''}
-                  className="w-full h-full object-cover"
-                />
+                <img src={character.avatarUrl} alt={character?.name ?? ''} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm">🏴‍☠️</span>
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
+                  🏴‍☠️
+                </div>
               )}
             </div>
             <TypingIndicator />
@@ -557,37 +651,58 @@ export default function ChatCharacterPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 border-t border-gray-800 bg-gray-900/95 backdrop-blur-sm px-4 py-3">
-        <div className="flex-1 flex flex-col">
+      {/* ══════════════ 入力エリア ══════════════ */}
+      <div className="flex-shrink-0 border-t border-gray-800/80 bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
+          {/* テキスト入力 */}
           <input
             ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="メッセージを入力... (Enter送信)"
+            placeholder="メッセージを入力..."
             maxLength={200}
             disabled={isSending || isGreeting}
-            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 border ${isSending ? 'border-purple-500' : 'border-gray-700'}`}
+            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none transition-all disabled:opacity-50 border ${
+              hasInput
+                ? 'border-purple-500/60 ring-1 ring-purple-500/30'
+                : 'border-gray-700/60'
+            }`}
           />
+
+          {/* 送信ボタン */}
           <button
-            onClick={sendMessage}
-            disabled={isSending || isGreeting || !inputText.trim()}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center disabled:opacity-40 hover:from-purple-700 hover:to-pink-700 transition-all"
+            onClick={handleSendClick}
+            disabled={isSending || isGreeting || !hasInput}
+            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden ${
+              isSendBouncing ? 'send-bounce' : ''
+            } ${hasInput ? 'send-glow' : ''}`}
+            style={{
+              background: hasInput
+                ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)'
+                : 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+            }}
             aria-label="送信"
           >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            {/* 光るハイライト */}
+            {hasInput && (
+              <span className="absolute inset-0 bg-white/10 rounded-full" />
+            )}
+            <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </div>
-        <div className="text-xs text-gray-600 text-right mt-1 pr-12">
-          {inputText.length}/200
-        </div>
+
+        {/* 文字数カウンター */}
+        <div className={`text-right mt-1 pr-14 transition-colors ${
+          inputText.length >= 180 ? 'text-red-400' : 'text-gray-600'
+        } text-[11px]`}>
+          {inputText.length > 0 && `${inputText.length}/200`}
         </div>
       </div>
     </div>
   );
+
 }
