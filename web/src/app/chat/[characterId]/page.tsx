@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
-import { OnboardingOverlay } from '@/components/chat/OnboardingOverlay';
+import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -85,10 +85,37 @@ const EMOTION_EMOJI: Record<string, string> = {
   surprised: '😲',
 };
 
+/* ── 感情に応じたバブルスタイル ── */
+const EMOTION_BUBBLE_STYLE: Record<string, string> = {
+  excited:   'bg-gradient-to-br from-orange-800/80 to-red-800/70 border border-orange-600/40 text-orange-50',
+  happy:     'bg-gradient-to-br from-yellow-800/80 to-amber-800/70 border border-yellow-600/40 text-yellow-50',
+  angry:     'bg-gradient-to-br from-red-900/80 to-rose-800/70 border border-red-600/40 text-red-50',
+  sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
+  hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
+  surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
+  neutral:   'bg-gray-800 text-gray-100 border border-gray-700/40',
+};
+
+function getCharacterBubbleStyle(emotion?: string): string {
+  if (!emotion) return EMOTION_BUBBLE_STYLE.neutral;
+  return EMOTION_BUBBLE_STYLE[emotion] || EMOTION_BUBBLE_STYLE.neutral;
+}
+
 function getEmotionEmoji(emotion?: string): string {
   if (!emotion) return '';
   return EMOTION_EMOJI[emotion] || '';
 }
+
+/* ── プレースホルダーバリエーション ── */
+const PLACEHOLDERS = [
+  'メッセージを入力...',
+  '何か話しかけてみよう！',
+  '今日はどんな気分？',
+  '一緒に冒険しようぜ！',
+  '何でも聞いてみよう 😊',
+  '推しに伝えたいことは？',
+];
+
 
 /* ─────────────── ミニ音声プレーヤー ─────────────── */
 function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
@@ -160,6 +187,7 @@ export default function ChatCharacterPage() {
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -239,6 +267,15 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
+
+  /* ── プレースホルダーローテーション（入力がない時のみ） ── */
+  useEffect(() => {
+    if (inputText.length > 0) return;
+    const timer = setInterval(() => {
+      setPlaceholderIndex((i) => (i + 1) % PLACEHOLDERS.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [inputText]);
 
   const generateVoiceForMessage = async (messageId: string, text: string, charId: string) => {
     try {
@@ -374,7 +411,8 @@ export default function ChatCharacterPage() {
   };
 
   /* ─────────── handleStartChat ─────────── */
-  const handleStartChat = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleStartChat = async (_userProfile?: UserProfile) => {
     setShowOnboarding(false);
     setIsGreeting(true);
     try {
@@ -441,7 +479,7 @@ export default function ChatCharacterPage() {
         {/* 戻るボタン */}
         <button
           onClick={() => router.push('/chat')}
-          className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0"
+          className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
           aria-label="戻る"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -592,10 +630,10 @@ export default function ChatCharacterPage() {
                 )}
 
                 <div
-                  className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                  className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
                     isUser
                       ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
-                      : 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-sm border border-gray-700/40'
+                      : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)}`
                   }`}
                 >
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
@@ -644,7 +682,7 @@ export default function ChatCharacterPage() {
                 </div>
               )}
             </div>
-            <TypingIndicator />
+            <TypingIndicator characterName={character?.name} />
           </div>
         )}
 
@@ -661,10 +699,11 @@ export default function ChatCharacterPage() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="メッセージを入力..."
+            placeholder={PLACEHOLDERS[placeholderIndex]}
             maxLength={200}
             disabled={isSending || isGreeting}
-            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-2.5 text-sm focus:outline-none transition-all disabled:opacity-50 border ${
+            style={{ fontSize: '16px' }} // prevent iOS auto-zoom
+            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation ${
               hasInput
                 ? 'border-purple-500/60 ring-1 ring-purple-500/30'
                 : 'border-gray-700/60'
@@ -675,7 +714,7 @@ export default function ChatCharacterPage() {
           <button
             onClick={handleSendClick}
             disabled={isSending || isGreeting || !hasInput}
-            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden ${
+            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
               isSendBouncing ? 'send-bounce' : ''
             } ${hasInput ? 'send-glow' : ''}`}
             style={{

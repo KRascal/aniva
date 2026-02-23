@@ -17,6 +17,16 @@ interface Character {
   catchphrases: string[];
 }
 
+interface RelationshipInfo {
+  characterId: string;
+  level: number;
+  levelName: string;
+  xp: number;
+  totalMessages: number;
+  lastMessageAt: string | null;
+  character?: { name: string; slug: string };
+}
+
 /* ── gradient palette per index ── */
 const CARD_GRADIENTS = [
   'from-purple-600/80 via-pink-600/60 to-rose-600/80',
@@ -76,15 +86,50 @@ function useFadeIn() {
   return { ref, visible };
 }
 
+/* ── relationship badge ── */
+function RelationshipBadge({ rel }: { rel?: RelationshipInfo }) {
+  if (!rel) return null;
+  const stars = '⭐'.repeat(Math.min(rel.level, 5));
+
+  const formatLastChat = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 60) return `${mins}分前`;
+    if (hours < 24) return `${hours}時間前`;
+    if (days < 30) return `${days}日前`;
+    return new Date(dateStr).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+  };
+
+  const lastChat = rel.lastMessageAt ? formatLastChat(rel.lastMessageAt) : null;
+
+  return (
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-[10px] leading-none">{stars}</span>
+      <span className="text-[10px] text-white/50">Lv.{rel.level} {rel.levelName}</span>
+      {lastChat && (
+        <>
+          <span className="text-[10px] text-white/30">·</span>
+          <span className="text-[10px] text-white/40">{lastChat}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ── character card ── */
 function CharacterCard({
   character,
   index,
   onClick,
+  relationship,
 }: {
   character: Character;
   index: number;
   onClick: () => void;
+  relationship?: RelationshipInfo;
 }) {
   const { ripples, trigger } = useRipple();
   const { ref, visible } = useFadeIn();
@@ -196,6 +241,9 @@ function CharacterCard({
                 </div>
               </div>
             )}
+
+            {/* 関係性バッジ */}
+            <RelationshipBadge rel={relationship} />
           </div>
 
           {/* Arrow */}
@@ -207,6 +255,92 @@ function CharacterCard({
           </div>
         </div>
       </button>
+    </div>
+  );
+}
+
+/* ── daily missions / hints ── */
+const DAILY_MISSIONS = [
+  { id: 'greet', emoji: '👋', text: 'キャラに挨拶する', xp: 5 },
+  { id: 'msg5', emoji: '💬', text: '5回メッセージを送る', xp: 20 },
+  { id: 'question', emoji: '❓', text: '質問を1つする', xp: 10 },
+];
+
+const DAILY_HINTS = [
+  '「好きなものは何？」と聞いてみよう 🤔',
+  '感情豊かに話すと親密度が上がりやすい ✨',
+  '毎日話しかけると絆レベルが早く上がるぞ 🔥',
+  '「音声を再生」でキャラの声が聞けるよ 🔊',
+  'プロフィールで絆の進捗を確認できる ⭐',
+];
+
+function DailyMissionsSection({ totalMessages }: { totalMessages: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const [hintIndex] = useState(() => Math.floor(Math.random() * DAILY_HINTS.length));
+
+  // Simple progress estimates based on total messages
+  const completedIds = new Set<string>();
+  if (totalMessages >= 1) completedIds.add('greet');
+  if (totalMessages >= 5) completedIds.add('msg5');
+
+  return (
+    <div className="mb-6">
+      {/* ヒントバナー */}
+      <div className="flex items-start gap-3 bg-gradient-to-r from-purple-900/40 to-pink-900/30 rounded-2xl border border-purple-500/20 px-4 py-3 mb-3">
+        <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-purple-300 font-semibold mb-0.5">今日のヒント</p>
+          <p className="text-sm text-gray-300">{DAILY_HINTS[hintIndex]}</p>
+        </div>
+      </div>
+
+      {/* デイリーミッション */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between bg-gray-900/60 rounded-2xl border border-white/5 px-4 py-3 text-left hover:border-purple-500/20 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🎯</span>
+          <span className="text-sm font-semibold text-white">デイリーミッション</span>
+          <span className="text-xs bg-purple-500/20 text-purple-300 rounded-full px-2 py-0.5">
+            {completedIds.size}/{DAILY_MISSIONS.length}
+          </span>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="mt-2 space-y-2">
+          {DAILY_MISSIONS.map((mission) => {
+            const done = completedIds.has(mission.id);
+            return (
+              <div
+                key={mission.id}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                  done
+                    ? 'bg-purple-900/20 border-purple-500/25 opacity-70'
+                    : 'bg-gray-900/40 border-white/5'
+                }`}
+              >
+                <span className="text-xl flex-shrink-0">{mission.emoji}</span>
+                <span className={`flex-1 text-sm ${done ? 'line-through text-gray-500' : 'text-gray-200'}`}>
+                  {mission.text}
+                </span>
+                <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${
+                  done ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/40 text-yellow-400'
+                }`}>
+                  {done ? '完了 ✓' : `+${mission.xp}XP`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -267,6 +401,8 @@ export default function ChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [relationships, setRelationships] = useState<Map<string, RelationshipInfo>>(new Map());
+  const [totalMessages, setTotalMessages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [, setBannerClosed] = useState(false);
 
@@ -278,10 +414,22 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetch('/api/characters')
-        .then((res) => res.json())
-        .then((data) => {
-          setCharacters(data.characters || []);
+      Promise.all([
+        fetch('/api/characters').then((r) => r.json()),
+        fetch('/api/relationship/all').then((r) => r.json()),
+      ])
+        .then(([charData, relData]) => {
+          setCharacters(charData.characters || []);
+          if (relData.relationships) {
+            const map = new Map<string, RelationshipInfo>();
+            let msgs = 0;
+            for (const rel of relData.relationships as RelationshipInfo[]) {
+              map.set(rel.characterId, rel);
+              msgs += rel.totalMessages;
+            }
+            setRelationships(map);
+            setTotalMessages(msgs);
+          }
           setIsLoading(false);
         })
         .catch(() => setIsLoading(false));
@@ -330,6 +478,11 @@ export default function ChatPage() {
         {/* Welcome banner */}
         <WelcomeBanner onClose={() => setBannerClosed(true)} />
 
+        {/* デイリーミッション */}
+        {relationships.size > 0 && (
+          <DailyMissionsSection totalMessages={totalMessages} />
+        )}
+
         {/* Section header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
@@ -357,6 +510,7 @@ export default function ChatPage() {
                 character={character}
                 index={i}
                 onClick={() => router.push(`/chat/${character.id}`)}
+                relationship={relationships.get(character.id)}
               />
             ))}
           </div>
