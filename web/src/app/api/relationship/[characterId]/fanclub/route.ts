@@ -4,7 +4,8 @@ import { auth } from '@/lib/auth';
 
 /**
  * POST /api/relationship/[characterId]/fanclub
- * ファンクラブ加入/脱退を切り替える（デモ: 無料で加入可能）
+ * ファンクラブ加入/脱退を切り替える
+ * DEMO_MODE=true の場合は課金チェックをスキップ
  */
 export async function POST(
   req: NextRequest,
@@ -27,7 +28,23 @@ export async function POST(
     where: { userId_characterId: { userId, characterId } },
   });
 
-  const newFanclub = !(existing?.isFanclub ?? false);
+  const currentlyFanclub = existing?.isFanclub ?? false;
+
+  // 加入しようとしている場合（現在未加入）→ 課金チェック
+  if (!currentlyFanclub && character.monthlyPrice > 0) {
+    const isDemo = process.env.DEMO_MODE === 'true';
+    if (!isDemo) {
+      // 本番: Stripe未連携のため課金必須メッセージを返す
+      return NextResponse.json({
+        requiresPayment: true,
+        monthlyPrice: character.monthlyPrice,
+        characterName: character.name,
+      }, { status: 402 });
+    }
+    // DEMO_MODE=true の場合はスキップして無料で加入OK
+  }
+
+  const newFanclub = !currentlyFanclub;
 
   const relationship = await prisma.relationship.upsert({
     where: { userId_characterId: { userId, characterId } },

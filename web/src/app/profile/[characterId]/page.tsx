@@ -309,6 +309,11 @@ export default function ProfilePage() {
     try {
       const res = await fetch(`/api/relationship/${characterId}/fanclub`, { method: 'POST' });
       const data = await res.json();
+      if (data.requiresPayment) {
+        // 課金が必要（DEMO_MODE=false の本番環境）
+        alert(`月額¥${data.monthlyPrice.toLocaleString()}の課金が必要です（現在デモのため無料で開放中）`);
+        return;
+      }
       setIsFanclub(data.isFanclub);
       setIsFollowing(data.isFollowing);
     } catch (err) {

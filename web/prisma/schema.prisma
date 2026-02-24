@@ -99,6 +99,8 @@ model Character {
   monthlyPrice      Int            @default(0)
   callPricePerMin   Int            @default(0)
   chatPricePerMsg   Int            @default(0)
+  freeMessageLimit  Int            @default(5)   // 無料チャット回数。0=無制限
+  freeCallMinutes   Int            @default(3)   // 無料通話分数。0=無制限
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   relationships     Relationship[]

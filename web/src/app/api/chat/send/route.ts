@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message too long (max 2000 chars)' }, { status: 400 });
     }
 
-    // 1. Relationship取得 or 作成
+    // 1. Relationship取得 or 作成（フリーミアム制限チェックのためcharacterも取得）
+    const character = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: { freeMessageLimit: true, monthlyPrice: true },
+    });
+
     let relationship = await prisma.relationship.findUnique({
       where: { userId_characterId: { userId, characterId } },
     });
@@ -42,6 +47,21 @@ export async function POST(req: NextRequest) {
       relationship = await prisma.relationship.create({
         data: { userId, characterId },
       });
+    }
+
+    // フリーミアム制限チェック
+    if (character && character.freeMessageLimit > 0) {
+      const isFanclub = relationship?.isFanclub ?? false;
+      if (!isFanclub) {
+        const totalMessages = relationship?.totalMessages ?? 0;
+        if (totalMessages >= character.freeMessageLimit) {
+          return NextResponse.json({
+            error: 'FREE_LIMIT_REACHED',
+            limit: character.freeMessageLimit,
+            monthlyPrice: character.monthlyPrice,
+          }, { status: 403 });
+        }
+      }
     }
 
     // 送信前のlevelを記憶

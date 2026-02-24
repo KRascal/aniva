@@ -25,6 +25,8 @@ export async function GET() {
       monthlyPrice: true,
       callPricePerMin: true,
       chatPricePerMsg: true,
+      freeMessageLimit: true,
+      freeCallMinutes: true,
       createdAt: true,
       _count: { select: { relationships: true } },
       relationships: { select: { totalMessages: true } },
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
     monthlyPrice, callPricePerMin, chatPricePerMsg,
+    freeMessageLimit, freeCallMinutes,
   } = body;
 
   if (!name || !slug || !franchise || !systemPrompt) {
@@ -80,6 +83,8 @@ export async function POST(req: NextRequest) {
       monthlyPrice: toPrice(monthlyPrice),
       callPricePerMin: toPrice(callPricePerMin),
       chatPricePerMsg: toPrice(chatPricePerMsg),
+      freeMessageLimit: freeMessageLimit !== undefined ? toPrice(freeMessageLimit) : 5,
+      freeCallMinutes: freeCallMinutes !== undefined ? toPrice(freeCallMinutes) : 3,
     },
   });
 
@@ -99,6 +104,7 @@ export async function PUT(req: NextRequest) {
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
     monthlyPrice, callPricePerMin, chatPricePerMsg,
+    freeMessageLimit, freeCallMinutes,
   } = data;
 
   const toPrice = (v: unknown) => {
@@ -117,6 +123,8 @@ export async function PUT(req: NextRequest) {
       monthlyPrice: monthlyPrice !== undefined ? toPrice(monthlyPrice) : undefined,
       callPricePerMin: callPricePerMin !== undefined ? toPrice(callPricePerMin) : undefined,
       chatPricePerMsg: chatPricePerMsg !== undefined ? toPrice(chatPricePerMsg) : undefined,
+      freeMessageLimit: freeMessageLimit !== undefined ? toPrice(freeMessageLimit) : undefined,
+      freeCallMinutes: freeCallMinutes !== undefined ? toPrice(freeCallMinutes) : undefined,
     },
   });
 

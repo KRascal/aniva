@@ -20,6 +20,8 @@ interface Character {
   monthlyPrice: number;
   callPricePerMin: number;
   chatPricePerMsg: number;
+  freeMessageLimit: number;
+  freeCallMinutes: number;
   messageCount: number;
   _count?: { relationships: number };
 }
@@ -42,6 +44,8 @@ const EMPTY_FORM = {
   monthlyPrice: '0',
   callPricePerMin: '0',
   chatPricePerMsg: '0',
+  freeMessageLimit: '5',
+  freeCallMinutes: '3',
 };
 
 // ---- Image Upload Field Component ----
@@ -230,6 +234,8 @@ export default function CharactersPage() {
       monthlyPrice: String(c.monthlyPrice ?? 0),
       callPricePerMin: String(c.callPricePerMin ?? 0),
       chatPricePerMsg: String(c.chatPricePerMsg ?? 0),
+      freeMessageLimit: String(c.freeMessageLimit ?? 5),
+      freeCallMinutes: String(c.freeCallMinutes ?? 3),
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -272,6 +278,8 @@ export default function CharactersPage() {
         monthlyPrice: toPrice(form.monthlyPrice),
         callPricePerMin: toPrice(form.callPricePerMin),
         chatPricePerMsg: toPrice(form.chatPricePerMsg),
+        freeMessageLimit: toPrice(form.freeMessageLimit),
+        freeCallMinutes: toPrice(form.freeCallMinutes),
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -524,6 +532,40 @@ export default function CharactersPage() {
                     <span className="text-gray-400 text-sm">円</span>
                   </div>
                   <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
+                </div>
+              </div>
+              {/* 無料枠設定 */}
+              <div className="mt-4 pt-4 border-t border-gray-700/60">
+                <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限（通算）</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.freeMessageLimit}
+                        onChange={(e) => f('freeMessageLimit', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm">回</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.freeCallMinutes}
+                        onChange={(e) => f('freeCallMinutes', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm">分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                  </div>
                 </div>
               </div>
             </div>

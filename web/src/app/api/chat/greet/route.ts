@@ -4,13 +4,19 @@ import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
 import { auth } from '@/lib/auth';
 
-// ルフィのデフォルトElevenLabs voice ID (Adam voice)
+// デフォルトの音声モデルID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
 
-// ハードコード挨拶（確実な体験のため LLM 呼び出しなし）
-const LUFFY_GREETING = `おう！おれはモンキー・D・ルフィ！海賊王になる男だ！
-お前、名前は？おれのこと知ってんのか？ししし！
-なんかお前おもしれぇ気がする！よろしくな！`;
+// キャラクターごとの挨拶マップ（slug → greeting）
+const CHARACTER_GREETINGS: Record<string, string> = {
+  luffy: `おう！おれはモンキー・D・ルフィ！海賊王になる男だ！\nお前、名前は？おれのこと知ってんのか？ししし！\nなんかお前おもしれぇ気がする！よろしくな！`,
+  zoro: `...ん？誰だお前。\nロロノア・ゾロだ。世界一の大剣豪になる男だ。\n用があるなら手短に頼むぞ。...道に迷ったわけじゃねぇからな。`,
+};
+
+// デフォルト挨拶（未知キャラ用）
+function getDefaultGreeting(characterName: string): string {
+  return `よう、${characterName}だ。よろしくな。`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,6 +32,19 @@ export async function POST(req: NextRequest) {
     if (!characterId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // キャラクター取得（slug + voiceModelId）
+    const character = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: { name: true, slug: true, voiceModelId: true },
+    });
+
+    if (!character) {
+      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+    }
+
+    // キャラクターごとの挨拶を決定
+    const greeting = CHARACTER_GREETINGS[character.slug] ?? getDefaultGreeting(character.name);
 
     // 1. Relationship 取得
     let relationship = await prisma.relationship.findUnique({
@@ -61,7 +80,7 @@ export async function POST(req: NextRequest) {
       data: {
         conversationId: conversation.id,
         role: 'CHARACTER',
-        content: LUFFY_GREETING,
+        content: greeting,
         metadata: {
           emotion: 'happy',
           shouldGenerateVoice: true,
@@ -89,18 +108,13 @@ export async function POST(req: NextRequest) {
     let audioUrl: string | null = null;
     if (voiceEngine.isAvailable()) {
       try {
-        const character = await prisma.character.findUnique({
-          where: { id: characterId },
-          select: { voiceModelId: true },
-        });
-
         const voiceModelId =
-          character?.voiceModelId && character.voiceModelId.trim() !== ''
+          character.voiceModelId && character.voiceModelId.trim() !== ''
             ? character.voiceModelId
             : DEFAULT_VOICE_MODEL_ID;
 
         const { audioBuffer } = await voiceEngine.generateVoice({
-          text: LUFFY_GREETING,
+          text: greeting,
           voiceModelId,
           emotion: 'happy',
         });

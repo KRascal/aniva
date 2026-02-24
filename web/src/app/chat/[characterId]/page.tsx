@@ -269,6 +269,9 @@ export default function ChatCharacterPage() {
   // Free plan 残りメッセージ
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
+  // フリーミアム制限
+  const [freeLimitReached, setFreeLimitReached] = useState(false);
+  const [freeLimitInfo, setFreeLimitInfo] = useState<{ limit: number; monthlyPrice: number } | null>(null);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -416,6 +419,13 @@ export default function ChatCharacterPage() {
 
       if (!res.ok) {
         const errData = await res.json();
+        if (res.status === 403 && errData.error === 'FREE_LIMIT_REACHED') {
+          // フリーミアム制限に達した
+          setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
+          setFreeLimitReached(true);
+          setFreeLimitInfo({ limit: errData.limit, monthlyPrice: errData.monthlyPrice ?? 0 });
+          return;
+        }
         if (res.status === 429) {
           const errMsg: Message = {
             id: `err-${Date.now()}`,
@@ -876,7 +886,57 @@ export default function ChatCharacterPage() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* ══════════════ フリーミアム課金ウォール ══════════════ */}
+      {freeLimitReached && (
+        <div className="flex-shrink-0 border-t border-purple-900/50 pb-[env(safe-area-inset-bottom)]">
+          <div className="relative overflow-hidden px-4 py-5"
+            style={{ background: 'linear-gradient(180deg, #1a0a2e 0%, #0f0720 100%)' }}>
+            {/* 装飾グラデーション */}
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 to-transparent pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent" />
+            {/* アイコン */}
+            <div className="flex justify-center mb-3">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-900/50">
+                <span className="text-2xl">🔒</span>
+              </div>
+            </div>
+            {/* テキスト */}
+            <div className="text-center mb-4">
+              <p className="text-white font-bold text-base mb-1">
+                無料メッセージの上限に達しました
+              </p>
+              <p className="text-purple-200/70 text-sm leading-relaxed">
+                ファンクラブに加入して<br />
+                <span className="text-purple-300 font-semibold">{character?.name ?? 'キャラクター'}</span>と無制限でチャットしよう！
+              </p>
+            </div>
+            {/* CTA ボタン */}
+            <button
+              onClick={() => router.push(`/profile/${characterId}`)}
+              className="relative w-full py-3.5 rounded-2xl font-bold text-sm text-white overflow-hidden active:scale-[0.98] transition-transform"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7, #ec4899)' }}
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span className="text-lg">⭐</span>
+                ファンクラブに加入する
+                {freeLimitInfo && freeLimitInfo.monthlyPrice > 0 && (
+                  <span className="ml-1 text-purple-200/80 font-normal">
+                    ¥{freeLimitInfo.monthlyPrice.toLocaleString()}/月
+                  </span>
+                )}
+              </span>
+            </button>
+            {/* 限定感 */}
+            <p className="text-center text-purple-400/50 text-xs mt-3">
+              🌟 限定コンテンツ・限定通話も解放
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ══════════════ 入力エリア ══════════════ */}
+      {!freeLimitReached && (
       <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {/* Free plan 残りメッセージ表示 */}
         {userPlan === 'FREE' && (
@@ -946,6 +1006,7 @@ export default function ChatCharacterPage() {
           {inputText.length > 0 && `${inputText.length}/2000`}
         </div>
       </div>
+      )}
     </div>
   );
 
