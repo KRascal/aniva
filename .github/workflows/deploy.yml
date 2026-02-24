@@ -13,6 +13,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - name: Install dependencies
         run: pnpm install
+      - name: Generate Prisma Client
+        run: cd web && pnpm exec prisma generate
       - name: Run type check
         run: cd web && pnpm exec tsc --noEmit
       - name: Build
