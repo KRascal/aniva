@@ -150,19 +150,62 @@ function FloatingHearts({ hearts }: { hearts: FloatingHeart[] }) {
   );
 }
 
+/* ── Wave heights for audio UI ── */
+const MOMENT_WAVE_HEIGHTS = [20, 35, 50, 65, 45, 70, 55, 30, 60, 80, 45, 65, 35, 55, 75, 40, 60, 50, 70, 35, 55, 65, 45, 30, 55, 70, 40, 25];
+
 /* ── Media placeholder ── */
-function MediaPlaceholder({ type, mediaUrl }: { type: string; mediaUrl: string | null }) {
+function MediaPlaceholder({
+  type,
+  mediaUrl,
+  onDoubleTap,
+}: {
+  type: string;
+  mediaUrl: string | null;
+  onDoubleTap?: () => void;
+}) {
+  const [showLikeHeart, setShowLikeHeart] = useState(false);
+  const lastTapRef = useRef<number>(0);
+
+  const handleTap = () => {
+    if (!onDoubleTap) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 350) {
+      // Double-tap detected
+      onDoubleTap();
+      setShowLikeHeart(true);
+      setTimeout(() => setShowLikeHeart(false), 900);
+    }
+    lastTapRef.current = now;
+  };
+
   if (type === 'IMAGE') {
     if (mediaUrl) {
       return (
-        <div className="rounded-2xl overflow-hidden mb-3 bg-gray-800">
+        <div
+          className="relative overflow-hidden mb-3 bg-gray-800 cursor-pointer"
+          onClick={handleTap}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mediaUrl} alt="" className="w-full max-h-72 object-cover" />
+          <img src={mediaUrl} alt="" className="w-full object-cover" style={{ maxHeight: 360 }} />
+          {/* Double-tap heart burst */}
+          {showLikeHeart && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span
+                className="text-6xl"
+                style={{
+                  animation: 'heartBurst 0.85s ease-out forwards',
+                  display: 'inline-block',
+                }}
+              >
+                ❤️
+              </span>
+            </div>
+          )}
         </div>
       );
     }
     return (
-      <div className="rounded-2xl overflow-hidden mb-3 bg-gradient-to-br from-gray-800 to-gray-750 flex flex-col items-center justify-center h-40 border border-white/5">
+      <div className="overflow-hidden mb-3 bg-gradient-to-br from-gray-800 to-gray-750 flex flex-col items-center justify-center h-44 border-y border-white/5">
         <div className="text-4xl mb-2">🖼️</div>
         <p className="text-white/30 text-xs">画像を準備中…</p>
       </div>
@@ -174,23 +217,20 @@ function MediaPlaceholder({ type, mediaUrl }: { type: string; mediaUrl: string |
       <div className="rounded-2xl mb-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-500/20 p-4">
         <div className="flex items-center gap-3">
           {/* Play button */}
-          <button className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0 hover:scale-105 transition-transform">
+          <button className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0 hover:scale-110 active:scale-95 transition-transform">
             <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
           {/* Waveform bars */}
-          <div className="flex items-center gap-0.5 flex-1">
-            {Array.from({ length: 28 }).map((_, i) => {
-              const h = [20, 35, 50, 65, 45, 70, 55, 30, 60, 80, 45, 65, 35, 55, 75, 40, 60, 50, 70, 35, 55, 65, 45, 30, 55, 70, 40, 25][i] ?? 30;
-              return (
-                <div
-                  key={i}
-                  className="w-1 rounded-full bg-gradient-to-t from-purple-500 to-pink-400"
-                  style={{ height: `${h}%`, minHeight: 3, maxHeight: 28 }}
-                />
-              );
-            })}
+          <div className="flex items-end gap-0.5 flex-1 h-8">
+            {MOMENT_WAVE_HEIGHTS.map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-full bg-gradient-to-t from-purple-500 to-pink-400 opacity-70"
+                style={{ height: `${h}%`, minHeight: 3 }}
+              />
+            ))}
           </div>
           <span className="text-white/40 text-xs flex-shrink-0">0:30</span>
         </div>
@@ -263,7 +303,7 @@ function MomentCard({
       )}
 
       {/* Content */}
-      <div className="px-4 pb-1">
+      <div className={moment.type === 'IMAGE' && !moment.isLocked ? '' : 'px-4 pb-1'}>
         {moment.isLocked ? (
           <div className="relative rounded-2xl overflow-hidden mb-3">
             <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
@@ -281,13 +321,19 @@ function MomentCard({
           </div>
         ) : (
           <>
-            {/* Media */}
+            {/* Media — images are full-width (no horizontal padding) */}
             {(moment.type === 'IMAGE' || moment.type === 'AUDIO' || moment.type === 'VOICE') && (
-              <MediaPlaceholder type={moment.type} mediaUrl={moment.mediaUrl} />
+              <MediaPlaceholder
+                type={moment.type}
+                mediaUrl={moment.mediaUrl}
+                onDoubleTap={() => onLike(moment.id)}
+              />
             )}
-            {/* Text */}
+            {/* Text — add horizontal padding back for text-only posts */}
             {moment.content && (
-              <p className="text-gray-100 text-sm leading-relaxed mb-3">{moment.content}</p>
+              <p className={`text-gray-100 text-sm leading-relaxed mb-3 ${moment.type === 'IMAGE' ? 'px-4' : ''}`}>
+                {moment.content}
+              </p>
             )}
           </>
         )}
@@ -307,14 +353,15 @@ function MomentCard({
             ref={likeRef}
             onClick={handleLike}
             className="flex items-center gap-1.5 group"
+            aria-label="いいね"
           >
             <span
-              className={`text-xl transition-transform duration-150 ${bouncing ? 'scale-150' : 'scale-100'}`}
-              style={{ display: 'inline-block' }}
+              key={String(moment.userHasLiked)}
+              className={`text-xl inline-block ${bouncing ? 'like-pop' : ''}`}
             >
               {moment.userHasLiked ? '❤️' : '🤍'}
             </span>
-            <span className={`text-sm font-medium transition-colors ${moment.userHasLiked ? 'text-red-400' : 'text-white/40 group-hover:text-white/60'}`}>
+            <span className={`text-sm font-semibold transition-colors ${moment.userHasLiked ? 'text-red-400' : 'text-white/40 group-hover:text-white/60'}`}>
               {moment.reactionCount > 0 ? moment.reactionCount.toLocaleString() : ''}
             </span>
           </button>
@@ -518,13 +565,26 @@ export default function MomentsPage() {
 
   return (
     <>
-      {/* keyframes for floating hearts */}
+      {/* keyframes for floating hearts and image double-tap */}
       <style>{`
         @keyframes floatHeart {
           0%   { transform: translateY(0) scale(1);   opacity: 1; }
           60%  { transform: translateY(-60px) scale(1.3); opacity: 0.9; }
           100% { transform: translateY(-100px) scale(0.8); opacity: 0; }
         }
+        @keyframes heartBurst {
+          0%   { transform: scale(0.4); opacity: 0; }
+          30%  { transform: scale(1.4); opacity: 1; }
+          60%  { transform: scale(1.0); opacity: 1; }
+          100% { transform: scale(1.2); opacity: 0; }
+        }
+        @keyframes likePopIn {
+          0%   { transform: scale(1); }
+          30%  { transform: scale(1.6); }
+          60%  { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+        .like-pop { animation: likePopIn 0.4s cubic-bezier(0.22,1,0.36,1); }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>

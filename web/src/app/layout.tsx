@@ -23,7 +23,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ANIVA - 推しが実在する世界",
     description: "ルフィと毎日話そう。AIが魂を宿すキャラクターと本物の絆を築く。",
-    url: "http://aniva.162.43.90.97.nip.io",
+    url: "https://aniva-project.com",
+    images: [
+      {
+        url: "https://aniva-project.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ANIVA - 推しが実在する世界",
+      },
+    ],
     siteName: "ANIVA",
     type: "website",
     locale: "ja_JP",
@@ -32,6 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ANIVA - 推しが実在する世界",
     description: "アニメキャラクターと本当に会話できるAIプラットフォーム",
+    images: ["https://aniva-project.com/og-image.png"],
   },
   robots: {
     index: true,

@@ -658,10 +658,15 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="py-6 px-6 border-t border-gray-900 text-center">
+      <footer className="py-6 px-6 border-t border-gray-900 text-center space-y-2">
         <p className="text-gray-700 text-xs">
           © 2026 ANIVA. All rights reserved.
         </p>
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+          <Link href="/terms" className="hover:text-purple-400 transition-colors">利用規約</Link>
+          <span>·</span>
+          <Link href="/privacy" className="hover:text-purple-400 transition-colors">プライバシーポリシー</Link>
+        </div>
       </footer>
     </div>
   );

@@ -36,6 +36,18 @@ const GLOBAL_STYLES = `
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
+  /* 波形アニメーション（各バーが独立したリズムで動く） */
+  @keyframes waveBar {
+    0%, 100% { transform: scaleY(0.3); }
+    50%       { transform: scaleY(1); }
+  }
+  .wave-bar {
+    display: inline-block;
+    width: 3px;
+    border-radius: 2px;
+    transform-origin: bottom;
+    animation: waveBar 0.8s ease-in-out infinite;
+  }
   .msg-animate   { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
   .send-bounce   { animation: sendBounce 0.38s ease-out; }
   .send-glow     { animation: glowPulse 1.6s ease-in-out infinite; }
@@ -45,6 +57,8 @@ const GLOBAL_STYLES = `
   .chat-scroll::-webkit-scrollbar { width: 4px; }
   .chat-scroll::-webkit-scrollbar-track { background: transparent; }
   .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  /* テーマカラー背景の滑らかなトランジション */
+  .chat-bg { transition: background 1.2s ease; }
 `;
 
 /* ─────────────── 型定義 ─────────────── */
@@ -93,7 +107,7 @@ const EMOTION_BUBBLE_STYLE: Record<string, string> = {
   sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
   hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
   surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
-  neutral:   'bg-gray-800 text-gray-100 border border-gray-700/40',
+  neutral:   'bg-gray-800/90 text-gray-100 border border-gray-600/30 shadow-md',
 };
 
 function getCharacterBubbleStyle(emotion?: string): string {
@@ -118,6 +132,9 @@ const PLACEHOLDERS = [
 
 
 /* ─────────────── ミニ音声プレーヤー ─────────────── */
+// 波形バーの高さプリセット（再生中のビジュアルリズム）
+const WAVE_HEIGHTS = [40, 70, 55, 85, 45, 60, 80, 50, 65, 35];
+
 function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
   audioUrl: string;
   messageId: string;
@@ -128,32 +145,53 @@ function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
   return (
     <button
       onClick={() => onToggle(messageId, audioUrl)}
-      className={`mt-2 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none ${
+      className={`mt-2 flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-medium transition-all select-none ${
         isPlaying
-          ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
-          : 'bg-gray-700/60 text-gray-400 border border-gray-600/40 hover:bg-gray-600/60 hover:text-gray-200'
+          ? 'bg-purple-500/25 text-purple-300 border border-purple-500/50'
+          : 'bg-white/10 text-gray-300 border border-white/15 hover:bg-white/15 hover:text-white'
       }`}
       aria-label={isPlaying ? '停止' : '音声を再生'}
     >
       {isPlaying ? (
         <>
-          {/* 音符アイコン（回転） */}
-          <span className="text-purple-400 audio-spin inline-block">♪</span>
-          <span>停止</span>
-          {/* 波形バー */}
-          <span className="flex items-end gap-0.5 h-3">
-            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '40%', animationDelay: '0ms' }} />
-            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '100%', animationDelay: '100ms' }} />
-            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '60%', animationDelay: '200ms' }} />
-            <span className="w-0.5 bg-purple-400 rounded-full animate-bounce" style={{ height: '80%', animationDelay: '50ms' }} />
+          {/* 停止アイコン */}
+          <svg className="w-3.5 h-3.5 fill-current text-purple-400 flex-shrink-0" viewBox="0 0 24 24">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+          {/* 波形バーアニメーション */}
+          <span className="flex items-center gap-0.5 h-4">
+            {WAVE_HEIGHTS.map((h, i) => (
+              <span
+                key={i}
+                className="wave-bar bg-gradient-to-t from-purple-500 to-pink-400"
+                style={{
+                  height: `${h}%`,
+                  maxHeight: 14,
+                  minHeight: 3,
+                  animationDelay: `${i * 80}ms`,
+                }}
+              />
+            ))}
           </span>
+          <span className="text-purple-300">停止</span>
         </>
       ) : (
         <>
           {/* 再生アイコン */}
-          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
+          {/* 静止波形 */}
+          <span className="flex items-center gap-0.5 h-4 opacity-50">
+            {WAVE_HEIGHTS.map((h, i) => (
+              <span
+                key={i}
+                className="inline-block w-[3px] rounded-full bg-gray-400"
+                style={{ height: `${Math.max(h * 0.5, 20)}%`, maxHeight: 14, minHeight: 2 }}
+              />
+            ))}
+          </span>
           <span>音声を再生</span>
         </>
       )}
@@ -188,6 +226,8 @@ export default function ChatCharacterPage() {
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  // キャラのテーマカラー（感情に応じて変化）
+  const [bgTheme, setBgTheme] = useState<string>('rgba(88,28,135,0.06), rgba(0,0,0,0)');
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -342,7 +382,19 @@ export default function ChatCharacterPage() {
       ]);
 
       if (data.characterMessage?.metadata?.emotion) {
-        setCurrentEmotion(data.characterMessage.metadata.emotion);
+        const newEmotion = data.characterMessage.metadata.emotion;
+        setCurrentEmotion(newEmotion);
+        // 感情に応じたテーマカラーを背景に反映
+        const EMOTION_THEMES: Record<string, string> = {
+          excited:   'rgba(234,88,12,0.08), rgba(153,27,27,0.06)',
+          happy:     'rgba(202,138,4,0.08), rgba(161,98,7,0.05)',
+          angry:     'rgba(153,27,27,0.10), rgba(190,18,60,0.07)',
+          sad:       'rgba(29,78,216,0.09), rgba(67,56,202,0.06)',
+          hungry:    'rgba(217,119,6,0.08), rgba(180,83,9,0.05)',
+          surprised: 'rgba(14,116,144,0.08), rgba(15,118,110,0.06)',
+          neutral:   'rgba(88,28,135,0.06), rgba(0,0,0,0)',
+        };
+        setBgTheme(EMOTION_THEMES[newEmotion] ?? EMOTION_THEMES.neutral);
       }
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
@@ -455,7 +507,10 @@ export default function ChatCharacterPage() {
   const hasInput = inputText.length > 0;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 max-w-lg mx-auto relative">
+    <div
+      className="flex flex-col h-screen max-w-lg mx-auto relative chat-bg"
+      style={{ background: `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
+    >
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
 
@@ -475,7 +530,7 @@ export default function ChatCharacterPage() {
       )}
 
       {/* ══════════════ ヘッダー ══════════════ */}
-      <header className="flex-shrink-0 bg-gray-900/95 backdrop-blur-md border-b border-gray-800/80 px-3 py-2.5 flex items-center gap-2.5 z-10">
+      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
         {/* 戻るボタン */}
         <button
           onClick={() => router.push('/chat')}
@@ -690,7 +745,7 @@ export default function ChatCharacterPage() {
       </div>
 
       {/* ══════════════ 入力エリア ══════════════ */}
-      <div className="flex-shrink-0 border-t border-gray-800/80 bg-gray-900/95 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {/* テキスト入力 */}
           <input

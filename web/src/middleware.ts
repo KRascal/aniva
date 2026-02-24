@@ -9,10 +9,19 @@ export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup');
   const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth');
   const isHealthCheck = req.nextUrl.pathname === '/api/health';
-  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about';
+  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy';
 
   if (isApiAuth || isPublicPage || isHealthCheck) {
     return NextResponse.next();
+  }
+
+  // Demo mode: block signup unless invite code is provided
+  const INVITE_CODE = process.env.INVITE_CODE;
+  if (INVITE_CODE && req.nextUrl.pathname.startsWith('/signup')) {
+    const code = req.nextUrl.searchParams.get('code');
+    if (code !== INVITE_CODE) {
+      return NextResponse.redirect(new URL('/login?error=invite_only', req.url));
+    }
   }
 
   if (isAuthPage) {

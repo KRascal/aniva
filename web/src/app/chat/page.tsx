@@ -136,6 +136,7 @@ function CharacterCard({
   const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
   const glow = GLOW_COLORS[index % GLOW_COLORS.length];
   const catchphrase = character.catchphrases?.[0] ?? null;
+  const hasCover = !!character.coverUrl;
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     trigger(e);
@@ -157,38 +158,16 @@ function CharacterCard({
           relative w-full text-left overflow-hidden rounded-3xl
           border border-white/10
           shadow-lg ${glow}
-          hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5
-          active:scale-[0.98]
-          transition-all duration-300 group
+          hover:shadow-2xl hover:scale-[1.01] hover:-translate-y-0.5
+          active:scale-[0.99]
+          transition-all duration-300 group bg-gray-900
         `}
       >
-        {/* Blurred avatar background */}
-        {character.avatarUrl && (
-          <div className="absolute inset-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={character.avatarUrl}
-              alt=""
-              className="w-full h-full object-cover scale-110"
-              style={{ filter: 'blur(18px) brightness(0.35) saturate(1.6)' }}
-            />
-          </div>
-        )}
-
-        {/* Gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-70`} />
-
-        {/* Shimmer on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500
-          bg-gradient-to-r from-transparent via-white/8 to-transparent
-          -translate-x-full group-hover:translate-x-full
-          transition-transform duration-700 ease-in-out pointer-events-none" />
-
         {/* Ripples */}
         {ripples.map((r) => (
           <span
             key={r.id}
-            className="absolute rounded-full bg-white/25 pointer-events-none animate-ping"
+            className="absolute rounded-full bg-white/25 pointer-events-none animate-ping z-20"
             style={{
               width: 120,
               height: 120,
@@ -200,11 +179,51 @@ function CharacterCard({
           />
         ))}
 
-        {/* Content */}
-        <div className="relative z-10 flex items-center gap-4 p-5">
-          {/* Avatar ring */}
-          <div className="flex-shrink-0 relative">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-white/30 shadow-lg">
+        {/* ── Cover image (Instagram-style) ── */}
+        {hasCover ? (
+          <div className="relative h-28 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={character.coverUrl!}
+              alt=""
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            {/* Gradient fade to card body */}
+            <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-gray-900`} />
+            {/* Franchise badge overlaid on cover */}
+            <div className="absolute top-3 right-3">
+              <span className="text-[10px] font-semibold text-white/80 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full border border-white/15 uppercase tracking-wide">
+                {character.franchise}
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* No cover: blurred avatar background */
+          <div className="absolute inset-0">
+            {character.avatarUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={character.avatarUrl}
+                alt=""
+                className="w-full h-full object-cover scale-110"
+                style={{ filter: 'blur(22px) brightness(0.3) saturate(1.5)' }}
+              />
+            )}
+            <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-65`} />
+          </div>
+        )}
+
+        {/* Shimmer on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500
+          bg-gradient-to-r from-transparent via-white/6 to-transparent
+          -translate-x-full group-hover:translate-x-full
+          transition-transform duration-700 ease-in-out pointer-events-none z-10" />
+
+        {/* ── Content ── */}
+        <div className={`relative z-10 flex items-end gap-4 px-5 pb-5 ${hasCover ? 'pt-0' : 'pt-5'}`}>
+          {/* Avatar ring — overlaps cover when cover exists */}
+          <div className={`flex-shrink-0 relative ${hasCover ? '-mt-10' : ''}`}>
+            <div className={`w-20 h-20 rounded-2xl overflow-hidden shadow-xl ${hasCover ? 'ring-3 ring-gray-900 ring-offset-0' : 'ring-2 ring-white/30'}`}>
               {character.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -213,7 +232,7 @@ function CharacterCard({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
-                <div className="w-full h-full bg-white/20 flex items-center justify-center text-4xl">
+                <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center text-4xl`}>
                   🌟
                 </div>
               )}
@@ -223,19 +242,22 @@ function CharacterCard({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 pb-0.5">
             <div className="flex items-center gap-2 mb-0.5">
               <h3 className="font-bold text-white text-xl leading-tight drop-shadow">{character.name}</h3>
             </div>
-            <p className="text-white/60 text-xs mb-2 font-medium tracking-wide uppercase">
-              {character.franchise}
-            </p>
+            {/* Franchise (only show here if no cover image) */}
+            {!hasCover && (
+              <p className="text-white/60 text-xs mb-2 font-medium tracking-wide uppercase">
+                {character.franchise}
+              </p>
+            )}
 
             {/* Catchphrase bubble */}
             {catchphrase && (
-              <div className="relative inline-block">
-                <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl rounded-tl-sm px-3 py-1.5 max-w-[200px]">
-                  <p className="text-white/90 text-xs leading-relaxed line-clamp-2">
+              <div className="relative inline-block mt-1">
+                <div className="bg-white/12 backdrop-blur-sm border border-white/18 rounded-2xl rounded-tl-sm px-3 py-1.5 max-w-[200px]">
+                  <p className="text-white/85 text-xs leading-relaxed line-clamp-2">
                     &ldquo;{catchphrase}&rdquo;
                   </p>
                 </div>
@@ -248,7 +270,7 @@ function CharacterCard({
 
           {/* Arrow */}
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center
-            group-hover:bg-white/25 transition-colors duration-200">
+            group-hover:bg-white/25 transition-colors duration-200 self-end mb-0.5">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
