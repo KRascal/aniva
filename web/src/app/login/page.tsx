@@ -14,7 +14,7 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(errorParam === 'invite_only' ? '招待コードが必要です' : '');
+  const [error, setError] = useState(errorParam === 'invite_only' ? '🔒 招待制サービスのため、招待コードが必要です。招待リンクからアクセスしてください。' : '');
   const [debugCode, setDebugCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
 
@@ -152,13 +152,34 @@ function LoginForm() {
 
       <div className="relative z-10 max-w-md w-full mx-4">
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <span className="text-5xl font-black tracking-tight bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
             ANIVA
           </span>
           <p className="text-purple-200/80 text-base font-medium mt-2">
             {step === 'email' ? 'おかえりなさい 👋' : 'コードを確認してください 📩'}
           </p>
+
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                step === 'email' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-900/40' : 'bg-green-500/20 text-green-400 border border-green-500/40'
+              }`}>
+                {step === 'email' ? '1' : '✓'}
+              </div>
+              <span className={`text-xs font-medium ${step === 'email' ? 'text-white' : 'text-gray-500'}`}>メール</span>
+            </div>
+            <div className={`h-px w-8 transition-all ${step === 'code' ? 'bg-purple-500' : 'bg-gray-700'}`} />
+            <div className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                step === 'code' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-900/40' : 'bg-white/10 text-gray-500'
+              }`}>
+                2
+              </div>
+              <span className={`text-xs font-medium ${step === 'code' ? 'text-white' : 'text-gray-600'}`}>認証コード</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white/[0.04] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-[0_0_60px_rgba(168,85,247,0.15)]">
@@ -188,6 +209,14 @@ function LoginForm() {
                 </div>
               </div>
 
+              {/* Invite-only notice */}
+              {errorParam === 'invite_only' && (
+                <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                  <p className="text-amber-300 text-sm text-center font-medium">🔒 招待制サービスです</p>
+                  <p className="text-amber-200/70 text-xs text-center mt-1">招待リンクから登録してください</p>
+                </div>
+              )}
+
               {/* Email OTP form */}
               <form onSubmit={handleSendCode} className="space-y-4">
                 <input
@@ -199,8 +228,10 @@ function LoginForm() {
                   required
                   autoFocus
                 />
-                {error && (
-                  <p className="text-red-400 text-sm text-center">{error}</p>
+                {error && errorParam !== 'invite_only' && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                    <p className="text-red-400 text-sm text-center">{error}</p>
+                  </div>
                 )}
                 <button
                   type="submit"
@@ -254,13 +285,15 @@ function LoginForm() {
                 </div>
 
                 {error && (
-                  <p className="text-red-400 text-sm text-center">{error}</p>
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                    <p className="text-red-400 text-sm text-center">⚠️ {error}</p>
+                  </div>
                 )}
 
                 <button
                   type="submit"
                   disabled={isLoading || codeDigits.join('').length !== 6}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold text-base hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold text-base hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg shadow-purple-900/40"
                 >
                   {isLoading ? '認証中...' : '認証する ✨'}
                 </button>

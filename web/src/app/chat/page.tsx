@@ -30,6 +30,96 @@ interface RelationshipInfo {
   lastMessage?: { content: string; role: string } | null;
 }
 
+/* ── LINE-style chat row for fanclub characters ── */
+function ChatRow({
+  character,
+  relationship,
+  onClick,
+}: {
+  character: Character;
+  relationship: RelationshipInfo;
+  onClick: () => void;
+}) {
+  const lastMsg = relationship.lastMessage;
+  const lastAt = relationship.lastMessageAt;
+  // Dummy unread count (future use)
+  const unread = 0;
+
+  const formatTime = (dateStr: string | null) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'たった今';
+    if (mins < 60) return `${mins}分前`;
+    if (hours < 24) return `${hours}時間前`;
+    if (days < 7) return `${days}日前`;
+    return new Date(dateStr).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+  };
+
+  const previewText = lastMsg
+    ? (lastMsg.role === 'USER' ? `あなた: ${lastMsg.content}` : lastMsg.content)
+    : 'メッセージを送ってみよう！';
+
+  const level = relationship.level;
+  const stars = '⭐'.repeat(Math.min(level, 5));
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3.5 bg-gray-900/70 hover:bg-gray-800/80 active:bg-gray-800 rounded-2xl border border-white/5 hover:border-purple-500/20 transition-all duration-200 group text-left"
+    >
+      {/* アバター */}
+      <div className="relative flex-shrink-0">
+        <div className="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-purple-500/20 group-hover:ring-purple-500/40 transition-all">
+          {character.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-2xl">
+              🌟
+            </div>
+          )}
+        </div>
+        {/* オンラインドット */}
+        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-gray-950 animate-pulse" />
+      </div>
+
+      {/* テキスト情報 */}
+      <div className="flex-1 min-w-0">
+        {/* 名前 + 時間 */}
+        <div className="flex items-center justify-between gap-2 mb-0.5">
+          <span className="font-bold text-white text-sm truncate">{character.name}</span>
+          <span className="text-[10px] text-gray-500 flex-shrink-0">{formatTime(lastAt)}</span>
+        </div>
+        {/* 絆レベル */}
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-[10px] leading-none">{stars}</span>
+          <span className="text-[10px] text-gray-600">Lv.{level}</span>
+        </div>
+        {/* 最新メッセージプレビュー */}
+        <p className="text-xs text-gray-400 truncate leading-relaxed">
+          {previewText}
+        </p>
+      </div>
+
+      {/* 未読バッジ（ダミー） */}
+      <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+        {unread > 0 ? (
+          <span className="bg-pink-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            {unread}
+          </span>
+        ) : (
+          <svg className="w-4 h-4 text-gray-700 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        )}
+      </div>
+    </button>
+  );
+}
+
 /* ── gradient palette per index ── */
 const CARD_GRADIENTS = [
   'from-purple-600/80 via-pink-600/60 to-rose-600/80',
@@ -515,7 +605,7 @@ export default function ChatPage() {
 
           return (
             <>
-              {/* ファンクラブ加入済みキャラ */}
+              {/* ファンクラブ加入済みキャラ（LINE風チャット一覧） */}
               {fanclubChars.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-4">
@@ -525,14 +615,13 @@ export default function ChatPage() {
                       {fanclubChars.length}人
                     </span>
                   </div>
-                  <div className="space-y-4">
-                    {fanclubChars.map((character, i) => (
-                      <CharacterCard
+                  <div className="space-y-2">
+                    {fanclubChars.map((character) => (
+                      <ChatRow
                         key={character.id}
                         character={character}
-                        index={i}
+                        relationship={relationships.get(character.id)!}
                         onClick={() => router.push(`/chat/${character.id}`)}
-                        relationship={relationships.get(character.id)}
                       />
                     ))}
                   </div>
@@ -575,6 +664,28 @@ export default function ChatPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* ファンクラブキャラがいない場合: 推し探しへ誘導 */}
+              {fanclubChars.length === 0 && (
+                <div className="text-center py-16 px-6">
+                  <div className="text-6xl mb-5 animate-bounce">💕</div>
+                  <h3 className="text-white font-bold text-lg mb-2">推しを見つけよう！</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                    ファンクラブに入ると推しとリアルタイムにチャットできるよ。<br />
+                    まずは好きなキャラを探してみよう！
+                  </p>
+                  <button
+                    onClick={() => router.push('/explore')}
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:shadow-purple-500/40 hover:scale-105 active:scale-100 transition-all"
+                  >
+                    <span className="text-lg">✨</span>
+                    キャラクターを探す
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
               )}
 

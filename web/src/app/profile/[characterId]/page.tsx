@@ -56,6 +56,11 @@ interface MilestonesData {
   currentLevel: number;
 }
 
+interface PersonalityTrait {
+  trait: string;
+  value: number;
+}
+
 interface Character {
   id: string;
   name: string;
@@ -67,6 +72,7 @@ interface Character {
   avatarUrl: string | null;
   coverUrl: string | null;
   catchphrases: string[];
+  personalityTraits?: PersonalityTrait[];
 }
 
 interface MomentItem {
@@ -92,6 +98,68 @@ function SparkStar({ filled, delay }: { filled: boolean; delay: number }) {
     >
       {filled ? '⭐' : '☆'}
     </span>
+  );
+}
+
+/* ── 日本語トレイト名マップ ── */
+const TRAIT_LABELS: Record<string, string> = {
+  adventurous: '冒険心',
+  loyal: '仲間への忠誠',
+  simple: '純粋さ',
+  brave: '勇気',
+  hungry: '食欲',
+  cheerful: '明るさ',
+  stoic: '寡黙',
+  disciplined: '鍛錬',
+  directional_sense: '方向感覚',
+  kind: '優しさ',
+  smart: '知性',
+  funny: 'お茶目',
+  serious: '真剣さ',
+  emotional: '感情豊か',
+};
+
+const TRAIT_COLORS: Record<string, string> = {
+  adventurous: 'from-orange-500 to-red-500',
+  loyal: 'from-yellow-400 to-amber-500',
+  simple: 'from-cyan-400 to-blue-500',
+  brave: 'from-red-500 to-rose-600',
+  hungry: 'from-orange-400 to-yellow-500',
+  cheerful: 'from-pink-400 to-rose-500',
+  stoic: 'from-gray-500 to-slate-600',
+  disciplined: 'from-emerald-500 to-green-600',
+  directional_sense: 'from-indigo-400 to-purple-500',
+};
+
+function PersonalityTraitsSection({ traits }: { traits: PersonalityTrait[] }) {
+  if (!traits || traits.length === 0) return null;
+  return (
+    <div>
+      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
+        <span>✨</span> パーソナリティ
+      </p>
+      <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/5 space-y-3">
+        {traits.map((t) => {
+          const label = TRAIT_LABELS[t.trait] ?? t.trait;
+          const color = TRAIT_COLORS[t.trait] ?? 'from-purple-500 to-pink-500';
+          const pct = Math.min(100, t.value);
+          return (
+            <div key={t.trait}>
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm text-gray-300 font-medium">{label}</span>
+                <span className="text-xs text-gray-500 font-mono">{pct}</span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full bg-gradient-to-r ${color}`}
+                  style={{ width: `${pct}%`, transition: 'width 1s ease-out' }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -291,25 +359,33 @@ export default function ProfilePage() {
 
       {/* ══════════════ ヒーローセクション ══════════════ */}
       <div className="relative">
-        {/* カバー画像 */}
-        <div className="relative h-44 overflow-hidden">
+        {/* カバー画像（ヒーロー） */}
+        <div className="relative h-56 overflow-hidden">
           {character?.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={character.coverUrl}
               alt="cover"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-105 hover:scale-100 transition-transform duration-700"
             />
+          ) : character?.avatarUrl ? (
+            /* フォールバック：アバターをぼかしてカバーに */
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={character.avatarUrl}
+                alt=""
+                className="w-full h-full object-cover scale-110"
+                style={{ filter: 'blur(20px) brightness(0.4) saturate(1.8)' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-900/60 via-red-900/40 to-purple-950/60" />
+            </>
           ) : (
-            /* フォールバック：グラデーション背景 */
+            /* 完全フォールバック：グラデーション背景 */
             <div className="w-full h-full bg-gradient-to-br from-orange-900 via-red-900 to-purple-950" />
           )}
           {/* オーバーレイ */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/40 to-transparent" />
-          {/* 海賊モチーフ装飾 */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10 select-none pointer-events-none">
-            <span className="text-[120px] leading-none">🏴‍☠️</span>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/30 to-transparent" />
         </div>
 
         {/* ナビゲーション（カバー上に重ねる） */}
@@ -351,8 +427,10 @@ export default function ProfilePage() {
               {character?.name ?? '—'}
             </h1>
             <p className="text-orange-400 text-sm font-medium">{character?.franchise ?? '—'}</p>
-            {isLuffy && (
-              <p className="text-gray-400 text-xs mt-0.5 italic">「海賊王に、おれはなる！」</p>
+            {catchphrases.length > 0 && (
+              <p className="text-gray-300 text-xs mt-1 italic leading-relaxed line-clamp-2">
+                「{catchphrases[0]}」
+              </p>
             )}
           </div>
         </div>
@@ -498,6 +576,11 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* ══════════════ パーソナリティトレイト ══════════════ */}
+        {character?.personalityTraits && character.personalityTraits.length > 0 && (
+          <PersonalityTraitsSection traits={character.personalityTraits as PersonalityTrait[]} />
         )}
 
         {/* ══════════════ 名言セクション ══════════════ */}

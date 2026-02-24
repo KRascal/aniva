@@ -326,14 +326,62 @@ export default function ExplorePage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950">
-        <div className="relative w-16 h-16 mb-6">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 animate-ping opacity-40" />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-2xl">
-            ✨
+      <div className="min-h-screen bg-gray-950 pb-24">
+        {/* Fixed background blobs */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 -left-20 w-80 h-80 rounded-full bg-purple-600/15 blur-3xl" />
+          <div className="absolute top-1/3 right-0 w-64 h-64 rounded-full bg-pink-600/10 blur-3xl" />
+        </div>
+
+        {/* Skeleton header */}
+        <header className="sticky top-0 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+          <div className="max-w-lg mx-auto px-4 pt-4 pb-3">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">A</div>
+              <div className="h-5 w-24 bg-white/10 rounded-full animate-pulse" />
+            </div>
+            <div className="h-10 bg-white/6 rounded-full animate-pulse" />
+          </div>
+          <div className="flex gap-2 px-4 pb-3 overflow-hidden">
+            {[60, 100, 70, 80, 90].map((w, i) => (
+              <div key={i} className="flex-shrink-0 h-8 rounded-full bg-white/6 animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 100}ms` }} />
+            ))}
+          </div>
+        </header>
+
+        {/* Skeleton hero */}
+        <div className="max-w-lg mx-auto px-4 py-6">
+          <div className="h-44 rounded-3xl bg-white/5 animate-pulse mb-6" />
+
+          {/* Skeleton vertical cards */}
+          <div className="mb-2 h-5 w-32 bg-white/10 rounded-full animate-pulse" />
+          <div className="flex gap-3 overflow-hidden mt-3 mb-6 pb-2">
+            {[0,1,2,3].map(i => (
+              <div key={i} className="flex-shrink-0 w-44">
+                <div
+                  className="h-64 rounded-2xl bg-white/5 animate-pulse"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Skeleton horizontal cards */}
+          <div className="mb-2 h-5 w-36 bg-white/10 rounded-full animate-pulse" />
+          <div className="space-y-3 mt-3">
+            {[0,1,2,3].map(i => (
+              <div key={i} className="flex items-center gap-4 bg-white/[0.04] rounded-2xl p-4" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="w-16 h-16 rounded-xl bg-white/8 animate-pulse flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-white/8 rounded-full animate-pulse w-24" />
+                  <div className="h-3 bg-white/5 rounded-full animate-pulse w-16" />
+                  <div className="h-3 bg-white/5 rounded-full animate-pulse w-32" />
+                </div>
+                <div className="w-20 h-8 rounded-full bg-white/8 animate-pulse" />
+              </div>
+            ))}
           </div>
         </div>
-        <p className="text-white/60 text-sm animate-pulse">推しを探しています…</p>
       </div>
     );
   }
