@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // 1. Relationship取得 or 作成（フリーミアム制限チェックのためcharacterも取得）
     const character = await prisma.character.findUnique({
       where: { id: characterId },
-      select: { freeMessageLimit: true, monthlyPrice: true },
+      select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
     });
 
     let relationship = await prisma.relationship.findUnique({
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({
             error: 'FREE_LIMIT_REACHED',
             limit: character.freeMessageLimit,
-            monthlyPrice: character.monthlyPrice,
+            monthlyPrice: character.fcMonthlyPriceJpy,
           }, { status: 403 });
         }
       }

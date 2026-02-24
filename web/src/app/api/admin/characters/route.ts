@@ -22,11 +22,14 @@ export async function GET() {
       avatarUrl: true,
       coverUrl: true,
       isActive: true,
-      monthlyPrice: true,
-      callPricePerMin: true,
-      chatPricePerMsg: true,
+      fcMonthlyPriceJpy: true,
+      fcIncludedCallMin: true,
+      callCoinPerMin: true,
+      fcOverageCallCoinPerMin: true,
       freeMessageLimit: true,
       freeCallMinutes: true,
+      stripeProductId: true,
+      fcSubscriberCount: true,
       createdAt: true,
       _count: { select: { relationships: true } },
       relationships: { select: { totalMessages: true } },
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
     name, nameEn, slug, franchise, franchiseEn, description,
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
-    monthlyPrice, callPricePerMin, chatPricePerMsg,
+    fcMonthlyPriceJpy, fcIncludedCallMin, callCoinPerMin, fcOverageCallCoinPerMin,
     freeMessageLimit, freeCallMinutes,
   } = body;
 
@@ -60,10 +63,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name, slug, franchise, systemPrompt are required' }, { status: 400 });
   }
 
-  const toPrice = (v: unknown) => {
-    const n = parseInt(String(v ?? 0), 10);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
+  const toInt = (v: unknown, fallback = 0) => {
+    const n = parseInt(String(v ?? fallback), 10);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
   };
+
+  // Validation
+  const fcPrice = toInt(fcMonthlyPriceJpy, 3480);
+  const callCoin = toInt(callCoinPerMin, 200);
+  const overageCoin = toInt(fcOverageCallCoinPerMin, 100);
+
+  if (fcPrice < 3480) {
+    return NextResponse.json({ error: 'fcMonthlyPriceJpy must be >= 3480' }, { status: 400 });
+  }
+  if (callCoin < 200) {
+    return NextResponse.json({ error: 'callCoinPerMin must be >= 200' }, { status: 400 });
+  }
+  if (overageCoin < 100) {
+    return NextResponse.json({ error: 'fcOverageCallCoinPerMin must be >= 100' }, { status: 400 });
+  }
 
   const character = await prisma.character.create({
     data: {
@@ -80,11 +98,12 @@ export async function POST(req: NextRequest) {
       avatarUrl: avatarUrl || null,
       coverUrl: coverUrl || null,
       isActive: isActive !== undefined ? isActive : true,
-      monthlyPrice: toPrice(monthlyPrice),
-      callPricePerMin: toPrice(callPricePerMin),
-      chatPricePerMsg: toPrice(chatPricePerMsg),
-      freeMessageLimit: freeMessageLimit !== undefined ? toPrice(freeMessageLimit) : 5,
-      freeCallMinutes: freeCallMinutes !== undefined ? toPrice(freeCallMinutes) : 3,
+      fcMonthlyPriceJpy: fcPrice,
+      fcIncludedCallMin: toInt(fcIncludedCallMin, 30),
+      callCoinPerMin: callCoin,
+      fcOverageCallCoinPerMin: overageCoin,
+      freeMessageLimit: freeMessageLimit !== undefined ? toInt(freeMessageLimit, 10) : 10,
+      freeCallMinutes: freeCallMinutes !== undefined ? toInt(freeCallMinutes, 5) : 5,
     },
   });
 
@@ -103,14 +122,34 @@ export async function PUT(req: NextRequest) {
     name, nameEn, slug, franchise, franchiseEn, description,
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
-    monthlyPrice, callPricePerMin, chatPricePerMsg,
+    fcMonthlyPriceJpy, fcIncludedCallMin, callCoinPerMin, fcOverageCallCoinPerMin,
     freeMessageLimit, freeCallMinutes,
   } = data;
 
-  const toPrice = (v: unknown) => {
-    const n = parseInt(String(v ?? 0), 10);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
+  const toInt = (v: unknown, fallback = 0) => {
+    const n = parseInt(String(v ?? fallback), 10);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
   };
+
+  // Validation for provided fields
+  if (fcMonthlyPriceJpy !== undefined) {
+    const fcPrice = toInt(fcMonthlyPriceJpy, 3480);
+    if (fcPrice < 3480) {
+      return NextResponse.json({ error: 'fcMonthlyPriceJpy must be >= 3480' }, { status: 400 });
+    }
+  }
+  if (callCoinPerMin !== undefined) {
+    const callCoin = toInt(callCoinPerMin, 200);
+    if (callCoin < 200) {
+      return NextResponse.json({ error: 'callCoinPerMin must be >= 200' }, { status: 400 });
+    }
+  }
+  if (fcOverageCallCoinPerMin !== undefined) {
+    const overageCoin = toInt(fcOverageCallCoinPerMin, 100);
+    if (overageCoin < 100) {
+      return NextResponse.json({ error: 'fcOverageCallCoinPerMin must be >= 100' }, { status: 400 });
+    }
+  }
 
   const character = await prisma.character.update({
     where: { id },
@@ -120,11 +159,12 @@ export async function PUT(req: NextRequest) {
       catchphrases: Array.isArray(catchphrases) ? catchphrases : undefined,
       personalityTraits: personalityTraits !== undefined ? personalityTraits : undefined,
       avatarUrl, coverUrl, isActive,
-      monthlyPrice: monthlyPrice !== undefined ? toPrice(monthlyPrice) : undefined,
-      callPricePerMin: callPricePerMin !== undefined ? toPrice(callPricePerMin) : undefined,
-      chatPricePerMsg: chatPricePerMsg !== undefined ? toPrice(chatPricePerMsg) : undefined,
-      freeMessageLimit: freeMessageLimit !== undefined ? toPrice(freeMessageLimit) : undefined,
-      freeCallMinutes: freeCallMinutes !== undefined ? toPrice(freeCallMinutes) : undefined,
+      fcMonthlyPriceJpy: fcMonthlyPriceJpy !== undefined ? toInt(fcMonthlyPriceJpy, 3480) : undefined,
+      fcIncludedCallMin: fcIncludedCallMin !== undefined ? toInt(fcIncludedCallMin, 30) : undefined,
+      callCoinPerMin: callCoinPerMin !== undefined ? toInt(callCoinPerMin, 200) : undefined,
+      fcOverageCallCoinPerMin: fcOverageCallCoinPerMin !== undefined ? toInt(fcOverageCallCoinPerMin, 100) : undefined,
+      freeMessageLimit: freeMessageLimit !== undefined ? toInt(freeMessageLimit, 10) : undefined,
+      freeCallMinutes: freeCallMinutes !== undefined ? toInt(freeCallMinutes, 5) : undefined,
     },
   });
 

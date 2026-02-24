@@ -31,13 +31,13 @@ export async function POST(
   const currentlyFanclub = existing?.isFanclub ?? false;
 
   // 加入しようとしている場合（現在未加入）→ 課金チェック
-  if (!currentlyFanclub && character.monthlyPrice > 0) {
+  if (!currentlyFanclub && character.fcMonthlyPriceJpy > 0) {
     const isDemo = process.env.DEMO_MODE === 'true';
     if (!isDemo) {
       // 本番: Stripe未連携のため課金必須メッセージを返す
       return NextResponse.json({
         requiresPayment: true,
-        monthlyPrice: character.monthlyPrice,
+        monthlyPrice: character.fcMonthlyPriceJpy,
         characterName: character.name,
       }, { status: 402 });
     }

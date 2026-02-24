@@ -17,9 +17,10 @@ interface Character {
   avatarUrl: string | null;
   coverUrl: string | null;
   isActive: boolean;
-  monthlyPrice: number;
-  callPricePerMin: number;
-  chatPricePerMsg: number;
+  fcMonthlyPriceJpy: number;
+  fcIncludedCallMin: number;
+  callCoinPerMin: number;
+  fcOverageCallCoinPerMin: number;
   freeMessageLimit: number;
   freeCallMinutes: number;
   messageCount: number;
@@ -41,11 +42,12 @@ const EMPTY_FORM = {
   avatarUrl: '',
   coverUrl: '',
   isActive: true,
-  monthlyPrice: '0',
-  callPricePerMin: '0',
-  chatPricePerMsg: '0',
-  freeMessageLimit: '5',
-  freeCallMinutes: '3',
+  fcMonthlyPriceJpy: '3480',
+  fcIncludedCallMin: '30',
+  callCoinPerMin: '200',
+  fcOverageCallCoinPerMin: '100',
+  freeMessageLimit: '10',
+  freeCallMinutes: '5',
 };
 
 // ---- Image Upload Field Component ----
@@ -187,6 +189,50 @@ function ImageUploadField({
   );
 }
 
+// ---- Gross Margin Preview ----
+function GrossMarginPreview({
+  fcMonthlyPriceJpy,
+  freeMessageLimit,
+  fcIncludedCallMin,
+}: {
+  fcMonthlyPriceJpy: string;
+  freeMessageLimit: string;
+  fcIncludedCallMin: string;
+}) {
+  const price = parseInt(fcMonthlyPriceJpy, 10) || 0;
+  const msgs = parseInt(freeMessageLimit, 10) || 0;
+  const callMin = parseInt(fcIncludedCallMin, 10) || 0;
+
+  const revenue = price * 0.96;
+  const cost = msgs * 0.15 + callMin * 20;
+  const margin = revenue > 0 ? ((revenue - cost) / revenue) * 100 : 0;
+
+  const marginColor =
+    margin >= 60 ? 'text-green-400' :
+    margin >= 40 ? 'text-yellow-400' :
+    'text-red-400';
+
+  return (
+    <div className="mt-3 p-3 bg-gray-900/60 rounded-lg border border-gray-700/60">
+      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-2">📊 粗利率プレビュー</p>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <p className="text-gray-500">Web手取り</p>
+          <p className="text-white font-medium">¥{Math.round(revenue).toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-gray-500">推定原価</p>
+          <p className="text-white font-medium">¥{Math.round(cost).toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-gray-500">粗利率</p>
+          <p className={`font-bold text-sm ${marginColor}`}>{margin.toFixed(1)}%</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Main Page ----
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -231,11 +277,12 @@ export default function CharactersPage() {
       avatarUrl: c.avatarUrl || '',
       coverUrl: c.coverUrl || '',
       isActive: c.isActive,
-      monthlyPrice: String(c.monthlyPrice ?? 0),
-      callPricePerMin: String(c.callPricePerMin ?? 0),
-      chatPricePerMsg: String(c.chatPricePerMsg ?? 0),
-      freeMessageLimit: String(c.freeMessageLimit ?? 5),
-      freeCallMinutes: String(c.freeCallMinutes ?? 3),
+      fcMonthlyPriceJpy: String(c.fcMonthlyPriceJpy ?? 3480),
+      fcIncludedCallMin: String(c.fcIncludedCallMin ?? 30),
+      callCoinPerMin: String(c.callCoinPerMin ?? 200),
+      fcOverageCallCoinPerMin: String(c.fcOverageCallCoinPerMin ?? 100),
+      freeMessageLimit: String(c.freeMessageLimit ?? 10),
+      freeCallMinutes: String(c.freeCallMinutes ?? 5),
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -244,6 +291,25 @@ export default function CharactersPage() {
 
   const handleSubmit = async () => {
     setError('');
+
+    // Validation
+    const fcPrice = parseInt(form.fcMonthlyPriceJpy, 10);
+    const callCoin = parseInt(form.callCoinPerMin, 10);
+    const overageCoin = parseInt(form.fcOverageCallCoinPerMin, 10);
+
+    if (!Number.isFinite(fcPrice) || fcPrice < 3480) {
+      setError('FC月額は3480円以上を設定してください');
+      return;
+    }
+    if (!Number.isFinite(callCoin) || callCoin < 200) {
+      setError('通話料金（非FC）は200コイン/分以上を設定してください');
+      return;
+    }
+    if (!Number.isFinite(overageCoin) || overageCoin < 100) {
+      setError('FC超過通話料金は100コイン/分以上を設定してください');
+      return;
+    }
+
     setSaving(true);
     try {
       let personalityTraitsParsed;
@@ -255,9 +321,9 @@ export default function CharactersPage() {
         return;
       }
 
-      const toPrice = (v: string) => {
+      const toInt = (v: string, fallback = 0) => {
         const n = parseInt(v, 10);
-        return Number.isFinite(n) && n >= 0 ? n : 0;
+        return Number.isFinite(n) && n >= 0 ? n : fallback;
       };
 
       const payload = {
@@ -275,11 +341,12 @@ export default function CharactersPage() {
         avatarUrl: form.avatarUrl || null,
         coverUrl: form.coverUrl || null,
         isActive: form.isActive,
-        monthlyPrice: toPrice(form.monthlyPrice),
-        callPricePerMin: toPrice(form.callPricePerMin),
-        chatPricePerMsg: toPrice(form.chatPricePerMsg),
-        freeMessageLimit: toPrice(form.freeMessageLimit),
-        freeCallMinutes: toPrice(form.freeCallMinutes),
+        fcMonthlyPriceJpy: toInt(form.fcMonthlyPriceJpy, 3480),
+        fcIncludedCallMin: toInt(form.fcIncludedCallMin, 30),
+        callCoinPerMin: toInt(form.callCoinPerMin, 200),
+        fcOverageCallCoinPerMin: toInt(form.fcOverageCallCoinPerMin, 100),
+        freeMessageLimit: toInt(form.freeMessageLimit, 10),
+        freeCallMinutes: toInt(form.freeCallMinutes, 5),
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -352,9 +419,7 @@ export default function CharactersPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{c.franchise}</td>
                     <td className="px-4 py-3 text-right text-sm">
-                      {c.monthlyPrice === 0
-                        ? <span className="text-green-400">無料</span>
-                        : <span className="text-yellow-400">¥{c.monthlyPrice.toLocaleString()}</span>}
+                      <span className="text-yellow-400">¥{c.fcMonthlyPriceJpy.toLocaleString()}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-white text-sm">{c.messageCount?.toLocaleString()}</td>
                     <td className="px-4 py-3 text-center">
@@ -490,56 +555,61 @@ export default function CharactersPage() {
             {/* 料金設定セクション */}
             <div className="mt-6 p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
               <h3 className="text-white font-semibold text-sm mb-4">💰 料金設定</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-gray-400 text-sm mb-1">ファンクラブ月額</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.monthlyPrice}
-                      onChange={(e) => f('monthlyPrice', e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                    <span className="text-gray-400 text-sm">円</span>
+
+              {/* FCメンバーシップ */}
+              <div className="mb-4">
+                <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC月額</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="3480"
+                        value={form.fcMonthlyPriceJpy}
+                        onChange={(e) => f('fcMonthlyPriceJpy', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">円</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
                   </div>
-                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.callPricePerMin}
-                      onChange={(e) => f('callPricePerMin', e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                    <span className="text-gray-400 text-sm">円</span>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.fcIncludedCallMin}
+                        onChange={(e) => f('fcIncludedCallMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">分/月</span>
+                    </div>
                   </div>
-                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-1">チャット料金 / メッセージ</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.chatPricePerMsg}
-                      onChange={(e) => f('chatPricePerMsg', e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                    <span className="text-gray-400 text-sm">円</span>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="100"
+                        value={form.fcOverageCallCoinPerMin}
+                        onChange={(e) => f('fcOverageCallCoinPerMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 100コイン</p>
                   </div>
-                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
                 </div>
               </div>
-              {/* 無料枠設定 */}
-              <div className="mt-4 pt-4 border-t border-gray-700/60">
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
+
+              {/* 無料枠 */}
+              <div className="mb-4 pt-4 border-t border-gray-700/60">
+                <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限（通算）</label>
+                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -548,7 +618,7 @@ export default function CharactersPage() {
                         onChange={(e) => f('freeMessageLimit', e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
                       />
-                      <span className="text-gray-400 text-sm">回</span>
+                      <span className="text-gray-400 text-sm shrink-0">通</span>
                     </div>
                     <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
                   </div>
@@ -562,12 +632,40 @@ export default function CharactersPage() {
                         onChange={(e) => f('freeCallMinutes', e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
                       />
-                      <span className="text-gray-400 text-sm">分</span>
+                      <span className="text-gray-400 text-sm shrink-0">分</span>
                     </div>
                     <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
                   </div>
                 </div>
               </div>
+
+              {/* コイン課金（非FC） */}
+              <div className="pt-4 border-t border-gray-700/60">
+                <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="200"
+                        value={form.callCoinPerMin}
+                        onChange={(e) => f('callCoinPerMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 粗利率プレビュー */}
+              <GrossMarginPreview
+                fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
+                freeMessageLimit={form.freeMessageLimit}
+                fcIncludedCallMin={form.fcIncludedCallMin}
+              />
             </div>
 
             <div className="mt-6 flex gap-3">
