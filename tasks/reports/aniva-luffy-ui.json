@@ -1,0 +1,56 @@
+{
+  "task": "ルフィUI/UX + プロフィール強化",
+  "status": "success",
+  "summary": "チャットUIに感情エフェクト・Free plan残り表示・2000字制限を追加し、プロフィールページにルフィ詳細情報・仲間一覧・名言・Momentsセクションを実装",
+  "signals": {
+    "typing_indicator": true,
+    "emotion_effects": true,
+    "levelup_animation": true,
+    "profile_page": true
+  },
+  "files_changed": [
+    "src/app/chat/[characterId]/page.tsx",
+    "src/app/profile/[characterId]/page.tsx"
+  ],
+  "details": {
+    "chat_page": {
+      "typing_indicator": "既存TypingIndicatorコンポーネント（バウンスドット3つ＋シマーテキスト）をそのまま活用",
+      "emotion_effects": {
+        "excited": "星エフェクト（✨⭐🌟）が画面上に10個キラキラ表示(3.2秒間) + bubbleWiggleアニメーション",
+        "angry": "bubbleShakeアニメーション（左右に揺れる）",
+        "hungry": "🍖が4個フロート上昇（floatMeatアニメーション、各0.25s遅延）",
+        "happy_sad_surprised": "背景テーマカラー変化（既存）",
+        "all": "感情に応じたバブル背景色グラデーション（既存）"
+      },
+      "levelup_animation": "LevelUpModalコンポーネント（既存）：confetti、キャラセリフ、レベル表示",
+      "input_improvements": {
+        "max_length": "200 → 2000文字に変更",
+        "counter_thresholds": "1500字でamber、1900字でredに変化",
+        "free_plan_display": "plan=FREEユーザーに残りメッセージ数表示（3-todayCount、/api/users/me取得）",
+        "enter_send": "既存（Shift+Enterで改行）"
+      }
+    },
+    "profile_page": {
+      "hero_section": "カバー画像（coverUrl）+ アバター + 名前 + フランチャイズ + ルフィ口癖",
+      "luffy_info_card": "isLuffy（slug===luffy）の時のみ表示：所属・悪魔の実・出身・誕生日・好物・夢",
+      "crew_section": "麦わらの一味9人を横スクロールカードで表示",
+      "catchphrases_section": "APIから取得したcatchphrasesを引用符スタイルカードで表示",
+      "moments_section": "/api/moments?characterId=...&limit=5で最新5件取得・表示",
+      "existing_sections": "絆レベル・XPバー・統計・マイルストーンタイムライン（既存デザイン維持）",
+      "cta_button": "チャットするCTAボタン（オレンジ→赤→紫グラデーション、アニメ付き）"
+    }
+  },
+  "risks": [
+    "isLuffyフラグはcharacter.slug === 'luffy'で判定 — DB側でslugが'luffy'以外の場合はキャラ固有セクション非表示になる",
+    "catchphrasesがDB未登録の場合は名言セクション非表示（正常動作）",
+    "Momentsが0件の場合はセクション非表示（正常動作）",
+    "todayMsgCountはローカル計算（最大50件履歴ベース）のため実際のDB値と若干ずれる可能性あり"
+  ],
+  "next_actions": [
+    "DB側でルフィキャラのslugが'luffy'であることを確認",
+    "catchphrases配列にルフィの名言を登録（DB seed or admin）",
+    "coverUrlにルフィのカバー画像URLを設定",
+    "Momentsのseedデータを追加して動作確認",
+    "他キャラのプロフィールも同様のレイアウト対応を検討"
+  ]
+}

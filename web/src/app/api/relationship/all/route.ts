@@ -22,6 +22,8 @@ export async function GET() {
       experiencePoints: true,
       totalMessages: true,
       lastMessageAt: true,
+      isFollowing: true,
+      isFanclub: true,
       character: {
         select: { name: true, slug: true },
       },
@@ -38,6 +40,8 @@ export async function GET() {
       xp: r.experiencePoints,
       totalMessages: r.totalMessages,
       lastMessageAt: r.lastMessageAt,
+      isFollowing: r.isFollowing,
+      isFanclub: r.isFanclub,
       character: r.character,
     };
   });

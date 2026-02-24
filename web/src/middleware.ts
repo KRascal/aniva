@@ -9,9 +9,10 @@ export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup');
   const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth');
   const isHealthCheck = req.nextUrl.pathname === '/api/health';
-  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy';
+  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy' || req.nextUrl.pathname === '/pricing';
+  const isPublicApi = req.nextUrl.pathname.startsWith('/api/characters') || req.nextUrl.pathname.startsWith('/api/moments') || req.nextUrl.pathname.startsWith('/api/push/subscribe') || req.nextUrl.pathname.startsWith('/api/webhook') || req.nextUrl.pathname.startsWith('/api/cron');
 
-  if (isApiAuth || isPublicPage || isHealthCheck) {
+  if (isApiAuth || isPublicPage || isHealthCheck || isPublicApi) {
     return NextResponse.next();
   }
 
@@ -32,6 +33,10 @@ export default auth((req) => {
   }
 
   if (!isLoggedIn) {
+    // For API routes, return 401 instead of redirecting
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.redirect(new URL('/login', req.url));
   }
 

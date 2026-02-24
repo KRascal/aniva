@@ -24,6 +24,8 @@ interface RelationshipInfo {
   xp: number;
   totalMessages: number;
   lastMessageAt: string | null;
+  isFollowing?: boolean;
+  isFanclub?: boolean;
   character?: { name: string; slug: string };
 }
 
@@ -505,43 +507,92 @@ export default function ChatPage() {
           <DailyMissionsSection totalMessages={totalMessages} />
         )}
 
-        {/* Section header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">💫</span>
-            <h2 className="text-2xl font-extrabold text-white leading-tight">
-              推しを選ぼう
-            </h2>
-          </div>
-          <p className="text-white/50 text-sm pl-9">
-            今日も一緒にいてくれる、あなただけの推し ✨
-          </p>
-        </div>
+        {/* チャット可能なキャラ（ファンクラブ加入済み） */}
+        {(() => {
+          const fanclubChars = characters.filter((c) => relationships.get(c.id)?.isFanclub);
+          const nonFanclubChars = characters.filter((c) => !relationships.get(c.id)?.isFanclub);
 
-        {characters.length === 0 ? (
-          <div className="text-center text-gray-400 py-20">
-            <div className="text-6xl mb-4">🌌</div>
-            <p className="text-white/60 font-medium">キャラクターが見つかりませんでした</p>
-            <p className="text-white/30 text-sm mt-1">管理者に連絡してください</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {characters.map((character, i) => (
-              <CharacterCard
-                key={character.id}
-                character={character}
-                index={i}
-                onClick={() => router.push(`/chat/${character.id}`)}
-                relationship={relationships.get(character.id)}
-              />
-            ))}
-          </div>
-        )}
+          return (
+            <>
+              {/* ファンクラブ加入済みキャラ */}
+              {fanclubChars.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">💬</span>
+                    <h2 className="text-xl font-extrabold text-white">チャット中の推し</h2>
+                    <span className="text-xs bg-green-900/40 text-green-400 border border-green-800/40 px-2 py-0.5 rounded-full">
+                      {fanclubChars.length}人
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {fanclubChars.map((character, i) => (
+                      <CharacterCard
+                        key={character.id}
+                        character={character}
+                        index={i}
+                        onClick={() => router.push(`/chat/${character.id}`)}
+                        relationship={relationships.get(character.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ファンクラブ未加入キャラ（全キャラ探索） */}
+              {nonFanclubChars.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">✨</span>
+                    <h2 className="text-xl font-extrabold text-white">
+                      {fanclubChars.length > 0 ? '他のキャラを探す' : '推しを選ぼう'}
+                    </h2>
+                  </div>
+                  {fanclubChars.length === 0 && (
+                    <p className="text-white/50 text-sm mb-5 pl-1">
+                      ファンクラブに入ってチャットを始めよう 💕
+                    </p>
+                  )}
+                  <div className="space-y-4">
+                    {nonFanclubChars.map((character, i) => (
+                      <div key={character.id} className="relative">
+                        <CharacterCard
+                          character={character}
+                          index={i + fanclubChars.length}
+                          onClick={() => router.push(`/profile/${character.id}`)}
+                          relationship={relationships.get(character.id)}
+                        />
+                        {/* ファンクラブ加入促進バッジ */}
+                        <div className="absolute top-3 right-3 z-30">
+                          <a
+                            href={`/profile/${character.id}`}
+                            className="flex items-center gap-1 bg-gradient-to-r from-pink-600 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🌟 ファンクラブに入る
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 全くキャラがいない場合 */}
+              {characters.length === 0 && (
+                <div className="text-center text-gray-400 py-20">
+                  <div className="text-6xl mb-4">🌌</div>
+                  <p className="text-white/60 font-medium">キャラクターが見つかりませんでした</p>
+                  <p className="text-white/30 text-sm mt-1">管理者に連絡してください</p>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* Bottom CTA hint */}
         {characters.length > 0 && (
           <p className="text-center text-white/25 text-xs mt-8">
-            タップして推しとトークを始めよう 💬
+            ファンクラブに入って推しとリアルにトークしよう 💬
           </p>
         )}
       </main>

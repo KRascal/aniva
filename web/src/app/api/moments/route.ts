@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     // ユーザーのplan と relationship level を取得
     let userPlan: string = 'FREE';
     let userRelationships: Record<string, number> = {};
+    let followingCharacterIds: string[] | null = null; // null = フィルタなし（characterId指定時）
 
     if (userId) {
       const user = await prisma.user.findUnique({
@@ -27,17 +28,28 @@ export async function GET(req: NextRequest) {
 
       const relationships = await prisma.relationship.findMany({
         where: { userId },
-        select: { characterId: true, level: true },
+        select: { characterId: true, level: true, isFollowing: true },
       });
       for (const r of relationships) {
         userRelationships[r.characterId] = r.level;
       }
+
+      // characterId 未指定の場合はフォロー中のキャラのみ
+      if (!characterId) {
+        followingCharacterIds = relationships
+          .filter((r) => r.isFollowing)
+          .map((r) => r.characterId);
+      }
     }
 
-    // 全Momentsを取得（publishedAt フィルタのみ適用）
+    // Momentsを取得
     const moments = await prisma.moment.findMany({
       where: {
-        ...(characterId ? { characterId } : {}),
+        ...(characterId
+          ? { characterId }
+          : followingCharacterIds !== null
+          ? { characterId: { in: followingCharacterIds } }
+          : {}),
         publishedAt: {
           not: null,
           lte: now,
@@ -93,7 +105,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ moments: result, nextCursor });
+    const isFollowingNone = followingCharacterIds !== null && followingCharacterIds.length === 0;
+    return NextResponse.json({ moments: result, nextCursor, isFollowingNone });
   } catch (error) {
     console.error('GET /api/moments error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

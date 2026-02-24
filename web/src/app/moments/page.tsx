@@ -436,6 +436,7 @@ export default function MomentsPage() {
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
+  const [isFollowingNone, setIsFollowingNone] = useState(false);
 
   // touch pull-to-refresh state
   const touchStartY = useRef<number | null>(null);
@@ -447,7 +448,7 @@ export default function MomentsPage() {
 
     const res = await fetch(`/api/moments?${params}`);
     if (!res.ok) return null;
-    return res.json() as Promise<{ moments: Moment[]; nextCursor: string | null }>;
+    return res.json() as Promise<{ moments: Moment[]; nextCursor: string | null; isFollowingNone?: boolean }>;
   }, []);
 
   useEffect(() => {
@@ -456,6 +457,7 @@ export default function MomentsPage() {
       if (data) {
         setMoments(data.moments);
         setNextCursor(data.nextCursor);
+        setIsFollowingNone(data.isFollowingNone ?? false);
       }
       setLoading(false);
     });
@@ -470,6 +472,7 @@ export default function MomentsPage() {
     if (data) {
       setMoments(data.moments);
       setNextCursor(data.nextCursor);
+      setIsFollowingNone(data.isFollowingNone ?? false);
     }
     setRefreshing(false);
     setTimeout(() => setShowRefreshHint(false), 300);
@@ -670,6 +673,24 @@ export default function MomentsPage() {
               <SkeletonCard />
               <SkeletonCard />
             </>
+          ) : isFollowingNone ? (
+            /* フォロー0人のときの空状態 */
+            <div className="text-center py-20 px-6">
+              <div className="relative inline-block mb-5">
+                <div className="text-7xl">🌟</div>
+              </div>
+              <h2 className="text-white font-bold text-lg mb-2">タイムラインを始めよう</h2>
+              <p className="text-white/50 text-sm leading-relaxed mb-6">
+                好きなキャラクターをフォローすると、<br />ここに最新の投稿が届きます
+              </p>
+              <a
+                href="/explore"
+                className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-2xl transition-colors text-sm"
+              >
+                <span>✨</span>
+                キャラクターを探す
+              </a>
+            </div>
           ) : moments.length === 0 ? (
             <div className="text-center py-20">
               <div className="relative inline-block mb-4">
@@ -678,7 +699,7 @@ export default function MomentsPage() {
               </div>
               <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
               <p className="text-white/25 text-xs mt-1">
-                「DEVサンプルデータ投入」で試してみよう
+                フォロー中のキャラがまだ投稿していません
               </p>
             </div>
           ) : (

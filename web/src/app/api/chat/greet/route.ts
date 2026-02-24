@@ -8,9 +8,9 @@ import { auth } from '@/lib/auth';
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
 
 // ハードコード挨拶（確実な体験のため LLM 呼び出しなし）
-const LUFFY_GREETING = `やあ！俺はモンキー・D・ルフィ！海賊王になる男だ！
-お前のことをもっと知りたいんだけど、名前を教えてくれるか？
-ししし、よろしくな！`;
+const LUFFY_GREETING = `おう！おれはモンキー・D・ルフィ！海賊王になる男だ！
+お前、名前は？おれのこと知ってんのか？ししし！
+なんかお前おもしれぇ気がする！よろしくな！`;
 
 export async function POST(req: NextRequest) {
   try {

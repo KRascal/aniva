@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
+import { CallModal } from '@/components/chat/CallModal';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -41,6 +42,33 @@ const GLOBAL_STYLES = `
     0%, 100% { transform: scaleY(0.3); }
     50%       { transform: scaleY(1); }
   }
+  /* 感情アニメーション */
+  @keyframes bubbleShake {
+    0%, 100% { transform: translateX(0); }
+    15%, 55%  { transform: translateX(-5px) rotate(-1deg); }
+    30%, 70%  { transform: translateX(5px) rotate(1deg); }
+    45%, 85%  { transform: translateX(-3px); }
+  }
+  @keyframes bubbleWiggle {
+    0%, 100% { transform: rotate(-2deg) scale(1.02); }
+    50%       { transform: rotate(2deg) scale(1.04); }
+  }
+  @keyframes floatMeat {
+    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(-5deg); }
+    60%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translateY(-130px) scale(1.5) rotate(15deg); }
+  }
+  @keyframes starTwinkle {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    40%       { opacity: 1; transform: scale(1.3) rotate(120deg); }
+    80%       { opacity: 0.5; transform: scale(0.8) rotate(240deg); }
+  }
+  @keyframes levelUpBanner {
+    0%   { opacity: 0; transform: translateY(-20px) scale(0.9); }
+    15%  { opacity: 1; transform: translateY(0) scale(1.05); }
+    85%  { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+  }
   .wave-bar {
     display: inline-block;
     width: 3px;
@@ -48,11 +76,16 @@ const GLOBAL_STYLES = `
     transform-origin: bottom;
     animation: waveBar 0.8s ease-in-out infinite;
   }
-  .msg-animate   { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
-  .send-bounce   { animation: sendBounce 0.38s ease-out; }
-  .send-glow     { animation: glowPulse 1.6s ease-in-out infinite; }
-  .viewer-slide  { animation: viewerSlide 0.3s ease-out; }
-  .audio-spin    { animation: audioSpin 1.4s linear infinite; }
+  .msg-animate       { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
+  .send-bounce       { animation: sendBounce 0.38s ease-out; }
+  .send-glow         { animation: glowPulse 1.6s ease-in-out infinite; }
+  .viewer-slide      { animation: viewerSlide 0.3s ease-out; }
+  .audio-spin        { animation: audioSpin 1.4s linear infinite; }
+  .bubble-angry      { animation: bubbleShake 0.5s ease-in-out; }
+  .bubble-excited    { animation: bubbleWiggle 0.5s ease-in-out 3; }
+  .bubble-levelup    { animation: levelUpBanner 3.5s ease-in-out forwards; }
+  .float-meat        { animation: floatMeat 1.6s ease-out forwards; }
+  .star-twinkle      { animation: starTwinkle 1.2s ease-in-out infinite; }
   /* Thin custom scrollbar */
   .chat-scroll::-webkit-scrollbar { width: 4px; }
   .chat-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -222,12 +255,20 @@ export default function ChatCharacterPage() {
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
 
   /* ── 新規 UI state ── */
+  const [showCall, setShowCall] = useState(false);
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   // キャラのテーマカラー（感情に応じて変化）
   const [bgTheme, setBgTheme] = useState<string>('rgba(88,28,135,0.06), rgba(0,0,0,0)');
+  // 感情エフェクト
+  const [hungryEmojis, setHungryEmojis] = useState<{ id: number; x: number; delay: number }[]>([]);
+  const [showStars, setShowStars] = useState(false);
+  const [lastEmotionMsgId, setLastEmotionMsgId] = useState<string | null>(null);
+  // Free plan 残りメッセージ
+  const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
+  const [todayMsgCount, setTodayMsgCount] = useState(0);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -280,12 +321,29 @@ export default function ChatCharacterPage() {
       .catch(console.error);
   }, [characterId]);
 
+  // ユーザープラン取得
+  useEffect(() => {
+    fetch('/api/users/me')
+      .then((r) => r.json())
+      .then((data) => { if (data.plan) setUserPlan(data.plan); })
+      .catch(() => {});
+  }, []);
+
   const loadRelationshipAndHistory = useCallback(async () => {
     if (!userId || !characterId) return;
     try {
       const res = await fetch(`/api/chat/history-by-user?characterId=${characterId}&limit=50`);
       const data = await res.json();
-      if (data.messages) setMessages(data.messages);
+      if (data.messages) {
+        setMessages(data.messages);
+        // 本日のUSERメッセージ数を計算（Free plan の残り表示用）
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayCount = (data.messages as Message[]).filter(
+          (m) => m.role === 'USER' && new Date(m.createdAt) >= todayStart,
+        ).length;
+        setTodayMsgCount(todayCount);
+      }
       if (data.relationship) {
         setRelationshipId(data.relationship.id);
         const relRes = await fetch(`/api/relationship/${characterId}`);
@@ -395,11 +453,28 @@ export default function ChatCharacterPage() {
           neutral:   'rgba(88,28,135,0.06), rgba(0,0,0,0)',
         };
         setBgTheme(EMOTION_THEMES[newEmotion] ?? EMOTION_THEMES.neutral);
+        // 感情エフェクトをトリガー
+        if (data.characterMessage?.id) setLastEmotionMsgId(data.characterMessage.id);
+        if (newEmotion === 'hungry') {
+          const emojis = Array.from({ length: 4 }, (_, i) => ({
+            id: Date.now() + i,
+            x: 15 + i * 20,
+            delay: i * 0.25,
+          }));
+          setHungryEmojis(emojis);
+          setTimeout(() => setHungryEmojis([]), 2000);
+        }
+        if (newEmotion === 'excited') {
+          setShowStars(true);
+          setTimeout(() => setShowStars(false), 3200);
+        }
       }
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
         generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
+      // 本日送信数インクリメント（Free plan 表示）
+      setTodayMsgCount((prev) => prev + 1);
 
       if (data.relationship) {
         setRelationship((prev) => ({
@@ -514,9 +589,50 @@ export default function ChatCharacterPage() {
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
 
+      {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
+      {hungryEmojis.map((e) => (
+        <div
+          key={e.id}
+          className="absolute bottom-24 z-20 pointer-events-none float-meat text-3xl select-none"
+          style={{ left: `${e.x}%`, animationDelay: `${e.delay}s` }}
+        >
+          🍖
+        </div>
+      ))}
+
+      {/* ✨ 興奮エフェクト：星が舞う */}
+      {showStars && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-xl star-twinkle select-none"
+              style={{
+                left: `${8 + i * 9}%`,
+                top: `${15 + (i % 4) * 20}%`,
+                animationDelay: `${i * 0.18}s`,
+                animationDuration: `${0.9 + (i % 3) * 0.35}s`,
+              }}
+            >
+              {i % 3 === 0 ? '⭐' : i % 3 === 1 ? '✨' : '🌟'}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* オンボーディングオーバーレイ */}
       {showOnboarding && character && (
         <OnboardingOverlay character={character} onStart={handleStartChat} />
+      )}
+
+      {/* 📞 通話モーダル */}
+      {showCall && character && (
+        <CallModal
+          characterId={characterId}
+          characterName={character.name}
+          characterAvatar={character.avatarUrl}
+          onClose={() => setShowCall(false)}
+        />
       )}
 
       {/* レベルアップモーダル */}
@@ -613,6 +729,19 @@ export default function ChatCharacterPage() {
             </svg>
           )}
         </button>
+
+        {/* 📞 通話ボタン */}
+        <button
+          onClick={() => setShowCall(true)}
+          className="flex-shrink-0 p-1.5 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
+          title="通話する"
+          aria-label="通話する"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+        </button>
       </header>
 
       {/* ══════════════ Live2D ビューアー（トグル） ══════════════ */}
@@ -688,7 +817,10 @@ export default function ChatCharacterPage() {
                   className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
                     isUser
                       ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
-                      : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)}`
+                      : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
+                      msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
+                      msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
+                    }`
                   }`}
                 >
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
@@ -746,6 +878,23 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 入力エリア ══════════════ */}
       <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {/* Free plan 残りメッセージ表示 */}
+        {userPlan === 'FREE' && (
+          <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
+            <span className="text-amber-400">⚡</span>
+            <span className="text-amber-400/80">
+              今日の残り:{' '}
+              <span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>
+              /3 回
+            </span>
+            <a
+              href="/pricing"
+              className="ml-auto text-purple-400 hover:text-purple-300 hover:underline transition-colors"
+            >
+              無制限プランへ →
+            </a>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {/* テキスト入力 */}
           <input
@@ -755,7 +904,7 @@ export default function ChatCharacterPage() {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={PLACEHOLDERS[placeholderIndex]}
-            maxLength={200}
+            maxLength={2000}
             disabled={isSending || isGreeting}
             style={{ fontSize: '16px' }} // prevent iOS auto-zoom
             className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation ${
@@ -791,9 +940,10 @@ export default function ChatCharacterPage() {
 
         {/* 文字数カウンター */}
         <div className={`text-right mt-1 pr-14 transition-colors ${
-          inputText.length >= 180 ? 'text-red-400' : 'text-gray-600'
+          inputText.length >= 1900 ? 'text-red-400' :
+          inputText.length >= 1500 ? 'text-amber-400' : 'text-gray-600'
         } text-[11px]`}>
-          {inputText.length > 0 && `${inputText.length}/200`}
+          {inputText.length > 0 && `${inputText.length}/2000`}
         </div>
       </div>
     </div>
