@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import Anthropic from '@anthropic-ai/sdk';
+// LLM provider - xAI (Grok) or Anthropic
+async function generateText(systemMessage: string, userMessage: string): Promise<string> {
+  const xaiKey = process.env.XAI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (xaiKey) {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.LLM_MODEL || 'grok-3-mini',
+        messages: [{ role: 'system', content: systemMessage }, { role: 'user', content: userMessage }],
+        max_tokens: 300,
+        temperature: 0.85,
+      }),
+    });
+    if (!res.ok) throw new Error(`xAI API error ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  }
+
+  if (anthropicKey) {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: anthropicKey });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: systemMessage,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    return (response.content[0] as { type: string; text: string }).text?.trim() || '';
+  }
+
+  throw new Error('No LLM API key configured');
+}
 
 function getTimeOfDay(): string {
   // JST = UTC+9
@@ -63,14 +95,7 @@ ${recentTexts || '（なし）'}
 
 投稿テキストのみ返答せよ。説明や前置き・後書きは一切不要。`;
 
-        const response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 300,
-          messages: [{ role: 'user', content: userMessage }],
-          system: systemMessage,
-        });
-
-        const content = (response.content[0] as { type: string; text: string }).text?.trim();
+        const content = await generateText(systemMessage, userMessage);
         if (!content) continue;
 
         // --- DBに保存 ---

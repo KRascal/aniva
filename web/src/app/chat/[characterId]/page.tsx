@@ -153,14 +153,14 @@ function getEmotionEmoji(emotion?: string): string {
   return EMOTION_EMOJI[emotion] || '';
 }
 
-/* ── プレースホルダーバリエーション ── */
-const PLACEHOLDERS = [
-  'メッセージを入力...',
-  '何か話しかけてみよう！',
-  '今日はどんな気分？',
-  '一緒に冒険しようぜ！',
-  '何でも聞いてみよう 😊',
-  '推しに伝えたいことは？',
+/* ── プレースホルダーベース ── */
+const BASE_PLACEHOLDERS = [
+  (name: string) => `${name}に話しかける...`,
+  (name: string) => `${name}に何か聞いてみよう！`,
+  (_: string) => '今日はどんな気分？',
+  (_: string) => '推しに伝えたいことは？',
+  (name: string) => `${name}と話そう 😊`,
+  (_: string) => '一緒に冒険しようぜ！',
 ];
 
 
@@ -370,7 +370,7 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     if (inputText.length > 0) return;
     const timer = setInterval(() => {
-      setPlaceholderIndex((i) => (i + 1) % PLACEHOLDERS.length);
+      setPlaceholderIndex((i) => (i + 1) % BASE_PLACEHOLDERS.length);
     }, 3500);
     return () => clearInterval(timer);
   }, [inputText]);
@@ -869,7 +869,7 @@ export default function ChatCharacterPage() {
                 </div>
               )}
             </div>
-            <TypingIndicator characterName={character?.name} />
+            <TypingIndicator characterName={character?.name} avatarUrl={character?.avatarUrl} />
           </div>
         )}
 
@@ -903,7 +903,7 @@ export default function ChatCharacterPage() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={PLACEHOLDERS[placeholderIndex]}
+            placeholder={BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
             maxLength={2000}
             disabled={isSending || isGreeting}
             style={{ fontSize: '16px' }} // prevent iOS auto-zoom

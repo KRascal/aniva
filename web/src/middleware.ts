@@ -11,8 +11,20 @@ export default auth((req) => {
   const isHealthCheck = req.nextUrl.pathname === '/api/health';
   const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy' || req.nextUrl.pathname === '/pricing';
   const isPublicApi = req.nextUrl.pathname.startsWith('/api/characters') || req.nextUrl.pathname.startsWith('/api/moments') || req.nextUrl.pathname.startsWith('/api/push/subscribe') || req.nextUrl.pathname.startsWith('/api/webhook') || req.nextUrl.pathname.startsWith('/api/cron');
+  const isAdminPath = req.nextUrl.pathname.startsWith('/admin') || req.nextUrl.pathname.startsWith('/api/admin');
 
   if (isApiAuth || isPublicPage || isHealthCheck || isPublicApi) {
+    return NextResponse.next();
+  }
+
+  // Admin paths: require auth (admin email check is done at page/API level)
+  if (isAdminPath) {
+    if (!isLoggedIn) {
+      if (req.nextUrl.pathname.startsWith('/api/admin')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
     return NextResponse.next();
   }
 
@@ -27,7 +39,7 @@ export default auth((req) => {
 
   if (isAuthPage) {
     if (isLoggedIn) {
-      return NextResponse.redirect(new URL('/chat', req.url));
+      return NextResponse.redirect(new URL('/explore', req.url));
     }
     return NextResponse.next();
   }

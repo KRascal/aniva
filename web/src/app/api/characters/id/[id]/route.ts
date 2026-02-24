@@ -20,6 +20,7 @@ export async function GET(
       avatarUrl: true,
       coverUrl: true,
       catchphrases: true,
+      personalityTraits: true,
     },
   });
 

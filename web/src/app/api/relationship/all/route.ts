@@ -25,7 +25,18 @@ export async function GET() {
       isFollowing: true,
       isFanclub: true,
       character: {
-        select: { name: true, slug: true },
+        select: { name: true, slug: true, avatarUrl: true },
+      },
+      conversations: {
+        take: 1,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { content: true, role: true, createdAt: true },
+          },
+        },
       },
     },
     orderBy: { lastMessageAt: 'desc' },
@@ -33,6 +44,7 @@ export async function GET() {
 
   const result = relationships.map((r) => {
     const levelInfo = RELATIONSHIP_LEVELS[Math.min(r.level - 1, RELATIONSHIP_LEVELS.length - 1)];
+    const lastMsg = r.conversations?.[0]?.messages?.[0] ?? null;
     return {
       characterId: r.characterId,
       level: r.level,
@@ -43,6 +55,7 @@ export async function GET() {
       isFollowing: r.isFollowing,
       isFanclub: r.isFanclub,
       character: r.character,
+      lastMessage: lastMsg ? { content: lastMsg.content, role: lastMsg.role } : null,
     };
   });
 

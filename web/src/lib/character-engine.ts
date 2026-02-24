@@ -1,10 +1,40 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from './prisma';
 
-function getAnthropicClient(): Anthropic {
-  return new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
+// LLM provider abstraction - supports Anthropic, xAI (Grok), OpenAI
+async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assistant'; content: string }[]): Promise<string> {
+  // Try xAI (Grok) first, then Anthropic, then error
+  const xaiKey = process.env.XAI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  if (xaiKey) {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.LLM_MODEL || 'grok-3-mini',
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: 500,
+        temperature: 0.85,
+      }),
+    });
+    if (!res.ok) throw new Error(`xAI API error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+
+  if (anthropicKey) {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: anthropicKey });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages,
+    });
+    return response.content[0].type === 'text' ? response.content[0].text : '';
+  }
+
+  throw new Error('No LLM API key configured (set XAI_API_KEY or ANTHROPIC_API_KEY)');
 }
 
 interface CharacterResponse {
@@ -53,20 +83,14 @@ export class CharacterEngine {
     const systemPrompt = this.buildSystemPrompt(character, relationship, memory);
     
     // 6. LLM呼び出し
-    const response = await getAnthropicClient().messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: [
-        ...recentMessages.map(msg => ({
-          role: msg.role === 'USER' ? 'user' as const : 'assistant' as const,
-          content: msg.content,
-        })),
-        { role: 'user', content: userMessage },
-      ],
-    });
-    
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const llmMessages = [
+      ...recentMessages.map(msg => ({
+        role: msg.role === 'USER' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+      })),
+      { role: 'user' as const, content: userMessage },
+    ];
+    const text = await callLLM(systemPrompt, llmMessages);
     
     // 7. NGガードチェック
     const cleanedText = this.applyNGGuard(text, character.name);

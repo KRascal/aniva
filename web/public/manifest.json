@@ -1,8 +1,8 @@
 {
-  "name": "ANIVA - 推しが実在する世界",
+  "name": "ANIVA",
   "short_name": "ANIVA",
-  "description": "アニメキャラクターと会話できるAIプラットフォーム",
-  "start_url": "/",
+  "description": "推しが実在する世界",
+  "start_url": "/explore",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#8b5cf6",

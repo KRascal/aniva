@@ -2,9 +2,10 @@
 
 interface TypingIndicatorProps {
   characterName?: string;
+  avatarUrl?: string | null;
 }
 
-export function TypingIndicator({ characterName }: TypingIndicatorProps) {
+export function TypingIndicator({ characterName, avatarUrl }: TypingIndicatorProps) {
   return (
     <>
       <style>{`
@@ -45,12 +46,22 @@ export function TypingIndicator({ characterName }: TypingIndicatorProps) {
         }
       `}</style>
       <div className="flex flex-col gap-1.5">
-        {/* キャラ名 + 考え中テキスト */}
+        {/* キャラ名 + 入力中テキスト（アバター付き） */}
         {characterName && (
-          <div className="flex items-center gap-1.5 pl-1">
-            <span className="thinking-icon text-sm">💭</span>
+          <div className="flex items-center gap-2 pl-1">
+            {/* アバターサムネイル */}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={characterName}
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0 opacity-90"
+              />
+            ) : (
+              <span className="thinking-icon text-sm flex-shrink-0">💭</span>
+            )}
             <span className="thinking-text font-medium">
-              {characterName}が考え中...
+              {characterName}が入力中...
             </span>
           </div>
         )}

@@ -14,9 +14,9 @@ export function BottomNav() {
   // Hide on individual chat character page (has its own input bar)
   if (pathname.match(/^\/chat\/[^/]+$/)) return null;
 
-  const isHome = pathname === '/chat' || pathname === '/chat/';
+  const isHome = pathname === '/explore' || pathname === '/explore/';
   const isTimeline = pathname.startsWith('/moments');
-  const isChat = !isHome && pathname.startsWith('/chat');
+  const isChat = pathname.startsWith('/chat');
   const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
 
   return (
@@ -25,17 +25,20 @@ export function BottomNav() {
         className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-xl border-t border-white/8 flex justify-around items-center h-16"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* ホーム */}
+        {/* ホーム (Explore) */}
         <Link
-          href="/chat"
+          href="/explore"
           className={`flex flex-col items-center gap-1 py-2 px-4 transition-colors rounded-xl ${
             isHome ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300'
           }`}
         >
+          {/* Compass icon */}
           <svg className="w-6 h-6" fill={isHome ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isHome ? 0 : 1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l6 6M9 15l6-6" />
+            {isHome && <circle cx="12" cy="12" r="9" />}
           </svg>
-          <span className={`text-[10px] font-medium ${isHome ? 'text-purple-400' : 'text-gray-500'}`}>ホーム</span>
+          <span className={`text-[10px] font-medium ${isHome ? 'text-purple-400' : 'text-gray-500'}`}>さがす</span>
         </Link>
 
         {/* タイムライン */}
@@ -51,7 +54,7 @@ export function BottomNav() {
           <span className={`text-[10px] font-medium ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>タイムライン</span>
         </Link>
 
-        {/* チャット (個別チャットのリスト — /chat/ 配下) */}
+        {/* チャット */}
         <Link
           href="/chat"
           className={`flex flex-col items-center gap-1 py-2 px-4 transition-colors rounded-xl ${

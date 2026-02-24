@@ -26,7 +26,8 @@ interface RelationshipInfo {
   lastMessageAt: string | null;
   isFollowing?: boolean;
   isFanclub?: boolean;
-  character?: { name: string; slug: string };
+  character?: { name: string; slug: string; avatarUrl?: string | null };
+  lastMessage?: { content: string; role: string } | null;
 }
 
 /* ── gradient palette per index ── */

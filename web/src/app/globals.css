@@ -72,3 +72,12 @@ html {
 .animate-glow {
   animation: glowPulse 2s ease-in-out infinite;
 }
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

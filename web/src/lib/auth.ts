@@ -13,22 +13,58 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       checks: [], // Disable PKCE checks for HTTP environment compatibility
     }),
-    // Email magic link will be added when email service is configured
+    // Email OTP (6-digit code) authentication
     Credentials({
-      name: 'Email',
+      name: 'Email OTP',
       credentials: {
         email: { label: 'Email', type: 'email' },
+        code: { label: 'Code', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
-        const email = credentials.email as string;
+        if (!credentials?.email || !credentials?.code) return null;
 
+        const email = (credentials.email as string).toLowerCase().trim();
+        const code = (credentials.code as string).trim();
+        const now = new Date();
+
+        // Find a valid, unused, non-expired code using raw SQL (Prisma v7 adapter compatibility)
+        const rows = await prisma.$queryRaw<Array<{ id: string; email: string }>>`
+          SELECT id, email FROM "VerificationCode"
+          WHERE email = ${email}
+            AND code = ${code}
+            AND used = false
+            AND "expiresAt" > ${now}
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        `;
+
+        if (!rows || rows.length === 0) return null;
+
+        const verificationCodeId = rows[0].id;
+
+        // Mark code as used
+        await prisma.$executeRaw`
+          UPDATE "VerificationCode" SET used = true WHERE id = ${verificationCodeId}
+        `;
+
+        // Find or create user
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           user = await prisma.user.create({
-            data: { email, displayName: email.split('@')[0] },
+            data: {
+              email,
+              displayName: email.split('@')[0],
+              emailVerified: new Date(),
+            },
+          });
+        } else if (!user.emailVerified) {
+          // Mark email as verified on first OTP success
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { emailVerified: new Date() },
           });
         }
+
         return { id: user.id, email: user.email, name: user.displayName };
       },
     }),
