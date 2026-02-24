@@ -1,20 +1,35 @@
 @import "tailwindcss";
 
+/* ===== Light Mode (default) ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f4f8;
+  --foreground: #111118;
 
-  /* ANIVA Design Tokens v2 */
+  /* ANIVA Design Tokens v2 - Light */
+  --color-bg: #f4f4f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eeeef4;
+  --color-border: rgba(0,0,0,0.08);
+  --color-accent: #7c3aed;
+  --color-accent-2: #db2777;
+  --color-text: #111118;
+  --color-muted: #6b6b80;
+  --radius-card: 16px;
+  --radius-btn: 12px;
+}
+
+/* ===== Dark Mode ===== */
+.dark {
+  --background: #0a0a0f;
+  --foreground: #f8f8ff;
+
+  /* ANIVA Design Tokens v2 - Dark */
   --color-bg: #0a0a0f;
   --color-surface: #12121a;
   --color-surface-2: #1a1a24;
   --color-border: rgba(255,255,255,0.08);
-  --color-accent: #7c3aed;
-  --color-accent-2: #db2777;
   --color-text: #f8f8ff;
   --color-muted: #8b8b9e;
-  --radius-card: 16px;
-  --radius-btn: 12px;
 }
 
 @theme inline {
@@ -24,20 +39,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Safe area padding utility */

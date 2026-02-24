@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface UserInfo {
   id: string;
@@ -144,6 +145,9 @@ export default function MyPage() {
           </svg>
         </button>
         <h1 className="text-lg font-bold text-white">マイページ</h1>
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
@@ -296,6 +300,20 @@ export default function MyPage() {
           <h3 className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2 flex items-center gap-2">
             <span>⚙️</span> 設定
           </h3>
+
+          {/* 設定ページへのリンク */}
+          <a
+            href="/mypage/settings"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <div>
+              <p className="text-sm text-white">アプリ設定</p>
+              <p className="text-xs text-gray-500">テーマ・通知・言語など</p>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
           {/* 通知設定 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
