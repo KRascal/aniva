@@ -470,7 +470,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
   const [open, setOpen] = useState(false);
   return (
     <FadeSection delay={index * 60}>
-      <div className="border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
         <button
           onClick={() => setOpen(!open)}
           className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
@@ -517,9 +517,9 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/signup"
-            className="flex items-center gap-1 text-sm px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-md shadow-purple-900/40"
+            className="flex items-center gap-1 text-sm px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white font-bold hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-md shadow-purple-900/40"
           >
-            無料で始める ✨
+            無料で始める
           </Link>
         </div>
       </header>
@@ -555,9 +555,9 @@ export default function LandingPage() {
 
           <Link
             href="/signup"
-            className="mt-4 inline-flex items-center gap-2 px-10 py-5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xl shadow-2xl shadow-purple-900/60 hover:shadow-purple-900/80 hover:scale-105 transition-all duration-200 ring-2 ring-purple-500/30"
+            className="mt-4 inline-flex items-center gap-2 px-10 py-5 rounded-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white font-black text-xl shadow-2xl shadow-purple-900/60 hover:shadow-purple-900/80 hover:scale-105 transition-all duration-200 ring-2 ring-purple-500/30"
           >
-            無料でサインアップ ✨
+            無料でサインアップ
           </Link>
           <p className="text-xs text-gray-600">
             クレジットカード不要 · 登録30秒 · Google / Discord でかんたん登録
@@ -621,7 +621,7 @@ export default function LandingPage() {
           <FadeSection delay={350} className="text-center mt-8">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-700/80 to-pink-700/80 text-white font-semibold text-sm border border-purple-500/30 hover:opacity-90 transition-opacity shadow-md shadow-purple-900/30"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-btn)] bg-gradient-to-r from-[var(--color-accent)]/80 to-[var(--color-accent-2)]/80 text-white font-semibold text-sm border border-purple-500/30 hover:opacity-90 transition-opacity shadow-md shadow-purple-900/30"
             >
               ルフィと話してみる →
             </Link>
@@ -632,7 +632,6 @@ export default function LandingPage() {
       {/* ── Features ── */}
       <section className="py-20 relative overflow-hidden">
         <FadeSection className="text-center mb-10 px-6">
-          <span className="text-3xl mb-3 block">📱</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
             どんな体験？
           </h2>
@@ -682,7 +681,6 @@ export default function LandingPage() {
       {/* ── Relationship Levels ── */}
       <section className="py-20 px-6 max-w-2xl mx-auto">
         <FadeSection className="text-center mb-10">
-          <span className="text-3xl mb-3 block">⭐</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
             関係性レベル
           </h2>
@@ -716,7 +714,7 @@ export default function LandingPage() {
                     </span>
                     {i === 4 && (
                       <span className="text-xs text-purple-400 font-medium">
-                        最高レベル ✨
+                        最高レベル
                       </span>
                     )}
                   </div>
@@ -731,7 +729,6 @@ export default function LandingPage() {
       {/* ── Testimonials ── */}
       <section className="py-20 px-6 bg-gray-950/50">
         <FadeSection className="text-center mb-10">
-          <span className="text-3xl mb-3 block">💬</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
             ユーザーの声
           </h2>
@@ -741,7 +738,7 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
           {testimonials.map((t, i) => (
             <FadeSection key={t.name} delay={i * 100}>
-              <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-5 hover:border-purple-500/30 transition-colors">
+              <div className="rounded-2xl p-5 hover:bg-[var(--color-surface-2)] transition-colors duration-200" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600/30 to-pink-600/30 border border-purple-500/30 flex items-center justify-center text-2xl flex-shrink-0">
                     {t.avatar}
@@ -771,11 +768,10 @@ export default function LandingPage() {
       {/* ── FAQ ── */}
       <section className="py-20 px-6 max-w-2xl mx-auto">
         <FadeSection className="text-center mb-10">
-          <span className="text-3xl mb-3 block">❓</span>
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
             よくある質問
           </h2>
-          <p className="text-gray-400">気になることはここで解決！</p>
+          <p className="text-gray-400">気になることはここで解決</p>
         </FadeSection>
 
         <div className="flex flex-col gap-3">
@@ -814,7 +810,7 @@ export default function LandingPage() {
             </p>
             <Link
               href="/signup"
-              className="w-full inline-flex items-center justify-center gap-2 px-8 py-5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xl shadow-2xl shadow-purple-900/40 hover:scale-105 hover:shadow-purple-900/70 transition-all duration-200 ring-2 ring-purple-500/20"
+              className="w-full inline-flex items-center justify-center gap-2 px-8 py-5 rounded-[var(--radius-btn)] bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white font-black text-xl shadow-2xl shadow-purple-900/40 hover:scale-105 hover:shadow-purple-900/70 transition-all duration-200 ring-2 ring-purple-500/20"
             >
               無料でサインアップ →
             </Link>

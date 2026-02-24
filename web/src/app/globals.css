@@ -3,6 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ANIVA Design Tokens v2 */
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-2: #1a1a24;
+  --color-border: rgba(255,255,255,0.08);
+  --color-accent: #7c3aed;
+  --color-accent-2: #db2777;
+  --color-text: #f8f8ff;
+  --color-muted: #8b8b9e;
+  --radius-card: 16px;
+  --radius-btn: 12px;
 }
 
 @theme inline {

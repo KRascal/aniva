@@ -140,7 +140,7 @@ const EMOTION_BUBBLE_STYLE: Record<string, string> = {
   sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
   hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
   surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
-  neutral:   'bg-gray-800/90 text-gray-100 border border-gray-600/30 shadow-md',
+  neutral:   'bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] shadow-md',
 };
 
 function getCharacterBubbleStyle(emotion?: string): string {
@@ -826,8 +826,8 @@ export default function ChatCharacterPage() {
                 <div
                   className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
                     isUser
-                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
-                      : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
+                      ? 'bg-[var(--color-accent)] text-white rounded-2xl rounded-br-sm shadow-purple-900/30'
+                      : `rounded-2xl rounded-bl-sm ${getCharacterBubbleStyle(emotion)} ${
                       msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
                       msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
                     }`
@@ -937,7 +937,7 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 入力エリア ══════════════ */}
       {!freeLimitReached && (
-      <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div className="flex-shrink-0 border-t border-[var(--color-border)] backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--color-surface)' }}>
         {/* Free plan 残りメッセージ表示 */}
         {userPlan === 'FREE' && (
           <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
@@ -966,11 +966,11 @@ export default function ChatCharacterPage() {
             placeholder={BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
             maxLength={2000}
             disabled={isSending || isGreeting}
-            style={{ fontSize: '16px' }} // prevent iOS auto-zoom
-            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-full px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation ${
+            style={{ fontSize: '16px', backgroundColor: 'var(--color-surface)' }}
+            className={`flex-1 text-[var(--color-text)] placeholder-[var(--color-muted)] rounded-2xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 touch-manipulation ${
               hasInput
-                ? 'border-purple-500/60 ring-1 ring-purple-500/30'
-                : 'border-gray-700/60'
+                ? 'ring-1 ring-[var(--color-accent)]/40 border border-[var(--color-accent)]/40'
+                : 'border border-[var(--color-border)]'
             }`}
           />
 
