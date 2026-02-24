@@ -96,6 +96,9 @@ model Character {
   avatarUrl         String?
   coverUrl          String?
   isActive          Boolean        @default(true)
+  monthlyPrice      Int            @default(0)
+  callPricePerMin   Int            @default(0)
+  chatPricePerMsg   Int            @default(0)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   relationships     Relationship[]

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Character {
   id: string;
@@ -17,6 +17,9 @@ interface Character {
   avatarUrl: string | null;
   coverUrl: string | null;
   isActive: boolean;
+  monthlyPrice: number;
+  callPricePerMin: number;
+  chatPricePerMsg: number;
   messageCount: number;
   _count?: { relationships: number };
 }
@@ -36,8 +39,151 @@ const EMPTY_FORM = {
   avatarUrl: '',
   coverUrl: '',
   isActive: true,
+  monthlyPrice: '0',
+  callPricePerMin: '0',
+  chatPricePerMsg: '0',
 };
 
+// ---- Image Upload Field Component ----
+function ImageUploadField({
+  label,
+  value,
+  onChange,
+  slug,
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  slug: string;
+  className?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const uploadFile = async (file: File) => {
+    setUploadError('');
+    if (!slug) {
+      setUploadError('先にスラッグを入力してください');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('slug', slug);
+
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setUploadError(data.error || 'アップロードに失敗しました');
+      } else {
+        onChange(data.url);
+      }
+    } catch {
+      setUploadError('アップロードに失敗しました');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => setDragging(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+    // Reset so same file can be selected again
+    e.target.value = '';
+  };
+
+  return (
+    <div className={className}>
+      <label className="block text-gray-400 text-sm mb-1">{label}</label>
+
+      {/* Drop zone */}
+      <div
+        onClick={() => !uploading && inputRef.current?.click()}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`
+          relative flex flex-col items-center justify-center gap-1
+          border-2 border-dashed rounded-lg px-4 py-3 cursor-pointer
+          transition-colors select-none
+          ${dragging
+            ? 'border-purple-500 bg-purple-900/20'
+            : 'border-gray-600 hover:border-purple-500/60 hover:bg-gray-800/60'}
+          ${uploading ? 'opacity-70 cursor-not-allowed' : ''}
+        `}
+      >
+        {uploading ? (
+          <div className="flex items-center gap-2 text-purple-400 text-sm py-1">
+            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            アップロード中...
+          </div>
+        ) : (
+          <>
+            {/* Thumbnail preview */}
+            {value && (
+              <img
+                src={value}
+                alt="preview"
+                className="w-20 h-20 object-cover rounded mb-1"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
+            <span className="text-gray-400 text-xs text-center">
+              画像をドロップ or クリックしてアップロード
+            </span>
+            <span className="text-gray-600 text-xs">jpg / png / webp / gif ・ 最大 5MB</span>
+          </>
+        )}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </div>
+
+      {uploadError && (
+        <p className="text-red-400 text-xs mt-1">{uploadError}</p>
+      )}
+
+      {/* Manual URL input */}
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="または URL を直接入力"
+        className="mt-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+      />
+    </div>
+  );
+}
+
+// ---- Main Page ----
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +227,9 @@ export default function CharactersPage() {
       avatarUrl: c.avatarUrl || '',
       coverUrl: c.coverUrl || '',
       isActive: c.isActive,
+      monthlyPrice: String(c.monthlyPrice ?? 0),
+      callPricePerMin: String(c.callPricePerMin ?? 0),
+      chatPricePerMsg: String(c.chatPricePerMsg ?? 0),
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -100,6 +249,11 @@ export default function CharactersPage() {
         return;
       }
 
+      const toPrice = (v: string) => {
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) && n >= 0 ? n : 0;
+      };
+
       const payload = {
         ...(editingId ? { id: editingId } : {}),
         name: form.name,
@@ -115,6 +269,9 @@ export default function CharactersPage() {
         avatarUrl: form.avatarUrl || null,
         coverUrl: form.coverUrl || null,
         isActive: form.isActive,
+        monthlyPrice: toPrice(form.monthlyPrice),
+        callPricePerMin: toPrice(form.callPricePerMin),
+        chatPricePerMsg: toPrice(form.chatPricePerMsg),
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -167,6 +324,7 @@ export default function CharactersPage() {
               <tr className="border-b border-gray-800">
                 <th className="text-left text-gray-400 text-sm px-4 py-3">名前</th>
                 <th className="text-left text-gray-400 text-sm px-4 py-3">フランチャイズ</th>
+                <th className="text-right text-gray-400 text-sm px-4 py-3">月額</th>
                 <th className="text-right text-gray-400 text-sm px-4 py-3">メッセージ数</th>
                 <th className="text-center text-gray-400 text-sm px-4 py-3">状態</th>
                 <th className="text-right text-gray-400 text-sm px-4 py-3">操作</th>
@@ -174,9 +332,9 @@ export default function CharactersPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">読み込み中...</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">読み込み中...</td></tr>
               ) : characters.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">キャラクターがありません</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">キャラクターがありません</td></tr>
               ) : (
                 characters.map((c) => (
                   <tr key={c.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
@@ -185,6 +343,11 @@ export default function CharactersPage() {
                       <div className="text-gray-500 text-xs">{c.slug}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{c.franchise}</td>
+                    <td className="px-4 py-3 text-right text-sm">
+                      {c.monthlyPrice === 0
+                        ? <span className="text-green-400">無料</span>
+                        : <span className="text-yellow-400">¥{c.monthlyPrice.toLocaleString()}</span>}
+                    </td>
                     <td className="px-4 py-3 text-right text-white text-sm">{c.messageCount?.toLocaleString()}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full ${c.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
@@ -246,8 +409,22 @@ export default function CharactersPage() {
               <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
               <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
               <Field label="音声モデルID" value={form.voiceModelId} onChange={(v) => f('voiceModelId', v)} />
-              <Field label="アバターURL" value={form.avatarUrl} onChange={(v) => f('avatarUrl', v)} className="sm:col-span-2" />
-              <Field label="カバーURL" value={form.coverUrl} onChange={(v) => f('coverUrl', v)} className="sm:col-span-2" />
+            </div>
+
+            {/* Avatar & Cover image upload fields */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUploadField
+                label="アバター画像"
+                value={form.avatarUrl}
+                onChange={(v) => f('avatarUrl', v)}
+                slug={form.slug}
+              />
+              <ImageUploadField
+                label="カバー画像"
+                value={form.coverUrl}
+                onChange={(v) => f('coverUrl', v)}
+                slug={form.slug}
+              />
             </div>
 
             <div className="mt-4">
@@ -300,6 +477,55 @@ export default function CharactersPage() {
               >
                 <div className={`w-5 h-5 bg-white rounded-full mx-0.5 transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
               </button>
+            </div>
+
+            {/* 料金設定セクション */}
+            <div className="mt-6 p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
+              <h3 className="text-white font-semibold text-sm mb-4">💰 料金設定</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">ファンクラブ月額</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.monthlyPrice}
+                      onChange={(e) => f('monthlyPrice', e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-gray-400 text-sm">円</span>
+                  </div>
+                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.callPricePerMin}
+                      onChange={(e) => f('callPricePerMin', e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-gray-400 text-sm">円</span>
+                  </div>
+                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">チャット料金 / メッセージ</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.chatPricePerMsg}
+                      onChange={(e) => f('chatPricePerMsg', e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                    <span className="text-gray-400 text-sm">円</span>
+                  </div>
+                  <p className="text-gray-600 text-xs mt-1">0 = 無料で開放</p>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 flex gap-3">

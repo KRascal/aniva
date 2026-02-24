@@ -268,11 +268,12 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      Promise.all([
-        fetch('/api/characters').then(r => r.json()),
-        fetch('/api/relationship/all').then(r => r.json()),
-      ]).then(([charData, relData]) => {
+      // Fetch characters and relationships separately to avoid one failure blocking both
+      fetch('/api/characters').then(r => r.json()).then(charData => {
         setCharacters(charData.characters || []);
+      }).catch(err => console.error('Failed to fetch characters:', err));
+
+      fetch('/api/relationship/all').then(r => r.json()).then(relData => {
         if (relData.relationships) {
           const map = new Map<string, RelationshipInfo>();
           for (const rel of relData.relationships as RelationshipInfo[]) {
@@ -280,8 +281,8 @@ export default function ExplorePage() {
           }
           setRelationships(map);
         }
-        setIsLoading(false);
-      }).catch(() => setIsLoading(false));
+      }).catch(err => console.error('Failed to fetch relationships:', err))
+        .finally(() => setIsLoading(false));
     }
   }, [status]);
 

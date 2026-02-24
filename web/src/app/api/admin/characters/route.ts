@@ -22,6 +22,9 @@ export async function GET() {
       avatarUrl: true,
       coverUrl: true,
       isActive: true,
+      monthlyPrice: true,
+      callPricePerMin: true,
+      chatPricePerMsg: true,
       createdAt: true,
       _count: { select: { relationships: true } },
       relationships: { select: { totalMessages: true } },
@@ -47,11 +50,17 @@ export async function POST(req: NextRequest) {
     name, nameEn, slug, franchise, franchiseEn, description,
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
+    monthlyPrice, callPricePerMin, chatPricePerMsg,
   } = body;
 
   if (!name || !slug || !franchise || !systemPrompt) {
     return NextResponse.json({ error: 'name, slug, franchise, systemPrompt are required' }, { status: 400 });
   }
+
+  const toPrice = (v: unknown) => {
+    const n = parseInt(String(v ?? 0), 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
 
   const character = await prisma.character.create({
     data: {
@@ -68,6 +77,9 @@ export async function POST(req: NextRequest) {
       avatarUrl: avatarUrl || null,
       coverUrl: coverUrl || null,
       isActive: isActive !== undefined ? isActive : true,
+      monthlyPrice: toPrice(monthlyPrice),
+      callPricePerMin: toPrice(callPricePerMin),
+      chatPricePerMsg: toPrice(chatPricePerMsg),
     },
   });
 
@@ -86,7 +98,13 @@ export async function PUT(req: NextRequest) {
     name, nameEn, slug, franchise, franchiseEn, description,
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
+    monthlyPrice, callPricePerMin, chatPricePerMsg,
   } = data;
+
+  const toPrice = (v: unknown) => {
+    const n = parseInt(String(v ?? 0), 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
 
   const character = await prisma.character.update({
     where: { id },
@@ -96,6 +114,9 @@ export async function PUT(req: NextRequest) {
       catchphrases: Array.isArray(catchphrases) ? catchphrases : undefined,
       personalityTraits: personalityTraits !== undefined ? personalityTraits : undefined,
       avatarUrl, coverUrl, isActive,
+      monthlyPrice: monthlyPrice !== undefined ? toPrice(monthlyPrice) : undefined,
+      callPricePerMin: callPricePerMin !== undefined ? toPrice(callPricePerMin) : undefined,
+      chatPricePerMsg: chatPricePerMsg !== undefined ? toPrice(chatPricePerMsg) : undefined,
     },
   });
 

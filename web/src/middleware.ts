@@ -9,7 +9,7 @@ export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup');
   const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth');
   const isHealthCheck = req.nextUrl.pathname === '/api/health';
-  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy' || req.nextUrl.pathname === '/pricing';
+  const isPublicPage = req.nextUrl.pathname === '/' || req.nextUrl.pathname === '/about' || req.nextUrl.pathname === '/terms' || req.nextUrl.pathname === '/privacy' || req.nextUrl.pathname === '/pricing' || req.nextUrl.pathname === '/moments' || req.nextUrl.pathname === '/explore' || req.nextUrl.pathname.startsWith('/profile/');
   const isPublicApi = req.nextUrl.pathname.startsWith('/api/characters') || req.nextUrl.pathname.startsWith('/api/moments') || req.nextUrl.pathname.startsWith('/api/push/subscribe') || req.nextUrl.pathname.startsWith('/api/webhook') || req.nextUrl.pathname.startsWith('/api/cron');
   const isAdminPath = req.nextUrl.pathname.startsWith('/admin') || req.nextUrl.pathname.startsWith('/api/admin');
 

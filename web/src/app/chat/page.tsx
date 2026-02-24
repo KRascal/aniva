@@ -529,25 +529,23 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      Promise.all([
-        fetch('/api/characters').then((r) => r.json()),
-        fetch('/api/relationship/all').then((r) => r.json()),
-      ])
-        .then(([charData, relData]) => {
-          setCharacters(charData.characters || []);
-          if (relData.relationships) {
-            const map = new Map<string, RelationshipInfo>();
-            let msgs = 0;
-            for (const rel of relData.relationships as RelationshipInfo[]) {
-              map.set(rel.characterId, rel);
-              msgs += rel.totalMessages;
-            }
-            setRelationships(map);
-            setTotalMessages(msgs);
+      fetch('/api/characters').then(r => r.json()).then(charData => {
+        setCharacters(charData.characters || []);
+      }).catch(err => console.error('Failed to fetch characters:', err));
+
+      fetch('/api/relationship/all').then(r => r.json()).then(relData => {
+        if (relData.relationships) {
+          const map = new Map<string, RelationshipInfo>();
+          let msgs = 0;
+          for (const rel of relData.relationships as RelationshipInfo[]) {
+            map.set(rel.characterId, rel);
+            msgs += rel.totalMessages;
           }
-          setIsLoading(false);
-        })
-        .catch(() => setIsLoading(false));
+          setRelationships(map);
+          setTotalMessages(msgs);
+        }
+      }).catch(err => console.error('Failed to fetch relationships:', err))
+        .finally(() => setIsLoading(false));
     }
   }, [status]);
 
