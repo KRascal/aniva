@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     });
 
     const results = await Promise.allSettled(
-      subscriptions.map(sub =>
+      subscriptions.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
         webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           payload,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     // 失敗した（期限切れの）サブスクリプションを削除
     const failedEndpoints: string[] = [];
-    results.forEach((result, index) => {
+    results.forEach((result: PromiseSettledResult<unknown>, index: number) => {
       if (result.status === 'rejected') {
         failedEndpoints.push(subscriptions[index].endpoint);
       }
@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const success = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const success = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'fulfilled').length;
+    const failed = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'rejected').length;
 
     return NextResponse.json({
       ok: true,

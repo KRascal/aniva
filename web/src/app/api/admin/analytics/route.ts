@@ -56,23 +56,23 @@ export async function GET() {
   for (let i = 29; i >= 0; i--) {
     const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
     const key = d.toISOString().split('T')[0];
-    const found = userGrowthRaw.find((r) => r.day === key);
+    const found = userGrowthRaw.find((r: { day: string; count: string }) => r.day === key);
     userGrowthChart.push({ day: key, count: found ? Number(found.count) : 0 });
   }
 
-  const charMsgData = characterMessages.map((c) => ({
+  const charMsgData = characterMessages.map((c: { id: string; name: string; relationships: { totalMessages: number }[] }) => ({
     id: c.id,
     name: c.name,
-    messageCount: c.relationships.reduce((s, r) => s + r.totalMessages, 0),
-  })).sort((a, b) => b.messageCount - a.messageCount).slice(0, 10);
+    messageCount: c.relationships.reduce((s: number, r: { totalMessages: number }) => s + r.totalMessages, 0),
+  })).sort((a: { messageCount: number }, b: { messageCount: number }) => b.messageCount - a.messageCount).slice(0, 10);
 
   return NextResponse.json({
     userGrowthChart,
     characterMessages: charMsgData,
-    planDistribution: planDistribution.map((r) => ({ plan: r.plan, count: r._count.id })),
+    planDistribution: planDistribution.map((r: { plan: string; _count: { id: number } }) => ({ plan: r.plan, count: r._count.id })),
     fanclubRate: totalRelationships > 0 ? (fanclubStats._count.id / totalRelationships) * 100 : 0,
     fanclubCount: fanclubStats._count.id,
     totalRelationships,
-    bondLevelDistribution: bondLevelDist.map((r) => ({ level: r.level, count: r._count.id })),
+    bondLevelDistribution: bondLevelDist.map((r: { level: number; _count: { id: number } }) => ({ level: r.level, count: r._count.id })),
   });
 }

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const payload = JSON.stringify({ title, body, url: url || '/chat' });
 
     const results = await Promise.allSettled(
-      subscriptions.map(sub =>
+      subscriptions.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
         webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           payload,
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    const success = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const success = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'fulfilled').length;
+    const failed = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'rejected').length;
 
     return NextResponse.json({ success, failed, total: subscriptions.length });
   } catch (error) {

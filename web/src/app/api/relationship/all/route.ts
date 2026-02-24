@@ -42,7 +42,18 @@ export async function GET() {
     orderBy: { lastMessageAt: 'desc' },
   });
 
-  const result = relationships.map((r) => {
+  type RelationshipRow = {
+    characterId: string;
+    level: number;
+    experiencePoints: number;
+    totalMessages: number;
+    lastMessageAt: Date | null;
+    isFollowing: boolean;
+    isFanclub: boolean;
+    character: { name: string; slug: string; avatarUrl: string | null };
+    conversations: { messages: { content: string; role: string; createdAt: Date }[] }[];
+  };
+  const result = (relationships as RelationshipRow[]).map((r) => {
     const levelInfo = RELATIONSHIP_LEVELS[Math.min(r.level - 1, RELATIONSHIP_LEVELS.length - 1)];
     const lastMsg = r.conversations?.[0]?.messages?.[0] ?? null;
     return {

@@ -50,22 +50,22 @@ export async function GET() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const key = d.toISOString().split('T')[0];
-    const found = newUsersRaw.find((r) => r.day === key);
+    const found = newUsersRaw.find((r: { day: string; count: string }) => r.day === key);
     chartData.push({ day: key, count: found ? Number(found.count) : 0 });
   }
 
-  const charRanking = topCharacters.map((c) => ({
+  const charRanking = topCharacters.map((c: { id: string; name: string; franchise: string; isActive: boolean; _count: { relationships: number }; relationships: { totalMessages: number }[] }) => ({
     id: c.id,
     name: c.name,
     franchise: c.franchise,
     isActive: c.isActive,
-    messageCount: c.relationships.reduce((s, r) => s + r.totalMessages, 0),
+    messageCount: c.relationships.reduce((s: number, r: { totalMessages: number }) => s + r.totalMessages, 0),
     followerCount: c._count.relationships,
   }));
 
   const subSummary = {
-    total: subscriptions.reduce((s, r) => s + r._count.id, 0),
-    byPlan: subscriptions.map((r) => ({ plan: r.plan, count: r._count.id })),
+    total: subscriptions.reduce((s: number, r: { _count: { id: number } }) => s + r._count.id, 0),
+    byPlan: subscriptions.map((r: { plan: string; _count: { id: number } }) => ({ plan: r.plan, count: r._count.id })),
   };
 
   return NextResponse.json({

@@ -84,7 +84,7 @@ export class CharacterEngine {
     
     // 6. LLM呼び出し
     const llmMessages = [
-      ...recentMessages.map(msg => ({
+      ...recentMessages.map((msg: { role: string; content: string }) => ({
         role: msg.role === 'USER' ? 'user' as const : 'assistant' as const,
         content: msg.content,
       })),

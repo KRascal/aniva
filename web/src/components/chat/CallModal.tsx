@@ -145,10 +145,12 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
   const startListening = useCallback(() => {
     if (!isActiveRef.current || !isMicOn || callState !== 'connected') return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    const SpeechRecognitionCtor: (new () => SpeechRecognition) | undefined =
+      (window as Window & { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition ||
+      (window as Window & { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
 
-    const recognition = new SpeechRecognition() as SpeechRecognition;
+    const recognition = new SpeechRecognitionCtor();
     recognitionRef.current = recognition;
     recognition.lang = 'ja-JP';
     recognition.continuous = false;

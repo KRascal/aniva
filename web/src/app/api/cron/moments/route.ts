@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         });
 
         const recentTexts = recentMoments
-          .map((m, i) => `${i + 1}. ${m.content}`)
+          .map((m: { content: string | null }, i: number) => `${i + 1}. ${m.content}`)
           .join('\n');
 
         // --- Anthropicでテキスト生成 ---

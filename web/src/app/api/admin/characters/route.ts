@@ -30,9 +30,9 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    characters.map((c) => ({
+    characters.map((c: { id: string; name: string; relationships: { totalMessages: number }[]; [key: string]: unknown }) => ({
       ...c,
-      messageCount: c.relationships.reduce((s, r) => s + r.totalMessages, 0),
+      messageCount: c.relationships.reduce((s: number, r: { totalMessages: number }) => s + r.totalMessages, 0),
       relationships: undefined,
     }))
   );

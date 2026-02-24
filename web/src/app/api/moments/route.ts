@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
       // characterId 未指定の場合はフォロー中のキャラのみ
       if (!characterId) {
         followingCharacterIds = relationships
-          .filter((r) => r.isFollowing)
-          .map((r) => r.characterId);
+          .filter((r: { characterId: string; level: number; isFollowing: boolean }) => r.isFollowing)
+          .map((r: { characterId: string; level: number; isFollowing: boolean }) => r.characterId);
       }
     }
 
@@ -70,7 +70,19 @@ export async function GET(req: NextRequest) {
       nextCursor = next!.id;
     }
 
-    const result = moments.map((moment) => {
+    type MomentWithRelations = {
+      id: string;
+      characterId: string;
+      character: { name: string; avatarUrl: string | null };
+      type: string;
+      content: string | null;
+      mediaUrl: string | null;
+      visibility: string;
+      levelRequired: number;
+      publishedAt: Date | null;
+      reactions: { userId: string; type: string }[];
+    };
+    const result = (moments as MomentWithRelations[]).map((moment) => {
       const reactionCount = moment.reactions.filter((r) => r.type === 'like').length;
       const userHasLiked = userId
         ? moment.reactions.some((r) => r.userId === userId && r.type === 'like')

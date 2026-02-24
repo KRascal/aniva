@@ -22,17 +22,25 @@ export async function GET(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const following = user.relationships.filter((r) => r.isFollowing).map((r) => ({
+    type RelationshipWithCharacter = {
+      characterId: string;
+      isFollowing: boolean;
+      isFanclub: boolean;
+      totalMessages: number;
+      character: { id: string; name: string; avatarUrl: string | null };
+      [key: string]: unknown;
+    };
+    const following = (user.relationships as RelationshipWithCharacter[]).filter((r) => r.isFollowing).map((r) => ({
       characterId: r.characterId,
       name: r.character.name,
       avatarUrl: r.character.avatarUrl,
     }));
-    const fanclub = user.relationships.filter((r) => r.isFanclub).map((r) => ({
+    const fanclub = (user.relationships as RelationshipWithCharacter[]).filter((r) => r.isFanclub).map((r) => ({
       characterId: r.characterId,
       name: r.character.name,
       avatarUrl: r.character.avatarUrl,
     }));
-    const totalMessages = user.relationships.reduce((s, r) => s + r.totalMessages, 0);
+    const totalMessages = (user.relationships as RelationshipWithCharacter[]).reduce((s: number, r: RelationshipWithCharacter) => s + r.totalMessages, 0);
 
     return NextResponse.json({
       id: user.id,
@@ -74,7 +82,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({
-    users: users.map((u) => ({
+    users: users.map((u: { id: string; email: string | null; displayName: string | null; plan: string; createdAt: Date; sessions: { expires: Date }[]; _count: { relationships: number } }) => ({
       id: u.id,
       email: u.email,
       displayName: u.displayName,

@@ -33,8 +33,21 @@ export async function GET() {
     orderBy: { updatedAt: 'desc' },
   });
 
+  type FollowingRow = {
+    characterId: string;
+    isFanclub: boolean;
+    character: {
+      id: string;
+      name: string;
+      nameEn: string | null;
+      slug: string;
+      franchise: string;
+      avatarUrl: string | null;
+      coverUrl: string | null;
+    };
+  };
   return NextResponse.json({
-    following: relationships.map((r) => ({
+    following: (relationships as FollowingRow[]).map((r) => ({
       ...r.character,
       isFanclub: r.isFanclub,
     })),
