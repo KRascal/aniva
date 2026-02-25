@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
@@ -95,7 +96,7 @@ export async function PUT(req: Request) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      settings: newSettings,
+      settings: newSettings as unknown as Prisma.InputJsonValue,
       ...(body.language ? { language: body.language } : {}),
     },
   });

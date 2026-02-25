@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import type { CharacterData } from '@/hooks/useOnboarding';
 import type { Q1Answer, Q2Answer } from '@/lib/onboarding-utils';
 import { getQuizTags, calcMatchPercent } from '@/lib/onboarding-utils';
@@ -46,7 +46,7 @@ const container = {
   },
 };
 
-const cardItem = {
+const cardItem: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
