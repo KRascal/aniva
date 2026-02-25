@@ -113,13 +113,15 @@ export async function POST(req: NextRequest) {
             ? character.voiceModelId
             : DEFAULT_VOICE_MODEL_ID;
 
-        const { audioBuffer } = await voiceEngine.generateVoice({
+        const voiceResult = await voiceEngine.generateVoice({
           text: greeting,
           voiceModelId,
           emotion: 'happy',
         });
 
-        audioUrl = await audioStorage.save(charMsg.id, audioBuffer);
+        if (voiceResult) {
+          audioUrl = await audioStorage.save(charMsg.id, voiceResult.audioBuffer);
+        }
 
         // DB の audioUrl 更新
         await prisma.message.update({
