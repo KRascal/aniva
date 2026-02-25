@@ -102,3 +102,28 @@ html {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Orb float animation for /discover */
+@keyframes orbFloat {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  25%  { transform: translate(var(--orb-x1, 18px), var(--orb-y1, -22px)) scale(1.04); }
+  50%  { transform: translate(var(--orb-x2, -12px), var(--orb-y2, 14px)) scale(0.97); }
+  75%  { transform: translate(var(--orb-x3, 20px), var(--orb-y3, 10px)) scale(1.02); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+@keyframes orbPulse {
+  0%, 100% { opacity: 0.75; box-shadow: 0 0 24px 8px var(--orb-color, #a855f7); }
+  50%       { opacity: 1;    box-shadow: 0 0 44px 18px var(--orb-color, #a855f7); }
+}
+
+@keyframes orbExpand {
+  from { transform: scale(1); }
+  to   { transform: scale(3.5); opacity: 0; }
+}
+
+@keyframes orbReveal {
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
