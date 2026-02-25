@@ -71,15 +71,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.userId = user.id;
+      }
+      // サインイン時 or 明示的なセッション更新時にDBからonboardingStep/nicknameを取得
+      // trigger === 'update' はクライアントから useSession().update() を呼ばれたとき
+      if (token.userId && (trigger === 'signIn' || trigger === 'update')) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.userId as string },
+          select: { onboardingStep: true, nickname: true },
+        });
+        token.onboardingStep = dbUser?.onboardingStep ?? null;
+        token.nickname = dbUser?.nickname ?? null;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.userId) {
-        (session.user as any).id = token.userId;
+      if (session.user) {
+        if (token.userId) {
+          (session.user as any).id = token.userId;
+        }
+        (session.user as any).onboardingStep = token.onboardingStep ?? null;
+        (session.user as any).nickname = token.nickname ?? null;
       }
       return session;
     },

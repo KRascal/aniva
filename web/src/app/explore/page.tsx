@@ -148,7 +148,7 @@ function CharacterVerticalCard({
         {/* Fanclub badge */}
         {isFanclub && (
           <div className="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-            💝 推し
+            推し
           </div>
         )}
 
@@ -161,8 +161,8 @@ function CharacterVerticalCard({
               className="w-10 h-10 rounded-full object-cover ring-2 ring-white/30"
             />
           ) : (
-            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xl ring-2 ring-white/30`}>
-              🌟
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-base font-bold text-white ring-2 ring-white/30`}>
+              {character.name.charAt(0)}
             </div>
           )}
         </div>
@@ -221,8 +221,8 @@ function CharacterHorizontalCard({
             className="w-16 h-16 rounded-xl object-cover group-hover:scale-105 transition-transform duration-200"
           />
         ) : (
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl`}>
-            🌟
+          <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl font-bold text-white`}>
+            {character.name.charAt(0)}
           </div>
         )}
         {/* Online dot */}
@@ -448,7 +448,6 @@ export default function ExplorePage() {
                   }
                 `}
               >
-                <span>{cat.emoji}</span>
                 <span>{cat.name}</span>
               </button>
             ))}
@@ -469,15 +468,10 @@ export default function ExplorePage() {
                   backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(0,0,0,0.3) 0%, transparent 50%)',
                 }}
               />
-              {/* Floating emojis */}
-              <div className="absolute top-4 right-6 text-3xl opacity-60 animate-bounce" style={{ animationDelay: '0.3s' }}>⭐</div>
-              <div className="absolute bottom-6 right-16 text-2xl opacity-40 animate-bounce" style={{ animationDelay: '0.7s' }}>💫</div>
-              <div className="absolute top-10 right-20 text-xl opacity-30 animate-bounce" style={{ animationDelay: '1.1s' }}>✨</div>
-
               <div className="relative z-10 px-6 py-8">
                 <p className="text-white/80 text-xs font-semibold tracking-widest uppercase mb-2">Discover</p>
                 <h2 className="text-3xl font-black text-white leading-tight mb-3">
-                  あなたの推しを<br />見つけよう 💕
+                  あなたの推しを<br />見つけよう
                 </h2>
                 <p className="text-white/75 text-sm leading-relaxed mb-5">
                   フォローして、ファンクラブに入って、<br />推しとリアルにトークしよう。
@@ -502,7 +496,7 @@ export default function ExplorePage() {
             {/* Following characters strip (if any) */}
             {followingChars.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-white font-bold text-base mb-3">💝 フォロー中の推し</h3>
+                <h3 className="text-white font-bold text-base mb-3">フォロー中の推し</h3>
                 <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                   {followingChars.map((character, i) => (
                     <CharacterVerticalCard
@@ -521,7 +515,7 @@ export default function ExplorePage() {
             {/* Popular characters - horizontal scroll */}
             <div id="popular-section" className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-bold text-base">🌟 人気のキャラクター</h3>
+                <h3 className="text-white font-bold text-base">人気のキャラクター</h3>
                 <span className="text-purple-400 text-xs">{popularChars.length}人</span>
               </div>
               {popularChars.length > 0 ? (
@@ -545,7 +539,7 @@ export default function ExplorePage() {
             {/* New characters */}
             {newChars.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-white font-bold text-base mb-3">🆕 新着キャラクター</h3>
+                <h3 className="text-white font-bold text-base mb-3">新着キャラクター</h3>
                 <div className="space-y-3">
                   {newChars.map((character, i) => (
                     <CharacterHorizontalCard
@@ -564,7 +558,7 @@ export default function ExplorePage() {
             {/* All characters */}
             {characters.length > 6 && (
               <div>
-                <h3 className="text-white font-bold text-base mb-3">📚 すべてのキャラクター</h3>
+                <h3 className="text-white font-bold text-base mb-3">すべてのキャラクター</h3>
                 <div className="space-y-3">
                   {characters.slice(6).map((character, i) => (
                     <CharacterHorizontalCard
@@ -618,9 +612,13 @@ export default function ExplorePage() {
 function EmptyState({ message }: { message?: string }) {
   return (
     <div className="text-center py-16">
-      <div className="text-5xl mb-4">🔍</div>
+      <div className="flex justify-center mb-4">
+        <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </div>
       <p className="text-white/50 text-sm">{message ?? 'キャラクターを準備中です'}</p>
-      <p className="text-white/30 text-xs mt-2">もうすぐ追加されます ✨</p>
+      <p className="text-white/30 text-xs mt-2">もうすぐ追加されます</p>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Suspense } from 'react';
 function SignupForm() {
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get('code') || '';
+  const redirectTo = searchParams.get('redirect') ?? '/explore';
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -96,7 +97,7 @@ function SignupForm() {
     const result = await signIn('credentials', {
       email,
       code,
-      callbackUrl: '/explore',
+      callbackUrl: redirectTo,
       redirect: false,
     });
 
@@ -104,7 +105,7 @@ function SignupForm() {
       setError('コードが無効か期限切れです。再送信してください。');
       setIsLoading(false);
     } else {
-      window.location.href = result?.url || '/explore';
+      window.location.href = result?.url || redirectTo;
     }
   };
 
@@ -177,7 +178,7 @@ function SignupForm() {
 
               {/* Google OAuth - Primary */}
               <button
-                onClick={() => signIn('google', { callbackUrl: '/explore' })}
+                onClick={() => signIn('google', { callbackUrl: redirectTo })}
                 className="w-full py-4 bg-white text-gray-900 rounded-2xl font-semibold hover:bg-gray-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg mb-6"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

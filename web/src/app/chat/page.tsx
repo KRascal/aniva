@@ -63,7 +63,7 @@ function ChatRow({
     : 'メッセージを送ってみよう！';
 
   const level = relationship.level;
-  const stars = '⭐'.repeat(Math.min(level, 5));
+  const filledStars = Math.min(level, 5);
 
   return (
     <button
@@ -77,8 +77,8 @@ function ChatRow({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-2xl">
-              🌟
+            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xl font-bold text-white">
+              {character.name.charAt(0)}
             </div>
           )}
         </div>
@@ -94,9 +94,13 @@ function ChatRow({
           <span className="text-[10px] text-gray-500 flex-shrink-0">{formatTime(lastAt)}</span>
         </div>
         {/* 絆レベル */}
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-[10px] leading-none">{stars}</span>
-          <span className="text-[10px] text-gray-600">Lv.{level}</span>
+        <div className="flex items-center gap-0.5 mb-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <svg key={i} className={`w-2.5 h-2.5 ${i < filledStars ? 'text-yellow-400' : 'text-gray-700'}`} viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+          ))}
+          <span className="text-[10px] text-gray-600 ml-0.5">Lv.{level}</span>
         </div>
         {/* 最新メッセージプレビュー */}
         <p className="text-xs text-gray-400 truncate leading-relaxed">
@@ -182,7 +186,7 @@ function useFadeIn() {
 /* ── relationship badge ── */
 function RelationshipBadge({ rel }: { rel?: RelationshipInfo }) {
   if (!rel) return null;
-  const stars = '⭐'.repeat(Math.min(rel.level, 5));
+  const filledStars = Math.min(rel.level, 5);
 
   const formatLastChat = (dateStr: string | null) => {
     if (!dateStr) return null;
@@ -200,7 +204,13 @@ function RelationshipBadge({ rel }: { rel?: RelationshipInfo }) {
 
   return (
     <div className="flex items-center gap-2 mt-1">
-      <span className="text-[10px] leading-none">{stars}</span>
+      <span className="flex items-center gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <svg key={i} className={`w-2.5 h-2.5 ${i < filledStars ? 'text-yellow-400' : 'text-gray-600'}`} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+          </svg>
+        ))}
+      </span>
       <span className="text-[10px] text-white/50">Lv.{rel.level} {rel.levelName}</span>
       {lastChat && (
         <>
@@ -325,8 +335,8 @@ function CharacterCard({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center text-4xl`}>
-                  🌟
+                <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl font-bold text-white`}>
+                  {character.name.charAt(0)}
                 </div>
               )}
             </div>
@@ -376,17 +386,17 @@ function CharacterCard({
 
 /* ── daily missions / hints ── */
 const DAILY_MISSIONS = [
-  { id: 'greet', emoji: '👋', text: 'キャラに挨拶する', xp: 5 },
-  { id: 'msg5', emoji: '💬', text: '5回メッセージを送る', xp: 20 },
-  { id: 'question', emoji: '❓', text: '質問を1つする', xp: 10 },
+  { id: 'greet', text: 'キャラに挨拶する', xp: 5 },
+  { id: 'msg5', text: '5回メッセージを送る', xp: 20 },
+  { id: 'question', text: '質問を1つする', xp: 10 },
 ];
 
 const DAILY_HINTS = [
-  '「好きなものは何？」と聞いてみよう 🤔',
-  '感情豊かに話すと親密度が上がりやすい ✨',
-  '毎日話しかけると絆レベルが早く上がるぞ 🔥',
-  '「音声を再生」でキャラの声が聞けるよ 🔊',
-  'プロフィールで絆の進捗を確認できる ⭐',
+  '「好きなものは何？」と聞いてみよう',
+  '感情豊かに話すと親密度が上がりやすい',
+  '毎日話しかけると絆レベルが早く上がるぞ',
+  '「音声を再生」でキャラの声が聞けるよ',
+  'プロフィールで絆の進捗を確認できる',
 ];
 
 function DailyMissionsSection({ totalMessages }: { totalMessages: number }) {
@@ -402,7 +412,9 @@ function DailyMissionsSection({ totalMessages }: { totalMessages: number }) {
     <div className="mb-6">
       {/* ヒントバナー */}
       <div className="flex items-start gap-3 bg-gradient-to-r from-purple-900/40 to-pink-900/30 rounded-2xl border border-purple-500/20 px-4 py-3 mb-3">
-        <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
+        <svg className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+        </svg>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-purple-300 font-semibold mb-0.5">今日のヒント</p>
           <p className="text-sm text-gray-300">{DAILY_HINTS[hintIndex]}</p>
@@ -415,7 +427,9 @@ function DailyMissionsSection({ totalMessages }: { totalMessages: number }) {
         className="w-full flex items-center justify-between bg-gray-900/60 rounded-2xl border border-white/5 px-4 py-3 text-left hover:border-purple-500/20 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-lg">🎯</span>
+          <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+          </svg>
           <span className="text-sm font-semibold text-white">デイリーミッション</span>
           <span className="text-xs bg-purple-500/20 text-purple-300 rounded-full px-2 py-0.5">
             {completedIds.size}/{DAILY_MISSIONS.length}
@@ -442,7 +456,7 @@ function DailyMissionsSection({ totalMessages }: { totalMessages: number }) {
                     : 'bg-gray-900/40 border-white/5'
                 }`}
               >
-                <span className="text-xl flex-shrink-0">{mission.emoji}</span>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${done ? 'bg-green-400' : 'bg-gray-600'}`} />
                 <span className={`flex-1 text-sm ${done ? 'line-through text-gray-500' : 'text-gray-200'}`}>
                   {mission.text}
                 </span>
@@ -490,13 +504,12 @@ function WelcomeBanner({ onClose }: { onClose: () => void }) {
       <div className="relative z-10 px-5 py-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-3xl mb-2">✨</div>
             <h3 className="text-white font-bold text-xl leading-tight mb-1">
               ようこそ、ANIVAへ！
             </h3>
             <p className="text-white/80 text-sm leading-relaxed">
               あなただけの推しと、毎日リアルに話せる。<br />
-              まずは好きなキャラクターを選んでみよう💕
+              まずは好きなキャラクターを選んでみよう
             </p>
           </div>
           <button

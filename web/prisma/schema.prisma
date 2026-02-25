@@ -20,6 +20,13 @@ model User {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   settings               Json                    @default("{}")
+  // === オンボーディングフィールド ===
+  nickname               String?
+  onboardingStep         String?                 // 'nickname' | 'character_select' | 'first_chat' | 'completed'
+  onboardingCompletedAt  DateTime?
+  notificationPermission Boolean?
+  onboardingCharacterId  String?
+  onboardingDeeplinkSlug String?
   accounts               Account[]
   sessions               Session[]
   relationships          Relationship[]
@@ -108,6 +115,7 @@ model Character {
   freeCallMinutes         Int                     @default(5)      // 無料通話上限（分）
   stripeProductId         String?                                  // Stripe Product ID
   fcSubscriberCount       Int                     @default(0)      // FC加入者数キャッシュ
+  onboardingGreetings     Json?                   @default("[]")   // オンボーディング第一声（3パターン）
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]

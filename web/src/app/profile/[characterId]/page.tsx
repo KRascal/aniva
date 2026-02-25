@@ -19,15 +19,15 @@ const LUFFY_INFO = {
 } as const;
 
 const LUFFY_CREW = [
-  { name: 'ロロノア・ゾロ', role: '剣豪', emoji: '⚔️' },
-  { name: 'ナミ', role: '航海士', emoji: '🗺️' },
-  { name: 'ウソップ', role: '狙撃手', emoji: '🎯' },
-  { name: 'サンジ', role: 'コック', emoji: '🍳' },
-  { name: 'チョッパー', role: '船医', emoji: '🦌' },
-  { name: 'ロビン', role: '考古学者', emoji: '📖' },
-  { name: 'フランキー', role: '船大工', emoji: '🔧' },
-  { name: 'ブルック', role: '音楽家', emoji: '🎻' },
-  { name: 'ジンベエ', role: '操舵手', emoji: '🐋' },
+  { name: 'ロロノア・ゾロ', role: '剣豪' },
+  { name: 'ナミ', role: '航海士' },
+  { name: 'ウソップ', role: '狙撃手' },
+  { name: 'サンジ', role: 'コック' },
+  { name: 'チョッパー', role: '船医' },
+  { name: 'ロビン', role: '考古学者' },
+  { name: 'フランキー', role: '船大工' },
+  { name: 'ブルック', role: '音楽家' },
+  { name: 'ジンベエ', role: '操舵手' },
 ] as const;
 
 /* ───────────────────────── 型定義 ───────────────────────── */
@@ -95,12 +95,20 @@ interface MomentItem {
 function SparkStar({ filled, delay }: { filled: boolean; delay: number }) {
   return (
     <span
-      className={`inline-block text-2xl transition-all duration-300 ${
+      className={`inline-block transition-all duration-300 ${
         filled ? 'animate-[sparkle_1.5s_ease-in-out_infinite]' : 'opacity-25'
       }`}
       style={{ animationDelay: `${delay}s` }}
     >
-      {filled ? '⭐' : '☆'}
+      <svg
+        className={`w-6 h-6 ${filled ? 'text-yellow-400' : 'text-gray-600'}`}
+        viewBox="0 0 24 24"
+        fill={filled ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth={filled ? 0 : 1.5}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+      </svg>
     </span>
   );
 }
@@ -139,8 +147,8 @@ function PersonalityTraitsSection({ traits }: { traits: PersonalityTrait[] }) {
   if (!traits || traits.length === 0) return null;
   return (
     <div>
-      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-        <span>✨</span> パーソナリティ
+      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+        パーソナリティ
       </p>
       <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/5 space-y-3">
         {traits.map((t) => {
@@ -171,7 +179,11 @@ function MomentCard({ moment }: { moment: MomentItem }) {
   if (moment.isLocked) {
     return (
       <div className="bg-gray-900/60 rounded-xl p-4 border border-gray-800/60 flex items-center gap-3">
-        <div className="text-2xl opacity-40">🔒</div>
+        <div className="opacity-40">
+          <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
         <div>
           <p className="text-gray-500 text-sm">ロックされたMoment</p>
           <p className="text-gray-600 text-xs mt-0.5">プランをアップグレードして解放</p>
@@ -180,14 +192,9 @@ function MomentCard({ moment }: { moment: MomentItem }) {
     );
   }
 
-  const typeEmoji: Record<string, string> = {
-    TEXT: '💬', IMAGE: '🖼️', AUDIO: '🎵', VIDEO: '🎬',
-  };
-
   return (
     <div className="bg-gray-900/70 rounded-xl p-4 border border-white/5 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="text-xl flex-shrink-0 mt-0.5">{typeEmoji[moment.type] ?? '💬'}</span>
         <div className="flex-1 min-w-0">
           {moment.content && (
             <p className="text-gray-200 text-sm leading-relaxed line-clamp-3">{moment.content}</p>
@@ -210,7 +217,10 @@ function MomentCard({ moment }: { moment: MomentItem }) {
               })}
             </span>
             <span className="text-xs text-gray-600">·</span>
-            <span className="text-xs text-gray-600">❤️ {moment.reactionCount}</span>
+            <span className="text-xs text-gray-600 flex items-center gap-0.5">
+                <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" /></svg>
+                {moment.reactionCount}
+              </span>
           </div>
         </div>
       </div>
@@ -420,7 +430,7 @@ export default function ProfilePage() {
                 <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                  <span className="text-5xl">🏴‍☠️</span>
+                  <span className="text-4xl font-black text-white">{character?.name?.charAt(0) ?? '?'}</span>
                 </div>
               )}
             </div>
@@ -507,7 +517,15 @@ export default function ProfilePage() {
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
           )}
           <span className="relative z-10 flex items-center justify-center gap-2">
-            <span className="text-xl">{isFanclub ? '💬' : '🔒'}</span>
+            {isFanclub ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            )}
             {isFanclub
               ? `${character?.name ?? 'キャラクター'}とチャットする`
               : 'ファンクラブ加入でチャット解放'}
@@ -522,8 +540,8 @@ export default function ProfilePage() {
         {/* ══════════════ 基本情報カード（ルフィ限定） ══════════════ */}
         {isLuffy && (
           <div className="bg-gray-900/80 rounded-2xl p-5 border border-orange-900/30 shadow-lg">
-            <p className="text-orange-400 text-xs font-semibold uppercase tracking-widest mb-4 flex items-center gap-2">
-              <span>📋</span> キャラクター情報
+            <p className="text-orange-400 text-xs font-semibold uppercase tracking-widest mb-4">
+              キャラクター情報
             </p>
             <div className="space-y-3">
               {(Object.entries(LUFFY_INFO) as [keyof typeof LUFFY_INFO, string][]).map(([key, value]) => {
@@ -535,21 +553,10 @@ export default function ProfilePage() {
                   likes:       '好きなもの',
                   dream:       '夢',
                 };
-                const emojiMap: Record<keyof typeof LUFFY_INFO, string> = {
-                  affiliation: '🏴‍☠️',
-                  devilFruit:  '🍎',
-                  hometown:    '🌊',
-                  birthday:    '🎂',
-                  likes:       '🍖',
-                  dream:       '👑',
-                };
                 return (
-                  <div key={key} className="flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0 w-7 text-center">{emojiMap[key]}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-gray-500 text-xs block">{labelMap[key]}</span>
-                      <span className="text-white text-sm font-medium">{value}</span>
-                    </div>
+                  <div key={key} className="flex items-start justify-between gap-3 py-1 border-b border-white/5 last:border-0">
+                    <span className="text-gray-500 text-xs flex-shrink-0 pt-0.5">{labelMap[key]}</span>
+                    <span className="text-white text-sm font-medium text-right">{value}</span>
                   </div>
                 );
               })}
@@ -560,8 +567,8 @@ export default function ProfilePage() {
         {/* ══════════════ 仲間一覧（ルフィ限定・横スクロール） ══════════════ */}
         {isLuffy && (
           <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-              <span>⚓</span> 麦わらの一味
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+              麦わらの一味
             </p>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide"
               style={{ scrollbarWidth: 'none' }}>
@@ -570,7 +577,9 @@ export default function ProfilePage() {
                   key={member.name}
                   className="flex-shrink-0 bg-gray-900/80 rounded-xl p-3 border border-white/5 text-center w-24"
                 >
-                  <div className="text-2xl mb-1.5">{member.emoji}</div>
+                  <div className="w-8 h-8 rounded-full bg-gray-700/80 flex items-center justify-center mx-auto mb-1.5">
+                    <span className="text-white text-xs font-bold">{member.name.charAt(0)}</span>
+                  </div>
                   <p className="text-white text-xs font-semibold leading-tight line-clamp-2">{member.name}</p>
                   <p className="text-gray-500 text-[10px] mt-1">{member.role}</p>
                 </div>
@@ -587,8 +596,8 @@ export default function ProfilePage() {
         {/* ══════════════ 名言セクション ══════════════ */}
         {catchphrases.length > 0 && (
           <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-              <span>💬</span> 名言
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+              名言
             </p>
             <div className="space-y-3">
               {catchphrases.map((phrase, i) => (
@@ -609,8 +618,8 @@ export default function ProfilePage() {
         {/* ══════════════ 最新Moments ══════════════ */}
         {moments.length > 0 && (
           <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-              <span>📸</span> 最新Moments
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+              最新Moments
             </p>
             <div className="space-y-3">
               {moments.map((moment) => (
@@ -666,14 +675,22 @@ export default function ProfilePage() {
           <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3 px-1">統計</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-gray-900/80 rounded-2xl p-4 border border-white/5 text-center">
-              <div className="text-2xl mb-1">💬</div>
+              <div className="flex justify-center mb-1.5">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+              </div>
               <div className="text-white font-black text-xl leading-none">
                 {(relationship?.totalMessages ?? 0).toLocaleString()}
               </div>
               <div className="text-gray-500 text-xs mt-1">メッセージ</div>
             </div>
             <div className="bg-gray-900/80 rounded-2xl p-4 border border-white/5 text-center">
-              <div className="text-2xl mb-1">📅</div>
+              <div className="flex justify-center mb-1.5">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+              </div>
               <div className="text-white font-bold text-sm leading-tight">
                 {relationship?.firstMessageAt
                   ? new Date(relationship.firstMessageAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
@@ -682,7 +699,11 @@ export default function ProfilePage() {
               <div className="text-gray-500 text-xs mt-1">最初の会話</div>
             </div>
             <div className="bg-gray-900/80 rounded-2xl p-4 border border-white/5 text-center">
-              <div className="text-2xl mb-1">⏰</div>
+              <div className="flex justify-center mb-1.5">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
               <div className="text-white font-bold text-sm leading-tight">
                 {relationship?.lastMessageAt
                   ? new Date(relationship.lastMessageAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
