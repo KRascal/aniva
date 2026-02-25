@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy'];
+const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 
 const navItems = [
   {

@@ -53,14 +53,14 @@ export async function POST(req: NextRequest) {
     const filename = `${Date.now()}_${safeName}`;
 
     // Save to public/characters/[slug]/
-    const publicDir = join(process.cwd(), 'public', 'characters', slug);
+    const publicDir = join(process.cwd(), 'public', 'uploads', 'characters', slug);
     mkdirSync(publicDir, { recursive: true });
 
     const filePath = join(publicDir, filename);
     const bytes = await file.arrayBuffer();
     writeFileSync(filePath, Buffer.from(bytes));
 
-    const url = `/characters/${slug}/${filename}`;
+    const url = `/uploads/characters/${slug}/${filename}`;
     return NextResponse.json({ url }, { status: 200 });
   } catch (err) {
     console.error('Upload error:', err);

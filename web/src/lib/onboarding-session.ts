@@ -9,7 +9,9 @@ export function getGuestSessionId(): string {
   if (typeof window === 'undefined') return '';
   let id = sessionStorage.getItem(GUEST_SESSION_KEY);
   if (!id) {
-    id = crypto.randomUUID();
+    id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
     sessionStorage.setItem(GUEST_SESSION_KEY, id);
   }
   return id;

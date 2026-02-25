@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       const resend = getResend();
       if (!resend) throw new Error('RESEND_API_KEY not configured');
       await resend.emails.send({
-        from: 'ANIVA <noreply@aniva.jp>',
+        from: process.env.RESEND_FROM_EMAIL || 'ANIVA <onboarding@resend.dev>',
         to: emailLower,
         subject: '【ANIVA】認証コード',
         html: `
