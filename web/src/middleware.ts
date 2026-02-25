@@ -25,13 +25,15 @@ export default auth((req) => {
     pathname === '/privacy' ||
     pathname === '/pricing' ||
     pathname === '/moments' ||
-    pathname === '/offline';
+    pathname === '/offline' ||
+    pathname === '/discover';   // Phase 3: 気配の空間（未ログインOK）
   const isPublicApi =
     pathname.startsWith('/api/characters') ||
     pathname.startsWith('/api/moments') ||
     pathname.startsWith('/api/push/subscribe') ||
     pathname.startsWith('/api/webhook') ||
-    pathname.startsWith('/api/cron');
+    pathname.startsWith('/api/cron') ||
+    pathname.startsWith('/api/onboarding/guest-chat');  // 邂逅フロー ゲストチャット
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
   // 常に通過: api/auth, health, public api, /_next
