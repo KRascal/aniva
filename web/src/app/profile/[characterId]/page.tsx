@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
+import { FcMembershipSection } from '@/components/FcMembershipSection';
 
 /* ───────────────────────── Luffy 固定データ ───────────────────────── */
 const LUFFY_SLUG = 'luffy';
@@ -73,6 +74,9 @@ interface Character {
   coverUrl: string | null;
   catchphrases: string[];
   personalityTraits?: PersonalityTrait[];
+  fcMonthlyPriceJpy: number;
+  fcIncludedCallMin: number;
+  fcOverageCallCoinPerMin: number;
 }
 
 interface MomentItem {
@@ -473,29 +477,21 @@ export default function ProfilePage() {
               </>
             )}
           </button>
-
-          {/* ファンクラブボタン */}
-          <button
-            onClick={handleFanclub}
-            disabled={fanclubLoading}
-            className={`flex-1 py-3 rounded-2xl font-bold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 border relative overflow-hidden ${
-              isFanclub
-                ? 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300'
-                : 'bg-gradient-to-r from-pink-600 to-orange-500 border-transparent text-white hover:from-pink-500 hover:to-orange-400'
-            } ${fanclubLoading ? 'opacity-60' : ''}`}
-          >
-            {!isFanclub && (
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
-            )}
-            {fanclubLoading ? (
-              <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : isFanclub ? (
-              <>⭐ FC加入済み</>
-            ) : (
-              <>🌟 ファンクラブに入る</>
-            )}
-          </button>
         </div>
+
+        {/* ══════════════ FC加入セクション ══════════════ */}
+        {character && (
+          <FcMembershipSection
+            characterId={characterId}
+            characterName={character.name}
+            isFanclub={isFanclub}
+            fcMonthlyPriceJpy={character.fcMonthlyPriceJpy}
+            fcIncludedCallMin={character.fcIncludedCallMin}
+            fcOverageCallCoinPerMin={character.fcOverageCallCoinPerMin}
+            onJoinFC={handleFanclub}
+            onCancel={isFanclub ? handleFanclub : undefined}
+          />
+        )}
 
         {/* チャットボタン */}
         <button

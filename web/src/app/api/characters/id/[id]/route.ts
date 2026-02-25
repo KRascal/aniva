@@ -21,6 +21,9 @@ export async function GET(
       coverUrl: true,
       catchphrases: true,
       personalityTraits: true,
+      fcMonthlyPriceJpy: true,
+      fcIncludedCallMin: true,
+      fcOverageCallCoinPerMin: true,
     },
   });
 

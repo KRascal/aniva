@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { characterEngine } from '@/lib/character-engine';
 import { auth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
+import { Prisma } from '@prisma/client';
+
+const COIN_COST = 10;
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,12 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message too long (max 2000 chars)' }, { status: 400 });
     }
 
-    // 1. Relationship取得 or 作成（フリーミアム制限チェックのためcharacterも取得）
-    const character = await prisma.character.findUnique({
-      where: { id: characterId },
-      select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
-    });
-
+    // Relationship取得 or 作成
     let relationship = await prisma.relationship.findUnique({
       where: { userId_characterId: { userId, characterId } },
     });
@@ -49,20 +48,85 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // フリーミアム制限チェック
-    if (character && character.freeMessageLimit > 0) {
-      const isFanclub = relationship?.isFanclub ?? false;
-      if (!isFanclub) {
-        const totalMessages = relationship?.totalMessages ?? 0;
-        if (totalMessages >= character.freeMessageLimit) {
-          return NextResponse.json({
-            error: 'FREE_LIMIT_REACHED',
-            limit: character.freeMessageLimit,
-            monthlyPrice: character.fcMonthlyPriceJpy,
-          }, { status: 403 });
+    // ─── フリーミアム判定 ─────────────────────────────────────────────────────
+    const access = await checkChatAccess(userId, characterId);
+    let consumed: 'FREE' | 'FC_UNLIMITED' | 'COIN_REQUIRED' = 'FREE';
+
+    if (access.type === 'BLOCKED') {
+      // 月次制限に達しており、コインも不足
+      const character = await prisma.character.findUnique({
+        where: { id: characterId },
+        select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
+      });
+      return NextResponse.json(
+        {
+          error: 'FREE_LIMIT_REACHED',
+          type: 'CHAT_LIMIT',
+          freeMessageLimit: character?.freeMessageLimit ?? 10,
+          fcMonthlyPriceJpy: character?.fcMonthlyPriceJpy ?? 3480,
+        },
+        { status: 402 },
+      );
+    } else if (access.type === 'COIN_REQUIRED') {
+      // コイン消費（coins/spend と同じロジック）
+      try {
+        await prisma.$transaction(async (tx) => {
+          const coinBalance = await tx.coinBalance.upsert({
+            where: { userId },
+            create: { userId, balance: 0 },
+            update: {},
+          });
+
+          if (coinBalance.balance < COIN_COST) {
+            throw new Error('INSUFFICIENT_COINS');
+          }
+
+          const newBalance = coinBalance.balance - COIN_COST;
+
+          await tx.coinBalance.update({
+            where: { userId },
+            data: { balance: newBalance },
+          });
+
+          await tx.coinTransaction.create({
+            data: {
+              userId,
+              type: 'CHAT_EXTRA',
+              amount: -COIN_COST,
+              balanceAfter: newBalance,
+              characterId,
+              description: 'チャット送信',
+              metadata: {} as Prisma.InputJsonValue,
+            },
+          });
+        });
+        consumed = 'COIN_REQUIRED';
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : '';
+        if (errMsg === 'INSUFFICIENT_COINS') {
+          const character = await prisma.character.findUnique({
+            where: { id: characterId },
+            select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
+          });
+          return NextResponse.json(
+            {
+              error: 'FREE_LIMIT_REACHED',
+              type: 'CHAT_LIMIT',
+              freeMessageLimit: character?.freeMessageLimit ?? 10,
+              fcMonthlyPriceJpy: character?.fcMonthlyPriceJpy ?? 3480,
+            },
+            { status: 402 },
+          );
         }
+        throw err;
       }
+    } else if (access.type === 'FC_UNLIMITED') {
+      consumed = 'FC_UNLIMITED';
+    } else {
+      // FREE
+      consumed = 'FREE';
     }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // 送信前のlevelを記憶
     const prevLevel = relationship?.level ?? 1;
@@ -79,29 +143,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. デイリーレート制限チェック（Free: 3msg/日）—メッセージ保存前にチェック
-    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.plan === 'FREE') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayMsgCount = await prisma.message.count({
-        where: {
-          conversation: { relationship: { userId } },
-          role: 'USER',
-          createdAt: { gte: today },
-        },
-      });
-      if (todayMsgCount >= 3) {
-        return NextResponse.json({
-          error: 'Daily message limit reached',
-          limit: 3,
-          plan: 'FREE',
-          upgradeUrl: '/pricing',
-        }, { status: 429 });
-      }
-    }
-
-    // 4. ユーザーメッセージ保存（レート制限通過後）
+    // 3. ユーザーメッセージ保存
     const userMsg = await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -110,14 +152,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. Character Engine で応答生成
+    // 4. Character Engine で応答生成
     const response = await characterEngine.generateResponse(
       characterId,
       relationship.id,
       message,
     );
 
-    // 6. キャラクター応答保存
+    // 5. キャラクター応答保存
     const charMsg = await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -131,11 +173,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 7. 会話のupdatedAt更新
+    // 6. 会話のupdatedAt更新
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
     });
+
+    // 7. FREE の場合、月次チャットカウントをインクリメント
+    if (access.type === 'FREE') {
+      await incrementMonthlyChat(userId, characterId);
+    }
 
     // 8. 更新後のrelationshipを再取得してleveledUpを判定
     const updatedRelationship = await prisma.relationship.findUnique({
@@ -149,6 +196,7 @@ export async function POST(req: NextRequest) {
       userMessage: userMsg,
       characterMessage: charMsg,
       emotion: response.emotion,
+      consumed,
       relationship: {
         level: updatedRelationship?.level ?? 1,
         xp: updatedRelationship?.experiencePoints ?? 0,

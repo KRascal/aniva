@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CoinBalanceDisplay } from '@/components/CoinBalance';
 
 interface UserInfo {
   id: string;
@@ -145,7 +146,16 @@ export default function MyPage() {
           </svg>
         </button>
         <h1 className="text-lg font-bold text-white">マイページ</h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <CoinBalanceDisplay />
+          <a
+            href="/coins/purchase"
+            className="flex items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors"
+            aria-label="コイン購入"
+          >
+            <span>＋</span>
+            <span>購入</span>
+          </a>
           <ThemeToggle />
         </div>
       </header>
