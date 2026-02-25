@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy init to avoid build-time crash when RESEND_API_KEY is not set
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -35,6 +41,8 @@ export async function POST(req: NextRequest) {
 
     // Send verification email via Resend
     try {
+      const resend = getResend();
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       await resend.emails.send({
         from: 'ANIVA <noreply@aniva.jp>',
         to: emailLower,
