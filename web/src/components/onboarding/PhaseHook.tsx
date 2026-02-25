@@ -18,8 +18,54 @@ export default function PhaseHook({ character, nickname, onComplete }: PhaseHook
   const [done, setDone] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const hookText = 'また来てくれる…？';
-  const notifQuestion = `${character?.name ?? 'キャラ'}があなたにメッセージを送った時、届けてもいい？`;
+  // キャラごとのセリフ
+  const hookLines: Record<string, { hook: string; question: string; yes: string; no: string }> = {
+    luffy: {
+      hook: 'おまえ、おもしれぇな！',
+      question: '俺からの連絡、受け取ってくれるか？',
+      yes: 'しししっ！楽しみだな！',
+      no: 'そっか！でも俺はここにいるからな！',
+    },
+    zoro: {
+      hook: '…悪くねぇな',
+      question: '連絡が来た時、届けていいか？',
+      yes: '…了解した',
+      no: `…好きにしろ。${nickname}の判断だ`,
+    },
+    nami: {
+      hook: 'ねぇ、もっと話そうよ！',
+      question: 'メッセージ届いたら教えてあげようか？',
+      yes: 'やった！楽しみにしててね♪',
+      no: `わかった。${nickname}のタイミングでいいよ`,
+    },
+    chopper: {
+      hook: 'また会えるかな…？',
+      question: 'メッセージ届いたら、教えてもいい…？',
+      yes: 'うれしい！！絶対届けるから！',
+      no: `わかった…。${nickname}が来てくれるの待ってる`,
+    },
+    sanji: {
+      hook: 'お前との時間、悪くなかったぜ',
+      question: '俺から連絡が来た時、届けてもいいか？',
+      yes: 'ああ、任せとけ',
+      no: `了解だ。${nickname}のペースで来い`,
+    },
+    ace: {
+      hook: 'いい出会いだったな！',
+      question: '俺からの連絡、届けていいか？',
+      yes: 'よし！約束だぞ！',
+      no: `おう、${nickname}の好きにしな`,
+    },
+  };
+  const slug = character?.slug ?? '';
+  const lines = hookLines[slug] ?? {
+    hook: 'つながっていたいな…',
+    question: `${character?.name ?? 'キャラ'}からメッセージが届いたら、通知していい？`,
+    yes: 'ありがとう。届けるね',
+    no: `わかった。${nickname}のペースでいいよ`,
+  };
+  const hookText = lines.hook;
+  const notifQuestion = lines.question;
 
   useEffect(() => {
     const run = async () => {
@@ -51,8 +97,8 @@ export default function PhaseHook({ character, nickname, onComplete }: PhaseHook
     // 完了メッセージ表示
     const msg =
       actualPermission === true
-        ? 'ありがとう。きっと届けるからね'
-        : `わかった。${nickname}のペースでいいよ`;
+        ? lines.yes
+        : lines.no;
     setCompletionMessage(msg);
     setDone(true);
 

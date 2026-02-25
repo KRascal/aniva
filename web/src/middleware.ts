@@ -7,7 +7,9 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = req.nextUrl.pathname;
-  const onboardingStep = (req.auth?.user as any)?.onboardingStep as string | null | undefined;
+  // req.auth?.user はNextAuth拡張型。onboardingStepはカスタムフィールドのため型キャストが必要
+  type AuthUser = { onboardingStep?: string | null };
+  const onboardingStep = (req.auth?.user as AuthUser | undefined)?.onboardingStep;
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
   const isApiAuth = pathname.startsWith('/api/auth');
@@ -35,6 +37,13 @@ export default auth((req) => {
     pathname.startsWith('/api/cron') ||
     pathname.startsWith('/api/onboarding/guest-chat');  // 邂逅フロー ゲストチャット
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+
+  // /api/auth/login は NextAuth の有効なアクションではない（有効なのは signin, signout, callback 等）
+  // ボット・クローラー等が直接アクセスしてくると NextAuth が UnknownAction エラーを吐くため、
+  // ここで /login へリダイレクトして NextAuth に到達させない
+  if (pathname === '/api/auth/login' || pathname === '/api/auth/register') {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
 
   // 常に通過: api/auth, health, public api, /_next
   if (isApiAuth || isHealthCheck || isPublicApi || isNextPath) {
@@ -69,6 +78,11 @@ export default auth((req) => {
   // 認証ページ（login/signup）
   if (isAuthPage) {
     if (isLoggedIn) {
+      // callbackUrlがあればそこへ（/c/slugからの認証フロー対応）
+      const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
+      if (callbackUrl && (callbackUrl.startsWith('/c/') || callbackUrl.startsWith('/explore'))) {
+        return NextResponse.redirect(new URL(callbackUrl, req.url));
+      }
       // オンボーディング未完了の場合は/onboardingへ
       if (onboardingStep !== 'completed') {
         return NextResponse.redirect(new URL('/onboarding', req.url));
@@ -106,8 +120,11 @@ export default auth((req) => {
   }
 
   // オンボーディング未完了 → /onboarding へリダイレクト
-  // （/explore, /profile等もオンボーディング完了が必要）
+  // ただし公開ページは通過（LP→キャラ→認証→キャラ再選択のループ防止）
   if (onboardingStep !== 'completed') {
+    if (isPublicPage) {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL('/onboarding', req.url));
   }
 

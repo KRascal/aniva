@@ -1,6 +1,48 @@
 import { prisma } from './prisma';
 
 // ============================================================
+// Prisma モデル型定義 (Prisma model types)
+// any型を排除するための最小インターフェース
+// ============================================================
+
+/** DBから取得するキャラクターレコードの型 */
+interface CharacterRecord {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  voiceModelId?: string | null;
+}
+
+/** DBから取得するユーザーレコードの型 */
+interface UserRecord {
+  id: string;
+  displayName?: string | null;
+}
+
+/** DBから取得する関係性レコードの型 */
+interface RelationshipRecord {
+  id: string;
+  level: number;
+  experiencePoints: number;
+  totalMessages: number;
+  lastMessageAt: Date | null;
+  firstMessageAt: Date | null;
+  memorySummary: unknown; // Prisma JSON型
+  user?: UserRecord;
+}
+
+/** memorySummary JSONの型 */
+interface MemorySummaryData {
+  userName?: string;
+  preferences?: {
+    likes?: string[];
+    [key: string]: string | string[] | undefined;
+  };
+  importantFacts?: string[];
+  recentTopics?: string[];
+}
+
+// ============================================================
 // キャラクター定義 (Character Definitions)
 // systemPrompt・catchphrases・personalityTraitsを一元管理
 // ============================================================
@@ -340,7 +382,7 @@ export class CharacterEngine {
     const memory = this.buildMemoryContext(relationship);
     
     // 5. システムプロンプト構築
-    const systemPrompt = this.buildSystemPrompt(character, relationship, memory);
+    const systemPrompt = this.buildSystemPrompt(character, memory);
     
     // 6. LLM呼び出し
     const llmMessages = [
@@ -350,7 +392,17 @@ export class CharacterEngine {
       })),
       { role: 'user' as const, content: userMessage },
     ];
-    const text = await callLLM(systemPrompt, llmMessages);
+    let text: string;
+    try {
+      text = await callLLM(systemPrompt, llmMessages);
+    } catch (llmError) {
+      console.error('[CharacterEngine] LLM call failed:', llmError);
+      // キャラクター固有のフォールバックフレーズを返す
+      const charDef = Object.values(CHARACTER_DEFINITIONS).find(
+        (d) => d.name === character.name,
+      );
+      text = charDef?.ngFallback ?? '今はうまく答えられないぞ…また後で話しかけてくれ！';
+    }
     
     // 7. NGガードチェック
     const cleanedText = this.applyNGGuard(text, character.name);
@@ -393,12 +445,12 @@ export class CharacterEngine {
   /**
    * パーソナライズメモリを構築
    */
-  private buildMemoryContext(relationship: any): MemoryContext {
-    const memo = relationship.memorySummary as any;
+  private buildMemoryContext(relationship: RelationshipRecord): MemoryContext {
+    const memo = (relationship.memorySummary ?? {}) as MemorySummaryData;
     return {
-      userName: memo.userName || relationship.user.displayName || 'お前',
+      userName: memo.userName || relationship.user?.displayName || 'お前',
       level: relationship.level,
-      preferences: memo.preferences || {},
+      preferences: (memo.preferences as Record<string, string>) || {},
       importantFacts: memo.importantFacts || [],
       recentTopics: memo.recentTopics || [],
     };
@@ -406,8 +458,10 @@ export class CharacterEngine {
   
   /**
    * システムプロンプトを構築（レベルに応じた態度変化）
+   * @param character キャラクターレコード
+   * @param memory    パーソナライズメモリ
    */
-  private buildSystemPrompt(character: any, relationship: any, memory: MemoryContext): string {
+  private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
     
@@ -528,12 +582,12 @@ ${memoryInstructions}
   /**
    * メモリを更新（ユーザーの発言から情報を抽出）
    */
-  private async updateMemory(relationshipId: string, userMessage: string, characterResponse: string) {
+  private async updateMemory(relationshipId: string, userMessage: string, _characterResponse: string) {
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
     
-    const memo = (relationship.memorySummary as any) || {};
+    const memo: MemorySummaryData = ((relationship.memorySummary ?? {}) as MemorySummaryData);
     
     // 名前検出（「○○って呼んで」「名前は○○」パターン）
     const nameMatch = userMessage.match(/(?:名前は|って呼んで|(?:俺|私|僕)は)(.{1,10})(?:だ|です|って|。|！)/);
@@ -544,22 +598,21 @@ ${memoryInstructions}
     // 好み検出（「○○が好き」パターン）
     const likeMatch = userMessage.match(/(.{1,20})が(?:好き|大好き|すき)/);
     if (likeMatch) {
-      memo.preferences = memo.preferences || {};
-      memo.preferences.likes = memo.preferences.likes || [];
-      if (!memo.preferences.likes.includes(likeMatch[1])) {
-        memo.preferences.likes.push(likeMatch[1]);
+      const likes = memo.preferences?.likes ?? [];
+      if (!likes.includes(likeMatch[1])) {
+        likes.push(likeMatch[1]);
       }
+      memo.preferences = { ...memo.preferences, likes };
     }
     
     // 最近の話題を更新（最大5件）
-    memo.recentTopics = memo.recentTopics || [];
     const topic = userMessage.slice(0, 30);
-    memo.recentTopics.unshift(topic);
-    memo.recentTopics = memo.recentTopics.slice(0, 5);
+    const recentTopics = [topic, ...(memo.recentTopics ?? [])].slice(0, 5);
+    memo.recentTopics = recentTopics;
     
     await prisma.relationship.update({
       where: { id: relationshipId },
-      data: { memorySummary: memo },
+      data: { memorySummary: memo as Record<string, unknown> },
     });
   }
   

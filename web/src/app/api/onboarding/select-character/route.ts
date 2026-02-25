@@ -15,6 +15,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log('[select-character] userId:', userId);
+
+    // Verify user exists in DB
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      console.error('[select-character] User not found in DB:', userId);
+      return NextResponse.json(
+        { success: false, error: { code: 'USER_NOT_FOUND', message: 'ユーザーが見つかりません。再ログインしてください。' } },
+        { status: 404 },
+      );
+    }
+
     const body = await req.json();
     const { characterId } = body;
 

@@ -19,7 +19,7 @@ import OnboardingProgress from '@/components/onboarding/OnboardingProgress';
 // ─────────────────────────────────────────────
 
 function OnboardingInner() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -133,6 +133,8 @@ function OnboardingInner() {
 
   const handleHookComplete = async (notificationPermission: boolean | null) => {
     const redirectTo = await completeOnboarding(notificationPermission);
+    // JWTのonboardingStepを更新（ミドルウェアが/onboardingにリダイレクトしないように）
+    await update();
     router.replace(redirectTo);
   };
 

@@ -63,11 +63,17 @@ export async function POST(request: NextRequest) {
         ? character.voiceModelId
         : DEFAULT_VOICE_MODEL_ID;
 
-    // 音声生成
-    const { audioBuffer } = await voiceEngine.generateVoice({
+    // 音声生成（失敗時は null が返る — graceful fallback）
+    const voiceResult = await voiceEngine.generateVoice({
       text,
       voiceModelId,
     });
+
+    if (!voiceResult) {
+      return NextResponse.json({ audioUrl: null, reason: 'voice_unavailable' });
+    }
+
+    const { audioBuffer } = voiceResult;
 
     // ファイル保存
     const audioUrl = await audioStorage.save(safeMessageId, audioBuffer);

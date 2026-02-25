@@ -106,8 +106,10 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
         .animate-marquee {
           animation: marquee ${Math.max(characters.length * 6, 25)}s linear infinite;
         }
-        .animate-marquee:hover {
-          animation-play-state: paused;
+        @media (hover: hover) {
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
         }
       `}</style>
     </div>
