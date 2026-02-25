@@ -311,25 +311,25 @@ export default function SettingsPage() {
 
         {/* リンク */}
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
+          {/* プライバシーポリシー・利用規約（準備中） */}
           {[
-            { href: '/privacy', label: 'プライバシーポリシー', icon: '🔒' },
-            { href: '/terms', label: '利用規約', icon: '📄' },
+            { label: 'プライバシーポリシー', icon: '🔒' },
+            { label: '利用規約', icon: '📄' },
           ].map((item, i, arr) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={`flex items-center justify-between px-4 py-3.5 hover:bg-[var(--color-surface-2)] transition-colors ${
+            <div
+              key={item.label}
+              className={`flex items-center justify-between px-4 py-3.5 opacity-50 ${
                 i < arr.length - 1 ? 'border-b border-[var(--color-border)]' : ''
               }`}
             >
-              <span className="flex items-center gap-3 text-sm text-[var(--color-text)]">
+              <span className="flex items-center gap-3 text-sm text-[var(--color-muted)]">
                 <span>{item.icon}</span>
                 {item.label}
               </span>
-              <svg className="w-4 h-4 text-[var(--color-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
+              <span className="text-[10px] text-[var(--color-muted)] bg-[var(--color-surface-2)] px-2 py-0.5 rounded-full">
+                準備中
+              </span>
+            </div>
           ))}
         </section>
 

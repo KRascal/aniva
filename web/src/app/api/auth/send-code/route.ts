@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -30,17 +33,32 @@ export async function POST(req: NextRequest) {
       VALUES (${id}, ${emailLower}, ${code}, ${expiresAt}, false, NOW())
     `;
 
-    // TODO: Send actual email. For now, log to console (debug mode)
-    console.log(`[ANIVA AUTH] Verification code for ${emailLower}: ${code}`);
-
-    // In debug mode, also return the code in the response
-    const isDev = process.env.NODE_ENV === 'development' || process.env.DEBUG_AUTH === 'true';
+    // Send verification email via Resend
+    try {
+      await resend.emails.send({
+        from: 'ANIVA <noreply@aniva.jp>',
+        to: emailLower,
+        subject: '【ANIVA】認証コード',
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #0d0d0d; color: #fff; border-radius: 12px;">
+            <h2 style="color: #a855f7; margin-bottom: 8px;">認証コード</h2>
+            <p style="color: #ccc; margin-bottom: 24px;">ANIVAへようこそ。以下のコードを入力してください。</p>
+            <div style="background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 24px; text-align: center; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #fff;">
+              ${code}
+            </div>
+            <p style="color: #666; font-size: 12px; margin-top: 16px;">このコードは10分間有効です。心当たりがない場合は無視してください。</p>
+          </div>
+        `,
+      });
+      console.log(`[ANIVA AUTH] Verification email sent to ${emailLower}`);
+    } catch (emailError) {
+      // Log error but don't fail — code is already saved in DB
+      console.error(`[ANIVA AUTH] Failed to send email to ${emailLower}:`, emailError);
+    }
 
     return NextResponse.json({
       success: true,
       message: 'コードを送信しました',
-      // Debug: return code in development mode
-      ...(isDev && { debugCode: code }),
     });
   } catch (error) {
     console.error('[send-code] Error:', error);

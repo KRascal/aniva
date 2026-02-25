@@ -345,28 +345,48 @@ export default function MyPage() {
             </button>
           </div>
 
-          {/* プライバシー */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+          {/* プライバシー（準備中） */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 opacity-50">
             <div>
-              <p className="text-sm text-white">プライバシーポリシー</p>
+              <p className="text-sm text-gray-500">プライバシーポリシー</p>
             </div>
-            <a href="/privacy" className="text-gray-500 hover:text-gray-300">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">準備中</span>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="text-gray-600 cursor-not-allowed pointer-events-none"
+                aria-disabled="true"
+                tabIndex={-1}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
           </div>
 
-          {/* 利用規約 */}
-          <div className="flex items-center justify-between px-4 py-3">
+          {/* 利用規約（準備中） */}
+          <div className="flex items-center justify-between px-4 py-3 opacity-50">
             <div>
-              <p className="text-sm text-white">利用規約</p>
+              <p className="text-sm text-gray-500">利用規約</p>
             </div>
-            <a href="/terms" className="text-gray-500 hover:text-gray-300">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">準備中</span>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="text-gray-600 cursor-not-allowed pointer-events-none"
+                aria-disabled="true"
+                tabIndex={-1}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
           </div>
         </section>
 
