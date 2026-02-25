@@ -1,36 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ANIVA — AIキャラクターファンプラットフォーム
 
-## Getting Started
+アニメ・マンガキャラクターとリアルタイムで会話・通話できるAIファンプラットフォーム。  
+ファンクラブ加入・コイン経済・Moments配信機能を備える。
 
-First, run the development server:
+**本番URL:** http://162.43.90.97:3050  
+**管理画面:** http://162.43.90.97:3050/admin
 
+---
+
+## 技術スタック
+
+| 分類 | 技術 |
+|------|------|
+| フレームワーク | Next.js 16 (App Router) |
+| 言語 | TypeScript |
+| DB | PostgreSQL (Prisma ORM) |
+| 認証 | NextAuth.js v5 + メール確認コード (Resend) |
+| AI | xAI Grok-3 / Claude Sonnet 4.6 |
+| 音声 | ElevenLabs TTS |
+| 決済 | Stripe (サブスクリプション + Checkout) |
+| パッケージ管理 | pnpm |
+| デプロイ | PM2 (port 3050) |
+
+---
+
+## キャラクター一覧（現在6キャラ）
+
+| slug | キャラ | 作品 |
+|------|--------|------|
+| luffy | モンキー・D・ルフィ | ONE PIECE |
+| zoro | ロロノア・ゾロ | ONE PIECE |
+| nami | ナミ | ONE PIECE |
+| chopper | トニートニー・チョッパー | ONE PIECE |
+| ace | ポートガス・D・エース | ONE PIECE |
+| sanji | ヴィンスモーク・サンジ | ONE PIECE |
+
+---
+
+## 主要機能
+
+### ユーザー向け
+- **The Door** — キャラクター検索・選択（トップページ）
+- **邂逅フロー** `/c/[slug]` — 未ログインで3回チャット体験 → 登録促進
+- **チャット** — AIキャラとリアルタイム会話（SSEストリーミング）
+- **通話** — 音声通話（ElevenLabs TTS）
+- **Moments** — キャラの投稿（PUBLIC / STANDARD / PREMIUM tier）
+- **ファンクラブ** — 月額サブスクリプション（FC限定コンテンツ）
+- **コイン経済** — コイン購入・消費（超過チャット/通話）
+- **気配の空間** `/discover` — キャラ探索ページ
+
+### フリーミアム制限
+- 無料: チャット10通/月、通話5分/月
+- FC会員: 無制限チャット、通話30分/月
+
+### 管理者向け
+- キャラクター管理（システムプロンプト・料金設定）
+- Moments管理（tier別投稿）
+- ユーザー管理・プラン変更
+- 分析・統計ダッシュボード
+
+---
+
+## セットアップ
+
+### 前提条件
+- Node.js 22+
+- pnpm
+- PostgreSQL
+- Redis
+
+### インストール
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd web
+pnpm install
+cp .env.example .env  # 環境変数設定
+pnpm run db:migrate   # DBマイグレーション
+pnpm run db:seed      # 初期データ投入（6キャラ）
+pnpm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 環境変数（必須）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 変数名 | 説明 |
+|--------|------|
+| `DATABASE_URL` | PostgreSQL接続文字列 |
+| `AUTH_SECRET` | NextAuth.js シークレット |
+| `XAI_API_KEY` | xAI/Grok API キー |
+| `RESEND_API_KEY` | メール認証用 Resend API キー |
+| `STRIPE_SECRET_KEY` | Stripe 秘密鍵 |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe 公開鍵 |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook シークレット |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 開発サーバー起動
+```bash
+pnpm dev  # http://localhost:3050
+```
 
-## Learn More
+### 本番デプロイ
+```bash
+pnpm build
+pm2 start ecosystem.config.js
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ディレクトリ構成
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+web/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/        # ログイン・サインアップ
+│   │   ├── (main)/        # 認証済みページ
+│   │   ├── admin/         # 管理画面
+│   │   ├── api/           # APIルート (45エンドポイント)
+│   │   ├── c/[slug]/      # 邂逅フロー
+│   │   ├── discover/      # 気配の空間
+│   │   └── onboarding/    # オンボーディングフロー
+│   ├── components/
+│   │   ├── onboarding/    # The Door / 邂逅コンポーネント
+│   │   └── ui/            # 共通UIコンポーネント
+│   └── lib/
+│       ├── character-engine.ts  # キャラ定義・AI応答
+│       ├── freemium.ts          # フリーミアム判定
+│       └── auth.ts              # 認証設定
+├── prisma/
+│   ├── schema.prisma      # DBスキーマ
+│   └── seed.ts            # 初期データ（6キャラ）
+└── docs/
+    └── api-spec.md        # API仕様書
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API仕様
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+→ [docs/api-spec.md](./docs/api-spec.md) 参照（45エンドポイント）
+
+---
+
+## DBシード（キャラクター追加）
+
+```bash
+# seed.ts の characters 配列に追加後:
+pnpm run db:seed
+```
+
+---
+
+## 関連リポジトリ・サービス
+
+- GitHub: `KRascal/aniva`
+- DB: `postgresql://localhost:5432/aniva`
+- PM2プロセス名: `aniva`
