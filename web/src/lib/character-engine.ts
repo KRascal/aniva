@@ -662,7 +662,7 @@ ${memoryInstructions}
     messages: { role: string; content: string }[],
     existingSummary: string,
   ): Promise<{ summary: string; facts: string[]; emotion: string }> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) {
       return { summary: existingSummary, facts: [], emotion: 'neutral' };
     }
@@ -671,42 +671,48 @@ ${memoryInstructions}
       .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: process.env.LLM_MODEL ?? 'grok-3-mini',
         messages: [
           {
             role: 'system',
-            content: `以下の会話から:\n1. 200字以内の要約\n2. ユーザーについての重要な事実（最大5つ）\n3. ユーザーの感情状態（1単語）\nJSON形式で返せ: {"summary":"...","facts":["..."],"emotion":"..."}`,
+            content: `以下の会話を分析し、必ずJSON形式のみで返せ（前後に余分なテキスト不要）:\n{"summary":"200字以内の要約","facts":["重要な事実1","重要な事実2"],"emotion":"感情1単語"}\n\n条件:\n1. summaryは200字以内の日本語要約\n2. factsはユーザーについての重要な事実（最大5つ）\n3. emotionはユーザーの感情状態を表す1単語（例: 嬉しい、悲しい、neutral等）`,
           },
           {
             role: 'user',
             content: `既存の記憶: ${existingSummary}\n\n最近の会話:\n${conversationText}`,
           },
         ],
-        response_format: { type: 'json_object' },
         max_tokens: 500,
+        temperature: 0.3,
       }),
     });
 
     if (!res.ok) {
-      throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
+      throw new Error(`xAI API error: ${res.status} ${res.statusText}`);
     }
 
     const data = (await res.json()) as {
       choices: { message: { content: string } }[];
     };
     const raw = data.choices?.[0]?.message?.content ?? '{}';
-    const parsed = JSON.parse(raw) as {
-      summary?: string;
-      facts?: string[];
-      emotion?: string;
-    };
+
+    // Extract JSON from response (xAI may include surrounding text)
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : '{}';
+
+    let parsed: { summary?: string; facts?: string[]; emotion?: string } = {};
+    try {
+      parsed = JSON.parse(jsonStr) as typeof parsed;
+    } catch {
+      console.warn('[CharacterEngine] Failed to parse memory summary JSON, using fallback');
+    }
 
     return {
       summary: parsed.summary ?? existingSummary,
