@@ -123,6 +123,8 @@ interface Character {
   franchise: string;
   avatarUrl: string | null;
   hasVoice?: boolean;
+  fcMonthlyPriceJpy?: number;
+  fcIncludedCallMin?: number;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
