@@ -54,6 +54,7 @@ export function BottomNav() {
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
   if (pathname.startsWith('/chat/')) return null;
+  if (pathname.startsWith('/c/')) return null;
 
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
