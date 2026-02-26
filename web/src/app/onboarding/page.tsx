@@ -133,9 +133,11 @@ function OnboardingInner() {
 
   const handleHookComplete = async (notificationPermission: boolean | null) => {
     const redirectTo = await completeOnboarding(notificationPermission);
-    // JWTのonboardingStepを更新（ミドルウェアが/onboardingにリダイレクトしないように）
+    // JWTのonboardingStepを更新（proxyが/onboardingにリダイレクトしないように）
     await update();
-    router.replace(redirectTo);
+    // router.replaceだとJWTクッキー更新が反映される前にproxyが旧JWTを読むことがある
+    // window.location.hrefで強制フルリロードし、サーバー側で最新JWTを使わせる
+    window.location.href = redirectTo;
   };
 
   // ── ローディング状態 ───────────────────────

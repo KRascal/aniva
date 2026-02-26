@@ -85,9 +85,15 @@ export default function PhaseHook({ character, nickname, onComplete }: PhaseHook
 
     if (permission === true) {
       try {
-        if (typeof Notification !== 'undefined') {
-          const result = await Notification.requestPermission();
+        // iOS Safari（非PWA）ではNotification APIが不完全なためタイムアウト付きで実行
+        if (typeof Notification !== 'undefined' && typeof Notification.requestPermission === 'function') {
+          const result = await Promise.race([
+            Notification.requestPermission(),
+            new Promise<NotificationPermission>((resolve) => setTimeout(() => resolve('default'), 3000)),
+          ]);
           actualPermission = result === 'granted';
+        } else {
+          actualPermission = false;
         }
       } catch {
         actualPermission = false;

@@ -40,6 +40,8 @@ interface MemorySummaryData {
   };
   importantFacts?: string[];
   recentTopics?: string[];
+  conversationSummary?: string;
+  emotionalState?: string;
 }
 
 // ============================================================
@@ -352,6 +354,8 @@ interface MemoryContext {
   preferences: Record<string, string>;
   importantFacts: string[];
   recentTopics: string[];
+  conversationSummary?: string;
+  emotionalState?: string;
 }
 
 export class CharacterEngine {
@@ -411,7 +415,7 @@ export class CharacterEngine {
     const emotion = this.detectEmotion(cleanedText);
     
     // 9. メモリ更新
-    await this.updateMemory(relationshipId, userMessage, cleanedText);
+    await this.updateMemory(relationshipId, userMessage, cleanedText, recentMessages);
     
     // 10. 関係性経験値更新
     await this.updateRelationshipXP(relationshipId);
@@ -453,6 +457,8 @@ export class CharacterEngine {
       preferences: (memo.preferences as Record<string, string>) || {},
       importantFacts: memo.importantFacts || [],
       recentTopics: memo.recentTopics || [],
+      conversationSummary: memo.conversationSummary,
+      emotionalState: memo.emotionalState,
     };
   }
   
@@ -511,6 +517,12 @@ ${memoryInstructions}
    */
   private getMemoryInstructions(memory: MemoryContext): string {
     const parts: string[] = [];
+    if (memory.conversationSummary) {
+      parts.push(`- 会話の記憶サマリー: ${memory.conversationSummary}`);
+    }
+    if (memory.emotionalState && memory.emotionalState !== 'neutral') {
+      parts.push(`- 相手の最近の感情状態: ${memory.emotionalState}`);
+    }
     if (memory.importantFacts.length > 0) {
       parts.push(`- 重要な事実: ${memory.importantFacts.join(', ')}`);
     }
@@ -582,7 +594,12 @@ ${memoryInstructions}
   /**
    * メモリを更新（ユーザーの発言から情報を抽出）
    */
-  private async updateMemory(relationshipId: string, userMessage: string, _characterResponse: string) {
+  private async updateMemory(
+    relationshipId: string,
+    userMessage: string,
+    _characterResponse: string,
+    recentMessages: { role: string; content: string }[] = [],
+  ) {
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
@@ -609,12 +626,93 @@ ${memoryInstructions}
     const topic = userMessage.slice(0, 30);
     const recentTopics = [topic, ...(memo.recentTopics ?? [])].slice(0, 5);
     memo.recentTopics = recentTopics;
+
+    // 10メッセージごとにAI要約を生成
+    const newTotalMessages = relationship.totalMessages + 1;
+    if (newTotalMessages % 10 === 0 && recentMessages.length > 0) {
+      try {
+        const summaryResult = await this.generateMemorySummary(
+          recentMessages,
+          memo.conversationSummary ?? '',
+        );
+        memo.conversationSummary = summaryResult.summary.slice(0, 500);
+        memo.emotionalState = summaryResult.emotion;
+        if (summaryResult.facts.length > 0) {
+          const existingFacts = memo.importantFacts ?? [];
+          const merged = [...new Set([...existingFacts, ...summaryResult.facts])].slice(0, 10);
+          memo.importantFacts = merged;
+        }
+      } catch (err) {
+        console.error('[CharacterEngine] generateMemorySummary failed:', err);
+      }
+    }
     
     await prisma.relationship.update({
       where: { id: relationshipId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: { memorySummary: memo as any },
     });
+  }
+
+  /**
+   * AI要約でメモリサマリーを生成
+   * OPENAI_API_KEY がなければスキップ
+   */
+  private async generateMemorySummary(
+    messages: { role: string; content: string }[],
+    existingSummary: string,
+  ): Promise<{ summary: string; facts: string[]; emotion: string }> {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return { summary: existingSummary, facts: [], emotion: 'neutral' };
+    }
+
+    const conversationText = messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join('\n');
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `以下の会話から:\n1. 200字以内の要約\n2. ユーザーについての重要な事実（最大5つ）\n3. ユーザーの感情状態（1単語）\nJSON形式で返せ: {"summary":"...","facts":["..."],"emotion":"..."}`,
+          },
+          {
+            role: 'user',
+            content: `既存の記憶: ${existingSummary}\n\n最近の会話:\n${conversationText}`,
+          },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 500,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as {
+      choices: { message: { content: string } }[];
+    };
+    const raw = data.choices?.[0]?.message?.content ?? '{}';
+    const parsed = JSON.parse(raw) as {
+      summary?: string;
+      facts?: string[];
+      emotion?: string;
+    };
+
+    return {
+      summary: parsed.summary ?? existingSummary,
+      facts: Array.isArray(parsed.facts) ? parsed.facts.slice(0, 5) : [],
+      emotion: parsed.emotion ?? 'neutral',
+    };
   }
   
   /**

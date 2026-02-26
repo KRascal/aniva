@@ -109,13 +109,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // サインイン時 or 明示的なセッション更新時にDBからonboardingStep/nicknameを取得
       // trigger === 'update' はクライアントから useSession().update() を呼ばれたとき
-      if (token.userId && (trigger === 'signIn' || trigger === 'update')) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.userId as string },
-          select: { onboardingStep: true, nickname: true },
-        });
-        token.onboardingStep = dbUser?.onboardingStep ?? null;
-        token.nickname = dbUser?.nickname ?? null;
+      if (trigger === 'signIn' || trigger === 'update') {
+        // token.userIdが未セットの場合（Google OAuth再ログイン等）、emailからDB検索
+        if (!token.userId && token.email) {
+          const emailUser = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            select: { id: true },
+          });
+          if (emailUser) {
+            token.userId = emailUser.id;
+          }
+        }
+        if (token.userId) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.userId as string },
+            select: { onboardingStep: true, nickname: true },
+          });
+          token.onboardingStep = dbUser?.onboardingStep ?? null;
+          token.nickname = dbUser?.nickname ?? null;
+        }
       }
       return token;
     },
