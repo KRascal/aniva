@@ -205,6 +205,7 @@ interface MomentItem {
   reactionCount: number;
   userHasLiked: boolean;
   isLocked: boolean;
+  visibility?: string;
 }
 
 /* ───────────────────────── サブコンポーネント ───────────────────────── */
