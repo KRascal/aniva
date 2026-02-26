@@ -28,26 +28,26 @@ interface RelationshipInfo {
   isFanclub: boolean;
 }
 
-// Franchise categories with emoji + gradient
+// Franchise categories with gradient
 const FRANCHISE_CATEGORIES = [
-  { name: 'すべて', emoji: '✨', gradient: 'from-purple-500 to-pink-500' },
-  { name: 'ONE PIECE', emoji: '☠️', gradient: 'from-orange-500 to-red-500' },
-  { name: '呪術廻戦', emoji: '👁️', gradient: 'from-blue-500 to-indigo-600' },
-  { name: '鬼滅の刃', emoji: '🌸', gradient: 'from-pink-500 to-rose-600' },
-  { name: 'ドラゴンボール', emoji: '🐉', gradient: 'from-yellow-400 to-orange-500' },
-  { name: 'NARUTO', emoji: '🦊', gradient: 'from-orange-400 to-yellow-500' },
-  { name: '進撃の巨人', emoji: '⚔️', gradient: 'from-gray-600 to-gray-800' },
-  { name: 'アニメ', emoji: '🌟', gradient: 'from-emerald-500 to-cyan-500' },
+  { name: 'すべて', gradient: 'from-purple-500 to-pink-500' },
+  { name: 'ONE PIECE', gradient: 'from-orange-500 to-red-500' },
+  { name: '呪術廻戦', gradient: 'from-blue-500 to-indigo-600' },
+  { name: '鬼滅の刃', gradient: 'from-pink-500 to-rose-600' },
+  { name: 'ドラゴンボール', gradient: 'from-yellow-400 to-orange-500' },
+  { name: 'NARUTO', gradient: 'from-orange-400 to-yellow-500' },
+  { name: '進撃の巨人', gradient: 'from-gray-600 to-gray-800' },
+  { name: 'アニメ', gradient: 'from-emerald-500 to-cyan-500' },
 ];
 
-const FRANCHISE_META: Record<string, { emoji: string; gradient: string }> = {
-  'ONE PIECE':    { emoji: '☠️',  gradient: 'from-orange-500 to-red-500' },
-  '呪術廻戦':     { emoji: '👁️', gradient: 'from-blue-500 to-indigo-600' },
-  '鬼滅の刃':     { emoji: '🌸',  gradient: 'from-pink-500 to-rose-600' },
-  'ドラゴンボール':{ emoji: '🐉',  gradient: 'from-yellow-400 to-orange-500' },
-  'NARUTO':       { emoji: '🦊',  gradient: 'from-orange-400 to-yellow-500' },
-  '進撃の巨人':   { emoji: '⚔️',  gradient: 'from-gray-500 to-gray-700' },
-  'アニメ':       { emoji: '🌟',  gradient: 'from-emerald-500 to-cyan-500' },
+const FRANCHISE_META: Record<string, { gradient: string }> = {
+  'ONE PIECE':    { gradient: 'from-orange-500 to-red-500' },
+  '呪術廻戦':     { gradient: 'from-blue-500 to-indigo-600' },
+  '鬼滅の刃':     { gradient: 'from-pink-500 to-rose-600' },
+  'ドラゴンボール':{ gradient: 'from-yellow-400 to-orange-500' },
+  'NARUTO':       { gradient: 'from-orange-400 to-yellow-500' },
+  '進撃の巨人':   { gradient: 'from-gray-500 to-gray-700' },
+  'アニメ':       { gradient: 'from-emerald-500 to-cyan-500' },
 };
 
 const CARD_GRADIENTS = [
@@ -106,9 +106,8 @@ function FranchiseBadge({ franchise }: { franchise: string }) {
     );
   }
   return (
-    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${meta.gradient} text-white shadow-sm`}>
-      <span>{meta.emoji}</span>
-      <span>{franchise}</span>
+    <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${meta.gradient} text-white shadow-sm`}>
+      {franchise}
     </span>
   );
 }
@@ -277,7 +276,7 @@ function CharacterVerticalCard({
           )}
           {(character.followerCount ?? 0) > 0 && (
             <p className="text-white/45 text-[9px] mb-1.5">
-              👥 {(character.followerCount ?? 0).toLocaleString()} フォロワー
+              {(character.followerCount ?? 0).toLocaleString()} フォロワー
             </p>
           )}
           <div onClick={(e) => e.stopPropagation()}>
@@ -294,7 +293,7 @@ function CharacterVerticalCard({
           <div className="absolute top-2 left-2 flex items-center gap-1 text-white text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.9), rgba(139,92,246,0.9))', boxShadow: '0 2px 8px rgba(236,72,153,0.5)' }}
           >
-            ⭐ 推し
+            推し
           </div>
         )}
 
@@ -388,7 +387,7 @@ function CharacterHorizontalCard({
         )}
         {(character.followerCount ?? 0) > 0 && (
           <p className="text-gray-500 text-[10px] mt-0.5">
-            👥 {(character.followerCount ?? 0).toLocaleString()} フォロワー
+            {(character.followerCount ?? 0).toLocaleString()} フォロワー
           </p>
         )}
       </div>
@@ -605,7 +604,7 @@ export default function ExplorePage() {
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
                   className={`
-                    flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200
+                    flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200
                     ${selectedCategory === cat.name ? 'cat-badge-active text-white' : 'text-gray-400 border border-white/10 hover:text-gray-200 hover:border-white/20'}
                   `}
                   style={selectedCategory === cat.name ? {
@@ -616,8 +615,7 @@ export default function ExplorePage() {
                     background: 'rgba(255,255,255,0.04)',
                   }}
                 >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.name}</span>
+                  {cat.name}
                 </button>
               ))}
             </div>
@@ -650,7 +648,7 @@ export default function ExplorePage() {
                   />
                   <style>{`@keyframes heroShimmer { 0%,100% { background-position: 200% 0; } 50% { background-position: -200% 0; } }`}</style>
                   <div className="relative z-10 px-6 py-8">
-                    <p className="text-white/75 text-xs font-semibold tracking-widest uppercase mb-2">✦ Discover</p>
+                    <p className="text-white/75 text-xs font-semibold tracking-widest uppercase mb-2">Discover</p>
                     <h2 className="text-3xl font-black text-white leading-tight mb-3">
                       あなたの推しを<br />見つけよう
                     </h2>
@@ -680,8 +678,8 @@ export default function ExplorePage() {
               {followingChars.length > 0 && (
                 <FadeSection delay={60}>
                   <div className="mb-6">
-                    <h3 className="text-white font-bold text-base mb-3 flex items-center gap-2">
-                      <span className="text-pink-400">❤</span> フォロー中の推し
+                    <h3 className="text-white font-bold text-base mb-3">
+                      フォロー中
                     </h3>
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-3">
                       {followingChars.map((character, i) => (
@@ -703,8 +701,8 @@ export default function ExplorePage() {
               <FadeSection delay={120}>
                 <div id="popular-section" className="mb-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-white font-bold text-base flex items-center gap-2">
-                      <span className="text-yellow-400">★</span> 人気のキャラクター
+                    <h3 className="text-white font-bold text-base">
+                      人気のキャラクター
                     </h3>
                     <span className="text-xs px-2 py-0.5 rounded-full"
                       style={{ background: 'rgba(139,92,246,0.15)', color: 'rgba(196,181,253,0.9)', border: '1px solid rgba(139,92,246,0.25)' }}
@@ -735,8 +733,8 @@ export default function ExplorePage() {
               {newChars.length > 0 && (
                 <FadeSection delay={180}>
                   <div className="mb-6">
-                    <h3 className="text-white font-bold text-base mb-3 flex items-center gap-2">
-                      <span className="text-cyan-400">✦</span> 新着キャラクター
+                    <h3 className="text-white font-bold text-base mb-3">
+                      新着キャラクター
                     </h3>
                     <div className="space-y-3">
                       {newChars.map((character, i) => (
@@ -758,8 +756,8 @@ export default function ExplorePage() {
               {characters.length > 6 && (
                 <FadeSection delay={240}>
                   <div>
-                    <h3 className="text-white font-bold text-base mb-3 flex items-center gap-2">
-                      <span className="text-purple-400">◈</span> すべてのキャラクター
+                    <h3 className="text-white font-bold text-base mb-3">
+                      すべてのキャラクター
                     </h3>
                     <div className="space-y-3">
                       {characters.slice(6).map((character, i) => (

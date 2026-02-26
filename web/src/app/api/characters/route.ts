@@ -39,11 +39,14 @@ export async function GET(req: NextRequest) {
     orderBy: { name: 'asc' },
   });
 
-  const enriched = characters.map(c => ({
-    ...c,
-    followerCount: c._count.relationships,
-    _count: undefined,
-  }));
+  const enriched = characters
+    .map(c => ({
+      ...c,
+      followerCount: c._count.relationships,
+      _count: undefined,
+    }))
+    // 人気順（フォロワー数降順）→ 同数なら名前順
+    .sort((a, b) => (b.followerCount - a.followerCount) || a.name.localeCompare(b.name, 'ja'));
 
   return NextResponse.json({ characters: enriched });
 }

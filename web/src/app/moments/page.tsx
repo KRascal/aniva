@@ -146,14 +146,16 @@ function FloatingHearts({ hearts }: { hearts: FloatingHeart[] }) {
       {hearts.map((h) => (
         <div
           key={h.id}
-          className="absolute text-red-400 text-lg"
+          className="absolute text-red-400"
           style={{
             left: h.x,
             bottom: 24,
             animation: 'floatHeart 1.2s ease-out forwards',
           }}
         >
-          ❤️
+          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
+          </svg>
         </div>
       ))}
     </div>
@@ -201,13 +203,15 @@ function MediaPlaceholder({
           {showLikeHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <span
-                className="text-6xl"
+                className="text-red-400"
                 style={{
                   animation: 'heartBurst 0.85s ease-out forwards',
                   display: 'inline-block',
                 }}
               >
-                ❤️
+                <svg className="w-16 h-16 fill-current" viewBox="0 0 24 24">
+                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
+                </svg>
               </span>
             </div>
           )}
@@ -216,7 +220,11 @@ function MediaPlaceholder({
     }
     return (
       <div className="overflow-hidden mb-3 bg-gradient-to-br from-gray-800 to-gray-750 flex flex-col items-center justify-center h-44 border-y border-white/5">
-        <div className="text-4xl mb-2">🖼️</div>
+        <div className="mb-2">
+          <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 6h16.5A2.25 2.25 0 0122.5 8.25v7.5A2.25 2.25 0 0120.25 18H3.75A2.25 2.25 0 011.5 15.75V8.25A2.25 2.25 0 013.75 6z" />
+          </svg>
+        </div>
         <p className="text-white/30 text-xs">画像を準備中…</p>
       </div>
     );
@@ -348,15 +356,15 @@ function MomentCard({
       {/* Visibility badge */}
       {!moment.isLocked && moment.visibility === 'STANDARD' && (
         <div className="px-4 mb-2">
-          <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
-            ⭐ STANDARDメンバー限定
+          <span className="inline-flex items-center bg-blue-500/15 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
+            STANDARDメンバー限定
           </span>
         </div>
       )}
       {!moment.isLocked && moment.visibility === 'PREMIUM' && (
         <div className="px-4 mb-2">
-          <span className="inline-flex items-center gap-1 bg-yellow-500/15 text-yellow-300 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/20">
-            👑 PREMIUMメンバー限定
+          <span className="inline-flex items-center bg-yellow-500/15 text-yellow-300 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/20">
+            PREMIUMメンバー限定
           </span>
         </div>
       )}
@@ -370,7 +378,9 @@ function MomentCard({
             </p>
             <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-[2px]">
               <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl">
-                <span className="text-2xl">🔒</span>
+                <svg className="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
                 <div>
                   <p className="text-white text-xs font-semibold">まだ見られません</p>
                   <p className="text-white/50 text-[10px]">レベル {moment.levelRequired} 以上で解放</p>
@@ -416,9 +426,17 @@ function MomentCard({
           >
             <span
               key={String(moment.userHasLiked)}
-              className={`text-xl inline-block ${bouncing ? 'like-pop' : ''}`}
+              className={`inline-block ${bouncing ? 'like-pop' : ''}`}
             >
-              {moment.userHasLiked ? '❤️' : '🤍'}
+              {moment.userHasLiked ? (
+                <svg className="w-5 h-5 text-red-400 fill-current" viewBox="0 0 24 24">
+                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-white/40 group-hover:text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              )}
             </span>
             <span className={`text-sm font-semibold transition-colors ${moment.userHasLiked ? 'text-red-400' : 'text-white/40 group-hover:text-white/60'}`}>
               {moment.reactionCount > 0 ? moment.reactionCount.toLocaleString() : ''}
@@ -713,17 +731,17 @@ export default function MomentsPage() {
       const res = await fetch('/api/moments/seed', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        setSeedMessage(`✅ ${data.message}`);
+        setSeedMessage(`OK: ${data.message}`);
         const fresh = await fetchMoments();
         if (fresh) {
           setMoments(fresh.moments);
           setNextCursor(fresh.nextCursor);
         }
       } else {
-        setSeedMessage(`❌ ${data.error}`);
+        setSeedMessage(`NG: ${data.error}`);
       }
     } catch {
-      setSeedMessage('❌ エラーが発生しました');
+      setSeedMessage('エラーが発生しました');
     }
     setSeeding(false);
   };
@@ -789,7 +807,9 @@ export default function MomentsPage() {
                 href="/chat"
                 className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full"
               >
-                <span>💬</span>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
                 <span>チャット</span>
               </Link>
             </div>
@@ -812,7 +832,7 @@ export default function MomentsPage() {
           {/* DEV seed banner */}
           {process.env.NODE_ENV !== 'production' && (
             <div className="bg-gray-800/80 border border-yellow-500/30 rounded-2xl p-3 flex items-center justify-between gap-3">
-              <span className="text-yellow-400 text-xs font-mono">🔧 DEV</span>
+              <span className="text-yellow-400 text-xs font-mono">DEV</span>
               <div className="flex items-center gap-2 flex-wrap justify-end">
                 {seedMessage && (
                   <span className="text-xs text-gray-300">{seedMessage}</span>
@@ -839,7 +859,9 @@ export default function MomentsPage() {
             /* フォロー0人のときの空状態 */
             <div className="text-center py-20 px-6">
               <div className="relative inline-block mb-5">
-                <div className="text-7xl">🌟</div>
+                <svg className="w-16 h-16 text-gray-700 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                </svg>
               </div>
               <h2 className="text-white font-bold text-lg mb-2">タイムラインを始めよう</h2>
               <p className="text-white/50 text-sm leading-relaxed mb-6">
@@ -849,15 +871,15 @@ export default function MomentsPage() {
                 href="/explore"
                 className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-2xl transition-colors text-sm"
               >
-                <span>✨</span>
                 キャラクターを探す
               </a>
             </div>
           ) : moments.length === 0 ? (
             <div className="text-center py-20">
               <div className="relative inline-block mb-4">
-                <div className="text-6xl">📭</div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-700 rounded-full animate-pulse" />
+                <svg className="w-14 h-14 text-gray-700 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V19.5z" />
+                </svg>
               </div>
               <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
               <p className="text-white/25 text-xs mt-1">

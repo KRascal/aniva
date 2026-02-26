@@ -128,13 +128,13 @@ interface Character {
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
-  excited: '🔥',
-  happy: '😄',
-  angry: '😤',
-  sad: '😢',
-  hungry: '🍖',
+  excited: '',
+  happy: '',
+  angry: '',
+  sad: '',
+  hungry: '',
   neutral: '',
-  surprised: '😲',
+  surprised: '',
 };
 
 /* ── 感情に応じたバブルスタイル ── */
@@ -688,9 +688,8 @@ export default function ChatCharacterPage() {
   }
 
   const level = relationship?.level ?? 1;
-  // ⭐ の数は最大5個、レベルに応じて比例
+  // レベルドット（最大5個）
   const starCount = Math.max(1, Math.min(5, Math.ceil(level / 2)));
-  const stars = '⭐'.repeat(starCount);
   const hasInput = inputText.length > 0;
 
   return (
@@ -701,24 +700,24 @@ export default function ChatCharacterPage() {
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
 
-      {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
+      {/* ハングリーエフェクト：浮かぶドット */}
       {hungryEmojis.map((e) => (
         <div
           key={e.id}
-          className="absolute bottom-24 z-20 pointer-events-none float-meat text-3xl select-none"
+          className="absolute bottom-24 z-20 pointer-events-none float-meat select-none"
           style={{ left: `${e.x}%`, animationDelay: `${e.delay}s` }}
         >
-          🍖
+          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-400 to-red-500 shadow-lg shadow-orange-500/50" />
         </div>
       ))}
 
-      {/* ✨ 興奮エフェクト：星が舞う */}
+      {/* 興奮エフェクト：光るドットが舞う */}
       {showStars && (
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="absolute text-xl star-twinkle select-none"
+              className="absolute star-twinkle select-none"
               style={{
                 left: `${8 + i * 9}%`,
                 top: `${15 + (i % 4) * 20}%`,
@@ -726,7 +725,11 @@ export default function ChatCharacterPage() {
                 animationDuration: `${0.9 + (i % 3) * 0.35}s`,
               }}
             >
-              {i % 3 === 0 ? '⭐' : i % 3 === 1 ? '✨' : '🌟'}
+              <div className={`rounded-full ${
+                i % 3 === 0 ? 'w-3 h-3 bg-yellow-400 shadow-yellow-400/60' :
+                i % 3 === 1 ? 'w-2 h-2 bg-purple-400 shadow-purple-400/60' :
+                'w-2.5 h-2.5 bg-pink-400 shadow-pink-400/60'
+              } shadow-lg`} />
             </div>
           ))}
         </div>
@@ -744,7 +747,12 @@ export default function ChatCharacterPage() {
             {/* ヘッダー */}
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-white font-bold text-lg">👑 ファンクラブ</h3>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-yellow-300" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
+                  </svg>
+                  <h3 className="text-white font-bold text-lg">ファンクラブ</h3>
+                </div>
                 <button onClick={() => setShowFcModal(false)} className="text-white/60 hover:text-white text-xl">✕</button>
               </div>
               <p className="text-white/80 text-sm mt-1">{character.name}のファンクラブに加入</p>
@@ -752,21 +760,33 @@ export default function ChatCharacterPage() {
             {/* 特典 */}
             <div className="px-5 py-4 space-y-3">
               <div className="flex items-center gap-3">
-                <span className="text-lg">💬</span>
+                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
                 <div>
                   <p className="text-white text-sm font-medium">無制限チャット</p>
                   <p className="text-gray-400 text-xs">{character.name}といつでもトーク</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-lg">📞</span>
+                <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
                 <div>
                   <p className="text-white text-sm font-medium">音声通話</p>
                   <p className="text-gray-400 text-xs">月{character.fcIncludedCallMin ?? 5}分の通話付き</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-lg">🎁</span>
+                <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
                 <div>
                   <p className="text-white text-sm font-medium">限定コンテンツ</p>
                   <p className="text-gray-400 text-xs">FC限定投稿やボイスメッセージ</p>
@@ -786,7 +806,12 @@ export default function ChatCharacterPage() {
                 {fcJoining ? (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <>👑 ファンクラブに加入する</>
+                  <>
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
+                    </svg>
+                    ファンクラブに加入する
+                  </>
                 )}
               </button>
               <p className="text-center text-gray-600 text-[10px] mt-2">デモ版では無料で体験できます</p>
@@ -866,8 +891,8 @@ export default function ChatCharacterPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                  🏴‍☠️
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                  {character?.name?.charAt(0) ?? '?'}
                 </div>
               )}
             </div>
@@ -878,7 +903,11 @@ export default function ChatCharacterPage() {
               {character?.name ?? 'キャラクター'}
             </h1>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] leading-none">{stars}</span>
+              <span className="flex gap-0.5">
+                {Array.from({ length: starCount }).map((_, i) => (
+                  <span key={i} className="w-1.5 h-1.5 rounded-full bg-yellow-400/80 inline-block" />
+                ))}
+              </span>
               <span className="text-[10px] text-gray-500">Lv.{level}</span>
             </div>
           </div>
@@ -886,15 +915,21 @@ export default function ChatCharacterPage() {
 
         {/* FC加入ボタン */}
         {isFanclub ? (
-          <span className="flex-shrink-0 text-[10px] font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-full">
-            👑 FC加入中
+          <span className="flex-shrink-0 text-[10px] font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-full flex items-center gap-1">
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
+            </svg>
+            FC加入中
           </span>
         ) : (
           <button
             onClick={() => setShowFcModal(true)}
-            className="flex-shrink-0 text-[10px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-full shadow-lg active:scale-95 transition-transform"
+            className="flex-shrink-0 text-[10px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-full shadow-lg active:scale-95 transition-transform flex items-center gap-1"
           >
-            👑 FC加入
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
+            </svg>
+            FC加入
           </button>
         )}
 
@@ -966,8 +1001,8 @@ export default function ChatCharacterPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
-                      🏴‍☠️
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white">
+                      {character?.name?.charAt(0) ?? '?'}
                     </div>
                   )}
                 </div>
@@ -1031,8 +1066,8 @@ export default function ChatCharacterPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={character.avatarUrl} alt={character?.name ?? ''} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
-                  🏴‍☠️
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white">
+                  {character?.name?.charAt(0) ?? '?'}
                 </div>
               )}
             </div>

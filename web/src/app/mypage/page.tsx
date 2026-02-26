@@ -217,9 +217,6 @@ export default function MyPage() {
           {/* プランバッジ（有料プランのみ表示） */}
           {plan !== 'FREE' && (
             <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full ${planInfo.bg}`}>
-              <span className="text-base">
-                {plan === 'PREMIUM' ? '👑' : '⭐'}
-              </span>
               <span className={`text-sm font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
             </div>
           )}
@@ -229,7 +226,10 @@ export default function MyPage() {
         {following.filter(c => c.isFanclub).length > 0 && (
           <section className="bg-gray-900/80 border border-purple-500/20 rounded-2xl p-4">
             <h3 className="text-sm font-semibold text-purple-300 mb-3 flex items-center gap-2">
-              <span>👑</span> ファンクラブ加入中
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
+              </svg>
+              ファンクラブ加入中
             </h3>
             <div className="space-y-2">
               {following.filter(c => c.isFanclub).map((char) => (
@@ -243,8 +243,8 @@ export default function MyPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                        👑
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                        {char.name.charAt(0)}
                       </div>
                     )}
                   </div>
@@ -264,8 +264,8 @@ export default function MyPage() {
 
         {/* フォロー中のキャラ一覧 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-            <span>💕</span> フォロー中のキャラ
+          <h3 className="text-sm font-semibold text-gray-400 mb-3">
+            フォロー中のキャラ
           </h3>
           {following.length === 0 ? (
             <div className="text-center py-4">
@@ -287,8 +287,8 @@ export default function MyPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                        🏴‍☠️
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                        {char.name.charAt(0)}
                       </div>
                     )}
                   </div>
@@ -311,8 +311,8 @@ export default function MyPage() {
         {/* 絆レベルサマリー */}
         {relationships.length > 0 && (
           <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
-            <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-              <span>🔮</span> 絆レベル
+            <h3 className="text-sm font-semibold text-gray-400 mb-3">
+              絆レベル
             </h3>
             <div className="space-y-3">
               {relationships.map((rel) => (
@@ -338,8 +338,8 @@ export default function MyPage() {
 
         {/* 設定 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
-          <h3 className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2 flex items-center gap-2">
-            <span>⚙️</span> 設定
+          <h3 className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
+            設定
           </h3>
 
           {/* 設定ページへのリンク */}

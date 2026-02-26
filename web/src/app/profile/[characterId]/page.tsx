@@ -97,16 +97,16 @@ const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
 };
 
 const PROFILE_LABELS: Record<keyof CharacterProfile, string> = {
-  birthday: '🎂 誕生日',
-  age: '📅 年齢',
-  height: '📏 身長',
-  origin: '🏠 出身',
-  affiliation: '⚓ 所属',
-  ability: '⚡ 能力',
-  likes: '❤️ 好きなもの',
-  dream: '✨ 夢',
-  bloodType: '🩸 血液型',
-  bounty: '💰 懸賞金',
+  birthday: '誕生日',
+  age: '年齢',
+  height: '身長',
+  origin: '出身',
+  affiliation: '所属',
+  ability: '能力',
+  likes: '好きなもの',
+  dream: '夢',
+  bloodType: '血液型',
+  bounty: '懸賞金',
 };
 
 const CREW_MEMBERS: Record<string, { name: string; role: string }[]> = {
@@ -362,6 +362,7 @@ export default function ProfilePage() {
   const [xpAnimated, setXpAnimated] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFanclub, setIsFanclub] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'profile'>('posts');
@@ -412,6 +413,7 @@ export default function ProfilePage() {
         setMilestonesData(msData);
         setIsFollowing(followData.isFollowing ?? false);
         setIsFanclub(followData.isFanclub ?? false);
+        setFollowerCount(followData.followerCount ?? 0);
       } catch (err) {
         console.error('Failed to load profile data:', err);
       } finally {
@@ -429,6 +431,7 @@ export default function ProfilePage() {
       const res = await fetch(`/api/relationship/${characterId}/follow`, { method: 'POST' });
       const data = await res.json();
       setIsFollowing(data.isFollowing);
+      if (data.followerCount !== undefined) setFollowerCount(data.followerCount);
     } catch (err) {
       console.error('Follow error:', err);
     } finally {
@@ -561,6 +564,11 @@ export default function ProfilePage() {
               {character?.name ?? '—'}
             </h1>
             <p className="text-orange-400 text-sm font-medium">{character?.franchise ?? '—'}</p>
+            {followerCount > 0 && (
+              <p className="text-gray-400 text-xs mt-0.5">
+                {followerCount.toLocaleString()} フォロワー
+              </p>
+            )}
             {catchphrases.length > 0 && (
               <p className="text-gray-300 text-xs mt-1 italic leading-relaxed line-clamp-2">
                 「{catchphrases[0]}」
@@ -623,20 +631,19 @@ export default function ProfilePage() {
         <div className="sticky top-[57px] z-10 -mx-4 px-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
           <div className="flex">
             {[
-              { id: 'posts' as const, label: '投稿', icon: '📝' },
-              { id: 'fc' as const, label: 'FC限定', icon: '👑' },
-              { id: 'profile' as const, label: '関係値', icon: '💫' },
+              { id: 'posts' as const, label: '投稿' },
+              { id: 'fc' as const, label: 'FC限定' },
+              { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 border-b-2 ${
+                className={`flex-1 py-3 text-sm font-semibold transition-colors flex items-center justify-center border-b-2 ${
                   activeTab === tab.id
                     ? 'border-purple-500 text-white'
                     : 'border-transparent text-white/40 hover:text-white/60'
                 }`}
               >
-                <span className="text-xs">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -648,7 +655,11 @@ export default function ProfilePage() {
           <div className="space-y-3 pt-2">
             {moments.filter(m => m.visibility !== 'PREMIUM' || isFanclub || !m.isLocked).length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-5xl mb-3">📭</p>
+                <div className="flex justify-center mb-3">
+                  <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V19.5z" />
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm">まだ投稿がありません</p>
               </div>
             ) : (
@@ -679,7 +690,11 @@ export default function ProfilePage() {
                 <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">FC限定コンテンツ</p>
                 {moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').length === 0 ? (
                   <div className="text-center py-10">
-                    <p className="text-4xl mb-3">✨</p>
+                    <div className="flex justify-center mb-3">
+                      <svg className="w-10 h-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                      </svg>
+                    </div>
                     <p className="text-white/40 text-sm">FC限定コンテンツは準備中です</p>
                   </div>
                 ) : (
@@ -690,7 +705,11 @@ export default function ProfilePage() {
               </>
             ) : (
               <div className="bg-gray-900/70 rounded-2xl p-5 border border-purple-900/30 text-center">
-                <p className="text-3xl mb-2">🔒</p>
+                <div className="flex justify-center mb-2">
+                  <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                </div>
                 <p className="text-white font-bold text-sm mb-1">FC限定コンテンツ</p>
                 <p className="text-white/40 text-xs">ファンクラブに加入するとここに限定投稿が表示されます</p>
               </div>

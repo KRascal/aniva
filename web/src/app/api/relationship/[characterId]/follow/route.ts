@@ -43,9 +43,14 @@ export async function POST(
     },
   });
 
+  const followerCount = await prisma.relationship.count({
+    where: { characterId, isFollowing: true },
+  });
+
   return NextResponse.json({
     isFollowing: relationship.isFollowing,
     characterId,
+    followerCount,
   });
 }
 
@@ -70,8 +75,13 @@ export async function GET(
     select: { isFollowing: true, isFanclub: true },
   });
 
+  const followerCount = await prisma.relationship.count({
+    where: { characterId, isFollowing: true },
+  });
+
   return NextResponse.json({
     isFollowing: relationship?.isFollowing ?? false,
     isFanclub: relationship?.isFanclub ?? false,
+    followerCount,
   });
 }
