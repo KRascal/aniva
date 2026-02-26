@@ -38,9 +38,10 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    characters.map((c: { id: string; name: string; relationships: { totalMessages: number }[]; [key: string]: unknown }) => ({
+    characters.map((c: { id: string; name: string; relationships: { totalMessages: number }[]; _count: { relationships: number }; [key: string]: unknown }) => ({
       ...c,
       messageCount: c.relationships.reduce((s: number, r: { totalMessages: number }) => s + r.totalMessages, 0),
+      uniqueUsers: c._count.relationships,
       relationships: undefined,
     }))
   );

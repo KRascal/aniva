@@ -71,10 +71,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, account, profile }) {
       if (user) {
         token.userId = user.id;
       }
+
+      // Google OAuthサインイン時: JWTモードではAdapterがUser作成をスキップする場合がある
+      // DBにユーザーが存在しなければ作成する
+      if (trigger === 'signIn' && token.userId) {
+        const existingUser = await prisma.user.findUnique({
+          where: { id: token.userId as string },
+          select: { id: true },
+        });
+        if (!existingUser) {
+          // JWTのsub/emailから作成を試みる
+          const email = (token.email ?? user?.email ?? '') as string;
+          const name = (token.name ?? user?.name ?? email.split('@')[0]) as string;
+
+          // メールで既存ユーザーを検索（重複防止）
+          let dbUser = email ? await prisma.user.findUnique({ where: { email } }) : null;
+          if (dbUser) {
+            // 既存ユーザーのIDをトークンに反映
+            token.userId = dbUser.id;
+          } else {
+            // 新規作成
+            dbUser = await prisma.user.create({
+              data: {
+                id: token.userId as string,
+                email: email ?? `user-${token.userId as string}@aniva.local`,
+                displayName: name ?? email?.split('@')[0] ?? 'User',
+                emailVerified: account?.provider === 'google' ? new Date() : null,
+              },
+            });
+          }
+        }
+      }
+
       // サインイン時 or 明示的なセッション更新時にDBからonboardingStep/nicknameを取得
       // trigger === 'update' はクライアントから useSession().update() を呼ばれたとき
       if (token.userId && (trigger === 'signIn' || trigger === 'update')) {

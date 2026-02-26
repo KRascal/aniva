@@ -78,8 +78,8 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
           signal: controller.signal,
           body: JSON.stringify({
             characterId: character.id,
-            turnIndex,
-            userMessage,
+            turn: turnIndex + 1,
+            message: userMessage,
             conversationHistory: historyRef.current.slice(0, -1), // exclude the just-added user message
             ...(memoryContext && { memoryContext }),
           }),

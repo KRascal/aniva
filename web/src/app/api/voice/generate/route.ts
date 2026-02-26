@@ -6,9 +6,6 @@ import { auth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import path from 'path';
 
-// ルフィのデフォルトElevenLabs voice ID (Adam voice)
-const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
-
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
@@ -28,10 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { messageId, text, characterId } = body as {
+    const { messageId, text, characterId, emotion } = body as {
       messageId: string;
       text: string;
       characterId: string;
+      emotion?: string;
     };
 
     if (!messageId || !text || !characterId) {
@@ -58,15 +56,18 @@ export async function POST(request: NextRequest) {
       select: { voiceModelId: true },
     });
 
-    const voiceModelId =
-      character?.voiceModelId && character.voiceModelId.trim() !== ''
-        ? character.voiceModelId
-        : DEFAULT_VOICE_MODEL_ID;
+    // voiceModelId未設定の場合は404を返す（デフォルトVoiceへのフォールバックなし）
+    if (!character?.voiceModelId || character.voiceModelId.trim() === '') {
+      return NextResponse.json({ error: 'Voice not available for this character' }, { status: 404 });
+    }
+
+    const voiceModelId = character.voiceModelId;
 
     // 音声生成（失敗時は null が返る — graceful fallback）
     const voiceResult = await voiceEngine.generateVoice({
       text,
       voiceModelId,
+      emotion,
     });
 
     if (!voiceResult) {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ audioUrl });
   } catch (error) {
     console.error('Voice generation error:', error);
-    // 内部エラー詳細はクライアントに返さない（H-6修正）
+    // 内部エラー詳細はクライアントに返さない
     return NextResponse.json(
       { audioUrl: null, reason: 'voice_error' },
       { status: 500 }

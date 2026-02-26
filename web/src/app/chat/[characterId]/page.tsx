@@ -122,6 +122,7 @@ interface Character {
   nameEn: string;
   franchise: string;
   avatarUrl: string | null;
+  hasVoice?: boolean;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
@@ -262,6 +263,8 @@ export default function ChatCharacterPage() {
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  // 音声自動再生トグル（localStorageに保存）
+  const [autoPlay, setAutoPlay] = useState(false);
   // キャラのテーマカラー（感情に応じて変化）
   const [bgTheme, setBgTheme] = useState<string>('rgba(88,28,135,0.06), rgba(0,0,0,0)');
   // 感情エフェクト
@@ -284,6 +287,27 @@ export default function ChatCharacterPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const autoPlayRef = useRef(autoPlay);
+
+  /* ─────────── 音声自動再生トグル（localStorage永続化） ─────────── */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('aniva:autoPlay');
+      if (saved !== null) setAutoPlay(saved === 'true');
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleAutoPlayToggle = useCallback(() => {
+    setAutoPlay((prev) => {
+      const next = !prev;
+      autoPlayRef.current = next;
+      try { localStorage.setItem('aniva:autoPlay', String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // autoPlayRef を state に同期
+  useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
 
   /* ─────────── 音声ミニプレーヤー制御 ─────────── */
   const handleAudioToggle = useCallback((messageId: string, audioUrl: string) => {
@@ -385,16 +409,30 @@ export default function ChatCharacterPage() {
     return () => clearInterval(timer);
   }, [inputText]);
 
-  const generateVoiceForMessage = async (messageId: string, text: string, charId: string) => {
+  const generateVoiceForMessage = async (messageId: string, text: string, charId: string, emotion?: string) => {
     try {
       const res = await fetch('/api/voice/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, text, characterId: charId }),
+        body: JSON.stringify({ messageId, text, characterId: charId, emotion }),
       });
+      if (res.status === 404) {
+        // キャラにvoiceModelIdが未設定 → 音声なし（静かに無視）
+        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
+        return;
+      }
       const data = await res.json();
       if (data.audioUrl) {
         setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: data.audioUrl } : m));
+        // 自動再生ONの場合は再生開始
+        if (autoPlayRef.current) {
+          if (audioRef.current) audioRef.current.pause();
+          const audio = new Audio(data.audioUrl);
+          audioRef.current = audio;
+          audio.onended = () => setPlayingAudioId(null);
+          audio.play().catch(() => {});
+          setPlayingAudioId(messageId);
+        }
       } else {
         setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
       }
@@ -499,7 +537,12 @@ export default function ChatCharacterPage() {
       }
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
-        generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
+        generateVoiceForMessage(
+          data.characterMessage.id,
+          data.characterMessage.content,
+          characterId,
+          data.characterMessage.metadata?.emotion,
+        );
       }
       // 本日送信数インクリメント（Free plan 表示）
       setTodayMsgCount((prev) => prev + 1);
@@ -896,8 +939,8 @@ export default function ChatCharacterPage() {
                     <span className="ml-1.5 text-base">{emotionEmoji}</span>
                   )}
 
-                  {/* ミニ音声プレーヤー */}
-                  {!isUser && msg.audioUrl && (
+                  {/* ミニ音声プレーヤー（voiceModelId設定済みキャラのみ） */}
+                  {!isUser && character?.hasVoice && msg.audioUrl && (
                     <MiniAudioPlayer
                       audioUrl={msg.audioUrl}
                       messageId={msg.id}
@@ -906,8 +949,8 @@ export default function ChatCharacterPage() {
                     />
                   )}
 
-                  {/* 音声生成中スピナー */}
-                  {!isUser && msg.audioUrl === undefined && (
+                  {/* 音声生成中スピナー（voiceModelId設定済みキャラのみ） */}
+                  {!isUser && character?.hasVoice && msg.audioUrl === undefined && (
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                       <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
                       <span>音声生成中...</span>
@@ -963,6 +1006,38 @@ export default function ChatCharacterPage() {
             </a>
           </div>
         )}
+
+        {/* 🔊 音声自動再生トグル（voiceModelId設定済みキャラのみ） */}
+        {character?.hasVoice && (
+          <div className="flex items-center justify-end mb-2 px-1">
+            <button
+              onClick={handleAutoPlayToggle}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all select-none ${
+                autoPlay
+                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
+                  : 'bg-white/5 border-white/15 text-gray-500 hover:text-gray-300 hover:bg-white/10'
+              }`}
+              aria-label={autoPlay ? '音声自動再生ON（クリックでOFF）' : '音声自動再生OFF（クリックでON）'}
+              title={autoPlay ? '音声自動再生：ON' : '音声自動再生：OFF'}
+            >
+              <span className="text-sm leading-none">{autoPlay ? '🔊' : '🔇'}</span>
+              <span className="font-medium">自動再生</span>
+              {/* トグルスイッチ */}
+              <span
+                className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full border transition-colors duration-200 ${
+                  autoPlay ? 'bg-purple-500 border-purple-400' : 'bg-gray-700 border-gray-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200 mt-px ${
+                    autoPlay ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
           {/* テキスト入力 */}
           <input

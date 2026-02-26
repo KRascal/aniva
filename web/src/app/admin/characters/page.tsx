@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Character {
   id: string;
@@ -24,6 +24,7 @@ interface Character {
   freeMessageLimit: number;
   freeCallMinutes: number;
   messageCount: number;
+  uniqueUsers: number;
   _count?: { relationships: number };
 }
 
@@ -233,6 +234,159 @@ function GrossMarginPreview({
   );
 }
 
+// ---- Voice Tester Component ----
+function VoiceTester({ voiceModelId }: { voiceModelId: string }) {
+  const [testText, setTestText] = useState('こんにちは！テストです。');
+  const [testing, setTesting] = useState(false);
+  const [testError, setTestError] = useState('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const runTest = async () => {
+    if (!voiceModelId.trim()) {
+      setTestError('音声モデルIDを入力してください');
+      return;
+    }
+    setTestError('');
+    setTesting(true);
+    try {
+      const res = await fetch('/api/admin/voice-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voiceModelId: voiceModelId.trim(), text: testText }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({ error: 'エラー' }));
+        setTestError(d.error || 'テスト失敗');
+        setTesting(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play();
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setTesting(false);
+      };
+      audio.onerror = () => {
+        setTestError('音声の再生に失敗しました');
+        setTesting(false);
+      };
+    } catch {
+      setTestError('テスト失敗: ネットワークエラー');
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 p-3 bg-gray-900/60 rounded-lg border border-purple-700/40">
+      <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-2">🔊 ボイステスト</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={testText}
+          onChange={(e) => setTestText(e.target.value)}
+          placeholder="テスト文章を入力..."
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+        />
+        <button
+          type="button"
+          onClick={runTest}
+          disabled={testing || !voiceModelId.trim()}
+          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
+        >
+          {testing ? (
+            <>
+              <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              再生中...
+            </>
+          ) : '▶ 再生'}
+        </button>
+      </div>
+      {testError && <p className="text-red-400 text-xs mt-1.5">{testError}</p>}
+    </div>
+  );
+}
+
+// ---- Inline Quick Voice Test (in table row) ----
+function QuickVoiceTest({ character, onClose }: { character: Character; onClose: () => void }) {
+  const [text, setText] = useState(`こんにちは！私は${character.name}です。`);
+  const [playing, setPlaying] = useState(false);
+  const [error, setError] = useState('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const play = async () => {
+    if (!character.voiceModelId) return;
+    setError('');
+    setPlaying(true);
+    try {
+      const res = await fetch('/api/admin/voice-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voiceModelId: character.voiceModelId, text }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || 'テスト失敗');
+        setPlaying(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play();
+      audio.onended = () => { URL.revokeObjectURL(url); setPlaying(false); };
+      audio.onerror = () => { setError('再生エラー'); setPlaying(false); };
+    } catch {
+      setError('ネットワークエラー');
+      setPlaying(false);
+    }
+  };
+
+  return (
+    <tr>
+      <td colSpan={7} className="px-4 pb-3 pt-0 bg-gray-900">
+        <div className="flex items-center gap-3 bg-gray-800/60 border border-purple-700/40 rounded-xl px-4 py-3">
+          <span className="text-purple-400 text-sm shrink-0">🔊 {character.name}</span>
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+            onKeyDown={(e) => e.key === 'Enter' && play()}
+            placeholder="テスト文章..."
+            autoFocus
+          />
+          <button
+            onClick={play}
+            disabled={playing}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
+          >
+            {playing ? (
+              <><svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> 再生中</>
+            ) : '▶ 再生'}
+          </button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-lg shrink-0">×</button>
+          {error && <span className="text-red-400 text-xs shrink-0">{error}</span>}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ---- Main Page ----
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -242,6 +396,7 @@ export default function CharactersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [voiceTestCharId, setVoiceTestCharId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -394,40 +549,86 @@ export default function CharactersPage() {
       {/* Characters table */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
+          <table className="w-full min-w-[760px]">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 text-sm px-4 py-3">名前</th>
-                <th className="text-left text-gray-400 text-sm px-4 py-3">フランチャイズ</th>
-                <th className="text-right text-gray-400 text-sm px-4 py-3">月額</th>
-                <th className="text-right text-gray-400 text-sm px-4 py-3">メッセージ数</th>
-                <th className="text-center text-gray-400 text-sm px-4 py-3">状態</th>
-                <th className="text-right text-gray-400 text-sm px-4 py-3">操作</th>
+              <tr className="border-b border-gray-800 bg-gray-950/40">
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">キャラ</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">フランチャイズ</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">月額</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">会話数</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">ユーザー数</th>
+                <th className="text-center text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">状態</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">操作</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">読み込み中...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    読み込み中...
+                  </div>
+                </td></tr>
               ) : characters.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">キャラクターがありません</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">キャラクターがありません</td></tr>
               ) : (
                 characters.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                  <React.Fragment key={c.id}>
+                  <tr className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="text-white text-sm font-medium">{c.name}</div>
-                      <div className="text-gray-500 text-xs">{c.slug}</div>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gray-700 overflow-hidden shrink-0 border border-gray-600">
+                          {c.avatarUrl ? (
+                            <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-base font-bold">
+                              {c.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-white text-sm font-medium">{c.name}</div>
+                          <div className="text-gray-500 text-xs">{c.slug}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{c.franchise}</td>
                     <td className="px-4 py-3 text-right text-sm">
-                      <span className="text-yellow-400">¥{c.fcMonthlyPriceJpy.toLocaleString()}</span>
+                      <span className="text-yellow-400 font-medium">¥{c.fcMonthlyPriceJpy.toLocaleString()}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-white text-sm">{c.messageCount?.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right text-white text-sm font-medium">{(c.messageCount ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right text-gray-300 text-sm">{(c.uniqueUsers ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full ${c.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
-                        {c.isActive ? 'アクティブ' : '非アクティブ'}
-                      </span>
+                      <button
+                        onClick={async () => {
+                          const r = await fetch('/api/admin/characters', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: c.id, isActive: !c.isActive }),
+                          });
+                          if (r.ok) load();
+                        }}
+                        className={`text-xs px-2.5 py-1 rounded-full transition-colors font-medium ${
+                          c.isActive
+                            ? 'bg-green-900/50 text-green-400 hover:bg-red-900/50 hover:text-red-400'
+                            : 'bg-gray-800 text-gray-500 hover:bg-green-900/50 hover:text-green-400'
+                        }`}
+                        title={c.isActive ? 'クリックで無効化' : 'クリックで有効化'}
+                      >
+                        {c.isActive ? '● アクティブ' : '○ 停止中'}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right">
+                      {c.voiceModelId && (
+                        <button
+                          onClick={() => setVoiceTestCharId(voiceTestCharId === c.id ? null : c.id)}
+                          className={`text-sm mr-3 transition-colors ${voiceTestCharId === c.id ? 'text-purple-300' : 'text-gray-500 hover:text-purple-400'}`}
+                          title="ボイステスト"
+                        >🔊</button>
+                      )}
                       <button
                         onClick={() => openEdit(c)}
                         className="text-purple-400 hover:text-purple-300 text-sm mr-3"
@@ -438,6 +639,13 @@ export default function CharactersPage() {
                       >削除</button>
                     </td>
                   </tr>
+                  {voiceTestCharId === c.id && (
+                    <QuickVoiceTest
+                      character={c}
+                      onClose={() => setVoiceTestCharId(null)}
+                    />
+                  )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>
@@ -481,7 +689,32 @@ export default function CharactersPage() {
               <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
               <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
               <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
-              <Field label="音声モデルID" value={form.voiceModelId} onChange={(v) => f('voiceModelId', v)} />
+            </div>
+
+            {/* ElevenLabs Voice Model ID - prominent section */}
+            <div className="mt-4 p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-purple-400 text-sm font-semibold">🎙 ElevenLabs ボイスID</span>
+                {form.voiceModelId && (
+                  <span className="bg-green-900/40 text-green-400 text-xs px-2 py-0.5 rounded-full border border-green-800/40">設定済み</span>
+                )}
+                {!form.voiceModelId && (
+                  <span className="bg-gray-700 text-gray-400 text-xs px-2 py-0.5 rounded-full">未設定</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={form.voiceModelId}
+                  onChange={(e) => f('voiceModelId', e.target.value)}
+                  placeholder="ElevenLabs Voice ID を入力 (例: 21m00Tcm4TlvDq8ikWAM)"
+                  className="flex-1 bg-gray-900 border border-purple-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 font-mono placeholder-gray-600"
+                />
+              </div>
+              <p className="text-gray-500 text-xs mt-1.5">
+                ElevenLabs の Voice ID (Voices ページから確認できます)
+              </p>
+              <VoiceTester voiceModelId={form.voiceModelId} />
             </div>
 
             {/* Avatar & Cover image upload fields */}

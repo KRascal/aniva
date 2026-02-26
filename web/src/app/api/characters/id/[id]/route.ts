@@ -24,6 +24,7 @@ export async function GET(
       fcMonthlyPriceJpy: true,
       fcIncludedCallMin: true,
       fcOverageCallCoinPerMin: true,
+      voiceModelId: true,
     },
   });
 
@@ -31,5 +32,12 @@ export async function GET(
     return NextResponse.json({ error: 'Character not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ character });
+  // voiceModelId は内部IDのためフロントには公開せず、hasVoice フラグのみ返す
+  const { voiceModelId, ...characterPublic } = character;
+  return NextResponse.json({
+    character: {
+      ...characterPublic,
+      hasVoice: !!(voiceModelId && voiceModelId.trim() !== ''),
+    },
+  });
 }
