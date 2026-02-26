@@ -31,12 +31,12 @@ export async function POST(req: NextRequest) {
     `;
 
     const code = generateCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     const id = crypto.randomUUID();
 
+    // Use NOW() + INTERVAL in SQL to avoid JS UTC vs DB local-timezone mismatch
     await prisma.$executeRaw`
       INSERT INTO "VerificationCode" (id, email, code, "expiresAt", used, "createdAt")
-      VALUES (${id}, ${emailLower}, ${code}, ${expiresAt}, false, NOW())
+      VALUES (${id}, ${emailLower}, ${code}, NOW() + INTERVAL '10 minutes', false, NOW())
     `;
 
     // Send verification email via Resend
