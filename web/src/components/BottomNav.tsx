@@ -53,7 +53,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
-  if (pathname.match(/^\/chat\/[^/]+$/)) return null;
+  if (pathname.startsWith('/chat/')) return null;
 
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
