@@ -36,6 +36,7 @@ model User {
   coinBalance            CoinBalance?
   coinTransactions       CoinTransaction[]
   characterSubscriptions CharacterSubscription[]
+  momentComments         MomentComment[]
 }
 
 model PushSubscription {
@@ -186,6 +187,7 @@ model Moment {
   createdAt     DateTime   @default(now())
   character     Character  @relation(fields: [characterId], references: [id])
   reactions     Reaction[]
+  comments      MomentComment[]
 }
 
 enum MomentType {
@@ -211,6 +213,16 @@ model Reaction {
   moment    Moment   @relation(fields: [momentId], references: [id])
 
   @@unique([momentId, userId, type])
+}
+
+model MomentComment {
+  id        String   @id @default(uuid())
+  momentId  String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  moment    Moment   @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
