@@ -274,6 +274,10 @@ export default function ChatCharacterPage() {
   // Free plan 残りメッセージ
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
+  // ファンクラブ状態
+  const [isFanclub, setIsFanclub] = useState<boolean | null>(null); // null=未ロード
+  const [showFcModal, setShowFcModal] = useState(false);
+  const [fcJoining, setFcJoining] = useState(false);
   // フリーミアム Paywall
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallInfo, setPaywallInfo] = useState<{
@@ -385,6 +389,12 @@ export default function ChatCharacterPage() {
         setRelationship(relData);
       }
       if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
+      // FC状態取得
+      try {
+        const followRes = await fetch(`/api/relationship/${characterId}/follow`);
+        const followData = await followRes.json();
+        setIsFanclub(followData.isFanclub ?? false);
+      } catch { setIsFanclub(false); }
       setIsLoadingHistory(false);
     } catch (err) {
       console.error('Failed to load relationship:', err);
@@ -408,6 +418,24 @@ export default function ChatCharacterPage() {
     }, 3500);
     return () => clearInterval(timer);
   }, [inputText]);
+
+  const handleJoinFanclub = async () => {
+    setFcJoining(true);
+    try {
+      const res = await fetch(`/api/relationship/${characterId}/fanclub`, { method: 'POST' });
+      const data = await res.json();
+      if (data.requiresPayment) {
+        alert(`月額¥${data.monthlyPrice?.toLocaleString()}の課金が必要です（現在デモのため無料で開放中）`);
+        setFcJoining(false);
+        return;
+      }
+      setIsFanclub(data.isFanclub ?? true);
+      setShowFcModal(false);
+    } catch (err) {
+      console.error('FC join error:', err);
+    }
+    setFcJoining(false);
+  };
 
   const generateVoiceForMessage = async (messageId: string, text: string, charId: string, emotion?: string) => {
     try {
@@ -707,6 +735,64 @@ export default function ChatCharacterPage() {
         <OnboardingOverlay character={character} onStart={handleStartChat} />
       )}
 
+      {/* 👑 FC加入モーダル */}
+      {showFcModal && character && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowFcModal(false)}>
+          <div className="w-full max-w-sm mx-4 bg-gray-900 rounded-3xl border border-purple-500/30 overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* ヘッダー */}
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-bold text-lg">👑 ファンクラブ</h3>
+                <button onClick={() => setShowFcModal(false)} className="text-white/60 hover:text-white text-xl">✕</button>
+              </div>
+              <p className="text-white/80 text-sm mt-1">{character.name}のファンクラブに加入</p>
+            </div>
+            {/* 特典 */}
+            <div className="px-5 py-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">💬</span>
+                <div>
+                  <p className="text-white text-sm font-medium">無制限チャット</p>
+                  <p className="text-gray-400 text-xs">{character.name}といつでもトーク</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📞</span>
+                <div>
+                  <p className="text-white text-sm font-medium">音声通話</p>
+                  <p className="text-gray-400 text-xs">月{character.fcIncludedCallMin ?? 5}分の通話付き</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🎁</span>
+                <div>
+                  <p className="text-white text-sm font-medium">限定コンテンツ</p>
+                  <p className="text-gray-400 text-xs">FC限定投稿やボイスメッセージ</p>
+                </div>
+              </div>
+            </div>
+            {/* 価格＆CTA */}
+            <div className="px-5 pb-5">
+              <p className="text-center text-gray-400 text-xs mb-3">
+                月額 <span className="text-white font-bold text-lg">¥{(character.fcMonthlyPriceJpy ?? 980).toLocaleString()}</span>
+              </p>
+              <button
+                onClick={handleJoinFanclub}
+                disabled={fcJoining}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm active:scale-[0.97] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {fcJoining ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>👑 ファンクラブに加入する</>
+                )}
+              </button>
+              <p className="text-center text-gray-600 text-[10px] mt-2">デモ版では無料で体験できます</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 📞 通話モーダル */}
       {showCall && character && (
         <CallModal
@@ -795,6 +881,16 @@ export default function ChatCharacterPage() {
             </div>
           </div>
         </button>
+
+        {/* FC加入ボタン（非FC時） */}
+        {isFanclub === false && (
+          <button
+            onClick={() => setShowFcModal(true)}
+            className="flex-shrink-0 text-[10px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-full shadow-lg active:scale-95 transition-transform"
+          >
+            👑 FC加入
+          </button>
+        )}
 
         {/* 📞 通話 */}
         <button
