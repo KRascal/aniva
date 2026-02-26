@@ -15,6 +15,7 @@ interface Character {
   avatarUrl: string | null;
   coverUrl: string | null;
   catchphrases: string[];
+  followerCount?: number;
 }
 
 interface RelationshipInfo {
@@ -270,8 +271,13 @@ function CharacterVerticalCard({
 
           <p className="text-white font-bold text-sm leading-tight mb-1">{character.name}</p>
           {catchphrase && (
-            <p className="text-white/65 text-[10px] leading-tight line-clamp-2 mb-2 italic">
+            <p className="text-white/65 text-[10px] leading-tight line-clamp-2 mb-1 italic">
               &ldquo;{catchphrase}&rdquo;
+            </p>
+          )}
+          {(character.followerCount ?? 0) > 0 && (
+            <p className="text-white/45 text-[9px] mb-1.5">
+              👥 {(character.followerCount ?? 0).toLocaleString()} フォロワー
             </p>
           )}
           <div onClick={(e) => e.stopPropagation()}>
@@ -379,6 +385,11 @@ function CharacterHorizontalCard({
         </div>
         {catchphrase && (
           <p className="text-gray-400 text-xs italic truncate">&ldquo;{catchphrase}&rdquo;</p>
+        )}
+        {(character.followerCount ?? 0) > 0 && (
+          <p className="text-gray-500 text-[10px] mt-0.5">
+            👥 {(character.followerCount ?? 0).toLocaleString()} フォロワー
+          </p>
         )}
       </div>
 

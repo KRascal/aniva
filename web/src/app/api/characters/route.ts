@@ -28,9 +28,22 @@ export async function GET(req: NextRequest) {
       avatarUrl: true,
       coverUrl: true,
       catchphrases: true,
+      _count: {
+        select: {
+          relationships: {
+            where: { isFollowing: true },
+          },
+        },
+      },
     },
     orderBy: { name: 'asc' },
   });
 
-  return NextResponse.json({ characters });
+  const enriched = characters.map(c => ({
+    ...c,
+    followerCount: c._count.relationships,
+    _count: undefined,
+  }));
+
+  return NextResponse.json({ characters: enriched });
 }

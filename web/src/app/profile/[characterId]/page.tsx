@@ -246,6 +246,7 @@ export default function ProfilePage() {
   const [isFanclub, setIsFanclub] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'profile'>('posts');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -267,12 +268,12 @@ export default function ProfilePage() {
       .catch(console.error);
   }, [characterId]);
 
-  // Moments（最近5件）
+  // Moments（最近20件）
   useEffect(() => {
     if (!characterId) return;
-    fetch(`/api/moments?characterId=${characterId}&limit=5`)
+    fetch(`/api/moments?characterId=${characterId}&limit=20`)
       .then((res) => res.json())
-      .then((data) => { if (data.moments) setMoments(data.moments.slice(0, 5)); })
+      .then((data) => { if (data.moments) setMoments(data.moments); })
       .catch(() => {});
   }, [characterId]);
 
@@ -487,55 +488,115 @@ export default function ProfilePage() {
               </>
             )}
           </button>
+
+          {/* チャットボタン（常時表示） */}
+          <button
+            onClick={handleChat}
+            className={`flex-1 relative py-3 rounded-2xl font-bold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 overflow-hidden ${
+              isFanclub
+                ? 'text-white'
+                : 'bg-gray-800 border border-gray-700 text-gray-400'
+            }`}
+            style={isFanclub ? { background: 'linear-gradient(135deg, #ea580c, #dc2626, #7c3aed)' } : {}}
+          >
+            {isFanclub && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
+            )}
+            <span className="relative z-10 flex items-center gap-1.5">
+              {isFanclub ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+              ) : (
+                <span>🔒</span>
+              )}
+              チャット
+            </span>
+          </button>
         </div>
 
-        {/* ══════════════ FC加入セクション ══════════════ */}
-        {character && (
-          <FcMembershipSection
-            characterId={characterId}
-            characterName={character.name}
-            isFanclub={isFanclub}
-            fcMonthlyPriceJpy={character.fcMonthlyPriceJpy}
-            fcIncludedCallMin={character.fcIncludedCallMin}
-            fcOverageCallCoinPerMin={character.fcOverageCallCoinPerMin}
-            onJoinFC={handleFanclub}
-            onCancel={isFanclub ? handleFanclub : undefined}
-          />
+        {/* ══════════════ タブナビゲーション ══════════════ */}
+        <div className="sticky top-[57px] z-10 -mx-4 px-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
+          <div className="flex">
+            {[
+              { id: 'posts' as const, label: '投稿', icon: '📝' },
+              { id: 'fc' as const, label: 'FC限定', icon: '👑' },
+              { id: 'profile' as const, label: 'プロフィール', icon: '⭐' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 border-b-2 ${
+                  activeTab === tab.id
+                    ? 'border-purple-500 text-white'
+                    : 'border-transparent text-white/40 hover:text-white/60'
+                }`}
+              >
+                <span className="text-xs">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ══════════════ タブコンテンツ: 投稿 ══════════════ */}
+        {activeTab === 'posts' && (
+          <div className="space-y-3 pt-2">
+            {moments.filter(m => m.visibility !== 'PREMIUM' || isFanclub || !m.isLocked).length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-5xl mb-3">📭</p>
+                <p className="text-white/40 text-sm">まだ投稿がありません</p>
+              </div>
+            ) : (
+              moments.map((moment) => (
+                <MomentCard key={moment.id} moment={moment} />
+              ))
+            )}
+          </div>
         )}
 
-        {/* チャットボタン */}
-        <button
-          onClick={handleChat}
-          className={`relative w-full py-4 rounded-2xl font-bold text-base active:scale-[0.98] transition-transform overflow-hidden ${
-            isFanclub
-              ? 'text-white'
-              : 'bg-gray-800 text-gray-500 cursor-pointer'
-          }`}
-          style={isFanclub ? { background: 'linear-gradient(135deg, #ea580c, #dc2626, #7c3aed)' } : {}}
-        >
-          {isFanclub && (
-            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
-          )}
-          <span className="relative z-10 flex items-center justify-center gap-2">
-            {isFanclub ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
+        {/* ══════════════ タブコンテンツ: FC限定 ══════════════ */}
+        {activeTab === 'fc' && (
+          <div className="space-y-4 pt-2">
+            {character && (
+              <FcMembershipSection
+                characterId={characterId}
+                characterName={character.name}
+                isFanclub={isFanclub}
+                fcMonthlyPriceJpy={character.fcMonthlyPriceJpy}
+                fcIncludedCallMin={character.fcIncludedCallMin}
+                fcOverageCallCoinPerMin={character.fcOverageCallCoinPerMin}
+                onJoinFC={handleFanclub}
+                onCancel={isFanclub ? handleFanclub : undefined}
+              />
             )}
-            {isFanclub
-              ? `${character?.name ?? 'キャラクター'}とチャットする`
-              : 'ファンクラブ加入でチャット解放'}
-          </span>
-          {!isFanclub && (
-            <span className="relative z-10 block text-xs text-gray-600 mt-1">
-              ファンクラブに入ってチャットを始めよう →
-            </span>
-          )}
-        </button>
+            {isFanclub ? (
+              <>
+                <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">FC限定コンテンツ</p>
+                {moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').length === 0 ? (
+                  <div className="text-center py-10">
+                    <p className="text-4xl mb-3">✨</p>
+                    <p className="text-white/40 text-sm">FC限定コンテンツは準備中です</p>
+                  </div>
+                ) : (
+                  moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').map((moment) => (
+                    <MomentCard key={moment.id} moment={moment} />
+                  ))
+                )}
+              </>
+            ) : (
+              <div className="bg-gray-900/70 rounded-2xl p-5 border border-purple-900/30 text-center">
+                <p className="text-3xl mb-2">🔒</p>
+                <p className="text-white font-bold text-sm mb-1">FC限定コンテンツ</p>
+                <p className="text-white/40 text-xs">ファンクラブに加入するとここに限定投稿が表示されます</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ タブコンテンツ: プロフィール ══════════════ */}
+        {activeTab === 'profile' && (
+        <div className="space-y-5 pt-2">
 
         {/* ══════════════ 基本情報カード（ルフィ限定） ══════════════ */}
         {isLuffy && (
@@ -589,7 +650,7 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════ パーソナリティトレイト ══════════════ */}
-        {character?.personalityTraits && character.personalityTraits.length > 0 && (
+        {character?.personalityTraits && Array.isArray(character.personalityTraits) && character.personalityTraits.length > 0 && (
           <PersonalityTraitsSection traits={character.personalityTraits as PersonalityTrait[]} />
         )}
 
@@ -610,20 +671,6 @@ export default function ProfilePage() {
                   <p className="text-gray-200 text-sm leading-relaxed pl-4 italic">{phrase}</p>
                   <span className="absolute bottom-1 right-3 text-3xl text-purple-800/30 font-serif leading-none select-none">"</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ══════════════ 最新Moments ══════════════ */}
-        {moments.length > 0 && (
-          <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
-              最新Moments
-            </p>
-            <div className="space-y-3">
-              {moments.map((moment) => (
-                <MomentCard key={moment.id} moment={moment} />
               ))}
             </div>
           </div>
@@ -774,6 +821,9 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        </div>
+        )}
+        {/* ══ profile tab end ══ */}
 
       </div>
 

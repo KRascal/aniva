@@ -92,41 +92,43 @@ function Avatar({
 
 /* ── Stories Bar ── */
 function StoriesBar({ moments }: { moments: Moment[] }) {
-  // deduplicate by character
+  // deduplicate by character — also capture slug for linking
   const seen = new Set<string>();
-  const characters: MomentCharacter[] = [];
+  const characters: (MomentCharacter & { characterId: string })[] = [];
   for (const m of moments) {
     if (!seen.has(m.characterId)) {
       seen.add(m.characterId);
-      characters.push(m.character);
+      characters.push({ ...m.character, characterId: m.characterId });
     }
   }
 
   if (characters.length === 0) return null;
 
   return (
-    <div className="sticky top-[57px] z-10 bg-gray-950/80 backdrop-blur-xl border-b border-white/5 -mx-4 px-4">
-      <div className="flex gap-4 overflow-x-auto py-3 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {characters.map((char, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
-            {/* Ring gradient animation */}
-            <div className="relative p-0.5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500">
-              <div className="bg-gray-950 rounded-full p-0.5">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
-                  {char.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                      {char.name.charAt(0)}
-                    </div>
-                  )}
+    <div className="sticky top-[57px] z-10 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+      <div className="max-w-lg mx-auto px-4">
+        <div className="flex gap-4 overflow-x-auto py-3 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {characters.map((char) => (
+            <Link key={char.characterId} href={`/profile/${char.characterId}`} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              {/* Ring gradient animation */}
+              <div className="relative p-0.5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500">
+                <div className="bg-gray-950 rounded-full p-0.5">
+                  <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
+                    {char.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                        {char.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <span className="text-white/60 text-[10px] text-center w-14 truncate">{char.name}</span>
-          </div>
-        ))}
+              <span className="text-white/60 text-[10px] text-center w-14 truncate">{char.name}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -260,7 +262,23 @@ function MomentCard({
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [bouncing, setBouncing] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const likeRef = useRef<HTMLButtonElement>(null);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/moments#${moment.id}`;
+    const text = `${moment.character.name}の投稿: ${moment.content?.slice(0, 60) ?? ''}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'ANIVA', text, url });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      alert('リンクをコピーしました');
+    }
+  };
 
   const handleLike = () => {
     onLike(moment.id);
@@ -280,19 +298,51 @@ function MomentCard({
     <div className="bg-gray-900/70 backdrop-blur-sm border border-white/6 rounded-3xl overflow-hidden shadow-lg hover:border-white/12 transition-colors">
       {/* Instagram-style header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <Avatar character={moment.character} ring online />
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm leading-tight">{moment.character.name}</p>
+        <Link href={`/profile/${moment.characterId}`}>
+          <Avatar character={moment.character} ring online />
+        </Link>
+        <Link href={`/profile/${moment.characterId}`} className="flex-1 min-w-0">
+          <p className="font-bold text-white text-sm leading-tight hover:text-purple-300 transition-colors">{moment.character.name}</p>
           <p className="text-white/40 text-xs" title={fullDateTime(moment.publishedAt)}>
             {relativeTime(moment.publishedAt)}
           </p>
+        </Link>
+        {/* kebab menu */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-white/30 hover:text-white/60 transition-colors px-1"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-8 z-40 bg-gray-800 border border-white/10 rounded-xl shadow-xl py-1 min-w-[160px]">
+                <Link
+                  href={`/profile/${moment.characterId}`}
+                  className="block px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  プロフィールを見る
+                </Link>
+                <button
+                  onClick={() => { handleShare(); setMenuOpen(false); }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  シェアする
+                </button>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-white/40 hover:text-white/60 hover:bg-white/5 transition-colors"
+                >
+                  報告する
+                </button>
+              </div>
+            </>
+          )}
         </div>
-        {/* kebab */}
-        <button className="text-white/30 hover:text-white/60 transition-colors px-1">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-          </svg>
-        </button>
       </div>
 
       {/* Visibility badge */}
@@ -392,7 +442,7 @@ function MomentCard({
         </div>
 
         {/* Share */}
-        <button className="text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={handleShare} className="text-white/30 hover:text-white/60 transition-colors active:scale-90">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
           </svg>
@@ -751,7 +801,7 @@ export default function MomentsPage() {
 
         <main
           ref={mainRef}
-          className="relative z-10 max-w-lg mx-auto px-4 py-4 space-y-4"
+          className={`relative z-10 max-w-lg mx-auto px-4 space-y-4 ${!loading && moments.length > 0 ? 'pt-2 pb-4' : 'py-4'}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

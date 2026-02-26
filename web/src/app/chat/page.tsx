@@ -600,124 +600,48 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-lg mx-auto px-4 py-6">
-        {/* Welcome banner */}
-        <WelcomeBanner onClose={() => setBannerClosed(true)} />
-
-        {/* デイリーミッション */}
-        {relationships.size > 0 && (
-          <DailyMissionsSection totalMessages={totalMessages} />
-        )}
-
-        {/* チャット可能なキャラ（ファンクラブ加入済み） */}
+      <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
+        {/* チャット一覧 — 会話履歴のあるキャラのみ、最終トーク順 */}
         {(() => {
-          const fanclubChars = characters.filter((c) => relationships.get(c.id)?.isFanclub);
-          const nonFanclubChars = characters.filter((c) => !relationships.get(c.id)?.isFanclub);
+          // 会話履歴があるキャラのみ（totalMessages > 0）
+          const charsWithHistory = characters
+            .filter((c) => {
+              const rel = relationships.get(c.id);
+              return rel && rel.totalMessages > 0;
+            })
+            .sort((a, b) => {
+              const relA = relationships.get(a.id);
+              const relB = relationships.get(b.id);
+              const timeA = relA?.lastMessageAt ? new Date(relA.lastMessageAt).getTime() : 0;
+              const timeB = relB?.lastMessageAt ? new Date(relB.lastMessageAt).getTime() : 0;
+              return timeB - timeA; // 最新が上
+            });
+
+          if (charsWithHistory.length === 0) {
+            return (
+              <div className="text-center py-24 px-6">
+                <div className="text-5xl mb-4">💬</div>
+                <h3 className="text-white font-bold text-lg mb-2">まだ誰とも会話していません</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  キャラクターのページからチャットを始めてみよう
+                </p>
+              </div>
+            );
+          }
 
           return (
-            <>
-              {/* ファンクラブ加入済みキャラ（LINE風チャット一覧） */}
-              {fanclubChars.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl">💬</span>
-                    <h2 className="text-xl font-extrabold text-white">チャット中の推し</h2>
-                    <span className="text-xs bg-green-900/40 text-green-400 border border-green-800/40 px-2 py-0.5 rounded-full">
-                      {fanclubChars.length}人
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {fanclubChars.map((character) => (
-                      <ChatRow
-                        key={character.id}
-                        character={character}
-                        relationship={relationships.get(character.id)!}
-                        onClick={() => router.push(`/chat/${character.id}`)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ファンクラブ未加入キャラ（全キャラ探索） */}
-              {nonFanclubChars.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl">✨</span>
-                    <h2 className="text-xl font-extrabold text-white">
-                      {fanclubChars.length > 0 ? '他のキャラを探す' : '推しを選ぼう'}
-                    </h2>
-                  </div>
-                  {fanclubChars.length === 0 && (
-                    <p className="text-white/50 text-sm mb-5 pl-1">
-                      ファンクラブに入ってチャットを始めよう 💕
-                    </p>
-                  )}
-                  <div className="space-y-4">
-                    {nonFanclubChars.map((character, i) => (
-                      <div key={character.id} className="relative">
-                        <CharacterCard
-                          character={character}
-                          index={i + fanclubChars.length}
-                          onClick={() => router.push(`/profile/${character.id}`)}
-                          relationship={relationships.get(character.id)}
-                        />
-                        {/* ファンクラブ加入促進バッジ */}
-                        <div className="absolute top-3 right-3 z-30">
-                          <a
-                            href={`/profile/${character.id}`}
-                            className="flex items-center gap-1 bg-gradient-to-r from-pink-600 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            🌟 ファンクラブに入る
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ファンクラブキャラがいない場合: 推し探しへ誘導 */}
-              {fanclubChars.length === 0 && (
-                <div className="text-center py-16 px-6">
-                  <div className="text-6xl mb-5 animate-bounce">💕</div>
-                  <h3 className="text-white font-bold text-lg mb-2">推しを見つけよう！</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                    ファンクラブに入ると推しとリアルタイムにチャットできるよ。<br />
-                    まずは好きなキャラを探してみよう！
-                  </p>
-                  <button
-                    onClick={() => router.push('/explore')}
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg hover:shadow-purple-500/40 hover:scale-105 active:scale-100 transition-all"
-                  >
-                    <span className="text-lg">✨</span>
-                    キャラクターを探す
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* 全くキャラがいない場合 */}
-              {characters.length === 0 && (
-                <div className="text-center text-gray-400 py-20">
-                  <div className="text-6xl mb-4">🌌</div>
-                  <p className="text-white/60 font-medium">キャラクターが見つかりませんでした</p>
-                  <p className="text-white/30 text-sm mt-1">管理者に連絡してください</p>
-                </div>
-              )}
-            </>
+            <div className="space-y-2">
+              {charsWithHistory.map((character) => (
+                <ChatRow
+                  key={character.id}
+                  character={character}
+                  relationship={relationships.get(character.id)!}
+                  onClick={() => router.push(`/chat/${character.id}`)}
+                />
+              ))}
+            </div>
           );
         })()}
-
-        {/* Bottom CTA hint */}
-        {characters.length > 0 && (
-          <p className="text-center text-white/25 text-xs mt-8">
-            ファンクラブに入って推しとリアルにトークしよう 💬
-          </p>
-        )}
       </main>
     </div>
   );
