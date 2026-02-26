@@ -83,11 +83,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Use the correct DB user ID (may differ from JWT ID if found by email)
+    const effectiveUserId = userExists!.id;
+
     // Relationship作成（既存の場合はupsert）
     const relationship = await prisma.relationship.upsert({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId: { userId: effectiveUserId, characterId } },
       create: {
-        userId,
+        userId: effectiveUserId,
         characterId,
         isFollowing: true,
       },
@@ -104,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     // ユーザーステップ更新
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: effectiveUserId },
       data: {
         onboardingStep: 'first_chat',
         onboardingCharacterId: characterId,

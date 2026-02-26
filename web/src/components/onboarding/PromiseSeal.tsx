@@ -51,8 +51,8 @@ export default function PromiseSeal({
     } catch {
       // sessionStorage unavailable, continue anyway
     }
-    // Navigate to signup
-    window.location.href = `/signup?from=promise&character=${character.slug}`;
+    // Navigate to signup — after signup, go directly to onboarding with character pre-selected
+    window.location.href = `/signup?from=promise&character=${character.slug}&redirect=${encodeURIComponent(`/onboarding?from=/c/${character.slug}`)}`;
   }
 
   function handleSkip() {
@@ -155,7 +155,7 @@ export default function PromiseSeal({
               boxShadow: '0 0 30px rgba(168,85,247,0.3)',
             }}
           >
-            覚えている
+            記憶に刻む
           </button>
 
           <button
@@ -168,7 +168,7 @@ export default function PromiseSeal({
 
         {/* Fine print */}
         <p
-          className="text-white/15 text-xs max-w-xs text-center leading-relaxed"
+          className="text-white/60 text-xs max-w-xs text-center leading-relaxed"
           style={{
             opacity: sealVisible ? 1 : 0,
             transition: 'opacity 1s ease 0.8s',
