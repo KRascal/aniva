@@ -36,7 +36,8 @@ export default auth((req) => {
     pathname.startsWith('/api/push/character-notify') ||  // cron push-dm が内部呼び出し (x-cron-secret で自己認証)
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/cron') ||
-    pathname.startsWith('/api/onboarding/guest-chat');  // 邂逅フロー ゲストチャット
+    pathname.startsWith('/api/onboarding/guest-chat') ||  // 邂逅フロー ゲストチャット
+    pathname === '/api/coins/packages';  // 料金ページ（未ログインでも表示）
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
   // /api/auth/login は NextAuth の有効なアクションではない（有効なのは signin, signout, callback 等）
