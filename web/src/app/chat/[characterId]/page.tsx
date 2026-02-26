@@ -882,8 +882,12 @@ export default function ChatCharacterPage() {
           </div>
         </button>
 
-        {/* FC加入ボタン（非FC時） */}
-        {isFanclub === false && (
+        {/* FC加入ボタン */}
+        {isFanclub ? (
+          <span className="flex-shrink-0 text-[10px] font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-full">
+            👑 FC加入中
+          </span>
+        ) : (
           <button
             onClick={() => setShowFcModal(true)}
             className="flex-shrink-0 text-[10px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-full shadow-lg active:scale-95 transition-transform"
@@ -1039,17 +1043,7 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 入力エリア ══════════════ */}
       <div className="flex-shrink-0 border-t border-[var(--color-border)] backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--color-surface)' }}>
-        {/* Free plan 残りメッセージ表示 */}
-        {userPlan === 'FREE' && (
-          <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
-            <span className="text-amber-400">⚡</span>
-            <span className="text-amber-400/80">
-              今日の残り:{' '}
-              <span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>
-              /3 回
-            </span>
-          </div>
-        )}
+        {/* コイン残高表示は CoinBalanceDisplay で管理 */}
 
         {/* 🔊 音声自動再生トグル（voiceModelId設定済みキャラのみ） */}
         {character?.hasVoice && (

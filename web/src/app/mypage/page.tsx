@@ -214,13 +214,15 @@ export default function MyPage() {
             </div>
           )}
 
-          {/* プランバッジ */}
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full ${planInfo.bg}`}>
-            <span className="text-base">
-              {plan === 'PREMIUM' ? '👑' : plan === 'STANDARD' ? '⭐' : '🆓'}
-            </span>
-            <span className={`text-sm font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
-          </div>
+          {/* プランバッジ（有料プランのみ表示） */}
+          {plan !== 'FREE' && (
+            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full ${planInfo.bg}`}>
+              <span className="text-base">
+                {plan === 'PREMIUM' ? '👑' : '⭐'}
+              </span>
+              <span className={`text-sm font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
+            </div>
+          )}
         </section>
 
         {/* ファンクラブ加入中 */}
@@ -277,7 +279,7 @@ export default function MyPage() {
               {following.map((char) => (
                 <a
                   key={char.id}
-                  href={`/chat/${char.id}`}
+                  href={`/profile/${char.id}`}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
                 >
                   <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
