@@ -33,6 +33,7 @@ export default auth((req) => {
     pathname.startsWith('/api/characters') ||
     pathname.startsWith('/api/moments') ||
     pathname.startsWith('/api/push/subscribe') ||
+    pathname.startsWith('/api/push/character-notify') ||  // cron push-dm が内部呼び出し (x-cron-secret で自己認証)
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/cron') ||
     pathname.startsWith('/api/onboarding/guest-chat');  // 邂逅フロー ゲストチャット
