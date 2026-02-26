@@ -754,11 +754,11 @@ export default function ChatCharacterPage() {
       )}
 
       {/* ══════════════ ヘッダー ══════════════ */}
-      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
+      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-3 z-10">
         {/* 戻るボタン */}
         <button
           onClick={() => router.push('/chat')}
-          className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
+          className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0"
           aria-label="戻る"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -766,86 +766,40 @@ export default function ChatCharacterPage() {
           </svg>
         </button>
 
-        {/* アバター（タップでキャラ詳細） */}
+        {/* アバター + 名前（タップでプロフィール） */}
         <button
           onClick={() => router.push(`/profile/${characterId}`)}
-          className="flex-shrink-0 relative"
+          className="flex items-center gap-2.5 flex-1 min-w-0"
           aria-label="キャラクタープロフィール"
         >
-          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
-            {character?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                🏴‍☠️
-              </div>
-            )}
+          <div className="flex-shrink-0 relative">
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/30">
+              {character?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                  🏴‍☠️
+                </div>
+              )}
+            </div>
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
           </div>
-          {/* オンラインドット */}
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
-        </button>
-
-        {/* 名前 + ⭐ */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-white font-semibold text-sm leading-tight truncate">
-            {character?.name ?? 'キャラクター'}
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs leading-none">{stars}</span>
-            <span className="text-xs text-gray-500">Lv.{level}</span>
+          <div className="min-w-0">
+            <h1 className="text-white font-semibold text-sm leading-tight truncate">
+              {character?.name ?? 'キャラクター'}
+            </h1>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] leading-none">{stars}</span>
+              <span className="text-[10px] text-gray-500">Lv.{level}</span>
+            </div>
           </div>
-        </div>
-
-        {/* コイン残高（小サイズ） */}
-        <CoinBalanceDisplay />
-
-        {/* Emotion indicator */}
-        <EmotionIndicator emotion={currentEmotion} level={level} />
-
-        {/* Live2Dトグルボタン */}
-        <button
-          onClick={() => setIsViewerExpanded((v) => !v)}
-          className={`flex-shrink-0 p-1.5 rounded-full transition-all ${
-            isViewerExpanded
-              ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/40'
-              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
-          }`}
-          aria-label={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
-          title={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d={isViewerExpanded
-                ? 'M19 9l-7 7-7-7'       // 下矢印 → 閉じる
-                : 'M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z'  // キャラアイコン
-              }
-            />
-          </svg>
         </button>
 
-        {/* Push通知ベルアイコン */}
-        <button
-          onClick={handleSubscribePush}
-          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-          title={isPushSubscribed ? '通知ON' : '通知をONにする'}
-          aria-label={isPushSubscribed ? '通知ON' : '通知をONにする'}
-        >
-          {isPushSubscribed ? (
-            <span className="text-base leading-none">🔔</span>
-          ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          )}
-        </button>
-
-        {/* 📞 通話ボタン */}
+        {/* 📞 通話 */}
         <button
           onClick={() => setShowCall(true)}
-          className="flex-shrink-0 p-1.5 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
-          title="通話する"
+          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
           aria-label="通話する"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -998,12 +952,6 @@ export default function ChatCharacterPage() {
               <span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>
               /3 回
             </span>
-            <a
-              href="/pricing"
-              className="ml-auto text-purple-400 hover:text-purple-300 hover:underline transition-colors"
-            >
-              無制限プランへ →
-            </a>
           </div>
         )}
 
