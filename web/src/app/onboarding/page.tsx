@@ -124,11 +124,23 @@ function OnboardingInner() {
     advance();
   };
 
-  const handleFirstChatComplete = (history: ChatMessage[]) => {
-    // メッセージ履歴を保持してPhase 5へ
+  const handleFirstChatComplete = async (history: ChatMessage[]) => {
+    // オンボーディング会話をDBに永続化（チャット画面で継続できるように）
+    if (selectedCharacter?.id && history.length > 0) {
+      try {
+        await fetch('/api/onboarding/persist-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            characterId: selectedCharacter.id,
+            messages: history,
+          }),
+        });
+      } catch (e) {
+        console.error('Failed to persist onboarding chat:', e);
+      }
+    }
     advance();
-    // historyはPhaseFirstChat内で管理済み
-    void history;
   };
 
   const handleHookComplete = async (notificationPermission: boolean | null) => {
