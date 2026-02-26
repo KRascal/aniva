@@ -149,7 +149,7 @@ export default function MyPage() {
         <div className="ml-auto flex items-center gap-2">
           <CoinBalanceDisplay />
           <a
-            href="/coins/purchase"
+            href="/coins"
             className="flex items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors"
             aria-label="コイン購入"
           >
@@ -220,16 +220,45 @@ export default function MyPage() {
               {plan === 'PREMIUM' ? '👑' : plan === 'STANDARD' ? '⭐' : '🆓'}
             </span>
             <span className={`text-sm font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
-            {plan === 'FREE' && (
-              <a
-                href="/pricing"
-                className="ml-2 text-xs text-purple-400 hover:text-purple-300 hover:underline transition-colors"
-              >
-                アップグレード →
-              </a>
-            )}
           </div>
         </section>
+
+        {/* ファンクラブ加入中 */}
+        {following.filter(c => c.isFanclub).length > 0 && (
+          <section className="bg-gray-900/80 border border-purple-500/20 rounded-2xl p-4">
+            <h3 className="text-sm font-semibold text-purple-300 mb-3 flex items-center gap-2">
+              <span>👑</span> ファンクラブ加入中
+            </h3>
+            <div className="space-y-2">
+              {following.filter(c => c.isFanclub).map((char) => (
+                <a
+                  key={char.id}
+                  href={`/profile/${char.id}`}
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
+                >
+                  <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/30">
+                    {char.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                        👑
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{char.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{char.franchise}</p>
+                  </div>
+                  <span className="text-xs bg-purple-900/40 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">FC加入中</span>
+                  <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* フォロー中のキャラ一覧 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
@@ -345,49 +374,27 @@ export default function MyPage() {
             </button>
           </div>
 
-          {/* プライバシー（準備中） */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 opacity-50">
-            <div>
-              <p className="text-sm text-gray-500">プライバシーポリシー</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">準備中</span>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-gray-600 cursor-not-allowed pointer-events-none"
-                aria-disabled="true"
-                tabIndex={-1}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </div>
-          </div>
+          {/* プライバシーポリシー */}
+          <a
+            href="/privacy"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <p className="text-sm text-white">プライバシーポリシー</p>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
-          {/* 利用規約（準備中） */}
-          <div className="flex items-center justify-between px-4 py-3 opacity-50">
-            <div>
-              <p className="text-sm text-gray-500">利用規約</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">準備中</span>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-gray-600 cursor-not-allowed pointer-events-none"
-                aria-disabled="true"
-                tabIndex={-1}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </div>
-          </div>
+          {/* 利用規約 */}
+          <a
+            href="/terms"
+            className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+          >
+            <p className="text-sm text-white">利用規約</p>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
         </section>
 
         {/* ログアウトボタン */}
