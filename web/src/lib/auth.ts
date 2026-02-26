@@ -4,6 +4,31 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 
+const WELCOME_COINS = 500; // 初回登録ボーナス
+
+async function grantWelcomeCoins(userId: string) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const balance = await tx.coinBalance.upsert({
+        where: { userId },
+        create: { userId, balance: WELCOME_COINS },
+        update: { balance: { increment: WELCOME_COINS } },
+      });
+      await tx.coinTransaction.create({
+        data: {
+          userId,
+          type: 'BONUS',
+          amount: WELCOME_COINS,
+          balanceAfter: balance.balance,
+          description: '新規登録ボーナス 🎉',
+        },
+      });
+    });
+  } catch (e) {
+    console.error('[grantWelcomeCoins] failed:', e);
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   adapter: PrismaAdapter(prisma),
@@ -57,6 +82,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               emailVerified: new Date(),
             },
           });
+          // 新規ユーザーに無料コイン付与 (500コイン)
+          await grantWelcomeCoins(user.id);
         } else if (!user.emailVerified) {
           // Mark email as verified on first OTP success
           await prisma.user.update({
@@ -103,6 +130,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 emailVerified: account?.provider === 'google' ? new Date() : null,
               },
             });
+            // 新規ユーザーに無料コイン付与 (500コイン)
+            await grantWelcomeCoins(dbUser.id);
           }
         }
       }

@@ -7,28 +7,145 @@ import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FcMembershipSection } from '@/components/FcMembershipSection';
 
 /* ───────────────────────── Luffy 固定データ ───────────────────────── */
-const LUFFY_SLUG = 'luffy';
+/* ───────────────────────── キャラクター情報データ ───────────────────────── */
+interface CharacterProfile {
+  birthday: string;
+  age: string;
+  height: string;
+  origin: string;
+  affiliation: string;
+  ability?: string;
+  likes: string;
+  dream: string;
+  bloodType?: string;
+  bounty?: string;
+}
 
-const LUFFY_INFO = {
-  affiliation: '麦わらの一味（船長）',
-  devilFruit: 'ゴムゴムの実（超人系）',
-  hometown: '東の海　フーシャ村',
-  birthday: '5月5日（こどもの日）',
-  likes: '肉（とにかく肉！）',
-  dream: '海賊王になること',
-} as const;
+const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
+  luffy: {
+    birthday: '5月5日',
+    age: '19歳',
+    height: '174cm',
+    origin: '東の海 フーシャ村',
+    affiliation: '麦わらの一味（船長）',
+    ability: 'ゴムゴムの実（超人系）',
+    likes: '肉（とにかく肉！）',
+    dream: '海賊王になること',
+    bloodType: 'F型',
+    bounty: '30億ベリー',
+  },
+  zoro: {
+    birthday: '11月11日',
+    age: '21歳',
+    height: '181cm',
+    origin: '東の海 シモツキ村',
+    affiliation: '麦わらの一味（戦闘員）',
+    ability: '三刀流',
+    likes: '酒、筋トレ',
+    dream: '世界一の剣豪になること',
+    bloodType: 'XF型',
+    bounty: '11億1100万ベリー',
+  },
+  nami: {
+    birthday: '7月3日',
+    age: '20歳',
+    height: '170cm',
+    origin: '東の海 ココヤシ村',
+    affiliation: '麦わらの一味（航海士）',
+    ability: '天候棒（クリマ・タクト）',
+    likes: 'お金、みかん',
+    dream: '世界地図を描くこと',
+    bloodType: 'X型',
+    bounty: '3億6600万ベリー',
+  },
+  sanji: {
+    birthday: '3月2日',
+    age: '21歳',
+    height: '180cm',
+    origin: '北の海 ジェルマ王国',
+    affiliation: '麦わらの一味（コック）',
+    ability: '黒足（悪魔風脚）',
+    likes: '料理、女性',
+    dream: 'オールブルーを見つけること',
+    bloodType: 'S型',
+    bounty: '10億3200万ベリー',
+  },
+  chopper: {
+    birthday: '12月24日',
+    age: '17歳',
+    height: '90cm（通常時）',
+    origin: '偉大なる航路 ドラム島',
+    affiliation: '麦わらの一味（船医）',
+    ability: 'ヒトヒトの実（動物系）',
+    likes: 'わたあめ、Dr.くれは',
+    dream: '万能薬になること',
+    bloodType: 'X型',
+    bounty: '1000ベリー',
+  },
+  ace: {
+    birthday: '1月1日',
+    age: '20歳（享年）',
+    height: '185cm',
+    origin: '南の海 バテリラ',
+    affiliation: '白ひげ海賊団（2番隊隊長）',
+    ability: 'メラメラの実（自然系）',
+    likes: '冒険、弟たち',
+    dream: '白ひげを海賊王にすること',
+    bloodType: 'S型',
+    bounty: '5億5000万ベリー',
+  },
+};
 
-const LUFFY_CREW = [
-  { name: 'ロロノア・ゾロ', role: '剣豪' },
-  { name: 'ナミ', role: '航海士' },
-  { name: 'ウソップ', role: '狙撃手' },
-  { name: 'サンジ', role: 'コック' },
-  { name: 'チョッパー', role: '船医' },
-  { name: 'ロビン', role: '考古学者' },
-  { name: 'フランキー', role: '船大工' },
-  { name: 'ブルック', role: '音楽家' },
-  { name: 'ジンベエ', role: '操舵手' },
-] as const;
+const PROFILE_LABELS: Record<keyof CharacterProfile, string> = {
+  birthday: '🎂 誕生日',
+  age: '📅 年齢',
+  height: '📏 身長',
+  origin: '🏠 出身',
+  affiliation: '⚓ 所属',
+  ability: '⚡ 能力',
+  likes: '❤️ 好きなもの',
+  dream: '✨ 夢',
+  bloodType: '🩸 血液型',
+  bounty: '💰 懸賞金',
+};
+
+const CREW_MEMBERS: Record<string, { name: string; role: string }[]> = {
+  luffy: [
+    { name: 'ロロノア・ゾロ', role: '剣豪' },
+    { name: 'ナミ', role: '航海士' },
+    { name: 'ウソップ', role: '狙撃手' },
+    { name: 'サンジ', role: 'コック' },
+    { name: 'チョッパー', role: '船医' },
+    { name: 'ロビン', role: '考古学者' },
+    { name: 'フランキー', role: '船大工' },
+    { name: 'ブルック', role: '音楽家' },
+    { name: 'ジンベエ', role: '操舵手' },
+  ],
+  zoro: [
+    { name: 'くいな', role: '幼馴染・ライバル' },
+    { name: 'コウシロウ', role: '師匠' },
+    { name: 'ミホーク', role: '目標の剣士' },
+  ],
+  nami: [
+    { name: 'ベルメール', role: '育ての母' },
+    { name: 'ノジコ', role: '義姉' },
+    { name: 'ゲンゾウ', role: '村長' },
+  ],
+  sanji: [
+    { name: 'ゼフ', role: '育ての親・料理の師匠' },
+    { name: 'ヴィンスモーク・ジャッジ', role: '実父' },
+    { name: 'レイジュ', role: '姉' },
+  ],
+  chopper: [
+    { name: 'Dr.ヒルルク', role: '恩人' },
+    { name: 'Dr.くれは', role: '師匠' },
+  ],
+  ace: [
+    { name: 'モンキー・D・ルフィ', role: '義弟' },
+    { name: 'サボ', role: '義兄弟' },
+    { name: 'エドワード・ニューゲート', role: '白ひげ（親父）' },
+  ],
+};
 
 /* ───────────────────────── 型定義 ───────────────────────── */
 interface RelationshipData {
@@ -339,10 +456,6 @@ export default function ProfilePage() {
   };
 
   const handleChat = () => {
-    if (!isFanclub) {
-      router.push('/pricing');
-      return;
-    }
     router.push(`/chat/${characterId}`);
   };
 
@@ -371,7 +484,7 @@ export default function ProfilePage() {
 
   const maxStars = 5;
   const filledStars = Math.min(level, maxStars);
-  const isLuffy = character?.slug === LUFFY_SLUG;
+  // Character profile data is now dynamic for all characters
   const catchphrases: string[] = character?.catchphrases ?? [];
 
   return (
@@ -489,27 +602,17 @@ export default function ProfilePage() {
             )}
           </button>
 
-          {/* チャットボタン（常時表示） */}
+          {/* チャットボタン（常時オープン） */}
           <button
             onClick={handleChat}
-            className={`flex-1 relative py-3 rounded-2xl font-bold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 overflow-hidden ${
-              isFanclub
-                ? 'text-white'
-                : 'bg-gray-800 border border-gray-700 text-gray-400'
-            }`}
-            style={isFanclub ? { background: 'linear-gradient(135deg, #ea580c, #dc2626, #7c3aed)' } : {}}
+            className="flex-1 relative py-3 rounded-2xl font-bold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 overflow-hidden text-white"
+            style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626, #7c3aed)' }}
           >
-            {isFanclub && (
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
-            )}
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_linear_infinite]" />
             <span className="relative z-10 flex items-center gap-1.5">
-              {isFanclub ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                </svg>
-              ) : (
-                <span>🔒</span>
-              )}
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
               チャット
             </span>
           </button>
@@ -521,7 +624,7 @@ export default function ProfilePage() {
             {[
               { id: 'posts' as const, label: '投稿', icon: '📝' },
               { id: 'fc' as const, label: 'FC限定', icon: '👑' },
-              { id: 'profile' as const, label: 'プロフィール', icon: '⭐' },
+              { id: 'profile' as const, label: '関係値', icon: '💫' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -598,25 +701,18 @@ export default function ProfilePage() {
         {activeTab === 'profile' && (
         <div className="space-y-5 pt-2">
 
-        {/* ══════════════ 基本情報カード（ルフィ限定） ══════════════ */}
-        {isLuffy && (
-          <div className="bg-gray-900/80 rounded-2xl p-5 border border-orange-900/30 shadow-lg">
-            <p className="text-orange-400 text-xs font-semibold uppercase tracking-widest mb-4">
-              キャラクター情報
+        {/* ══════════════ 基本情報カード（全キャラ対応） ══════════════ */}
+        {character && CHARACTER_PROFILES[character.slug] && (
+          <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/10 shadow-lg">
+            <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-4">
+              プロフィール
             </p>
-            <div className="space-y-3">
-              {(Object.entries(LUFFY_INFO) as [keyof typeof LUFFY_INFO, string][]).map(([key, value]) => {
-                const labelMap: Record<keyof typeof LUFFY_INFO, string> = {
-                  affiliation: '所属',
-                  devilFruit:  '悪魔の実',
-                  hometown:    '出身',
-                  birthday:    '誕生日',
-                  likes:       '好きなもの',
-                  dream:       '夢',
-                };
+            <div className="space-y-0">
+              {(Object.entries(CHARACTER_PROFILES[character.slug]) as [keyof CharacterProfile, string][]).map(([key, value]) => {
+                if (!value) return null;
                 return (
-                  <div key={key} className="flex items-start justify-between gap-3 py-1 border-b border-white/5 last:border-0">
-                    <span className="text-gray-500 text-xs flex-shrink-0 pt-0.5">{labelMap[key]}</span>
+                  <div key={key} className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5 last:border-0">
+                    <span className="text-gray-400 text-xs flex-shrink-0">{PROFILE_LABELS[key]}</span>
                     <span className="text-white text-sm font-medium text-right">{value}</span>
                   </div>
                 );
@@ -625,15 +721,25 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ══════════════ 仲間一覧（ルフィ限定・横スクロール） ══════════════ */}
-        {isLuffy && (
+        {/* ══════════════ 紹介文 ══════════════ */}
+        {character?.description && (
+          <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/10 shadow-lg">
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3">
+              紹介
+            </p>
+            <p className="text-gray-300 text-sm leading-relaxed">{character.description}</p>
+          </div>
+        )}
+
+        {/* ══════════════ 関連キャラ（横スクロール） ══════════════ */}
+        {character && CREW_MEMBERS[character.slug] && (
           <div>
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
-              麦わらの一味
+              関連キャラクター
             </p>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide"
               style={{ scrollbarWidth: 'none' }}>
-              {LUFFY_CREW.map((member) => (
+              {CREW_MEMBERS[character.slug].map((member) => (
                 <div
                   key={member.name}
                   className="flex-shrink-0 bg-gray-900/80 rounded-xl p-3 border border-white/5 text-center w-24"
