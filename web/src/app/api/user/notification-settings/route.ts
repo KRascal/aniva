@@ -61,7 +61,7 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({
     where: { email: session.user.email },
-    data: { settings: updatedSettings },
+    data: { settings: JSON.parse(JSON.stringify(updatedSettings)) },
   });
 
   return NextResponse.json({ notifications: updatedNotifications });
