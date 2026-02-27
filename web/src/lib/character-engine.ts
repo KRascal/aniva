@@ -524,10 +524,13 @@ export class CharacterEngine {
    */
   private loadSoulMd(slug: string, dbFallback: string): string {
     try {
-      // プロジェクトルートからの相対パス
-      const soulPath = join(process.cwd(), '..', 'agents', slug, 'SOUL.md');
+      // 独立ワークスペース（最優先）→ プロジェクト内agents（フォールバック）
+      const independentPath = join('/home/openclaw/.openclaw/agents', slug, 'SOUL.md');
+      const projectPath = join(process.cwd(), '..', 'agents', slug, 'SOUL.md');
+      const soulPath = existsSync(independentPath) ? independentPath : projectPath;
       if (existsSync(soulPath)) {
-        return readFileSync(soulPath, 'utf-8');
+        const content = readFileSync(soulPath, 'utf-8');
+        if (content.trim()) return content;
       }
     } catch {
       // ファイル読み込み失敗はフォールバック
