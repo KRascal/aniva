@@ -34,6 +34,30 @@ interface RelationshipRecord {
   user?: UserRecord;
 }
 
+/** 事実記憶エントリ */
+interface FactEntry {
+  fact: string;       // "名前はケイスケ" "猫が好き"
+  source: string;     // "ユーザー発言" or "AI推測"
+  confidence: number; // 0.0-1.0
+  updatedAt: string;  // ISO date
+}
+
+/** エピソード記憶エントリ */
+interface EpisodeEntry {
+  summary: string;    // "海賊王の夢について熱く語り合った"
+  date: string;       // ISO date
+  emotion: string;    // その時の感情
+  importance: number; // 1-5（キャラにとっての重要度）
+}
+
+/** 感情記憶エントリ */
+interface EmotionEntry {
+  topic: string;            // "仕事の話"
+  userEmotion: string;      // "ストレスを感じてる"
+  characterReaction: string; // "励ました"
+  date: string;
+}
+
 /** memorySummary JSONの型 */
 interface MemorySummaryData {
   userName?: string;
@@ -45,6 +69,10 @@ interface MemorySummaryData {
   recentTopics?: string[];
   conversationSummary?: string;
   emotionalState?: string;
+  // 3層記憶
+  factMemory?: FactEntry[];
+  episodeMemory?: EpisodeEntry[];
+  emotionMemory?: EmotionEntry[];
 }
 
 // ============================================================
@@ -364,6 +392,10 @@ interface MemoryContext {
   characterEmotion?: string;
   characterEmotionNote?: string | null;
   emotionUpdatedAt?: Date | null;
+  // 3層記憶
+  factMemory?: FactEntry[];
+  episodeMemory?: EpisodeEntry[];
+  emotionMemory?: EmotionEntry[];
 }
 
 export class CharacterEngine {
@@ -472,6 +504,9 @@ export class CharacterEngine {
       characterEmotion: relationship.characterEmotion,
       characterEmotionNote: relationship.characterEmotionNote,
       emotionUpdatedAt: relationship.emotionUpdatedAt,
+      factMemory: memo.factMemory,
+      episodeMemory: memo.episodeMemory,
+      emotionMemory: memo.emotionMemory,
     };
   }
   
@@ -588,7 +623,13 @@ ${memoryInstructions}
     if (memory.emotionalState && memory.emotionalState !== 'neutral') {
       parts.push(`- 相手の最近の感情状態: ${memory.emotionalState}`);
     }
-    if (memory.importantFacts.length > 0) {
+    // 事実記憶
+    if (memory.factMemory?.length) {
+      parts.push('- ユーザーについて知っていること:');
+      for (const fact of memory.factMemory.slice(-10)) {
+        parts.push(`  - ${fact.fact}`);
+      }
+    } else if (memory.importantFacts.length > 0) {
       parts.push(`- 重要な事実: ${memory.importantFacts.join(', ')}`);
     }
     if (Object.keys(memory.preferences).length > 0) {
@@ -596,6 +637,20 @@ ${memoryInstructions}
     }
     if (memory.recentTopics.length > 0) {
       parts.push(`- 最近の話題: ${memory.recentTopics.join(', ')}`);
+    }
+    // エピソード記憶（最近3件）
+    if (memory.episodeMemory?.length) {
+      parts.push('- 過去の思い出:');
+      for (const ep of memory.episodeMemory.slice(-3)) {
+        parts.push(`  - ${ep.summary}（${ep.date.split('T')[0]}）`);
+      }
+    }
+    // 感情記憶（避けるべき話題/喜ぶ話題）
+    if (memory.emotionMemory?.length) {
+      const happy = memory.emotionMemory.filter(e => ['嬉しい','楽しい','excited','happy'].includes(e.userEmotion));
+      const sad = memory.emotionMemory.filter(e => ['悲しい','つらい','sad','stressed'].includes(e.userEmotion));
+      if (happy.length) parts.push(`- ユーザーが喜ぶ話題: ${happy.map(e => e.topic).join(', ')}`);
+      if (sad.length) parts.push(`- 注意が必要な話題: ${sad.map(e => e.topic).join(', ')}`);
     }
     return parts.length > 0 ? parts.join('\n') : '- まだ詳しく知らない（質問して知ろうとすること）';
   }
@@ -675,6 +730,13 @@ ${memoryInstructions}
     const nameMatch = userMessage.match(/(?:名前は|って呼んで|(?:俺|私|僕)は)(.{1,10})(?:だ|です|って|。|！)/);
     if (nameMatch) {
       memo.userName = nameMatch[1].trim();
+      const nameFact: FactEntry = {
+        fact: `名前は${nameMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 1.0,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('名前は')), nameFact];
     }
     
     // 好み検出（「○○が好き」パターン）
@@ -685,6 +747,67 @@ ${memoryInstructions}
         likes.push(likeMatch[1]);
       }
       memo.preferences = { ...memo.preferences, likes };
+      const likeFact: FactEntry = {
+        fact: `${likeMatch[1]}が好き`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact === likeFact.fact)) {
+        memo.factMemory = [...(memo.factMemory ?? []), likeFact];
+      }
+    }
+
+    // 職業検出
+    const jobMatch = userMessage.match(/(?:仕事|職業)は(.{1,20})(?:だ|です|をして)/);
+    if (jobMatch) {
+      const jobFact: FactEntry = {
+        fact: `仕事は${jobMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('仕事は')), jobFact];
+    }
+
+    // 年齢検出
+    const ageMatch = userMessage.match(/(\d{1,3})歳/);
+    if (ageMatch) {
+      const ageFact: FactEntry = {
+        fact: `${ageMatch[1]}歳`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.match(/\d+歳/)), ageFact];
+    }
+
+    // 住所検出
+    const locationMatch = userMessage.match(/(?:住んで|出身は?)(.{1,15})(?:に住|出身|から)/);
+    if (locationMatch) {
+      const locationFact: FactEntry = {
+        fact: `出身/居住: ${locationMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.85,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('出身/居住:')), locationFact];
+    }
+
+    // 既存importantFactsをfactMemoryへ移行
+    if (memo.importantFacts?.length && !(memo.factMemory?.some(f => f.source === 'AI推測'))) {
+      const migratedFacts: FactEntry[] = memo.importantFacts.map(fact => ({
+        fact,
+        source: 'AI推測',
+        confidence: 0.7,
+        updatedAt: new Date().toISOString(),
+      }));
+      memo.factMemory = [...(memo.factMemory ?? []), ...migratedFacts];
+    }
+
+    // factMemoryは最大30件保持
+    if (memo.factMemory && memo.factMemory.length > 30) {
+      memo.factMemory = memo.factMemory.slice(-30);
     }
     
     // 最近の話題を更新（最大5件）
@@ -701,11 +824,40 @@ ${memoryInstructions}
           memo.conversationSummary ?? '',
         );
         memo.conversationSummary = summaryResult.summary.slice(0, 500);
+        const prevEmotion = memo.emotionalState;
         memo.emotionalState = summaryResult.emotion;
         if (summaryResult.facts.length > 0) {
           const existingFacts = memo.importantFacts ?? [];
           const merged = [...new Set([...existingFacts, ...summaryResult.facts])].slice(0, 10);
           memo.importantFacts = merged;
+          // AIが抽出した事実もfactMemoryへ
+          for (const fact of summaryResult.facts) {
+            if (!(memo.factMemory ?? []).some(f => f.fact === fact)) {
+              const entry: FactEntry = { fact, source: 'AI推測', confidence: 0.7, updatedAt: new Date().toISOString() };
+              memo.factMemory = [...(memo.factMemory ?? []), entry];
+            }
+          }
+        }
+        // エピソード記憶の追加
+        if (summaryResult.episode) {
+          const episodeEntry: EpisodeEntry = {
+            summary: summaryResult.episode,
+            date: new Date().toISOString(),
+            emotion: summaryResult.emotion,
+            importance: summaryResult.episodeImportance ?? 3,
+          };
+          memo.episodeMemory = [...(memo.episodeMemory ?? []), episodeEntry].slice(-20);
+        }
+        // 感情記憶の蓄積
+        const emotion = _characterResponse ? this.detectEmotion(_characterResponse) : 'neutral';
+        if (summaryResult.emotion !== 'neutral' && summaryResult.emotion !== prevEmotion) {
+          const emotionEntry: EmotionEntry = {
+            topic: memo.recentTopics?.[0] || '不明',
+            userEmotion: summaryResult.emotion,
+            characterReaction: emotion,
+            date: new Date().toISOString(),
+          };
+          memo.emotionMemory = [...(memo.emotionMemory ?? []), emotionEntry].slice(-15);
         }
       } catch (err) {
         console.error('[CharacterEngine] generateMemorySummary failed:', err);
@@ -726,7 +878,7 @@ ${memoryInstructions}
   private async generateMemorySummary(
     messages: { role: string; content: string }[],
     existingSummary: string,
-  ): Promise<{ summary: string; facts: string[]; emotion: string }> {
+  ): Promise<{ summary: string; facts: string[]; emotion: string; episode?: string; episodeImportance?: number }> {
     const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) {
       return { summary: existingSummary, facts: [], emotion: 'neutral' };
@@ -747,7 +899,7 @@ ${memoryInstructions}
         messages: [
           {
             role: 'system',
-            content: `以下の会話を分析し、必ずJSON形式のみで返せ（前後に余分なテキスト不要）:\n{"summary":"200字以内の要約","facts":["重要な事実1","重要な事実2"],"emotion":"感情1単語"}\n\n条件:\n1. summaryは200字以内の日本語要約\n2. factsはユーザーについての重要な事実（最大5つ）\n3. emotionはユーザーの感情状態を表す1単語（例: 嬉しい、悲しい、neutral等）`,
+            content: `以下の会話を分析し、必ずJSON形式のみで返せ（前後に余分なテキスト不要）:\n{"summary":"200字以内の要約","facts":["重要な事実1","重要な事実2"],"emotion":"感情1単語","episode":"この会話で最も印象的だったエピソード（1文）","episodeImportance":3}\n\n条件:\n1. summaryは200字以内の日本語要約\n2. factsはユーザーについての重要な事実（最大5つ）\n3. emotionはユーザーの感情状態を表す1単語（例: 嬉しい、悲しい、neutral等）\n4. episodeはこの会話の最も印象的なエピソード（1文、日本語）\n5. episodeImportanceは1〜5の重要度`,
           },
           {
             role: 'user',
@@ -772,7 +924,7 @@ ${memoryInstructions}
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : '{}';
 
-    let parsed: { summary?: string; facts?: string[]; emotion?: string } = {};
+    let parsed: { summary?: string; facts?: string[]; emotion?: string; episode?: string; episodeImportance?: number } = {};
     try {
       parsed = JSON.parse(jsonStr) as typeof parsed;
     } catch {
@@ -783,6 +935,8 @@ ${memoryInstructions}
       summary: parsed.summary ?? existingSummary,
       facts: Array.isArray(parsed.facts) ? parsed.facts.slice(0, 5) : [],
       emotion: parsed.emotion ?? 'neutral',
+      episode: parsed.episode,
+      episodeImportance: typeof parsed.episodeImportance === 'number' ? parsed.episodeImportance : undefined,
     };
   }
   

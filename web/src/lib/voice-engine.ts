@@ -14,20 +14,39 @@ interface VoiceGenerateResult {
 interface VoiceSettings {
   stability: number;
   similarity_boost: number;
+  style: number;           // 感情表現の強度 (0.0-1.0)
+  use_speaker_boost: boolean;
+  speed: number;
 }
 
+/**
+ * 感情に応じた音声パラメータを動的に生成
+ * 
+ * stability: 低い = 感情的・変動的、高い = 安定・落ち着き
+ * similarity_boost: 高い = 元の声に忠実
+ * style: 高い = 感情表現が強い（ElevenLabsの最重要パラメータ）
+ * speed: テンポ制御
+ */
 function getVoiceSettings(emotion?: string): VoiceSettings {
   switch (emotion) {
     case 'excited':
-      return { stability: 0.3, similarity_boost: 0.8 };
-    case 'angry':
-      return { stability: 0.4, similarity_boost: 0.9 };
-    case 'sad':
-      return { stability: 0.7, similarity_boost: 0.6 };
+      return { stability: 0.25, similarity_boost: 0.8, style: 0.85, use_speaker_boost: true, speed: 1.15 };
     case 'happy':
-      return { stability: 0.4, similarity_boost: 0.8 };
-    default:
-      return { stability: 0.5, similarity_boost: 0.75 };
+      return { stability: 0.35, similarity_boost: 0.8, style: 0.7, use_speaker_boost: true, speed: 1.05 };
+    case 'angry':
+      return { stability: 0.3, similarity_boost: 0.9, style: 0.9, use_speaker_boost: true, speed: 1.1 };
+    case 'sad':
+      return { stability: 0.65, similarity_boost: 0.7, style: 0.6, use_speaker_boost: true, speed: 0.9 };
+    case 'hungry':
+      return { stability: 0.35, similarity_boost: 0.8, style: 0.65, use_speaker_boost: true, speed: 1.0 };
+    case 'embarrassed':
+      return { stability: 0.55, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true, speed: 0.95 };
+    case 'fired-up':
+      return { stability: 0.2, similarity_boost: 0.85, style: 0.95, use_speaker_boost: true, speed: 1.2 };
+    case 'motivated':
+      return { stability: 0.35, similarity_boost: 0.8, style: 0.75, use_speaker_boost: true, speed: 1.1 };
+    default: // neutral
+      return { stability: 0.5, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true, speed: 1.0 };
   }
 }
 
@@ -66,7 +85,13 @@ export class VoiceEngine {
           body: JSON.stringify({
             text,
             model_id: 'eleven_multilingual_v2',
-            voice_settings: voiceSettings,
+            voice_settings: {
+              stability: voiceSettings.stability,
+              similarity_boost: voiceSettings.similarity_boost,
+              style: voiceSettings.style,
+              use_speaker_boost: voiceSettings.use_speaker_boost,
+            },
+            ...(voiceSettings.speed !== 1.0 ? { speed: voiceSettings.speed } : {}),
           }),
         }
       );
