@@ -1,15 +1,15 @@
 #!/bin/bash
 # Deploy to production (aniva-project.com)
+# REQUIRES: Keisuke's approval before running
 # Only deploys from production branch
 set -e
 
 cd /home/openclaw/.openclaw/workspace/projects/aniva
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" != "production" ] && [ "$1" != "--force" ]; then
+if [ "$CURRENT_BRANCH" != "production" ]; then
   echo "⚠️ Not on production branch (current: $CURRENT_BRANCH)"
   echo "  Run: git checkout production && git merge main"
-  echo "  Or: $0 --force (to deploy from current branch)"
   exit 1
 fi
 
