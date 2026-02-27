@@ -13,6 +13,7 @@ import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 import { PaywallModal } from '@/components/PaywallModal';
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
+import { Download } from 'lucide-react';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -932,6 +933,16 @@ export default function ChatCharacterPage() {
             FC加入
           </button>
         )}
+
+        {/* 📥 履歴DL */}
+        <button
+          onClick={() => window.open(`/api/chat/export/${characterId}?format=csv`, '_blank')}
+          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 transition-colors"
+          aria-label="会話履歴をダウンロード"
+          title="履歴DL"
+        >
+          <Download className="w-5 h-5" />
+        </button>
 
         {/* 📞 通話 */}
         <button
