@@ -59,3 +59,4 @@ web-build/
 
 # npm lockfile (this is a pnpm project)
 package-lock.json
+staging/
