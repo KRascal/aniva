@@ -673,8 +673,10 @@ export default function ChatCharacterPage() {
               </div>
             )}
           </div>
-          {/* オンラインドット */}
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
+          {/* オンラインドット（pulse） */}
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-gray-900 bg-green-400">
+            <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+          </span>
         </button>
 
         {/* 名前 + ⭐ */}
@@ -683,8 +685,14 @@ export default function ChatCharacterPage() {
             {character?.name ?? 'キャラクター'}
           </h1>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs leading-none">{stars}</span>
-            <span className="text-xs text-gray-500">Lv.{level}</span>
+            {isSending ? (
+              <span className="text-xs text-purple-400 animate-pulse leading-none">タイピング中...</span>
+            ) : (
+              <>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+                <span className="text-xs text-green-400 leading-none">オンライン</span>
+              </>
+            )}
           </div>
         </div>
 
