@@ -28,6 +28,9 @@ interface RelationshipRecord {
   lastMessageAt: Date | null;
   firstMessageAt: Date | null;
   memorySummary: unknown; // Prisma JSON型
+  characterEmotion?: string;
+  characterEmotionNote?: string | null;
+  emotionUpdatedAt?: Date | null;
   user?: UserRecord;
 }
 
@@ -358,6 +361,9 @@ interface MemoryContext {
   emotionalState?: string;
   totalMessages?: number;
   lastMessageAt?: Date | null;
+  characterEmotion?: string;
+  characterEmotionNote?: string | null;
+  emotionUpdatedAt?: Date | null;
 }
 
 export class CharacterEngine {
@@ -419,8 +425,8 @@ export class CharacterEngine {
     // 9. メモリ更新
     await this.updateMemory(relationshipId, userMessage, cleanedText, recentMessages);
     
-    // 10. 関係性経験値更新
-    await this.updateRelationshipXP(relationshipId);
+    // 10. 関係性経験値更新（感情状態も同時に保存）
+    await this.updateRelationshipXP(relationshipId, emotion, this.getEmotionReason(emotion, userMessage));
     
     return {
       text: cleanedText,
@@ -463,6 +469,9 @@ export class CharacterEngine {
       emotionalState: memo.emotionalState,
       totalMessages: relationship.totalMessages,
       lastMessageAt: relationship.lastMessageAt,
+      characterEmotion: relationship.characterEmotion,
+      characterEmotionNote: relationship.characterEmotionNote,
+      emotionUpdatedAt: relationship.emotionUpdatedAt,
     };
   }
   
@@ -476,6 +485,7 @@ export class CharacterEngine {
     const memoryInstructions = this.getMemoryInstructions(memory);
     const timeContext = this.getTimeContext();
     const reunionContext = this.getReunionContext(memory);
+    const emotionContext = this.getCharacterEmotionContext(memory);
     
     return `${character.systemPrompt}
 
@@ -483,6 +493,7 @@ export class CharacterEngine {
 - 現在時刻: ${timeContext.timeStr}（${timeContext.period}）
 - 曜日: ${timeContext.dayOfWeek}
 ${reunionContext}
+${emotionContext}
 
 ## 現在の関係性
 - 相手の名前: ${memory.userName}
@@ -776,9 +787,9 @@ ${memoryInstructions}
   }
   
   /**
-   * 関係性経験値を更新
+   * 関係性経験値を更新（感情状態も同時に保存）
    */
-  private async updateRelationshipXP(relationshipId: string) {
+  private async updateRelationshipXP(relationshipId: string, emotion?: string, emotionNote?: string) {
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
@@ -804,10 +815,66 @@ ${memoryInstructions}
         level: Math.min(newLevel, 5),
         lastMessageAt: new Date(),
         firstMessageAt: relationship.firstMessageAt || new Date(),
+        ...(emotion !== undefined && {
+          characterEmotion: emotion,
+          characterEmotionNote: emotionNote ?? null,
+          emotionUpdatedAt: new Date(),
+        }),
       },
     });
     
     return { leveledUp: newLevel > relationship.level, newLevel };
+  }
+
+  /**
+   * 感情の理由テキストを生成
+   */
+  private getEmotionReason(emotion: string, userMessage: string): string {
+    const shortMsg = userMessage.slice(0, 50);
+    switch (emotion) {
+      case 'excited': return `「${shortMsg}」の話題で盛り上がった`;
+      case 'happy': return `「${shortMsg}」で嬉しくなった`;
+      case 'angry': return `「${shortMsg}」で怒った`;
+      case 'sad': return `「${shortMsg}」で悲しくなった`;
+      case 'hungry': return `食べ物の話をした`;
+      case 'fired-up': return `燃える話題だった`;
+      default: return '';
+    }
+  }
+
+  /**
+   * 前回の感情状態コンテキストを生成
+   */
+  private getCharacterEmotionContext(memory: MemoryContext): string {
+    if (!memory.characterEmotion || memory.characterEmotion === 'neutral') return '';
+
+    const emotionLabels: Record<string, string> = {
+      'excited': '興奮している',
+      'happy': '嬉しい',
+      'angry': '怒っている',
+      'sad': '悲しい',
+      'hungry': '腹が減っている',
+      'embarrassed': '照れている',
+      'fired-up': '燃えている',
+      'motivated': 'やる気に満ちている',
+    };
+
+    const label = emotionLabels[memory.characterEmotion] || memory.characterEmotion;
+    let context = `- 前回の感情状態: ${label}`;
+    if (memory.characterEmotionNote) {
+      context += `（理由: ${memory.characterEmotionNote}）`;
+    }
+
+    if (memory.emotionUpdatedAt) {
+      const hoursSince = (Date.now() - new Date(memory.emotionUpdatedAt).getTime()) / (1000 * 60 * 60);
+      if (hoursSince > 24) {
+        context += '（だいぶ前のことだから薄れている）';
+      } else if (hoursSince > 6) {
+        context += '（少し前のこと）';
+      }
+    }
+
+    return context;
   }
 }
 
