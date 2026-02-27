@@ -13,11 +13,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // JWTのIDでユーザーが見つからない場合、emailで検索
+    let effectiveUserId = userId;
+    const existingUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!existingUser) {
+      const email = (session?.user as any)?.email as string | undefined;
+      if (email) {
+        const byEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+        if (byEmail) effectiveUserId = byEmail.id;
+      }
+    }
+
     const body = await req.json();
     const { notificationPermission } = body as { notificationPermission: boolean | null };
 
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: effectiveUserId },
       data: {
         onboardingStep: 'completed',
         onboardingCompletedAt: new Date(),

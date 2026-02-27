@@ -69,10 +69,12 @@ export default auth((req) => {
   }
 
   // Demo mode: block signup unless invite code is provided
+  // PromiseSeal経由（from=promise）は招待コード不要（/c/[slug]のゲストチャット後のサインアップ）
   const INVITE_CODE = process.env.INVITE_CODE;
   if (INVITE_CODE && pathname.startsWith('/signup')) {
     const code = req.nextUrl.searchParams.get('code');
-    if (code !== INVITE_CODE) {
+    const fromPromise = req.nextUrl.searchParams.get('from') === 'promise';
+    if (code !== INVITE_CODE && !fromPromise) {
       return NextResponse.redirect(new URL('/login?error=invite_only', req.url));
     }
   }

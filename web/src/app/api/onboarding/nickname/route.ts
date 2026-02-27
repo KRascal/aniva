@@ -48,7 +48,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    let user = await prisma.user.findUnique({ where: { id: userId } });
+
+    // JWTのIDでユーザーが見つからない場合、emailで検索（JWT/DB ID不一致対策）
+    if (!user) {
+      const email = (session?.user as any)?.email as string | undefined;
+      if (email) {
+        user = await prisma.user.findUnique({ where: { email } });
+      }
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: { code: 'USER_NOT_FOUND', message: 'ユーザーが見つかりません。再ログインしてください。' } },
+          { status: 404 },
+        );
+      }
+    }
 
     if (user?.onboardingStep === 'completed') {
       return NextResponse.json(
@@ -62,7 +76,7 @@ export async function POST(req: NextRequest) {
     const nextStep = isDeepLink ? 'first_chat' : 'character_select';
 
     const updated = await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         nickname: trimmed,
         onboardingStep: nextStep,

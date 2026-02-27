@@ -319,7 +319,8 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
             onChange={(e) => setInputValue(e.target.value)}
             disabled={isStreaming || turnIndex >= TOTAL_TURNS}
             placeholder={isStreaming ? '...' : '返事する'}
-            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm placeholder-white/25 focus:outline-none focus:border-purple-500/50 disabled:opacity-40 transition-colors"
+            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-base placeholder-white/25 focus:outline-none focus:border-purple-500/50 disabled:opacity-40 transition-colors"
+            style={{ fontSize: '16px' }}
           />
           <motion.button
             type="submit"

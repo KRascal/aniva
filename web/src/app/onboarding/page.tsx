@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 
-import { useOnboarding, type CharacterData, type ChatMessage } from '@/hooks/useOnboarding';
+import { useOnboarding, type CharacterData, type ChatMessage, type OnboardingPhase } from '@/hooks/useOnboarding';
 import PhaseWelcome from '@/components/onboarding/PhaseWelcome';
 import CharacterSelect from '@/components/onboarding/CharacterSelect';
 import PhaseNickname from '@/components/onboarding/PhaseNickname';
@@ -31,7 +31,9 @@ function OnboardingInner() {
 
   const {
     state,
+    setState,
     advance,
+    goToPhase,
     selectCharacter,
     saveNickname,
     completeOnboarding,
@@ -83,11 +85,93 @@ function OnboardingInner() {
         }
       }
 
-      // 途中離脱のリカバリー
+      // 途中離脱のリカバリー: DBの状態を復元
+      let stateRestored = false;
+      try {
+        const stateRes = await fetch('/api/onboarding/state');
+        if (stateRes.ok) {
+          const stateData = await stateRes.json();
+          if (stateData.success && stateData.data) {
+            const { phase, nickname: savedNickname, character: savedCharacter, deeplinkSlug: savedSlug } = stateData.data;
+
+            if (phase === 'completed') {
+              // 完了済み: JWTを必ず更新してからフルリロード（proxyがonboardingにリダイレクトしないように）
+              await update();
+              window.location.href = '/explore';
+              return;
+            }
+
+            // DBに保存されたキャラクター情報を復元
+            if (savedCharacter && !deeplinkCharacter) {
+              const char: CharacterData = {
+                id: savedCharacter.id,
+                name: savedCharacter.name,
+                slug: savedCharacter.slug,
+                avatarUrl: savedCharacter.avatarUrl,
+                franchise: savedCharacter.franchise ?? '',
+              };
+              setDeeplinkCharacter(char);
+              if (savedSlug) setDeeplinkSlug(savedSlug);
+            }
+
+            // DBのphaseに基づいてstateを復元
+            if (phase && phase !== 'welcome') {
+              const validPhases: OnboardingPhase[] = ['welcome', 'character_select', 'nickname', 'approval', 'first_chat', 'hook'];
+              if (validPhases.includes(phase as OnboardingPhase)) {
+                // キャラ選択済みならcharacter_selectをスキップ
+                const resumePhase = (phase === 'character_select' && savedCharacter) ? 'nickname' : phase;
+                stateRestored = true;
+                setState((prev) => ({
+                  ...prev,
+                  phase: resumePhase as OnboardingPhase,
+                  nickname: savedNickname ?? '',
+                  selectedCharacter: savedCharacter ? {
+                    id: savedCharacter.id,
+                    name: savedCharacter.name,
+                    slug: savedCharacter.slug,
+                    avatarUrl: savedCharacter.avatarUrl,
+                    franchise: savedCharacter.franchise ?? '',
+                  } : null,
+                  isDeepLink: !!savedSlug || !!savedCharacter,
+                }));
+              }
+            }
+          }
+        }
+      } catch {
+        // state取得失敗は無視して最初から
+      }
+
+      // JWTのonboardingStep確認（フォールバック）
       const user = session.user as { onboardingStep?: string | null };
       if (user.onboardingStep === 'completed') {
         router.replace('/explore');
         return;
+      }
+
+      // ディープリンクキャラが見つかった場合、hookのstateを同期
+      // (useOnboardingのuseStateは初期値のみ参照するため、非同期で取得した値を反映する必要がある)
+      if (slug && !stateRestored) {
+        // stateRestoredフラグ: DB復元が既にsetStateした場合はスキップ
+        // ここに来るのはDBにstateがない（新規ユーザー）場合
+        try {
+          const charRes = await fetch(`/api/characters/${slug}`);
+          if (charRes.ok) {
+            const charData = await charRes.json();
+            const c = charData.character ?? charData;
+            setState((prev) => ({
+              ...prev,
+              isDeepLink: true,
+              selectedCharacter: prev.selectedCharacter ?? {
+                id: c.id ?? '',
+                name: c.name ?? '',
+                slug: slug,
+                avatarUrl: c.avatarUrl ?? null,
+                franchise: c.franchise ?? '',
+              },
+            }));
+          }
+        } catch { /* ignore */ }
       }
 
       setInitialized(true);
@@ -149,6 +233,8 @@ function OnboardingInner() {
     await update();
     // router.replaceだとJWTクッキー更新が反映される前にproxyが旧JWTを読むことがある
     // window.location.hrefで強制フルリロードし、サーバー側で最新JWTを使わせる
+    // 短いウェイトでクッキーの書き込みが確実に完了するのを待つ
+    await new Promise((resolve) => setTimeout(resolve, 300));
     window.location.href = redirectTo;
   };
 
