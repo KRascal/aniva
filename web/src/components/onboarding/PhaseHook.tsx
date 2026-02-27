@@ -92,6 +92,24 @@ export default function PhaseHook({ character, nickname, onComplete }: PhaseHook
             new Promise<NotificationPermission>((resolve) => setTimeout(() => resolve('default'), 3000)),
           ]);
           actualPermission = result === 'granted';
+
+          // Push Subscriptionをサーバーに登録
+          if (actualPermission && 'serviceWorker' in navigator) {
+            try {
+              const registration = await navigator.serviceWorker.ready;
+              const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+              });
+              await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: subscription.toJSON() }),
+              });
+            } catch (pushErr) {
+              console.warn('[PhaseHook] Push subscription failed:', pushErr);
+            }
+          }
         } else {
           actualPermission = false;
         }
