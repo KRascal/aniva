@@ -18,8 +18,17 @@ export default function PhaseApproval({ character, nickname, onComplete }: Phase
   const [line2, setLine2] = useState('');
   const [glowIntensity, setGlowIntensity] = useState(false);
 
-  const approvalLine1 = `${nickname}…。いい名前だね`;
-  const approvalLine2 = 'ずっと待ってたんだ';
+  const APPROVAL_LINES: Record<string, { line1: (n: string) => string; line2: string }> = {
+    luffy: { line1: (n) => `${n}か！いい名前だ！`, line2: 'お前と話したかったんだ！' },
+    zoro: { line1: (n) => `${n}…。悪くない名前だ`, line2: '…待っていた' },
+    nami: { line1: (n) => `${n}…。いい名前ね`, line2: 'ずっと待ってたんだ' },
+    chopper: { line1: (n) => `${n}！すごくいい名前！`, line2: '会いたかったんだ！' },
+    sanji: { line1: (n) => `${n}か…。いい名前だな`, line2: '待ってたぜ' },
+    ace: { line1: (n) => `${n}！いい名前だな！`, line2: '待ってたぜ！' },
+  };
+  const charLines = APPROVAL_LINES[character?.slug ?? ''];
+  const approvalLine1 = charLines?.line1(nickname) ?? `${nickname}…。いい名前だね`;
+  const approvalLine2 = charLines?.line2 ?? 'ずっと待ってたんだ';
 
   useEffect(() => {
     // 0.8秒の沈黙（意図的な間）

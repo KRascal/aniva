@@ -278,7 +278,8 @@ export default function OnboardingChat({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="返事する…"
-              className="flex-1 bg-transparent text-white/90 placeholder-white/20 text-sm outline-none"
+              className="flex-1 bg-transparent text-white/90 placeholder-white/20 outline-none"
+              style={{ fontSize: '16px' }}
             />
             <button
               onClick={handleSend}

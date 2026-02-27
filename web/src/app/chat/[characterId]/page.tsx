@@ -11,9 +11,6 @@ import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
-import { PaywallModal } from '@/components/PaywallModal';
-import { CoinBalanceDisplay } from '@/components/CoinBalance';
-import { Download } from 'lucide-react';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -123,19 +120,16 @@ interface Character {
   nameEn: string;
   franchise: string;
   avatarUrl: string | null;
-  hasVoice?: boolean;
-  fcMonthlyPriceJpy?: number;
-  fcIncludedCallMin?: number;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
-  excited: '',
-  happy: '',
-  angry: '',
-  sad: '',
-  hungry: '',
+  excited: '🔥',
+  happy: '😄',
+  angry: '😤',
+  sad: '😢',
+  hungry: '🍖',
   neutral: '',
-  surprised: '',
+  surprised: '😲',
 };
 
 /* ── 感情に応じたバブルスタイル ── */
@@ -146,7 +140,7 @@ const EMOTION_BUBBLE_STYLE: Record<string, string> = {
   sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
   hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
   surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
-  neutral:   'bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] shadow-md',
+  neutral:   'bg-gray-800/90 text-gray-100 border border-gray-600/30 shadow-md',
 };
 
 function getCharacterBubbleStyle(emotion?: string): string {
@@ -266,8 +260,6 @@ export default function ChatCharacterPage() {
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  // 音声自動再生トグル（localStorageに保存）
-  const [autoPlay, setAutoPlay] = useState(false);
   // キャラのテーマカラー（感情に応じて変化）
   const [bgTheme, setBgTheme] = useState<string>('rgba(88,28,135,0.06), rgba(0,0,0,0)');
   // 感情エフェクト
@@ -277,44 +269,11 @@ export default function ChatCharacterPage() {
   // Free plan 残りメッセージ
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
-  // ファンクラブ状態
-  const [isFanclub, setIsFanclub] = useState<boolean | null>(null); // null=未ロード
-  const [showFcModal, setShowFcModal] = useState(false);
-  const [fcJoining, setFcJoining] = useState(false);
-  // フリーミアム Paywall
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [paywallInfo, setPaywallInfo] = useState<{
-    freeMessageLimit: number;
-    fcMonthlyPriceJpy: number;
-    coinBalance: number;
-  } | null>(null);
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const autoPlayRef = useRef(autoPlay);
-
-  /* ─────────── 音声自動再生トグル（localStorage永続化） ─────────── */
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('aniva:autoPlay');
-      if (saved !== null) setAutoPlay(saved === 'true');
-    } catch { /* ignore */ }
-  }, []);
-
-  const handleAutoPlayToggle = useCallback(() => {
-    setAutoPlay((prev) => {
-      const next = !prev;
-      autoPlayRef.current = next;
-      try { localStorage.setItem('aniva:autoPlay', String(next)); } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
-  // autoPlayRef を state に同期
-  useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
 
   /* ─────────── 音声ミニプレーヤー制御 ─────────── */
   const handleAudioToggle = useCallback((messageId: string, audioUrl: string) => {
@@ -392,12 +351,6 @@ export default function ChatCharacterPage() {
         setRelationship(relData);
       }
       if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
-      // FC状態取得
-      try {
-        const followRes = await fetch(`/api/relationship/${characterId}/follow`);
-        const followData = await followRes.json();
-        setIsFanclub(followData.isFanclub ?? false);
-      } catch { setIsFanclub(false); }
       setIsLoadingHistory(false);
     } catch (err) {
       console.error('Failed to load relationship:', err);
@@ -422,48 +375,16 @@ export default function ChatCharacterPage() {
     return () => clearInterval(timer);
   }, [inputText]);
 
-  const handleJoinFanclub = async () => {
-    setFcJoining(true);
-    try {
-      const res = await fetch(`/api/relationship/${characterId}/fanclub`, { method: 'POST' });
-      const data = await res.json();
-      if (data.requiresPayment) {
-        alert(`月額¥${data.monthlyPrice?.toLocaleString()}の課金が必要です（現在デモのため無料で開放中）`);
-        setFcJoining(false);
-        return;
-      }
-      setIsFanclub(data.isFanclub ?? true);
-      setShowFcModal(false);
-    } catch (err) {
-      console.error('FC join error:', err);
-    }
-    setFcJoining(false);
-  };
-
-  const generateVoiceForMessage = async (messageId: string, text: string, charId: string, emotion?: string) => {
+  const generateVoiceForMessage = async (messageId: string, text: string, charId: string) => {
     try {
       const res = await fetch('/api/voice/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, text, characterId: charId, emotion }),
+        body: JSON.stringify({ messageId, text, characterId: charId }),
       });
-      if (res.status === 404) {
-        // キャラにvoiceModelIdが未設定 → 音声なし（静かに無視）
-        setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
-        return;
-      }
       const data = await res.json();
       if (data.audioUrl) {
         setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: data.audioUrl } : m));
-        // 自動再生ONの場合は再生開始
-        if (autoPlayRef.current) {
-          if (audioRef.current) audioRef.current.pause();
-          const audio = new Audio(data.audioUrl);
-          audioRef.current = audio;
-          audio.onended = () => setPlayingAudioId(null);
-          audio.play().catch(() => {});
-          setPlayingAudioId(messageId);
-        }
       } else {
         setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, audioUrl: null } : m));
       }
@@ -472,10 +393,10 @@ export default function ChatCharacterPage() {
     }
   };
 
-  const sendMessage = async (textOverride?: string) => {
-    const text = (textOverride ?? inputText).trim();
-    if (!text || isSending || !userId) return;
-    if (!textOverride) setInputText('');
+  const sendMessage = async () => {
+    if (!inputText.trim() || isSending || !userId) return;
+    const text = inputText.trim();
+    setInputText('');
     setIsSending(true);
 
     const tempUserMsg: Message = {
@@ -495,24 +416,6 @@ export default function ChatCharacterPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        if (res.status === 402 && errData.error === 'FREE_LIMIT_REACHED') {
-          // フリーミアム制限に達した → PaywallModal を表示
-          setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
-          let coinBalance = 0;
-          try {
-            const coinRes = await fetch('/api/coins/balance');
-            const coinData = await coinRes.json();
-            coinBalance = coinData.balance ?? 0;
-          } catch { /* ignore */ }
-          setPendingMessage(text);
-          setPaywallInfo({
-            freeMessageLimit: errData.freeMessageLimit ?? 10,
-            fcMonthlyPriceJpy: errData.fcMonthlyPriceJpy ?? 3480,
-            coinBalance,
-          });
-          setShowPaywall(true);
-          return;
-        }
         if (res.status === 429) {
           const errMsg: Message = {
             id: `err-${Date.now()}`,
@@ -568,12 +471,7 @@ export default function ChatCharacterPage() {
       }
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
-        generateVoiceForMessage(
-          data.characterMessage.id,
-          data.characterMessage.content,
-          characterId,
-          data.characterMessage.metadata?.emotion,
-        );
+        generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
       // 本日送信数インクリメント（Free plan 表示）
       setTodayMsgCount((prev) => prev + 1);
@@ -598,17 +496,6 @@ export default function ChatCharacterPage() {
     }
   };
 
-  /* ── PaywallModal: コインで送信（再送信） ── */
-  const handleSpendCoins = () => {
-    if (!pendingMessage) return;
-    const msg = pendingMessage;
-    setShowPaywall(false);
-    setPendingMessage(null);
-    setPaywallInfo(null);
-    // 少し待ってからAPI再送信（コイン消費はサーバー側で処理）
-    setTimeout(() => sendMessage(msg), 300);
-  };
-
   /* ── 送信ボタンクリック（バウンスアニメ付き） ── */
   const handleSendClick = () => {
     if (!inputText.trim() || isSending || isGreeting) return;
@@ -617,11 +504,10 @@ export default function ChatCharacterPage() {
     sendMessage();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendClick();
-    }
+  // Enter = 改行のみ。送信はボタンのみ（スマホUX優先）
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // no-op: Enter is just newline
   };
 
   const handleSubscribePush = async () => {
@@ -689,36 +575,37 @@ export default function ChatCharacterPage() {
   }
 
   const level = relationship?.level ?? 1;
-  // レベルドット（最大5個）
+  // ⭐ の数は最大5個、レベルに応じて比例
   const starCount = Math.max(1, Math.min(5, Math.ceil(level / 2)));
+  const stars = '⭐'.repeat(starCount);
   const hasInput = inputText.length > 0;
 
   return (
     <div
-      className="flex flex-col h-screen max-w-lg mx-auto relative chat-bg"
+      className="flex flex-col h-[100dvh] max-w-lg mx-auto relative chat-bg"
       style={{ background: `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
     >
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
 
-      {/* ハングリーエフェクト：浮かぶドット */}
+      {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
       {hungryEmojis.map((e) => (
         <div
           key={e.id}
-          className="absolute bottom-24 z-20 pointer-events-none float-meat select-none"
+          className="absolute bottom-24 z-20 pointer-events-none float-meat text-3xl select-none"
           style={{ left: `${e.x}%`, animationDelay: `${e.delay}s` }}
         >
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-400 to-red-500 shadow-lg shadow-orange-500/50" />
+          🍖
         </div>
       ))}
 
-      {/* 興奮エフェクト：光るドットが舞う */}
+      {/* ✨ 興奮エフェクト：星が舞う */}
       {showStars && (
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="absolute star-twinkle select-none"
+              className="absolute text-xl star-twinkle select-none"
               style={{
                 left: `${8 + i * 9}%`,
                 top: `${15 + (i % 4) * 20}%`,
@@ -726,11 +613,7 @@ export default function ChatCharacterPage() {
                 animationDuration: `${0.9 + (i % 3) * 0.35}s`,
               }}
             >
-              <div className={`rounded-full ${
-                i % 3 === 0 ? 'w-3 h-3 bg-yellow-400 shadow-yellow-400/60' :
-                i % 3 === 1 ? 'w-2 h-2 bg-purple-400 shadow-purple-400/60' :
-                'w-2.5 h-2.5 bg-pink-400 shadow-pink-400/60'
-              } shadow-lg`} />
+              {i % 3 === 0 ? '⭐' : i % 3 === 1 ? '✨' : '🌟'}
             </div>
           ))}
         </div>
@@ -739,86 +622,6 @@ export default function ChatCharacterPage() {
       {/* オンボーディングオーバーレイ */}
       {showOnboarding && character && (
         <OnboardingOverlay character={character} onStart={handleStartChat} />
-      )}
-
-      {/* 👑 FC加入モーダル */}
-      {showFcModal && character && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowFcModal(false)}>
-          <div className="w-full max-w-sm mx-4 bg-gray-900 rounded-3xl border border-purple-500/30 overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* ヘッダー */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-yellow-300" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
-                  </svg>
-                  <h3 className="text-white font-bold text-lg">ファンクラブ</h3>
-                </div>
-                <button onClick={() => setShowFcModal(false)} className="text-white/60 hover:text-white text-xl">✕</button>
-              </div>
-              <p className="text-white/80 text-sm mt-1">{character.name}のファンクラブに加入</p>
-            </div>
-            {/* 特典 */}
-            <div className="px-5 py-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">無制限チャット</p>
-                  <p className="text-gray-400 text-xs">{character.name}といつでもトーク</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">音声通話</p>
-                  <p className="text-gray-400 text-xs">月{character.fcIncludedCallMin ?? 5}分の通話付き</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">限定コンテンツ</p>
-                  <p className="text-gray-400 text-xs">FC限定投稿やボイスメッセージ</p>
-                </div>
-              </div>
-            </div>
-            {/* 価格＆CTA */}
-            <div className="px-5 pb-5">
-              <p className="text-center text-gray-400 text-xs mb-3">
-                月額 <span className="text-white font-bold text-lg">¥{(character.fcMonthlyPriceJpy ?? 980).toLocaleString()}</span>
-              </p>
-              <button
-                onClick={handleJoinFanclub}
-                disabled={fcJoining}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm active:scale-[0.97] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {fcJoining ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
-                    </svg>
-                    ファンクラブに加入する
-                  </>
-                )}
-              </button>
-              <p className="text-center text-gray-600 text-[10px] mt-2">デモ版では無料で体験できます</p>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* 📞 通話モーダル */}
@@ -841,38 +644,12 @@ export default function ChatCharacterPage() {
         />
       )}
 
-      {/* フリーミアム Paywall モーダル */}
-      {showPaywall && paywallInfo && character && (
-        <PaywallModal
-          type="CHAT_LIMIT"
-          characterName={character.name}
-          characterId={characterId}
-          freeMessageLimit={paywallInfo.freeMessageLimit}
-          fcMonthlyPriceJpy={paywallInfo.fcMonthlyPriceJpy}
-          coinBalance={paywallInfo.coinBalance}
-          onClose={() => {
-            setShowPaywall(false);
-            setPendingMessage(null);
-            setPaywallInfo(null);
-          }}
-          onJoinFC={() => {
-            setShowPaywall(false);
-            router.push(`/profile/${characterId}`);
-          }}
-          onBuyCoins={() => {
-            setShowPaywall(false);
-            router.push('/coins');
-          }}
-          onSpendCoins={paywallInfo.coinBalance >= 10 ? handleSpendCoins : undefined}
-        />
-      )}
-
       {/* ══════════════ ヘッダー ══════════════ */}
-      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-3 z-10">
+      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
         {/* 戻るボタン */}
         <button
           onClick={() => router.push('/chat')}
-          className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0"
+          className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
           aria-label="戻る"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -880,74 +657,83 @@ export default function ChatCharacterPage() {
           </svg>
         </button>
 
-        {/* アバター + 名前（タップでプロフィール） */}
+        {/* アバター（タップでキャラ詳細） */}
         <button
           onClick={() => router.push(`/profile/${characterId}`)}
-          className="flex items-center gap-2.5 flex-1 min-w-0"
+          className="flex-shrink-0 relative"
           aria-label="キャラクタープロフィール"
         >
-          <div className="flex-shrink-0 relative">
-            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/30">
-              {character?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
-                  {character?.name?.charAt(0) ?? '?'}
-                </div>
-              )}
-            </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
+          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
+            {character?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                🏴‍☠️
+              </div>
+            )}
           </div>
-          <div className="min-w-0">
-            <h1 className="text-white font-semibold text-sm leading-tight truncate">
-              {character?.name ?? 'キャラクター'}
-            </h1>
-            <div className="flex items-center gap-1">
-              <span className="flex gap-0.5">
-                {Array.from({ length: starCount }).map((_, i) => (
-                  <span key={i} className="w-1.5 h-1.5 rounded-full bg-yellow-400/80 inline-block" />
-                ))}
-              </span>
-              <span className="text-[10px] text-gray-500">Lv.{level}</span>
-            </div>
-          </div>
+          {/* オンラインドット */}
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900" />
         </button>
 
-        {/* FC加入ボタン */}
-        {isFanclub ? (
-          <span className="flex-shrink-0 text-[10px] font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-full flex items-center gap-1">
-            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
-            </svg>
-            FC加入中
-          </span>
-        ) : (
-          <button
-            onClick={() => setShowFcModal(true)}
-            className="flex-shrink-0 text-[10px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-full shadow-lg active:scale-95 transition-transform flex items-center gap-1"
-          >
-            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
-            </svg>
-            FC加入
-          </button>
-        )}
+        {/* 名前 + ⭐ */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-white font-semibold text-sm leading-tight truncate">
+            {character?.name ?? 'キャラクター'}
+          </h1>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs leading-none">{stars}</span>
+            <span className="text-xs text-gray-500">Lv.{level}</span>
+          </div>
+        </div>
 
-        {/* 📥 履歴DL */}
+        {/* Emotion indicator */}
+        <EmotionIndicator emotion={currentEmotion} level={level} />
+
+        {/* Live2Dトグルボタン */}
         <button
-          onClick={() => window.open(`/api/chat/export/${characterId}?format=csv`, '_blank')}
-          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 transition-colors"
-          aria-label="会話履歴をダウンロード"
-          title="履歴DL"
+          onClick={() => setIsViewerExpanded((v) => !v)}
+          className={`flex-shrink-0 p-1.5 rounded-full transition-all ${
+            isViewerExpanded
+              ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/40'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+          }`}
+          aria-label={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
+          title={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
         >
-          <Download className="w-5 h-5" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d={isViewerExpanded
+                ? 'M19 9l-7 7-7-7'       // 下矢印 → 閉じる
+                : 'M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z'  // キャラアイコン
+              }
+            />
+          </svg>
         </button>
 
-        {/* 📞 通話 */}
+        {/* Push通知ベルアイコン */}
+        <button
+          onClick={handleSubscribePush}
+          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+          title={isPushSubscribed ? '通知ON' : '通知をONにする'}
+          aria-label={isPushSubscribed ? '通知ON' : '通知をONにする'}
+        >
+          {isPushSubscribed ? (
+            <span className="text-base leading-none">🔔</span>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          )}
+        </button>
+
+        {/* 📞 通話ボタン */}
         <button
           onClick={() => setShowCall(true)}
-          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
+          className="flex-shrink-0 p-1.5 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
+          title="通話する"
           aria-label="通話する"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1012,8 +798,8 @@ export default function ChatCharacterPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white">
-                      {character?.name?.charAt(0) ?? '?'}
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
+                      🏴‍☠️
                     </div>
                   )}
                 </div>
@@ -1029,8 +815,8 @@ export default function ChatCharacterPage() {
                 <div
                   className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
                     isUser
-                      ? 'bg-[var(--color-accent)] text-white rounded-2xl rounded-br-sm shadow-purple-900/30'
-                      : `rounded-2xl rounded-bl-sm ${getCharacterBubbleStyle(emotion)} ${
+                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
+                      : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
                       msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
                       msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
                     }`
@@ -1041,8 +827,8 @@ export default function ChatCharacterPage() {
                     <span className="ml-1.5 text-base">{emotionEmoji}</span>
                   )}
 
-                  {/* ミニ音声プレーヤー（voiceModelId設定済みキャラのみ） */}
-                  {!isUser && character?.hasVoice && msg.audioUrl && (
+                  {/* ミニ音声プレーヤー */}
+                  {!isUser && msg.audioUrl && (
                     <MiniAudioPlayer
                       audioUrl={msg.audioUrl}
                       messageId={msg.id}
@@ -1051,8 +837,8 @@ export default function ChatCharacterPage() {
                     />
                   )}
 
-                  {/* 音声生成中スピナー（voiceModelId設定済みキャラのみ） */}
-                  {!isUser && character?.hasVoice && msg.audioUrl === undefined && (
+                  {/* 音声生成中スピナー */}
+                  {!isUser && msg.audioUrl === undefined && (
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                       <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
                       <span>音声生成中...</span>
@@ -1077,8 +863,8 @@ export default function ChatCharacterPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={character.avatarUrl} alt={character?.name ?? ''} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white">
-                  {character?.name?.charAt(0) ?? '?'}
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
+                  🏴‍☠️
                 </div>
               )}
             </div>
@@ -1090,56 +876,45 @@ export default function ChatCharacterPage() {
       </div>
 
       {/* ══════════════ 入力エリア ══════════════ */}
-      <div className="flex-shrink-0 border-t border-[var(--color-border)] backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--color-surface)' }}>
-        {/* コイン残高表示は CoinBalanceDisplay で管理 */}
-
-        {/* 🔊 音声自動再生トグル（voiceModelId設定済みキャラのみ） */}
-        {character?.hasVoice && (
-          <div className="flex items-center justify-end mb-2 px-1">
-            <button
-              onClick={handleAutoPlayToggle}
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all select-none ${
-                autoPlay
-                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                  : 'bg-white/5 border-white/15 text-gray-500 hover:text-gray-300 hover:bg-white/10'
-              }`}
-              aria-label={autoPlay ? '音声自動再生ON（クリックでOFF）' : '音声自動再生OFF（クリックでON）'}
-              title={autoPlay ? '音声自動再生：ON' : '音声自動再生：OFF'}
+      <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
+        {/* Free plan 残りメッセージ表示 */}
+        {userPlan === 'FREE' && (
+          <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
+            <span className="text-amber-400">⚡</span>
+            <span className="text-amber-400/80">
+              今日の残り:{' '}
+              <span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>
+              /3 回
+            </span>
+            <a
+              href="/pricing"
+              className="ml-auto text-purple-400 hover:text-purple-300 hover:underline transition-colors"
             >
-              <span className="text-sm leading-none">{autoPlay ? '🔊' : '🔇'}</span>
-              <span className="font-medium">自動再生</span>
-              {/* トグルスイッチ */}
-              <span
-                className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full border transition-colors duration-200 ${
-                  autoPlay ? 'bg-purple-500 border-purple-400' : 'bg-gray-700 border-gray-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200 mt-px ${
-                    autoPlay ? 'translate-x-3.5' : 'translate-x-0.5'
-                  }`}
-                />
-              </span>
-            </button>
+              無制限プランへ →
+            </a>
           </div>
         )}
-
         <div className="flex items-center gap-2">
           {/* テキスト入力 */}
-          <input
+          <textarea
             ref={inputRef}
-            type="text"
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              // auto-resize: 1行〜最大5行
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
             onKeyDown={handleKeyDown}
             placeholder={BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
             maxLength={2000}
+            rows={1}
             disabled={isSending || isGreeting}
-            style={{ fontSize: '16px', backgroundColor: 'var(--color-surface)' }}
-            className={`flex-1 text-[var(--color-text)] placeholder-[var(--color-muted)] rounded-2xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 touch-manipulation ${
+            style={{ fontSize: '16px', resize: 'none' }} // prevent iOS auto-zoom
+            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-3xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation overflow-y-auto ${
               hasInput
-                ? 'ring-1 ring-[var(--color-accent)]/40 border border-[var(--color-accent)]/40'
-                : 'border border-[var(--color-border)]'
+                ? 'border-purple-500/60 ring-1 ring-purple-500/30'
+                : 'border-gray-700/60'
             }`}
           />
 

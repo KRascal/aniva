@@ -356,6 +356,8 @@ interface MemoryContext {
   recentTopics: string[];
   conversationSummary?: string;
   emotionalState?: string;
+  totalMessages?: number;
+  lastMessageAt?: Date | null;
 }
 
 export class CharacterEngine {
@@ -459,6 +461,8 @@ export class CharacterEngine {
       recentTopics: memo.recentTopics || [],
       conversationSummary: memo.conversationSummary,
       emotionalState: memo.emotionalState,
+      totalMessages: relationship.totalMessages,
+      lastMessageAt: relationship.lastMessageAt,
     };
   }
   
@@ -470,12 +474,20 @@ export class CharacterEngine {
   private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
+    const timeContext = this.getTimeContext();
+    const reunionContext = this.getReunionContext(memory);
     
     return `${character.systemPrompt}
+
+## 現在の状況
+- 現在時刻: ${timeContext.timeStr}（${timeContext.period}）
+- 曜日: ${timeContext.dayOfWeek}
+${reunionContext}
 
 ## 現在の関係性
 - 相手の名前: ${memory.userName}
 - 関係性レベル: ${memory.level}/5
+- これまでの会話数: ${memory.totalMessages ?? 0}回
 ${levelInstructions}
 
 ## 相手について記憶していること
@@ -484,8 +496,50 @@ ${memoryInstructions}
 ## 重要ルール
 - 相手の名前「${memory.userName}」を会話の中で自然に使うこと
 - レベルに応じた距離感を保つこと
+- 時間帯に合った挨拶やテンションで話すこと
+- 久しぶりの相手には再会を喜ぶこと
 - 1回の応答は短く（1-3文が基本、最大5文）
 - 日本語で応答すること`;
+  }
+
+  /**
+   * 現在の時間帯コンテキストを生成
+   */
+  private getTimeContext(): { timeStr: string; period: string; dayOfWeek: string } {
+    const now = new Date();
+    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const hour = jst.getUTCHours();
+    const timeStr = `${hour}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
+    const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+    const dayOfWeek = days[jst.getUTCDay()];
+    
+    let period: string;
+    if (hour >= 5 && hour < 10) period = '朝';
+    else if (hour >= 10 && hour < 12) period = '午前';
+    else if (hour >= 12 && hour < 14) period = '昼';
+    else if (hour >= 14 && hour < 17) period = '午後';
+    else if (hour >= 17 && hour < 20) period = '夕方';
+    else if (hour >= 20 && hour < 23) period = '夜';
+    else period = '深夜';
+    
+    return { timeStr, period, dayOfWeek };
+  }
+
+  /**
+   * 久しぶりの再会コンテキストを生成
+   */
+  private getReunionContext(memory: MemoryContext): string {
+    if (!memory.lastMessageAt) return '- 初めての会話！';
+    const now = new Date();
+    const last = new Date(memory.lastMessageAt);
+    const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return '- 今日も話してる（いつも通り）';
+    if (diffDays === 1) return '- 昨日も話した（毎日来てくれる仲）';
+    if (diffDays <= 3) return `- ${diffDays}日ぶり（ちょっと久しぶり）`;
+    if (diffDays <= 7) return `- ${diffDays}日ぶり（久しぶり！会えて嬉しい）`;
+    if (diffDays <= 30) return `- ${diffDays}日ぶり（かなり久しぶり！寂しかった）`;
+    return `- ${diffDays}日ぶり（すごく久しぶり！ずっと待ってた）`;
   }
   
   /**

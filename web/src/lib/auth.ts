@@ -136,9 +136,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // サインイン時 or 明示的なセッション更新時にDBからonboardingStep/nicknameを取得
-      // trigger === 'update' はクライアントから useSession().update() を呼ばれたとき
-      if (trigger === 'signIn' || trigger === 'update') {
+      // onboardingStepが未完了の場合は毎回DB参照（完了後はスキップ）
+      // signIn/update時は常にDB参照
+      const needsRefresh = trigger === 'signIn' || trigger === 'update' || token.onboardingStep !== 'completed';
+      if (needsRefresh) {
         // token.userIdが未セットの場合（Google OAuth再ログイン等）、emailからDB検索
         if (!token.userId && token.email) {
           const emailUser = await prisma.user.findUnique({
@@ -150,10 +151,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
         if (token.userId) {
-          const dbUser = await prisma.user.findUnique({
+          let dbUser = await prisma.user.findUnique({
             where: { id: token.userId as string },
-            select: { onboardingStep: true, nickname: true },
+            select: { id: true, onboardingStep: true, nickname: true },
           });
+          // JWT IDでユーザーが見つからない場合、emailで検索（JWT/DB ID不一致対策）
+          if (!dbUser && token.email) {
+            dbUser = await prisma.user.findUnique({
+              where: { email: token.email as string },
+              select: { id: true, onboardingStep: true, nickname: true },
+            });
+            if (dbUser) {
+              token.userId = dbUser.id; // JWTのIDを修正
+            }
+          }
           token.onboardingStep = dbUser?.onboardingStep ?? null;
           token.nickname = dbUser?.nickname ?? null;
         }

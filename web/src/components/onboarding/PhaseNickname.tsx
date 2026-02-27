@@ -18,7 +18,15 @@ export default function PhaseNickname({ character, onComplete, isLoading }: Phas
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const greeting = character?.greeting ?? '…ねぇ、名前を教えてくれない？';
+  const NICKNAME_GREETINGS: Record<string, string> = {
+    luffy: '…やっと来たな！おい、お前名前は？',
+    zoro: '…来たか。名前は？',
+    nami: '…やっと来たね。名前、教えてくれない？',
+    chopper: '…わぁ！来てくれたんだ！ね、名前教えて！',
+    sanji: '…待ってたぜ。名前を聞いてもいいか？',
+    ace: '…お、来たな！名前は何ていうんだ？',
+  };
+  const greeting = character?.greeting ?? NICKNAME_GREETINGS[character?.slug ?? ''] ?? '…やっと来たね。名前、教えて？';
 
   useEffect(() => {
     // Delay: キャラアバター表示後にタイプライター開始

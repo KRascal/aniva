@@ -123,10 +123,17 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // オンボーディング未完了 → /onboarding へリダイレクト
-  // ただし公開ページは通過（LP→キャラ→認証→キャラ再選択のループ防止）
+  // オンボーディング未完了チェック
+  // 注意: JWTのonboardingStepはstaleな場合がある（update()後にcookieが反映される前にリダイレクトされるケース）
+  // そのため、DB完了済みでもJWTがnullのままループする問題が起きていた
+  // 対策: /explore と /chat はJWTが未完了でも通過させ、ページ側でセッション更新→リダイレクト制御
   if (onboardingStep !== 'completed') {
     if (isPublicPage) {
+      return NextResponse.next();
+    }
+    // /explore, /chat はstale JWT対策で通過許可（ページ側でonboardingチェック）
+    const isProtectedButAllowed = pathname.startsWith('/explore') || pathname.startsWith('/chat') || pathname.startsWith('/timeline') || pathname.startsWith('/mypage');
+    if (isProtectedButAllowed) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL('/onboarding', req.url));

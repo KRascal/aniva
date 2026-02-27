@@ -405,7 +405,7 @@ function CharacterHorizontalCard({
 }
 
 export default function ExplorePage() {
-  const { status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
 
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -413,6 +413,19 @@ export default function ExplorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('すべて');
+
+  // オンボーディング未完了ならリダイレクト（stale JWT対策: proxyをバイパスした場合のフォールバック）
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const step = (session?.user as any)?.onboardingStep;
+      if (step !== 'completed') {
+        // JWTがstaleかもしれない → update()でDB最新を取得
+        update().then(() => {
+          // update後に再チェック（session stateは自動更新される）
+        });
+      }
+    }
+  }, [status, session, update]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {

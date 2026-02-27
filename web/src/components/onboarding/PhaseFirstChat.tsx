@@ -13,9 +13,19 @@ interface PhaseFirstChatProps {
 
 const TOTAL_TURNS = 5;
 
-// キャラの初回メッセージ（定型）
-function getInitialMessage(nickname: string): string {
-  return `ねぇ${nickname}、好きなアニメとかある？`;
+// キャラの初回メッセージ（キャラ別）
+const CHARACTER_INITIAL_MESSAGES: Record<string, (nickname: string) => string> = {
+  luffy: (n) => `おう${n}！お前、好きなもんとかあるか？俺は肉が好きだ！ししし！`,
+  zoro: (n) => `…${n}か。何が好きなんだ？`,
+  nami: (n) => `ねぇ${n}、好きなこととかある？教えてよ！`,
+  chopper: (n) => `ね、ねぇ${n}！好きなこととかある？教えてほしいな！`,
+  sanji: (n) => `よう${n}、何が好きなんだ？料理か？美味いもんの話なら任せとけ`,
+  ace: (n) => `よぉ${n}！お前、何が好きなんだ？聞かせてくれよ！`,
+};
+
+function getInitialMessage(nickname: string, characterSlug?: string): string {
+  const fn = CHARACTER_INITIAL_MESSAGES[characterSlug ?? ''];
+  return fn ? fn(nickname) : `ねぇ${nickname}、好きなこととかある？`;
 }
 
 export default function PhaseFirstChat({ character, nickname, onComplete }: PhaseFirstChatProps) {
@@ -38,7 +48,7 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
   useEffect(() => {
     const initialMsg: ChatMessage = {
       role: 'assistant',
-      content: getInitialMessage(nickname),
+      content: getInitialMessage(nickname, character?.slug),
     };
     setMessages([initialMsg]);
     historyRef.current = [initialMsg];

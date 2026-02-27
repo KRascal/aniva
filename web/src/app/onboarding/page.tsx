@@ -87,12 +87,14 @@ function OnboardingInner() {
 
       // 途中離脱のリカバリー: DBの状態を復元
       let stateRestored = false;
+      let savedCharacterFromDB: { id: string; name: string; slug: string; avatarUrl: string | null; franchise?: string } | null = null;
       try {
         const stateRes = await fetch('/api/onboarding/state');
         if (stateRes.ok) {
           const stateData = await stateRes.json();
           if (stateData.success && stateData.data) {
             const { phase, nickname: savedNickname, character: savedCharacter, deeplinkSlug: savedSlug } = stateData.data;
+            if (savedCharacter) savedCharacterFromDB = savedCharacter;
 
             if (phase === 'completed') {
               // 完了済み: JWTを必ず更新してからフルリロード（proxyがonboardingにリダイレクトしないように）
@@ -154,24 +156,40 @@ function OnboardingInner() {
       if (slug && !stateRestored) {
         // stateRestoredフラグ: DB復元が既にsetStateした場合はスキップ
         // ここに来るのはDBにstateがない（新規ユーザー）場合
-        try {
-          const charRes = await fetch(`/api/characters/${slug}`);
-          if (charRes.ok) {
-            const charData = await charRes.json();
-            const c = charData.character ?? charData;
-            setState((prev) => ({
-              ...prev,
-              isDeepLink: true,
-              selectedCharacter: prev.selectedCharacter ?? {
-                id: c.id ?? '',
-                name: c.name ?? '',
-                slug: slug,
-                avatarUrl: c.avatarUrl ?? null,
-                franchise: c.franchise ?? '',
-              },
-            }));
-          }
-        } catch { /* ignore */ }
+        if (slug) {
+          try {
+            const charRes = await fetch(`/api/characters/${slug}`);
+            if (charRes.ok) {
+              const charData = await charRes.json();
+              const c = charData.character ?? charData;
+              setState((prev) => ({
+                ...prev,
+                isDeepLink: true,
+                selectedCharacter: prev.selectedCharacter ?? {
+                  id: c.id ?? '',
+                  name: c.name ?? '',
+                  slug: slug,
+                  avatarUrl: c.avatarUrl ?? null,
+                  franchise: c.franchise ?? '',
+                },
+              }));
+            }
+          } catch { /* ignore */ }
+        } else if (savedCharacterFromDB) {
+          // URLにfromパラメータがない（callbackUrl喪失等）が、DBにキャラが保存されている場合
+          // → signup時のcallbackUrlが失われてもdeeplinkを復元する
+          setState((prev) => ({
+            ...prev,
+            isDeepLink: true,
+            selectedCharacter: prev.selectedCharacter ?? {
+              id: savedCharacterFromDB!.id,
+              name: savedCharacterFromDB!.name,
+              slug: savedCharacterFromDB!.slug,
+              avatarUrl: savedCharacterFromDB!.avatarUrl,
+              franchise: savedCharacterFromDB!.franchise ?? '',
+            },
+          }));
+        }
       }
 
       setInitialized(true);

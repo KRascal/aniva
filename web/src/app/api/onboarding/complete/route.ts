@@ -36,8 +36,29 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const redirectTo = updatedUser.onboardingDeeplinkSlug
-      ? `/c/${updatedUser.onboardingDeeplinkSlug}`
+    // オンボーディングキャラを自動フォロー
+    if (updatedUser.onboardingCharacterId) {
+      await prisma.relationship.upsert({
+        where: {
+          userId_characterId: {
+            userId: effectiveUserId,
+            characterId: updatedUser.onboardingCharacterId,
+          },
+        },
+        create: {
+          userId: effectiveUserId,
+          characterId: updatedUser.onboardingCharacterId,
+          isFollowing: true,
+        },
+        update: {
+          isFollowing: true,
+        },
+      });
+    }
+
+    // ディープリンク経由: /chat/{characterId}へ（/c/{slug}はゲストフローで再表示されてしまう）
+    const redirectTo = updatedUser.onboardingCharacterId
+      ? `/chat/${updatedUser.onboardingCharacterId}`
       : '/explore';
 
     return NextResponse.json({

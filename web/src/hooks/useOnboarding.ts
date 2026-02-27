@@ -70,7 +70,7 @@ export function useOnboarding(initialDeeplinkCharacter?: CharacterData, initialS
     isDeepLink: !!initialDeeplinkCharacter,
     deeplinkSlug: initialSlug,
     turnIndex: 0,
-    redirectTo: initialDeeplinkCharacter ? `/c/${initialSlug}` : '/explore',
+    redirectTo: initialDeeplinkCharacter ? `/chat/${initialDeeplinkCharacter.id}` : '/explore',
   });
 
   /** Advance to next phase, optionally merging state updates */

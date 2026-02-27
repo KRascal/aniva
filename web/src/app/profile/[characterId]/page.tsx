@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FcMembershipSection } from '@/components/FcMembershipSection';
+import { MomentCard as SharedMomentCard, MOMENT_CARD_STYLES, type Moment as SharedMoment } from '@/components/moments/MomentCard';
 
 /* ───────────────────────── Luffy 固定データ ───────────────────────── */
 /* ───────────────────────── キャラクター情報データ ───────────────────────── */
@@ -293,58 +294,7 @@ function PersonalityTraitsSection({ traits }: { traits: PersonalityTrait[] }) {
   );
 }
 
-function MomentCard({ moment }: { moment: MomentItem }) {
-  if (moment.isLocked) {
-    return (
-      <div className="bg-gray-900/60 rounded-xl p-4 border border-gray-800/60 flex items-center gap-3">
-        <div className="opacity-40">
-          <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-gray-500 text-sm">ロックされたMoment</p>
-          <p className="text-gray-600 text-xs mt-0.5">プランをアップグレードして解放</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gray-900/70 rounded-xl p-4 border border-white/5 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          {moment.content && (
-            <p className="text-gray-200 text-sm leading-relaxed line-clamp-3">{moment.content}</p>
-          )}
-          {moment.mediaUrl && moment.type === 'IMAGE' && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={moment.mediaUrl}
-              alt="Moment"
-              className="mt-2 rounded-lg max-h-40 object-cover w-full"
-            />
-          )}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-gray-600">
-              {new Date(moment.publishedAt).toLocaleDateString('ja-JP', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            <span className="text-xs text-gray-600">·</span>
-            <span className="text-xs text-gray-600 flex items-center gap-0.5">
-                <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" /></svg>
-                {moment.reactionCount}
-              </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* MomentCard is now imported from shared component */
 
 /* ───────────────────────── メインページ ───────────────────────── */
 export default function ProfilePage() {
@@ -462,6 +412,52 @@ export default function ProfilePage() {
   const handleChat = () => {
     router.push(`/chat/${characterId}`);
   };
+
+  // いいね機能（タイムラインと同じ楽観的更新+API）
+  const handleLike = useCallback(async (momentId: string) => {
+    if (!session?.user) return;
+    setMoments((prev) =>
+      prev.map((m) => {
+        if (m.id !== momentId) return m;
+        const liked = !m.userHasLiked;
+        return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
+      })
+    );
+    try {
+      const res = await fetch(`/api/moments/${momentId}/react`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'like' }),
+      });
+      if (res.ok) {
+        const { liked, reactionCount } = await res.json();
+        setMoments((prev) =>
+          prev.map((m) => (m.id === momentId ? { ...m, userHasLiked: liked, reactionCount } : m))
+        );
+      }
+    } catch {
+      // revert on error
+      setMoments((prev) =>
+        prev.map((m) => {
+          if (m.id !== momentId) return m;
+          const liked = !m.userHasLiked;
+          return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
+        })
+      );
+    }
+  }, [session]);
+
+  // MomentItem → SharedMoment 変換（character情報を付与）
+  const toSharedMoment = useCallback((m: MomentItem): SharedMoment => ({
+    ...m,
+    characterId: characterId,
+    character: {
+      name: character?.name ?? '',
+      avatarUrl: character?.avatarUrl ?? null,
+    },
+    visibility: m.visibility ?? 'PUBLIC',
+    levelRequired: 0,
+  }), [characterId, character]);
 
   if (status === 'loading' || isLoading) {
     return (
@@ -664,7 +660,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               moments.map((moment) => (
-                <MomentCard key={moment.id} moment={moment} />
+                <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} />
               ))
             )}
           </div>
@@ -699,7 +695,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').map((moment) => (
-                    <MomentCard key={moment.id} moment={moment} />
+                    <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} />
                   ))
                 )}
               </>
@@ -953,6 +949,7 @@ export default function ProfilePage() {
 
       </div>
 
+      <style>{MOMENT_CARD_STYLES}</style>
       <style>{`
         @keyframes sparkle {
           0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
