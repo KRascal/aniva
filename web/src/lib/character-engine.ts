@@ -1,4 +1,6 @@
 import { prisma } from './prisma';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 // ============================================================
 // Prisma モデル型定義 (Prisma model types)
@@ -9,6 +11,7 @@ import { prisma } from './prisma';
 interface CharacterRecord {
   id: string;
   name: string;
+  slug: string;
   systemPrompt: string;
   voiceModelId?: string | null;
 }
@@ -515,6 +518,23 @@ export class CharacterEngine {
    * @param character キャラクターレコード
    * @param memory    パーソナライズメモリ
    */
+  /**
+   * SOUL.mdファイルからキャラクターの人格定義を読み込む
+   * ファイルが存在しなければDBのsystemPromptにフォールバック
+   */
+  private loadSoulMd(slug: string, dbFallback: string): string {
+    try {
+      // プロジェクトルートからの相対パス
+      const soulPath = join(process.cwd(), '..', 'agents', slug, 'SOUL.md');
+      if (existsSync(soulPath)) {
+        return readFileSync(soulPath, 'utf-8');
+      }
+    } catch {
+      // ファイル読み込み失敗はフォールバック
+    }
+    return dbFallback;
+  }
+
   private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
@@ -522,7 +542,10 @@ export class CharacterEngine {
     const reunionContext = this.getReunionContext(memory);
     const emotionContext = this.getCharacterEmotionContext(memory);
     
-    return `${character.systemPrompt}
+    // SOUL.mdファイルを優先、なければDBのsystemPrompt
+    const soulContent = this.loadSoulMd(character.slug, character.systemPrompt);
+    
+    return `${soulContent}
 
 ## 現在の状況
 - 現在時刻: ${timeContext.timeStr}（${timeContext.period}）
