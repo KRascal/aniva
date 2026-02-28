@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
         xp: updatedRelationship?.experiencePoints ?? 0,
         leveledUp,
         newLevel: leveledUp ? newLevel : undefined,
+        freeMessagesRemaining: access.type === 'FREE' ? (access as { freeMessagesRemaining?: number }).freeMessagesRemaining : undefined,
       },
     });
   } catch (error) {

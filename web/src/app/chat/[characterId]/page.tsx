@@ -121,6 +121,7 @@ interface RelationshipInfo {
   character?: { name: string; slug: string };
   isFanclub?: boolean;
   isFollowing?: boolean;
+  sharedTopics?: { type: string; text: string }[];
 }
 
 interface Character {
@@ -271,7 +272,13 @@ export default function ChatCharacterPage() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   // キャラのテーマカラー（感情に応じて変化）
-  const [bgTheme, setBgTheme] = useState<string>('rgba(88,28,135,0.06), rgba(0,0,0,0)');
+  // 深夜モード（23:00-3:00）: 暖色系の特別な雰囲気
+  const isLateNight = (() => { const h = new Date().getHours(); return h >= 23 || h < 3; })();
+  const [bgTheme, setBgTheme] = useState<string>(
+    isLateNight
+      ? 'rgba(180,83,9,0.08), rgba(153,27,27,0.05)' // 暖色（深夜の親密さ）
+      : 'rgba(88,28,135,0.06), rgba(0,0,0,0)'
+  );
   // 感情エフェクト
   const [hungryEmojis, setHungryEmojis] = useState<{ id: number; x: number; delay: number }[]>([]);
   const [showStars, setShowStars] = useState(false);
@@ -474,6 +481,22 @@ export default function ChatCharacterPage() {
         data.userMessage,
         characterMsg,
       ]);
+
+      // 残りメッセージ予告（残り2通以下でキャラが予告）
+      if (data.relationship?.freeMessagesRemaining !== undefined && data.relationship.freeMessagesRemaining <= 2 && data.relationship.freeMessagesRemaining > 0) {
+        const warnings = [
+          `（…あと${data.relationship.freeMessagesRemaining}回しか話せねぇのか…もっと話したいのに）`,
+          `（今日はあと${data.relationship.freeMessagesRemaining}回か…名残惜しいな…）`,
+        ];
+        const warningMsg: Message = {
+          id: `warn-${Date.now()}`,
+          role: 'CHARACTER',
+          content: warnings[Math.floor(Math.random() * warnings.length)],
+          createdAt: new Date().toISOString(),
+          metadata: { emotion: 'sad', isSystemHint: true },
+        };
+        setMessages((prev) => [...prev, warningMsg]);
+      }
 
       if (data.characterMessage?.metadata?.emotion) {
         const newEmotion = data.characterMessage.metadata.emotion;
@@ -819,6 +842,23 @@ export default function ChatCharacterPage() {
           </svg>
         </button>
       </header>
+
+      {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
+      {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (
+        <div className="flex-shrink-0 bg-purple-950/30 border-b border-white/5 px-3 py-1.5 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <span className="text-[10px] text-gray-500 flex-shrink-0">覚えてること:</span>
+            {relationship.sharedTopics.slice(0, 5).map((topic, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-0.5 text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded-full border border-purple-700/30"
+              >
+                {topic.type === 'like' ? '💜' : '📝'} {topic.text}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ══════════════ Live2D ビューアー（トグル） ══════════════ */}
       {isViewerExpanded && (

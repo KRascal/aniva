@@ -164,6 +164,18 @@ export async function checkChatAccess(
   userId: string,
   characterId: string
 ): Promise<ChatAccessResult> {
+  // 0. 新規ユーザー3日間無制限（沼に落とす猶予期間）
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { createdAt: true },
+  });
+  if (user) {
+    const daysSinceSignup = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSinceSignup < 3) {
+      return { type: 'FREE', freeMessagesUsed: 0, freeMessagesRemaining: 999 };
+    }
+  }
+
   // 1. FC加入チェック
   const sub = await prisma.characterSubscription.findFirst({
     where: { userId, characterId, status: 'ACTIVE' },

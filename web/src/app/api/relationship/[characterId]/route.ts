@@ -34,6 +34,17 @@ export async function GET(
   const currentLevel = RELATIONSHIP_LEVELS[relationship.level - 1];
   const nextLevel = RELATIONSHIP_LEVELS[relationship.level] || null;
 
+  // 会話記憶から共有トピックを抽出
+  const memo = (relationship.memorySummary ?? {}) as {
+    preferences?: { likes?: string[]; dislikes?: string[] };
+    importantFacts?: string[];
+    recentTopics?: string[];
+  };
+  const sharedTopics = [
+    ...(memo.preferences?.likes ?? []).slice(0, 5).map((l: string) => ({ type: 'like', text: l })),
+    ...(memo.importantFacts ?? []).slice(0, 3).map((f: string) => ({ type: 'fact', text: f })),
+  ];
+
   return NextResponse.json({
     level: relationship.level,
     levelName: currentLevel.name,
@@ -43,5 +54,8 @@ export async function GET(
     firstMessageAt: relationship.firstMessageAt,
     lastMessageAt: relationship.lastMessageAt,
     character: relationship.character,
+    isFanclub: relationship.isFanclub,
+    isFollowing: relationship.isFollowing,
+    sharedTopics, // 覚えてくれてる記憶の可視化
   });
 }
