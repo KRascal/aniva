@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { DailyBonus } from '@/components/DailyBonus';
 
 interface Character {
   id: string;
@@ -546,6 +547,8 @@ export default function ExplorePage() {
 
   return (
     <>
+      {/* デイリーログインボーナス */}
+      <DailyBonus />
       <style>{`
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     let userPlan: string = 'FREE';
     let userRelationships: Record<string, number> = {};
     let followingCharacterIds: string[] | null = null; // null = フィルタなし（characterId指定時）
+    // FC加入状態: characterId → true/false
+    const fcSubscribedCharacterIds: Set<string> = new Set();
 
     if (userId) {
       const user = await prisma.user.findUnique({
@@ -32,6 +34,19 @@ export async function GET(req: NextRequest) {
       });
       for (const r of relationships) {
         userRelationships[r.characterId] = r.level;
+      }
+
+      // CharacterSubscription（FC加入状態）を取得
+      const fcSubs = await prisma.characterSubscription.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          ...(characterId ? { characterId } : {}),
+        },
+        select: { characterId: true },
+      });
+      for (const sub of fcSubs) {
+        fcSubscribedCharacterIds.add(sub.characterId);
       }
 
       // characterId 未指定の場合はフォロー中のキャラのみ
@@ -95,7 +110,7 @@ export async function GET(req: NextRequest) {
       } else if (moment.visibility === 'STANDARD') {
         isLocked = !['STANDARD', 'PREMIUM'].includes(userPlan);
       } else if (moment.visibility === 'PREMIUM') {
-        isLocked = userPlan !== 'PREMIUM';
+        isLocked = !fcSubscribedCharacterIds.has(moment.characterId);
       } else if (moment.visibility === 'LEVEL_LOCKED') {
         const userLevel = userRelationships[moment.characterId] ?? 0;
         isLocked = userLevel < moment.levelRequired;

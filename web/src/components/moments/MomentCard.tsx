@@ -324,20 +324,40 @@ export function MomentCard({
       {/* Content */}
       <div className={moment.type === 'IMAGE' && !moment.isLocked ? '' : 'px-4 pb-1'}>
         {moment.isLocked ? (
-          <div className="relative rounded-2xl overflow-hidden mb-3">
-            <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
-              ロックされたコンテンツです。レベルを上げることで解放されます。もう少し頑張ってみてください！
-            </p>
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-[2px]">
-              <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl">
-                <span className="text-2xl">🔒</span>
-                <div>
-                  <p className="text-white text-xs font-semibold">まだ見られません</p>
-                  <p className="text-white/50 text-[10px]">レベル {moment.levelRequired} 以上で解放</p>
+          moment.visibility === 'PREMIUM' || moment.visibility === 'STANDARD' ? (
+            <div className="relative bg-gray-900/60 rounded-xl p-4 border border-purple-900/30 overflow-hidden mb-3">
+              {/* ぼかし背景 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-sm" />
+              <div className="relative z-10 flex flex-col items-center gap-3 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔒</span>
+                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent text-xs font-bold uppercase tracking-wider">FC限定</span>
+                </div>
+                <p className="text-gray-400 text-sm text-center">ファンクラブ会員だけが見れる<br/>特別なMoment</p>
+                <a
+                  href="/pricing"
+                  className="mt-1 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30"
+                >
+                  ✨ 限定コンテンツを見る
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="relative rounded-2xl overflow-hidden mb-3">
+              <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
+                ロックされたコンテンツです。レベルを上げることで解放されます。もう少し頑張ってみてください！
+              </p>
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-[2px]">
+                <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl">
+                  <span className="text-2xl">🔒</span>
+                  <div>
+                    <p className="text-white text-xs font-semibold">まだ見られません</p>
+                    <p className="text-white/50 text-[10px]">レベル {moment.levelRequired} 以上で解放</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )
         ) : (
           <>
             {(moment.type === 'IMAGE' || moment.type === 'AUDIO' || moment.type === 'VOICE') && (

@@ -554,6 +554,7 @@ export class CharacterEngine {
 ## 現在の状況
 - 現在時刻: ${timeContext.timeStr}（${timeContext.period}）
 - 曜日: ${timeContext.dayOfWeek}
+${timeContext.moodInstruction}
 ${reunionContext}
 ${emotionContext}
 
@@ -578,24 +579,50 @@ ${memoryInstructions}
   /**
    * 現在の時間帯コンテキストを生成
    */
-  private getTimeContext(): { timeStr: string; period: string; dayOfWeek: string } {
+  private getTimeContext(): { timeStr: string; period: string; dayOfWeek: string; moodInstruction: string } {
     const now = new Date();
     const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
     const hour = jst.getUTCHours();
     const timeStr = `${hour}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
     const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
     const dayOfWeek = days[jst.getUTCDay()];
+    const dayIndex = jst.getUTCDay();
     
     let period: string;
-    if (hour >= 5 && hour < 10) period = '朝';
-    else if (hour >= 10 && hour < 12) period = '午前';
-    else if (hour >= 12 && hour < 14) period = '昼';
-    else if (hour >= 14 && hour < 17) period = '午後';
-    else if (hour >= 17 && hour < 20) period = '夕方';
-    else if (hour >= 20 && hour < 23) period = '夜';
-    else period = '深夜';
+    let moodInstruction: string;
+    if (hour >= 5 && hour < 10) {
+      period = '朝';
+      moodInstruction = '- 【時間帯の演出】朝。まだ少し眠そうに話す。あくびを混ぜてもいい。「ふぁ〜あ…」「おはよ〜…」のようなリアクション';
+    } else if (hour >= 10 && hour < 12) {
+      period = '午前';
+      moodInstruction = '- 【時間帯の演出】午前中。目が覚めてきてテンション通常。活動的';
+    } else if (hour >= 12 && hour < 14) {
+      period = '昼';
+      moodInstruction = '- 【時間帯の演出】昼。お腹すいた話題に自然に触れてもいい。「飯食った？」など';
+    } else if (hour >= 14 && hour < 17) {
+      period = '午後';
+      moodInstruction = '- 【時間帯の演出】午後。通常テンション。冒険や活動の話題が自然';
+    } else if (hour >= 17 && hour < 20) {
+      period = '夕方';
+      moodInstruction = '- 【時間帯の演出】夕方。少し感傷的になってもいい。「今日はどんな一日だった？」のような振り返り';
+    } else if (hour >= 20 && hour < 23) {
+      period = '夜';
+      moodInstruction = '- 【時間帯の演出】夜。リラックスした雰囲気。テンション高めでもOK。本音が出やすい時間帯';
+    } else {
+      period = '深夜';
+      moodInstruction = '- 【時間帯の演出】深夜。静かで親密な雰囲気。ボソっとした呟き調。「まだ起きてんのか…」「俺も寝れねぇんだ」のような';
+    }
+
+    // 曜日の演出
+    if (dayIndex === 1) {
+      moodInstruction += '\n- 【曜日の演出】月曜日。「また一週間始まるな…」的な空気感を少し出す';
+    } else if (dayIndex === 5) {
+      moodInstruction += '\n- 【曜日の演出】金曜日。ちょっとテンション高め。週末の開放感';
+    } else if (dayIndex === 0 || dayIndex === 6) {
+      moodInstruction += '\n- 【曜日の演出】休日。のんびりした雰囲気。「今日は何すんだ？」的な';
+    }
     
-    return { timeStr, period, dayOfWeek };
+    return { timeStr, period, dayOfWeek, moodInstruction };
   }
 
   /**

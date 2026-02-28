@@ -7,6 +7,7 @@ import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
 import { CallModal } from '@/components/chat/CallModal';
+import { GiftPanel } from '@/components/chat/GiftPanel';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
