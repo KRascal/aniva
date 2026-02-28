@@ -4,6 +4,21 @@ import { NextResponse } from 'next/server';
 
 const { auth } = NextAuth(authConfig);
 
+const SUPPORTED_LOCALES = ['ja', 'en'];
+const DEFAULT_LOCALE = 'ja';
+
+function detectLocale(req: { headers: Headers; cookies: { get: (name: string) => { value: string } | undefined } }): string {
+  // 1. Cookie
+  const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value;
+  if (cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale)) return cookieLocale;
+  // 2. Accept-Language header
+  const acceptLang = req.headers.get('accept-language') ?? '';
+  for (const locale of SUPPORTED_LOCALES) {
+    if (acceptLang.includes(locale)) return locale;
+  }
+  return DEFAULT_LOCALE;
+}
+
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = req.nextUrl.pathname;

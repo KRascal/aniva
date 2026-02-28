@@ -1,0 +1,54 @@
+{
+  "common": {
+    "siteTitle": "ANIVA",
+    "tagline": "推しが実在する世界",
+    "loading": "読み込み中..."
+  },
+  "nav": {
+    "explore": "さがす",
+    "moments": "タイムライン",
+    "chat": "チャット",
+    "mypage": "マイページ"
+  },
+  "chat": {
+    "inputPlaceholder": "メッセージを入力...",
+    "send": "送信",
+    "loading": "考え中...",
+    "startChat": "チャットを始める",
+    "newChat": "新しいチャット"
+  },
+  "profile": {
+    "level": "レベル",
+    "bond": "絆",
+    "messages": "メッセージ数",
+    "days": "日目",
+    "charDetail": "キャラ詳細",
+    "stats": "統計"
+  },
+  "home": {
+    "hero": "推しが実在する世界",
+    "heroSub": "AIが魂を宿すキャラクターと本物の絆を築く",
+    "cta": "今すぐ始める",
+    "ctaSub": "無料で登録"
+  },
+  "auth": {
+    "login": "ログイン",
+    "signup": "新規登録",
+    "logout": "ログアウト",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginWithGoogle": "Googleでログイン",
+    "loginWithTwitter": "Xでログイン",
+    "noAccount": "アカウントをお持ちでない方",
+    "hasAccount": "すでにアカウントをお持ちの方"
+  },
+  "explore": {
+    "title": "キャラクターを探す",
+    "searchPlaceholder": "キャラクターを検索...",
+    "noResults": "キャラクターが見つかりませんでした"
+  },
+  "moments": {
+    "title": "タイムライン",
+    "noMoments": "まだモーメントがありません"
+  }
+}

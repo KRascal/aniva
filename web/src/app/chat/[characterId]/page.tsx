@@ -77,6 +77,12 @@ const GLOBAL_STYLES = `
     animation: waveBar 0.8s ease-in-out infinite;
   }
   .msg-animate       { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
+  @keyframes inputFlash {
+    0% { box-shadow: 0 0 0 0 rgba(168,85,247,0.6); }
+    50% { box-shadow: 0 0 20px 4px rgba(168,85,247,0.3); }
+    100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+  }
+  .input-flash { animation: inputFlash 0.5s ease-out; }
   .send-bounce       { animation: sendBounce 0.38s ease-out; }
   .send-glow         { animation: glowPulse 1.6s ease-in-out infinite; }
   .viewer-slide      { animation: viewerSlide 0.3s ease-out; }
@@ -501,6 +507,10 @@ export default function ChatCharacterPage() {
     if (!inputText.trim() || isSending || isGreeting) return;
     setIsSendBouncing(true);
     setTimeout(() => setIsSendBouncing(false), 400);
+    if (inputRef.current) {
+      inputRef.current.classList.add('input-flash');
+      setTimeout(() => inputRef.current?.classList.remove('input-flash'), 500);
+    }
     sendMessage();
   };
 
@@ -854,9 +864,23 @@ export default function ChatCharacterPage() {
                   )}
                 </div>
 
-                {/* タイムスタンプ */}
-                <span className="text-[10px] text-gray-600 px-1">
+                {/* タイムスタンプ + 既読 */}
+                <span className="text-[10px] text-gray-600 px-1 flex items-center gap-1">
                   {new Date(msg.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                  {isUser && idx === messages.length - 1 && (
+                    (() => {
+                      const hasCharReply = messages.slice(idx + 1).some((m: Message) => m.role === 'CHARACTER');
+                      return hasCharReply ? (
+                        <svg className="w-3.5 h-3.5 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M1 12l5 5L17 6M7 12l5 5L23 6" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L20 7" />
+                        </svg>
+                      );
+                    })()
+                  )}
                 </span>
               </div>
             </div>

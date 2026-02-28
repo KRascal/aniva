@@ -1,0 +1,54 @@
+{
+  "common": {
+    "siteTitle": "ANIVA",
+    "tagline": "Where your favorites come to life",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "explore": "Explore",
+    "moments": "Timeline",
+    "chat": "Chat",
+    "mypage": "My Page"
+  },
+  "chat": {
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "loading": "Thinking...",
+    "startChat": "Start chatting",
+    "newChat": "New chat"
+  },
+  "profile": {
+    "level": "Level",
+    "bond": "Bond",
+    "messages": "Messages",
+    "days": "Days",
+    "charDetail": "Character Details",
+    "stats": "Stats"
+  },
+  "home": {
+    "hero": "Where your favorites come to life",
+    "heroSub": "Build real bonds with AI-powered characters",
+    "cta": "Get Started",
+    "ctaSub": "Free to join"
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "loginWithGoogle": "Sign in with Google",
+    "loginWithTwitter": "Sign in with X",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "explore": {
+    "title": "Explore Characters",
+    "searchPlaceholder": "Search characters...",
+    "noResults": "No characters found"
+  },
+  "moments": {
+    "title": "Timeline",
+    "noMoments": "No moments yet"
+  }
+}

@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PushSetup } from "@/components/PushSetup";
 import { BottomNav } from "@/components/BottomNav";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,24 +71,29 @@ export const viewport: Viewport = {
   themeColor: "#8b5cf6",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
-        <Providers>
-          <PushSetup />
-          {children}
-          <BottomNav />
-        </Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
+            <PushSetup />
+            {children}
+            <BottomNav />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

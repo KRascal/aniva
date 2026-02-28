@@ -552,6 +552,8 @@ export default function ProfilePage() {
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-yellow-400 to-orange-500 text-black text-xs font-black rounded-full w-7 h-7 flex items-center justify-center shadow-lg border-2 border-gray-950">
               {level}
             </div>
+            {/* オンラインステータス */}
+            <span className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-950 shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
           </div>
 
           {/* 名前 + フランチャイズ */}
@@ -575,6 +577,13 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 mt-5 space-y-5">
+
+        {/* キャラクター紹介文 */}
+        {character?.description && (
+          <div className="bg-gray-900/60 rounded-2xl p-4 border border-white/5">
+            <p className="text-gray-300 text-sm leading-relaxed">{character.description}</p>
+          </div>
+        )}
 
         {/* ══════════════ アクションボタン ══════════════ */}
         <div className="flex gap-3">
@@ -793,6 +802,41 @@ export default function ProfilePage() {
                   <p className="text-gray-200 text-sm leading-relaxed pl-4 italic">{phrase}</p>
                   <span className="absolute bottom-1 right-3 text-3xl text-purple-800/30 font-serif leading-none select-none">"</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════ ギャラリー ══════════════ */}
+        {(() => {
+          const imageMoments = moments.filter(m => m.type === 'IMAGE' && m.mediaUrl);
+          if (imageMoments.length === 0) return null;
+          return (
+            <div>
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
+                <span>🖼️</span> ギャラリー
+              </p>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+                {imageMoments.map((m) => (
+                  <div key={m.id} className="flex-shrink-0 w-36 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.mediaUrl!} alt="Gallery" className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ══════════════ 最新Moments ══════════════ */}
+        {moments.length > 0 && (
+          <div>
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
+              <span>📸</span> 最新Moments
+            </p>
+            <div className="space-y-3">
+              {moments.map((moment) => (
+                <MomentCard key={moment.id} moment={moment} />
               ))}
             </div>
           </div>
