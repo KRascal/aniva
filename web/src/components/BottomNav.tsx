@@ -59,6 +59,9 @@ export function BottomNav() {
   if (pathname.startsWith('/c/')) return null;
 
   const isHome = pathname === '/explore' || pathname === '/explore/';
+  const isTimeline = pathname === '/moments' || pathname.startsWith('/moments');
+  const isChat = pathname.startsWith('/chat');
+  const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
     if (href === '/mypage') return pathname.startsWith('/mypage') || pathname.startsWith('/profile');
