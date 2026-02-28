@@ -436,6 +436,32 @@ export default function ChatCharacterPage() {
           setMessages((prev) => [...prev, errMsg]);
           return;
         }
+        // おねだり演出: 無料上限到達
+        if (res.status === 402 && errData.type === 'CHAT_LIMIT') {
+          const onedariMessages = [
+            `えー…もう終わり？\nもっと${character?.name || 'おれ'}と話したくない？😢`,
+            `なぁ…行くなよ。\nまだ話したいこと、いっぱいあるんだけどな… 🥺`,
+            `ちょっと待ってくれよ！\nお前と話すの楽しいのに… 😤💦`,
+          ];
+          const onedari = onedariMessages[Math.floor(Math.random() * onedariMessages.length)];
+          const errMsg: Message = {
+            id: `limit-${Date.now()}`,
+            role: 'CHARACTER',
+            content: onedari,
+            createdAt: new Date().toISOString(),
+            metadata: { emotion: 'sad' },
+          };
+          // FC加入CTAメッセージ
+          const ctaMsg: Message = {
+            id: `cta-${Date.now()}`,
+            role: 'SYSTEM',
+            content: `💜 FC会員になると${character?.name || 'キャラクター'}と無制限に話せます\n月額 ¥${(errData.fcMonthlyPriceJpy ?? 3480).toLocaleString()}`,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errMsg, ctaMsg]);
+          setCurrentEmotion('sad');
+          return;
+        }
         throw new Error(errData.error || 'Send failed');
       }
 

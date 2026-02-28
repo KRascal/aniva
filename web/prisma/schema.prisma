@@ -120,6 +120,7 @@ model Character {
   // === 多言語・地域対応 ===
   // localeConfig: { "en": { voiceModelId, systemPrompt, catchphrases[], toneNotes }, "ko": {...} }
   localeConfig            Json?                   @default("{}")   // 言語別の声優/口調/プロンプト設定
+  birthday                String?                                  // "MM-DD" format e.g. "05-05" for May 5th
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]
