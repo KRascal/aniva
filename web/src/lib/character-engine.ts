@@ -66,6 +66,7 @@ interface MemorySummaryData {
   userName?: string;
   preferences?: {
     likes?: string[];
+    dislikes?: string[];
     [key: string]: string | string[] | undefined;
   };
   importantFacts?: string[];
@@ -818,6 +819,49 @@ ${memoryInstructions}
         updatedAt: new Date().toISOString(),
       };
       memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('出身/居住:')), locationFact];
+    }
+
+    // 嫌い/苦手検出
+    const dislikeMatch = userMessage.match(/(.{1,20})(?:が|は)(?:嫌い|苦手|ダメ|無理)/);
+    if (dislikeMatch) {
+      const dislikes = memo.preferences?.dislikes ?? [];
+      if (!dislikes.includes(dislikeMatch[1])) {
+        dislikes.push(dislikeMatch[1]);
+      }
+      memo.preferences = { ...memo.preferences, dislikes };
+      const dislikeFact: FactEntry = {
+        fact: `${dislikeMatch[1]}が苦手/嫌い`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact === dislikeFact.fact)) {
+        memo.factMemory = [...(memo.factMemory ?? []), dislikeFact];
+      }
+    }
+
+    // 趣味検出
+    const hobbyMatch = userMessage.match(/趣味(?:は|が)(.{1,20})(?:だ|です|をすること|こと|。|！|$)/);
+    if (hobbyMatch) {
+      const hobbyFact: FactEntry = {
+        fact: `趣味: ${hobbyMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('趣味:')), hobbyFact];
+    }
+
+    // 誕生日検出
+    const birthdayMatch = userMessage.match(/誕生日(?:は)?(\d{1,2})月(\d{1,2})日/);
+    if (birthdayMatch) {
+      const birthdayFact: FactEntry = {
+        fact: `誕生日: ${birthdayMatch[1]}月${birthdayMatch[2]}日`,
+        source: 'ユーザー発言',
+        confidence: 1.0,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('誕生日:')), birthdayFact];
     }
 
     // 既存importantFactsをfactMemoryへ移行
