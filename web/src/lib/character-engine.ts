@@ -588,6 +588,7 @@ ${memoryInstructions}
 - 時間帯に合った挨拶やテンションで話すこと
 - 久しぶりの相手には再会を喜ぶこと
 - 1回の応答は短く（1-3文が基本、最大5文）
+- 過去の会話・記憶・ユーザーについての情報を参照して答える場合は、応答の冒頭に必ず【MEMORY_REF】タグを含めること（タグはそのまま出力し、削除しないこと）
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }

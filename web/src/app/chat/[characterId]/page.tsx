@@ -12,6 +12,7 @@ import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
+import { getCharacterTheme } from '@/lib/character-themes';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -104,9 +105,9 @@ const GLOBAL_STYLES = `
 /* ─────────────── 型定義 ─────────────── */
 interface Message {
   id: string;
-  role: 'USER' | 'CHARACTER';
+  role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string };
+  metadata?: { emotion?: string; isSystemHint?: boolean };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -130,6 +131,7 @@ interface Character {
   nameEn: string;
   franchise: string;
   avatarUrl: string | null;
+  slug?: string;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
@@ -279,6 +281,7 @@ export default function ChatCharacterPage() {
       ? 'rgba(180,83,9,0.08), rgba(153,27,27,0.05)' // 暖色（深夜の親密さ）
       : 'rgba(88,28,135,0.06), rgba(0,0,0,0)'
   );
+  const [charBgGradient, setCharBgGradient] = useState<string>('');
   // 感情エフェクト
   const [hungryEmojis, setHungryEmojis] = useState<{ id: number; x: number; delay: number }[]>([]);
   const [showStars, setShowStars] = useState(false);
@@ -337,6 +340,15 @@ export default function ChatCharacterPage() {
       .then((data) => { if (data.character) setCharacter(data.character); })
       .catch(console.error);
   }, [characterId]);
+
+  // キャラクターテーマを背景に適用
+  useEffect(() => {
+    const slug = character?.slug ?? relationship?.character?.slug;
+    if (!slug) return;
+    const theme = getCharacterTheme(slug);
+    const el = document.querySelector('.chat-bg') as HTMLElement | null;
+    setCharBgGradient(theme.bgGradient);
+  }, [character?.slug, relationship?.character?.slug]);
 
   // ユーザープラン取得
   useEffect(() => {
@@ -646,7 +658,7 @@ export default function ChatCharacterPage() {
   return (
     <div
       className="flex flex-col h-[100dvh] max-w-lg mx-auto relative chat-bg"
-      style={{ background: `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
+      style={{ background: charBgGradient ? `radial-gradient(ellipse at top, ${bgTheme}), ${charBgGradient}` : `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
     >
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
@@ -898,6 +910,9 @@ export default function ChatCharacterPage() {
           const isUser = msg.role === 'USER';
           const emotion = msg.metadata?.emotion;
           const emotionEmoji = getEmotionEmoji(emotion);
+          // 記憶参照タグ検出・除去
+          const hasMemoryRef = !isUser && msg.content.includes('【MEMORY_REF】');
+          const displayContent = hasMemoryRef ? msg.content.replace(/【MEMORY_REF】/g, '').trim() : msg.content;
           // 連続メッセージの最後にだけアバター表示
           const nextMsg = messages[idx + 1];
           const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
@@ -929,6 +944,21 @@ export default function ChatCharacterPage() {
                   </span>
                 )}
 
+                {/* 💭 記憶参照バッジ */}
+                {hasMemoryRef && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-0.5 ml-0.5 select-none"
+                    style={{
+                      background: 'rgba(168,85,247,0.18)',
+                      color: '#d8b4fe',
+                      border: '1px solid rgba(168,85,247,0.35)',
+                      boxShadow: '0 0 8px 2px rgba(168,85,247,0.25)',
+                    }}
+                  >
+                    💭 覚えてるよ
+                  </span>
+                )}
+
                 <div
                   className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
                     isUser
@@ -938,8 +968,9 @@ export default function ChatCharacterPage() {
                       msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
                     }`
                   }`}
+                  style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
                 >
-                  <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                  <span className="whitespace-pre-wrap break-words">{displayContent}</span>
                   {emotionEmoji && (
                     <span className="ml-1.5 text-base">{emotionEmoji}</span>
                   )}
