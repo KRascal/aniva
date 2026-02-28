@@ -335,10 +335,10 @@ export function MomentCard({
                 </div>
                 <p className="text-gray-400 text-sm text-center">ファンクラブ会員だけが見れる<br/>特別なMoment</p>
                 <a
-                  href="/pricing"
+                  href={`/profile/${moment.characterId}#fc`}
                   className="mt-1 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30"
                 >
-                  ✨ 限定コンテンツを見る
+                  💜 {moment.character.name}のFC会員になる
                 </a>
               </div>
             </div>
