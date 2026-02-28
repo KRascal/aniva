@@ -55,10 +55,19 @@ export async function POST(req: NextRequest) {
       const template = ANNIVERSARY_MESSAGES[Math.floor(Math.random() * ANNIVERSARY_MESSAGES.length)];
       const message = template.replace('{years}', String(years));
 
-      // DMとしてメッセージ保存
+      // DMとしてメッセージ保存（最新会話を取得 or 新規作成）
+      let annivConv = await prisma.conversation.findFirst({
+        where: { relationshipId: rel.id },
+        orderBy: { updatedAt: 'desc' },
+      });
+      if (!annivConv) {
+        annivConv = await prisma.conversation.create({
+          data: { relationshipId: rel.id },
+        });
+      }
       await prisma.message.create({
         data: {
-          relationshipId: rel.id,
+          conversationId: annivConv.id,
           role: 'CHARACTER',
           content: message,
           metadata: { type: 'anniversary', emotion: 'happy', years },
@@ -86,11 +95,40 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. キャラ誕生日チェック（TODO: characterテーブルにbirthday列追加後に有効化）
-  // const characters = await prisma.character.findMany({
-  //   where: { isActive: true, birthday: { not: null } },
-  // });
-  // for (const char of characters) { ... }
+  // 2. キャラ誕生日チェック
+  const todayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const birthdayChars = await prisma.character.findMany({
+    where: { isActive: true, birthday: todayStr },
+  });
+
+  for (const char of birthdayChars) {
+    // このキャラをフォローしている全ユーザーに誕生日DMを送信
+    const followers = await prisma.relationship.findMany({
+      where: { characterId: char.id, isFollowing: true },
+    });
+    for (const rel of followers) {
+      // 最新会話を取得 or 新規作成
+      let conversation = await prisma.conversation.findFirst({
+        where: { relationshipId: rel.id },
+        orderBy: { updatedAt: 'desc' },
+      });
+      if (!conversation) {
+        conversation = await prisma.conversation.create({
+          data: { relationshipId: rel.id },
+        });
+      }
+      const msg = BIRTHDAY_MESSAGES[Math.floor(Math.random() * BIRTHDAY_MESSAGES.length)];
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'CHARACTER',
+          content: msg,
+          metadata: { type: 'birthday', emotion: 'excited', character: char.slug },
+        },
+      });
+      results.birthdayDMs++;
+    }
+  }
 
   return NextResponse.json({
     success: true,

@@ -12,6 +12,7 @@ const characters = [
   // ─── ルフィ ────────────────────────────────────────────
   {
     slug: 'luffy',
+    birthday: '05-05', // 5月5日
     name: 'モンキー・D・ルフィ',
     nameEn: 'Monkey D. Luffy',
     franchise: 'ONE PIECE',
@@ -59,6 +60,7 @@ const characters = [
   // ─── ゾロ ────────────────────────────────────────────
   {
     slug: 'zoro',
+    birthday: '11-11', // 11月11日
     name: 'ロロノア・ゾロ',
     nameEn: 'Roronoa Zoro',
     franchise: 'ONE PIECE',
@@ -110,6 +112,7 @@ const characters = [
   // ─── ナミ ────────────────────────────────────────────
   {
     slug: 'nami',
+    birthday: '07-03', // 7月3日
     name: 'ナミ',
     nameEn: 'Nami',
     franchise: 'ONE PIECE',
@@ -157,6 +160,7 @@ const characters = [
   // ─── チョッパー ────────────────────────────────────────────
   {
     slug: 'chopper',
+    birthday: '12-24', // 12月24日
     name: 'トニートニー・チョッパー',
     nameEn: 'Tony Tony Chopper',
     franchise: 'ONE PIECE',
@@ -204,6 +208,7 @@ const characters = [
   // ─── サンジ ────────────────────────────────────────────
   {
     slug: 'sanji',
+    birthday: '03-02', // 3月2日
     name: 'ヴィンスモーク・サンジ',
     nameEn: 'Vinsmoke Sanji',
     franchise: 'ONE PIECE',
@@ -256,6 +261,7 @@ const characters = [
   // ─── ニコ・ロビン ─────────────────────────────────────
   {
     slug: 'robin',
+    birthday: '02-06', // 2月6日
     name: 'ニコ・ロビン',
     nameEn: 'Nico Robin',
     franchise: 'ONE PIECE',
@@ -308,6 +314,7 @@ const characters = [
   // ─── エース ────────────────────────────────────────────
   {
     slug: 'ace',
+    birthday: '01-01', // 1月1日
     name: 'ポートガス・D・エース',
     nameEn: 'Portgas D. Ace',
     franchise: 'ONE PIECE',
@@ -369,6 +376,7 @@ async function main() {
         systemPrompt: char.systemPrompt,
         catchphrases: char.catchphrases,
         personalityTraits: JSON.stringify(char.personalityTraits),
+        birthday: (char as Record<string, unknown>).birthday as string ?? null,
         isActive: true,
       },
       create: {
@@ -381,6 +389,7 @@ async function main() {
         systemPrompt: char.systemPrompt,
         catchphrases: char.catchphrases,
         personalityTraits: JSON.stringify(char.personalityTraits),
+        birthday: (char as Record<string, unknown>).birthday as string ?? null,
         avatarUrl: null,
         coverUrl: null,
         isActive: true,
