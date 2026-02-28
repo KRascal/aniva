@@ -265,6 +265,7 @@ export default function ChatCharacterPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   /* ── 新規 UI state ── */
   const [showCall, setShowCall] = useState(false);
@@ -611,6 +612,29 @@ export default function ChatCharacterPage() {
     }
   };
 
+  /* ── シェアボタン ── */
+  const handleShare = async () => {
+    const charName = character?.name ?? 'キャラクター';
+    const shareUrl = window.location.href;
+    const shareText = `${charName}と話してる！ #ANIVA`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${charName} | ANIVA`, text: shareText, url: shareUrl });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareToast('URLをコピーしました！');
+        setTimeout(() => setShareToast(null), 2500);
+      } catch {
+        setShareToast('コピーに失敗しました');
+        setTimeout(() => setShareToast(null), 2500);
+      }
+    }
+  };
+
   /* ─────────── handleStartChat ─────────── */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleStartChat = async (_userProfile?: UserProfile) => {
@@ -839,6 +863,19 @@ export default function ChatCharacterPage() {
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           )}
+        </button>
+
+        {/* 📤 シェアボタン */}
+        <button
+          onClick={handleShare}
+          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-purple-400 hover:bg-purple-900/20 transition-colors"
+          title="シェアする"
+          aria-label="シェアする"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
         </button>
 
         {/* 📞 通話ボタン */}
@@ -1137,6 +1174,12 @@ export default function ChatCharacterPage() {
           {inputText.length > 0 && `${inputText.length}/2000`}
         </div>
       </div>
+      {/* シェアトースト */}
+      {shareToast && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-gray-800/95 text-white text-sm px-5 py-2.5 rounded-full shadow-lg border border-white/10 pointer-events-none">
+          {shareToast}
+        </div>
+      )}
     </div>
   );
 
