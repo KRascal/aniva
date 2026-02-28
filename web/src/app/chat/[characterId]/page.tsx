@@ -907,6 +907,23 @@ export default function ChatCharacterPage() {
         )}
 
         {messages.map((msg, idx) => {
+          // SYSTEM メッセージ（CTA等）は専用UI
+          if (msg.role === 'SYSTEM') {
+            return (
+              <div key={msg.id} className="msg-animate flex justify-center my-2" style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}>
+                <a
+                  href={`/profile/${characterId}#fc`}
+                  className="block max-w-[85%] bg-gradient-to-r from-purple-900/60 to-pink-900/60 border border-purple-500/30 rounded-2xl px-5 py-3 text-center backdrop-blur-sm hover:border-purple-400/50 transition-all"
+                >
+                  <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
+                  <span className="inline-block mt-2 text-xs font-bold text-purple-300 bg-purple-500/20 px-4 py-1.5 rounded-full">
+                    FC会員になる →
+                  </span>
+                </a>
+              </div>
+            );
+          }
+
           const isUser = msg.role === 'USER';
           const emotion = msg.metadata?.emotion;
           const emotionEmoji = getEmotionEmoji(emotion);
