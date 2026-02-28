@@ -58,6 +58,7 @@ export function BottomNav() {
   if (pathname.startsWith('/chat/')) return null;
   if (pathname.startsWith('/c/')) return null;
 
+  const isHome = pathname === '/explore' || pathname === '/explore/';
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
     if (href === '/mypage') return pathname.startsWith('/mypage') || pathname.startsWith('/profile');
