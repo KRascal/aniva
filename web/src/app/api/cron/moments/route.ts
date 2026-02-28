@@ -65,10 +65,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ generated: [], message: 'No active characters' });
     }
 
+    // 1回の実行で最大3キャラに制限（タイムアウト防止）
+    // 時間帯でローテーション（4時間サイクル × 3キャラ = 全キャラを約15時間でカバー）
+    const maxPerRun = 3;
+    const slotIndex = Math.floor(Date.now() / (4 * 60 * 60 * 1000)) % Math.ceil(characters.length / maxPerRun);
+    const start = slotIndex * maxPerRun;
+    const batchChars = characters.slice(start, start + maxPerRun);
+
     const timeOfDay = getTimeOfDay();
     const generated: Array<{ characterId: string; characterName: string; content: string }> = [];
 
-    for (const character of characters) {
+    for (const character of batchChars) {
       try {
         // --- 最新5件のMomentsを取得 ---
         const recentMoments = await prisma.moment.findMany({
@@ -120,6 +127,7 @@ ${recentTexts || '（なし）'}
       timeOfDay,
       generated,
       count: generated.length,
+      batch: `${start + 1}-${Math.min(start + maxPerRun, characters.length)} of ${characters.length}`,
     });
   } catch (err) {
     console.error('Cron moments error:', err);
