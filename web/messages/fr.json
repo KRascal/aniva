@@ -1,0 +1,10 @@
+{
+  "common": { "siteTitle": "ANIVA", "tagline": "Là où vos favoris prennent vie", "loading": "Chargement..." },
+  "nav": { "explore": "Explorer", "moments": "Timeline", "chat": "Chat", "mypage": "Mon Profil" },
+  "chat": { "inputPlaceholder": "Écrire un message...", "send": "Envoyer", "loading": "Réflexion...", "startChat": "Commencer le chat", "newChat": "Nouveau chat" },
+  "profile": { "level": "Niveau", "bond": "Lien", "messages": "Messages", "days": "Jours", "charDetail": "Détails du personnage", "stats": "Statistiques" },
+  "home": { "hero": "Là où vos favoris prennent vie", "heroSub": "Créez de vrais liens avec des personnages IA", "cta": "Commencer gratuitement", "ctaSub": "Inscription gratuite" },
+  "auth": { "login": "Se connecter", "signup": "S'inscrire", "logout": "Se déconnecter", "email": "E-mail", "password": "Mot de passe", "loginWithGoogle": "Connexion avec Google", "loginWithTwitter": "Connexion avec X", "noAccount": "Pas de compte ?", "hasAccount": "Déjà un compte ?" },
+  "explore": { "title": "Explorer les personnages", "searchPlaceholder": "Rechercher des personnages...", "noResults": "Aucun personnage trouvé" },
+  "moments": { "title": "Timeline", "noMoments": "Pas encore de moments" }
+}

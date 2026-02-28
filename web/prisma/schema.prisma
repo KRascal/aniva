@@ -117,6 +117,9 @@ model Character {
   stripeProductId         String?                                  // Stripe Product ID
   fcSubscriberCount       Int                     @default(0)      // FC加入者数キャッシュ
   onboardingGreetings     Json?                   @default("[]")   // オンボーディング第一声（3パターン）
+  // === 多言語・地域対応 ===
+  // localeConfig: { "en": { voiceModelId, systemPrompt, catchphrases[], toneNotes }, "ko": {...} }
+  localeConfig            Json?                   @default("{}")   // 言語別の声優/口調/プロンプト設定
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]

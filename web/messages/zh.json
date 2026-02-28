@@ -1,0 +1,10 @@
+{
+  "common": { "siteTitle": "ANIVA", "tagline": "最爱成真的世界", "loading": "加载中..." },
+  "nav": { "explore": "探索", "moments": "动态", "chat": "聊天", "mypage": "我的" },
+  "chat": { "inputPlaceholder": "输入消息...", "send": "发送", "loading": "思考中...", "startChat": "开始聊天", "newChat": "新聊天" },
+  "profile": { "level": "等级", "bond": "羁绊", "messages": "消息数", "days": "天", "charDetail": "角色详情", "stats": "统计" },
+  "home": { "hero": "最爱成真的世界", "heroSub": "与AI角色建立真实的羁绊", "cta": "立即开始", "ctaSub": "免费注册" },
+  "auth": { "login": "登录", "signup": "注册", "logout": "退出", "email": "邮箱", "password": "密码", "loginWithGoogle": "Google登录", "loginWithTwitter": "X登录", "noAccount": "没有账户？", "hasAccount": "已有账户？" },
+  "explore": { "title": "探索角色", "searchPlaceholder": "搜索角色...", "noResults": "未找到角色" },
+  "moments": { "title": "动态", "noMoments": "暂无动态" }
+}

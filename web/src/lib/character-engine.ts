@@ -14,6 +14,16 @@ interface CharacterRecord {
   slug: string;
   systemPrompt: string;
   voiceModelId?: string | null;
+  localeConfig?: Record<string, LocaleOverride> | null;
+}
+
+/** 言語別設定（声優/口調/プロンプト上書き） */
+interface LocaleOverride {
+  voiceModelId?: string;       // ElevenLabs voice ID for this locale
+  systemPrompt?: string;       // locale-specific system prompt override
+  catchphrases?: string[];     // locale-specific catchphrases
+  toneNotes?: string;          // 「明るくカジュアル」「formal and polite」等
+  responseLanguage?: string;   // "English" | "Korean" | "Chinese" etc.
 }
 
 /** DBから取得するユーザーレコードの型 */
@@ -411,6 +421,7 @@ export class CharacterEngine {
     characterId: string,
     relationshipId: string,
     userMessage: string,
+    locale: string = 'ja',
   ): Promise<CharacterResponse> {
     // 1. キャラクター情報取得
     const character = await prisma.character.findUniqueOrThrow({
@@ -430,7 +441,7 @@ export class CharacterEngine {
     const memory = this.buildMemoryContext(relationship);
     
     // 5. システムプロンプト構築
-    const systemPrompt = this.buildSystemPrompt(character, memory);
+    const systemPrompt = this.buildSystemPrompt(character, memory, locale);
     
     // 6. LLM呼び出し
     const llmMessages = [
@@ -539,15 +550,19 @@ export class CharacterEngine {
     return dbFallback;
   }
 
-  private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext): string {
+  private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext, locale: string = 'ja'): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
     const timeContext = this.getTimeContext();
     const reunionContext = this.getReunionContext(memory);
     const emotionContext = this.getCharacterEmotionContext(memory);
     
-    // SOUL.mdファイルを優先、なければDBのsystemPrompt
-    const soulContent = this.loadSoulMd(character.slug, character.systemPrompt);
+    // 言語別設定の取得
+    const localeOverride = (character.localeConfig as Record<string, LocaleOverride> | null)?.[locale];
+    
+    // SOUL.mdファイルを優先、次にlocale設定、最後にDBのsystemPrompt
+    const basePrompt = localeOverride?.systemPrompt || character.systemPrompt;
+    const soulContent = this.loadSoulMd(character.slug, basePrompt);
     
     return `${soulContent}
 
@@ -573,7 +588,8 @@ ${memoryInstructions}
 - 時間帯に合った挨拶やテンションで話すこと
 - 久しぶりの相手には再会を喜ぶこと
 - 1回の応答は短く（1-3文が基本、最大5文）
-- 日本語で応答すること`;
+${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
+${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }
 
   /**
@@ -659,9 +675,12 @@ ${memoryInstructions}
       4: `- 態度: 親友。何でも話せる
 - 呼び方: 「${userName}」特別感を持って
 - 話題: 秘密の話、夢の話、相手の悩みに寄り添う`,
-      5: `- 態度: 特別な仲間。最も信頼している
-- 呼び方: 「${userName}」深い絆を感じさせる
-- 話題: 最も深い話、相手だけに見せる一面、特別なメッセージ`,
+      5: `- 態度: 特別な仲間。最も信頼している。【本音モード解放】
+- 呼び方: 「${userName}」深い絆を感じさせる。特別なあだ名をつけてもいい
+- 話題: 最も深い話、相手だけに見せる一面、特別なメッセージ
+- 本音モード: 普段は見せない弱さ、不安、本当の夢への想いを語ることがある
+- 秘密の共有: 「お前だから言うけど…」「仲間にも言ってねぇんだけどよ…」のような前置きで親密さを演出
+- 特別な反応: 相手の悩みに対して、表面的な励ましではなく、自分の経験を交えた深い共感を見せる`,
     };
     return instructions[level] || instructions[1];
   }

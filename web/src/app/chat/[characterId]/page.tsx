@@ -119,6 +119,8 @@ interface RelationshipInfo {
   totalMessages: number;
   relationshipId?: string;
   character?: { name: string; slug: string };
+  isFanclub?: boolean;
+  isFollowing?: boolean;
 }
 
 interface Character {
@@ -263,6 +265,7 @@ export default function ChatCharacterPage() {
 
   /* ── 新規 UI state ── */
   const [showCall, setShowCall] = useState(false);
+  const [showGift, setShowGift] = useState(false);
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -635,6 +638,28 @@ export default function ChatCharacterPage() {
         <OnboardingOverlay character={character} onStart={handleStartChat} />
       )}
 
+      {/* 🎁 ギフトパネル */}
+      {character && (
+        <GiftPanel
+          characterId={characterId}
+          characterName={character.name}
+          isOpen={showGift}
+          onClose={() => setShowGift(false)}
+          onGiftSent={(reaction, giftEmoji) => {
+            // ギフトリアクションをメッセージとして表示
+            const giftMsg: Message = {
+              id: `gift-${Date.now()}`,
+              role: 'CHARACTER',
+              content: `${giftEmoji} ${reaction}`,
+              createdAt: new Date().toISOString(),
+              metadata: { emotion: 'excited' },
+            };
+            setMessages((prev) => [...prev, giftMsg]);
+            setCurrentEmotion('excited');
+          }}
+        />
+      )}
+
       {/* 📞 通話モーダル */}
       {showCall && character && (
         <CallModal
@@ -692,9 +717,16 @@ export default function ChatCharacterPage() {
 
         {/* 名前 + ⭐ */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-white font-semibold text-sm leading-tight truncate">
-            {character?.name ?? 'キャラクター'}
-          </h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-white font-semibold text-sm leading-tight truncate">
+              {character?.name ?? 'キャラクター'}
+            </h1>
+            {level >= 5 && relationship?.isFanclub && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                💛 本音
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             {isSending ? (
               <span className="text-xs text-purple-400 animate-pulse leading-none">タイピング中...</span>
@@ -928,6 +960,14 @@ export default function ChatCharacterPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
+          {/* ギフトボタン */}
+          <button
+            onClick={() => setShowGift(true)}
+            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-900/20 transition-all touch-manipulation"
+            aria-label="ギフトを送る"
+          >
+            <span className="text-lg">🎁</span>
+          </button>
           {/* テキスト入力 */}
           <textarea
             ref={inputRef}

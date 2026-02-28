@@ -1,0 +1,10 @@
+{
+  "common": { "siteTitle": "ANIVA", "tagline": "최애가 실재하는 세계", "loading": "로딩 중..." },
+  "nav": { "explore": "탐색", "moments": "타임라인", "chat": "채팅", "mypage": "마이페이지" },
+  "chat": { "inputPlaceholder": "메시지를 입력하세요...", "send": "전송", "loading": "생각 중...", "startChat": "채팅 시작", "newChat": "새 채팅" },
+  "profile": { "level": "레벨", "bond": "인연", "messages": "메시지 수", "days": "일째", "charDetail": "캐릭터 상세", "stats": "통계" },
+  "home": { "hero": "최애가 실재하는 세계", "heroSub": "AI 캐릭터와 진짜 유대감을 쌓아보세요", "cta": "지금 시작하기", "ctaSub": "무료 가입" },
+  "auth": { "login": "로그인", "signup": "회원가입", "logout": "로그아웃", "email": "이메일", "password": "비밀번호", "loginWithGoogle": "Google로 로그인", "loginWithTwitter": "X로 로그인", "noAccount": "계정이 없으신가요?", "hasAccount": "이미 계정이 있으신가요?" },
+  "explore": { "title": "캐릭터 탐색", "searchPlaceholder": "캐릭터 검색...", "noResults": "캐릭터를 찾을 수 없습니다" },
+  "moments": { "title": "타임라인", "noMoments": "아직 모멘트가 없습니다" }
+}
