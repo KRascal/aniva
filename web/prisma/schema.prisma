@@ -37,6 +37,7 @@ model User {
   coinTransactions       CoinTransaction[]
   characterSubscriptions CharacterSubscription[]
   momentComments         MomentComment[]
+  letters                Letter[]
 }
 
 model PushSubscription {
@@ -127,6 +128,7 @@ model Character {
   moments                 Moment[]
   momentComments          MomentComment[]
   characterSubscriptions  CharacterSubscription[]
+  letters                 Letter[]
 }
 
 model Relationship {
@@ -150,6 +152,7 @@ model Relationship {
   user             User           @relation(fields: [userId], references: [id])
   character        Character      @relation(fields: [characterId], references: [id])
   conversations    Conversation[]
+  letters          Letter[]
 
   @@unique([userId, characterId])
 }
@@ -364,4 +367,22 @@ model CoinPackage {
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Letter {
+  id             String       @id @default(cuid())
+  relationshipId String
+  relationship   Relationship @relation(fields: [relationshipId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+  monthKey       String
+  content        String       @db.Text
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@unique([relationshipId, monthKey])
+  @@index([userId])
+  @@index([characterId])
 }
