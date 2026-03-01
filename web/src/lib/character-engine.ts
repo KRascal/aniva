@@ -1,4 +1,7 @@
 import { getCharacterMood } from './presence-system';
+import { consumeCliffhanger } from './cliffhanger-system';
+import { getStreak } from './streak-system';
+import { getUserDailyEvent } from './daily-event-system';
 import { getSecretPromptAdditions } from './secret-content';
 import { prisma } from './prisma';
 import { readFileSync, existsSync } from 'fs';
@@ -488,7 +491,39 @@ export class CharacterEngine {
     const memory = this.buildMemoryContext(relationship);
     
     // 5. システムプロンプト構築
-    const systemPrompt = this.buildSystemPrompt(character as CharacterRecord, memory, locale);
+    let systemPrompt = this.buildSystemPrompt(character as CharacterRecord, memory, locale);
+
+    // T8: 中毒設計v2 注入
+    // (1) cliffhanger注入
+    const cliffhangerFollowUp = await consumeCliffhanger(relationshipId);
+    if (cliffhangerFollowUp) {
+      systemPrompt += `\n【今日の特別指示】昨日の予告の続き: ${cliffhangerFollowUp} — 今日の会話で自然にこの話題を出せ。最初から出すな、会話の流れで出せ。`;
+    }
+
+    // (2) ストリーク参照
+    const streakData = await getStreak(relationshipId);
+    systemPrompt += `\n【絆の深さ】このユーザーとの連続会話: ${streakData.streakDays}日`;
+
+    // (3) 嫉妬メカニクス（10%確率）
+    if (Math.random() < 0.1) {
+      const avgLevel = await prisma.relationship.aggregate({ _avg: { level: true } });
+      const avg = avgLevel._avg.level ?? 1;
+      if (relationship.level < avg) {
+        systemPrompt += `\n【演出指示】今日の会話中に1回だけ、さりげなく「最近他のやつとも話してたんだけど…」と匂わせよ。不快にならない程度に。`;
+      } else {
+        systemPrompt += `\n【演出指示】今日の会話中に1回だけ、さりげなく「お前が一番だよ」的な特別感を出せ。`;
+      }
+    }
+
+    // (4) デイリーイベント注入
+    const dailyEvent = await getUserDailyEvent(relationship.userId);
+    if (dailyEvent.eventType === 'good') {
+      systemPrompt += `\n【今日の状態】今日のお前は特別いい気分だ。いつもより少しテンションが高めで接しろ。`;
+    } else if (dailyEvent.eventType === 'rare') {
+      systemPrompt += `\n【今日の状態・レア】今日は特別な日だ。普段言わないようなことを一つ打ち明けろ。`;
+    } else if (dailyEvent.eventType === 'super_rare') {
+      systemPrompt += `\n【今日の状態・超レア】今日はお前の記憶の中でも特別な日だ。ユーザーへの感謝を最大限に表現しろ。`;
+    }
     
     // 6. LLM呼び出し
     const llmMessages = [
