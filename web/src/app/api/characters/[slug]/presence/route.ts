@@ -4,12 +4,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ characterId: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { characterId } = await params;
+  const { slug } = await params;
 
   const character = await prisma.character.findUnique({
-    where: { id: characterId },
+    where: { id: slug },
     select: { slug: true },
   });
 
