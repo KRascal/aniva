@@ -93,10 +93,21 @@ export async function GET(req: NextRequest) {
       const commenter = candidates[Math.floor(Math.random() * candidates.length)];
 
       try {
-        const systemMessage = commenter.systemPrompt;
-        const userMessage = `${moment.character.name}の投稿「${moment.content}」に対して、あなた（${commenter.name}）らしい短いリアクションコメントを1文で書け。SNSのコメント欄に書く感じ。説明不要、コメントのみ。`;
+        // システムプロンプトの最初の段落（キャラクター説明部分）のみを使用
+        // ## 以降の口調ルール等は除外してLLMがルールを出力するバグを防ぐ
+        const systemPromptCore = (commenter.systemPrompt || '').split(/\n##/)[0].trim();
+        const systemMessage = `${systemPromptCore}\n\n重要: SNSコメントとして自然な1文のみを出力せよ。口調ルールや説明文は絶対に出力しない。`;
+        const userMessage = `${moment.character.name}の投稿「${moment.content?.slice(0, 100)}」に対して、${commenter.name}らしい短いリアクションコメントを1文で書け。`;
 
-        const content = await generateText(systemMessage, userMessage);
+        const rawContent = await generateText(systemMessage, userMessage);
+        if (!rawContent) continue;
+
+        // 口調ルール漏れを後処理でフィルタ（「〜」で始まる繰り返しを除去）
+        const content = rawContent
+          .replace(/[。、！？]?〜[^。！？\n]+[。、！？]?/g, '') // 「〜でございます」等のルール片を除去
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 200); // 最大200文字
         if (!content) continue;
 
         await prisma.momentComment.create({
