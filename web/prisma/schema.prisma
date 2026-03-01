@@ -103,6 +103,8 @@ model Character {
   systemPrompt      String         @db.Text
   voiceModelId      String?
   fcMonthlyCoins    Int            @default(500)  // FC月額コイン（キャラ別）
+  chatCoinPerMessage Int           @default(10)   // チャット1回のコイン消費（キャラ別）
+  loginBonusCoins   Int            @default(50)   // ログインボーナス付与コイン
   live2dModelId     String?
   loraModelId       String?
   ragCollectionId   String?
@@ -298,11 +300,13 @@ model VerificationCode {
 }
 
 model CoinBalance {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  balance   Int      @default(0)
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  balance     Int      @default(0)  // 後方互換用（freeBalance + paidBalanceの合算）
+  freeBalance Int      @default(0)  // 無料コイン（ログボ等、消費優先）
+  paidBalance Int      @default(0)  // 購入コイン（Stripe決済）
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CoinTransaction {
@@ -332,6 +336,7 @@ enum CoinTxType {
   REFUND
   BONUS
   ADMIN_ADJUST
+  LOGIN_BONUS
 }
 
 model CharacterSubscription {
