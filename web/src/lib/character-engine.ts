@@ -488,7 +488,7 @@ export class CharacterEngine {
     const memory = this.buildMemoryContext(relationship);
     
     // 5. システムプロンプト構築
-    const systemPrompt = this.buildSystemPrompt(character, memory, locale);
+    const systemPrompt = this.buildSystemPrompt(character as CharacterRecord, memory, locale);
     
     // 6. LLM呼び出し
     const llmMessages = [

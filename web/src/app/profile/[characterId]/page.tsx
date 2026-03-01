@@ -836,7 +836,7 @@ export default function ProfilePage() {
             </p>
             <div className="space-y-3">
               {moments.map((moment) => (
-                <MomentCard key={moment.id} moment={moment} />
+                <SharedMomentCard key={moment.id} moment={moment as SharedMoment} onLike={() => {}} />
               ))}
             </div>
           </div>

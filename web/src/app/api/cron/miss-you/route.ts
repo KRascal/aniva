@@ -49,16 +49,25 @@ export async function POST(req: NextRequest) {
     },
     include: {
       character: { select: { id: true, name: true } },
+      conversations: {
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+        select: { id: true },
+      },
     },
   });
 
   let sentCount = 0;
 
   for (const rel of inactiveRelationships) {
-    // 今週既にmiss-you DMを送っていないかチェック
+    // Conversationが存在しない場合はスキップ
+    const conversation = rel.conversations[0];
+    if (!conversation) continue;
+
+    // 今週既にmiss-you DMを送っていないかチェック（Conversation経由）
     const recentMissYou = await prisma.message.findFirst({
       where: {
-        relationshipId: rel.id,
+        conversationId: conversation.id,
         role: 'CHARACTER',
         metadata: { path: ['type'], equals: 'miss_you' },
         createdAt: { gte: oneWeekAgo },
@@ -78,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.message.create({
       data: {
-        relationshipId: rel.id,
+        conversationId: conversation.id,
         role: 'CHARACTER',
         content: message,
         metadata: { type: 'miss_you', emotion: 'sad', automated: true },
