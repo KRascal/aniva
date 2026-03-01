@@ -270,6 +270,10 @@ export default function ChatCharacterPage() {
   /* ── 新規 UI state ── */
   const [showCall, setShowCall] = useState(false);
   const [showGift, setShowGift] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [callToast, setCallToast] = useState(false);
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
   const [isSendBouncing, setIsSendBouncing] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -745,7 +749,7 @@ export default function ChatCharacterPage() {
         />
       )}
 
-      {/* 📞 通話モーダル */}
+      {/* 📞 通話モーダル（既存） */}
       {showCall && character && (
         <CallModal
           characterId={characterId}
@@ -753,6 +757,131 @@ export default function ChatCharacterPage() {
           characterAvatar={character.avatarUrl}
           onClose={() => setShowCall(false)}
         />
+      )}
+
+      {/* 📞 通話選択モーダル */}
+      {showCallModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowCallModal(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-gray-900 border border-white/10 rounded-t-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-700 rounded-full mx-auto mb-6" />
+            <h2 className="text-center text-white font-semibold text-base mb-6">
+              {character?.name ?? 'キャラクター'}
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setCallToast(true); setTimeout(() => setCallToast(false), 3000); }}
+                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-800 hover:bg-gray-700 rounded-2xl transition-colors text-left"
+              >
+                <span className="text-2xl">📞</span>
+                <div>
+                  <div className="text-white font-medium">音声通話</div>
+                  <div className="text-gray-500 text-xs">準備中</div>
+                </div>
+              </button>
+              <button
+                onClick={() => { setCallToast(true); setTimeout(() => setCallToast(false), 3000); }}
+                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-800 hover:bg-gray-700 rounded-2xl transition-colors text-left"
+              >
+                <span className="text-2xl">📹</span>
+                <div>
+                  <div className="text-white font-medium">ビデオ通話</div>
+                  <div className="text-gray-500 text-xs">準備中</div>
+                </div>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowCallModal(false)}
+              className="w-full mt-4 py-3 text-gray-400 hover:text-white text-sm transition-colors"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ≡ メニューパネル（右スライド） */}
+      {showMenu && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowMenu(false)}
+        >
+          <div
+            className="w-72 h-full bg-gray-900 border-l border-white/10 flex flex-col overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <span className="text-white font-semibold">{character?.name ?? 'キャラクター'}</span>
+              <button onClick={() => setShowMenu(false)} className="text-gray-400 hover:text-white transition-colors p-1">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <nav className="flex-1 px-3 py-4 space-y-1">
+              <a href={`/relationship/${characterId}/fanclub`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">💜</span>
+                <div>
+                  <div className="font-medium">ファンクラブ</div>
+                  <div className="text-gray-500 text-xs">{relationship?.isFanclub ? 'FC会員' : '未加入'}</div>
+                </div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a href={`/relationship/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">📊</span>
+                <div>
+                  <div className="font-medium">関係値</div>
+                  <div className="text-gray-500 text-xs">Lv.{relationship?.level ?? 1} {relationship?.levelName ?? ''}</div>
+                </div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a href={`/moments?character=${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">📸</span>
+                <div><div className="font-medium">Moments</div></div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a href={`/events?character=${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">📅</span>
+                <div><div className="font-medium">イベント</div></div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a href={`/chat/export/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">📝</span>
+                <div><div className="font-medium">チャット履歴エクスポート</div></div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">⚙️</span>
+                <div><div className="font-medium">設定</div></div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* 📞 通話準備中トースト */}
+      {callToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-gray-800/95 text-white text-sm px-5 py-2.5 rounded-full shadow-lg border border-white/10 pointer-events-none">
+          この機能は近日公開予定です
+        </div>
       )}
 
       {/* レベルアップモーダル */}
@@ -778,10 +907,10 @@ export default function ChatCharacterPage() {
           </svg>
         </button>
 
-        {/* アバター（タップでキャラ詳細） */}
+        {/* アバター */}
         <button
           onClick={() => router.push(`/profile/${characterId}`)}
-          className="flex-shrink-0 relative"
+          className="flex-shrink-0"
           aria-label="キャラクタープロフィール"
         >
           <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
@@ -794,100 +923,45 @@ export default function ChatCharacterPage() {
               </div>
             )}
           </div>
-          {/* オンラインドット（pulse） */}
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-gray-900 bg-green-400">
-            <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
-          </span>
         </button>
 
-        {/* 名前 + ⭐ */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-white font-semibold text-sm leading-tight truncate">
-              {character?.name ?? 'キャラクター'}
-            </h1>
-            {level >= 5 && relationship?.isFanclub && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
-                💛 本音
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {isSending ? (
-              <span className="text-xs text-purple-400 animate-pulse leading-none">タイピング中...</span>
-            ) : (
-              <>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-                <span className="text-xs text-green-400 leading-none">オンライン</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Emotion indicator */}
-        <EmotionIndicator emotion={currentEmotion} level={level} />
-
-        {/* Live2Dトグルボタン */}
-        <button
-          onClick={() => setIsViewerExpanded((v) => !v)}
-          className={`flex-shrink-0 p-1.5 rounded-full transition-all ${
-            isViewerExpanded
-              ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/40'
-              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
-          }`}
-          aria-label={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
-          title={isViewerExpanded ? 'キャラクターを隠す' : 'キャラクターを表示'}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d={isViewerExpanded
-                ? 'M19 9l-7 7-7-7'       // 下矢印 → 閉じる
-                : 'M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z'  // キャラアイコン
-              }
-            />
-          </svg>
-        </button>
-
-        {/* Push通知ベルアイコン */}
-        <button
-          onClick={handleSubscribePush}
-          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-          title={isPushSubscribed ? '通知ON' : '通知をONにする'}
-          aria-label={isPushSubscribed ? '通知ON' : '通知をONにする'}
-        >
-          {isPushSubscribed ? (
-            <span className="text-base leading-none">🔔</span>
+        {/* 名前 + FC */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <h1 className="text-white font-semibold text-sm leading-tight">
+            {character?.name ?? 'キャラクター'}
+          </h1>
+          {relationship?.isFanclub ? (
+            <span className="text-base leading-none flex-shrink-0">💜</span>
           ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
+            <a
+              href={`/relationship/${characterId}/fanclub`}
+              className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600/80 text-white border border-purple-400/40 hover:bg-purple-500 transition-colors"
+            >
+              FC
+            </a>
           )}
-        </button>
-
-        {/* 📤 シェアボタン */}
-        <button
-          onClick={handleShare}
-          className="flex-shrink-0 p-1.5 rounded-full text-gray-500 hover:text-purple-400 hover:bg-purple-900/20 transition-colors"
-          title="シェアする"
-          aria-label="シェアする"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-        </button>
+        </div>
 
         {/* 📞 通話ボタン */}
         <button
-          onClick={() => setShowCall(true)}
-          className="flex-shrink-0 p-1.5 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
-          title="通話する"
+          onClick={() => setShowCallModal(true)}
+          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
           aria-label="通話する"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+        </button>
+
+        {/* ≡ メニューボタン */}
+        <button
+          onClick={() => setShowMenu(true)}
+          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          aria-label="メニュー"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       </header>
@@ -1093,32 +1167,60 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 入力エリア ══════════════ */}
       <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
-        {/* Free plan 残りメッセージ表示 */}
-        {userPlan === 'FREE' && (
+        {/* Free plan 残りメッセージ表示（FC非加入時のみ） */}
+        {userPlan === 'FREE' && !relationship?.isFanclub && (
           <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
             <span className="text-amber-400">⚡</span>
             <span className="text-amber-400/80">
-              今日の残り:{' '}
-              <span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>
-              /3 回
+              残り<span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>回
             </span>
+            <span className="text-gray-600">|</span>
             <a
-              href="/pricing"
-              className="ml-auto text-purple-400 hover:text-purple-300 hover:underline transition-colors"
+              href={`/relationship/${characterId}/fanclub`}
+              className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
             >
-              無制限プランへ →
+              FC加入で無制限 →
             </a>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          {/* ギフトボタン */}
-          <button
-            onClick={() => setShowGift(true)}
-            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-900/20 transition-all touch-manipulation"
-            aria-label="ギフトを送る"
-          >
-            <span className="text-lg">🎁</span>
-          </button>
+        <div className="relative flex items-center gap-2">
+          {/* ＋ボタン + ポップアップメニュー */}
+          <div className="relative flex-shrink-0">
+            {showPlusMenu && (
+              <div className="absolute bottom-12 left-0 bg-gray-800 border border-white/10 rounded-2xl p-2 space-y-1 shadow-xl z-10 min-w-[160px]">
+                <button
+                  onClick={() => { setShowGift(true); setShowPlusMenu(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
+                >
+                  <span className="text-xl">🎁</span>
+                  <span>ギフトを送る</span>
+                </button>
+                <a
+                  href="/coins"
+                  onClick={() => setShowPlusMenu(false)}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm"
+                >
+                  <span className="text-xl">💰</span>
+                  <span>コインを購入</span>
+                </a>
+                <button
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-gray-500 text-sm text-left cursor-not-allowed"
+                  disabled
+                >
+                  <span className="text-xl opacity-50">📷</span>
+                  <span className="opacity-50">画像を送る</span>
+                  <span className="ml-auto text-[10px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">準備中</span>
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => setShowPlusMenu((v) => !v)}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-all touch-manipulation border border-gray-700/60 text-xl font-light"
+              aria-label="メニューを開く"
+            >
+              ＋
+            </button>
+          </div>
           {/* テキスト入力 */}
           <textarea
             ref={inputRef}
