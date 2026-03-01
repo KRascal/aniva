@@ -13,6 +13,7 @@ import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 import { getCharacterTheme } from '@/lib/character-themes';
+import { WelcomeBackModal } from '@/components/chat/WelcomeBackModal';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -263,6 +264,8 @@ export default function ChatCharacterPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; milestone?: Milestone } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [daysSinceLastChat, setDaysSinceLastChat] = useState(0);
   const [isGreeting, setIsGreeting] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
@@ -383,6 +386,19 @@ export default function ChatCharacterPage() {
         const relRes = await fetch(`/api/relationship/${characterId}`);
         const relData = await relRes.json();
         setRelationship(relData);
+        // 復帰時演出チェック
+        if (relData.lastMessageAt) {
+          const lastDate = new Date(relData.lastMessageAt);
+          const diffDays = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 3) {
+            const shownKey = `welcomeBack_${characterId}_${new Date().toDateString()}`;
+            if (!sessionStorage.getItem(shownKey)) {
+              setDaysSinceLastChat(diffDays);
+              setShowWelcomeBack(true);
+              sessionStorage.setItem(shownKey, '1');
+            }
+          }
+        }
       }
       if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
       setIsLoadingHistory(false);
@@ -882,6 +898,17 @@ export default function ChatCharacterPage() {
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-gray-800/95 text-white text-sm px-5 py-2.5 rounded-full shadow-lg border border-white/10 pointer-events-none">
           この機能は近日公開予定です
         </div>
+      )}
+
+      {/* 復帰時演出モーダル */}
+      {showWelcomeBack && character && (
+        <WelcomeBackModal
+          characterName={character.name}
+          characterAvatar={character.avatarUrl}
+          characterSlug={character.slug ?? ''}
+          daysSinceLastChat={daysSinceLastChat}
+          onClose={() => setShowWelcomeBack(false)}
+        />
       )}
 
       {/* レベルアップモーダル */}
