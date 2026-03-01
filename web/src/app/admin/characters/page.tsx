@@ -25,6 +25,7 @@ interface Character {
   freeCallMinutes: number;
   messageCount: number;
   uniqueUsers: number;
+  fcMonthlyCoins?: number;
   _count?: { relationships: number };
 }
 
@@ -49,6 +50,7 @@ const EMPTY_FORM = {
   fcOverageCallCoinPerMin: '100',
   freeMessageLimit: '10',
   freeCallMinutes: '5',
+  fcMonthlyCoins: '500',
 };
 
 // ---- Image Upload Field Component ----
@@ -398,6 +400,9 @@ export default function CharactersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [voiceTestCharId, setVoiceTestCharId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [presence, setPresence] = useState<{ statusEmoji?: string; status?: string } | null>(null);
+  const [mood, setMood] = useState<{ moodLabel?: string; moodEmoji?: string } | null>(null);
+  const [secrets, setSecrets] = useState<{ unlockLevel: number; title: string; type: string }[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -438,10 +443,28 @@ export default function CharactersPage() {
       fcOverageCallCoinPerMin: String(c.fcOverageCallCoinPerMin ?? 100),
       freeMessageLimit: String(c.freeMessageLimit ?? 10),
       freeCallMinutes: String(c.freeCallMinutes ?? 5),
+      fcMonthlyCoins: String(c.fcMonthlyCoins || 500),
     });
     setEditingId(c.id);
     setShowForm(true);
     setError('');
+    // Fetch presence
+    fetch(`/api/characters/${c.id}/presence`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setPresence({ statusEmoji: data.statusEmoji, status: data.status });
+          setMood({ moodLabel: data.moodLabel, moodEmoji: data.moodEmoji });
+        } else {
+          setPresence(null); setMood(null);
+        }
+      })
+      .catch(() => { setPresence(null); setMood(null); });
+    // Load secrets from CHARACTER_SECRETS via slug
+    fetch(`/api/admin/characters/secrets?slug=${c.slug}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setSecrets(Array.isArray(data) ? data : []))
+      .catch(() => setSecrets([]));
   };
 
   const handleSubmit = async () => {
@@ -502,6 +525,7 @@ export default function CharactersPage() {
         fcOverageCallCoinPerMin: toInt(form.fcOverageCallCoinPerMin, 100),
         freeMessageLimit: toInt(form.freeMessageLimit, 10),
         freeCallMinutes: toInt(form.freeCallMinutes, 5),
+        fcMonthlyCoins: toInt(form.fcMonthlyCoins, 500),
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -544,6 +568,30 @@ export default function CharactersPage() {
         >
           ＋ 新規キャラ追加
         </button>
+      </div>
+
+      {/* Feature Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-gray-400 text-xs">Smart DM</p>
+          <p className="text-green-400 text-sm font-bold">Active</p>
+          <p className="text-gray-600 text-xs">8:00/14:00/1:00</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-gray-400 text-xs">キャラコメント</p>
+          <p className="text-green-400 text-sm font-bold">Active</p>
+          <p className="text-gray-600 text-xs">10:00/16:00/22:00</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-gray-400 text-xs">月次手紙</p>
+          <p className="text-green-400 text-sm font-bold">Active</p>
+          <p className="text-gray-600 text-xs">毎月1日 9:00</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-gray-400 text-xs">不在演出</p>
+          <p className="text-green-400 text-sm font-bold">Active</p>
+          <p className="text-gray-600 text-xs">自動（時間帯）</p>
+        </div>
       </div>
 
       {/* Characters table */}
@@ -792,6 +840,18 @@ export default function CharactersPage() {
               {/* FCメンバーシップ */}
               <div className="mb-4">
                 <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
+                <div className="mb-3">
+                  <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
+                  <input
+                    type="number"
+                    value={form.fcMonthlyCoins}
+                    onChange={(e) => f('fcMonthlyCoins', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    min={100}
+                    max={10000}
+                  />
+                  <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-gray-400 text-sm mb-1">FC月額</label>
@@ -900,6 +960,44 @@ export default function CharactersPage() {
                 fcIncludedCallMin={form.fcIncludedCallMin}
               />
             </div>
+
+            {/* プレゼンス状態 */}
+            {editingId && (
+              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
+                <h4 className="text-sm text-gray-400 mb-2">現在のプレゼンス状態</h4>
+                {presence ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span>{presence.statusEmoji}</span>
+                      <span className="text-white text-sm">{presence.status}</span>
+                    </div>
+                    <p className="text-gray-500 text-xs mt-1">ムード: {mood?.moodLabel} {mood?.moodEmoji}</p>
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-xs">プレゼンスデータなし</p>
+                )}
+              </div>
+            )}
+
+            {/* 秘密コンテンツ */}
+            {editingId && (
+              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
+                <h4 className="text-sm text-gray-400 mb-2">秘密コンテンツ</h4>
+                {secrets.length === 0 ? (
+                  <p className="text-gray-500 text-xs">秘密コンテンツなし</p>
+                ) : (
+                  secrets.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs py-1">
+                      <span className={`px-1.5 py-0.5 rounded ${s.unlockLevel <= 3 ? 'bg-green-900 text-green-300' : 'bg-purple-900 text-purple-300'}`}>
+                        Lv.{s.unlockLevel}
+                      </span>
+                      <span className="text-white">{s.title}</span>
+                      <span className="text-gray-600">({s.type})</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             <div className="mt-6 flex gap-3">
               <button
