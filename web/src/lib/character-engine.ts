@@ -1,3 +1,5 @@
+import { getCharacterMood } from './presence-system';
+import { getSecretPromptAdditions } from './secret-content';
 import { prisma } from './prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -608,7 +610,14 @@ export class CharacterEngine {
     // SOUL.mdファイルを優先、次にlocale設定、最後にDBのsystemPrompt
     const basePrompt = localeOverride?.systemPrompt || character.systemPrompt;
     const soulContent = this.loadSoulMd(character.slug, basePrompt);
-    
+
+    // 日替わりムード
+    const mood = getCharacterMood(character.slug);
+    const moodPrompt = mood.promptModifier;
+
+    // 秘密コンテンツ
+    const secretPrompt = getSecretPromptAdditions(character.slug, memory.level);
+
     return `${soulContent}
 
 ## 現在の状況
@@ -627,6 +636,7 @@ ${levelInstructions}
 ## 相手について記憶していること
 ${memoryInstructions}
 
+${moodPrompt ? moodPrompt + '\n' : ''}${secretPrompt ? secretPrompt + '\n' : ''}
 ## 重要ルール
 - 相手の名前「${memory.userName}」を会話の中で自然に使うこと
 - レベルに応じた距離感を保つこと
