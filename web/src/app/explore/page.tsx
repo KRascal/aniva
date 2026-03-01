@@ -420,13 +420,16 @@ export default function ExplorePage() {
     if (status === 'authenticated') {
       const step = (session?.user as any)?.onboardingStep;
       if (step !== 'completed') {
-        // JWTがstaleかもしれない → update()でDB最新を取得
-        update().then(() => {
-          // update後に再チェック（session stateは自動更新される）
+        // JWTがstaleかもしれない → update()でDB最新を取得してから再判定
+        update().then((updated) => {
+          const updatedStep = (updated?.user as any)?.onboardingStep;
+          if (updatedStep !== 'completed') {
+            router.push('/onboarding');
+          }
         });
       }
     }
-  }, [status, session, update]);
+  }, [status, session, update, router]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -491,7 +494,7 @@ export default function ExplorePage() {
     cat => cat.name === 'すべて' || availableFranchises.has(cat.name) || cat.name === 'アニメ'
   );
 
-  if (status === 'loading' || isLoading) {
+  if (status === 'loading' || (status === 'authenticated' && isLoading)) {
     return (
       <div className="min-h-screen bg-gray-950 pb-24">
         <div className="fixed inset-0 pointer-events-none overflow-hidden">

@@ -345,13 +345,18 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                   : 'bg-gray-700 text-gray-500'
               }`}
             >
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 {isSpeakerOn ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M6.343 9.657a8 8 0 000 4.686" />
+                  <>
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
+                  </>
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <>
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </>
                 )}
               </svg>
             </button>
@@ -359,17 +364,31 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
           </div>
         </div>
 
-        {/* 終話ボタン（赤丸） */}
-        <div className="flex flex-col items-center gap-2">
-          <button
-            onClick={handleEndCall}
-            className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 flex items-center justify-center shadow-lg shadow-red-900/50 transition-all active:scale-95"
-          >
-            <svg className="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
-            </svg>
-          </button>
-          <span className="text-xs text-gray-500">終話</span>
+        {/* 終話 + ギフト ボタン */}
+        <div className="flex items-end gap-8">
+          {/* ギフトボタン */}
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => window.location.href = `/coins?gift=${characterId}`}
+              className="w-16 h-16 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
+            >
+              <span className="text-3xl">🎁</span>
+            </button>
+            <span className="text-xs text-gray-500">ギフト</span>
+          </div>
+
+          {/* 終話ボタン */}
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={handleEndCall}
+              className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 flex items-center justify-center shadow-lg shadow-red-900/50 transition-all active:scale-95"
+            >
+              <svg className="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+            </button>
+            <span className="text-xs text-gray-500">終話</span>
+          </div>
         </div>
       </div>
 
