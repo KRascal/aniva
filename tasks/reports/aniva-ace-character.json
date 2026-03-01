@@ -1,10 +1,10 @@
 {
   "task": "ANIVA エース追加",
   "status": "success",
-  "summary": "character-definitions.ts新規作成、本番+ステージングDBにMoments10件追加、git push完了",
-  "files_changed": [
-    "web/src/lib/character-definitions.ts"
-  ],
-  "prod_moments": 63,
-  "staging_moments": 47
+  "summary": "エース(Ace)は既にDBに存在。Momentsを本番・ステージング各10件追加し、コミット・プッシュ完了。",
+  "prod_char_count": 16,
+  "staging_char_count": 16,
+  "moments_count": 10,
+  "commit": "44c33f1",
+  "files_changed": ["web/prisma/ace-moments.ts"]
 }
