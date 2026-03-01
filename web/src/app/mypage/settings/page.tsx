@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import Link from 'next/link';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type LangOption = 'ja' | 'en';
@@ -311,25 +312,23 @@ export default function SettingsPage() {
 
         {/* リンク */}
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
-          {/* プライバシーポリシー・利用規約（準備中） */}
           {[
-            { label: 'プライバシーポリシー', icon: '🔒' },
-            { label: '利用規約', icon: '📄' },
+            { label: 'プライバシーポリシー', icon: '🔒', href: '/privacy' },
+            { label: '利用規約', icon: '📄', href: '/terms' },
           ].map((item, i, arr) => (
-            <div
+            <Link
               key={item.label}
-              className={`flex items-center justify-between px-4 py-3.5 opacity-50 ${
+              href={item.href}
+              className={`flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition-colors ${
                 i < arr.length - 1 ? 'border-b border-[var(--color-border)]' : ''
               }`}
             >
-              <span className="flex items-center gap-3 text-sm text-[var(--color-muted)]">
+              <span className="flex items-center gap-3 text-sm text-[var(--color-text)]">
                 <span>{item.icon}</span>
                 {item.label}
               </span>
-              <span className="text-[10px] text-[var(--color-muted)] bg-[var(--color-surface-2)] px-2 py-0.5 rounded-full">
-                準備中
-              </span>
-            </div>
+              <span className="text-[var(--color-muted)]">›</span>
+            </Link>
           ))}
         </section>
 
