@@ -274,6 +274,7 @@ export default function ChatCharacterPage() {
   const [showCall, setShowCall] = useState(false);
   const [showGift, setShowGift] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
+  const [presence, setPresence] = useState<{ isAvailable: boolean; status: string; statusEmoji: string } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [callToast, setCallToast] = useState(false);
@@ -347,6 +348,15 @@ export default function ChatCharacterPage() {
       .then((res) => res.json())
       .then((data) => { if (data.character) setCharacter(data.character); })
       .catch(console.error);
+  }, [characterId]);
+
+  // プレゼンス（オンライン状態）取得
+  useEffect(() => {
+    if (!characterId) return;
+    fetch(`/api/characters/${characterId}/presence`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.presence) setPresence(data.presence); })
+      .catch(() => {});
   }, [characterId]);
 
   // キャラクターテーマを背景に適用
@@ -952,20 +962,31 @@ export default function ChatCharacterPage() {
           </div>
         </button>
 
-        {/* 名前 + FC */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <h1 className="text-white font-semibold text-sm leading-tight">
-            {character?.name ?? 'キャラクター'}
-          </h1>
-          {relationship?.isFanclub ? (
-            <span className="text-base leading-none flex-shrink-0">💜</span>
-          ) : (
-            <a
-              href={`/relationship/${characterId}/fanclub`}
-              className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600/80 text-white border border-purple-400/40 hover:bg-purple-500 transition-colors"
-            >
-              FC
-            </a>
+        {/* 名前 + FC + プレゼンス */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-white font-semibold text-sm leading-tight truncate">
+              {character?.name ?? 'キャラクター'}
+            </h1>
+            {relationship?.isFanclub ? (
+              <span className="text-base leading-none flex-shrink-0">💜</span>
+            ) : (
+              <a
+                href={`/relationship/${characterId}/fanclub`}
+                className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600/80 text-white border border-purple-400/40 hover:bg-purple-500 transition-colors"
+              >
+                FC
+              </a>
+            )}
+          </div>
+          {/* プレゼンスステータス */}
+          {presence && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presence.isAvailable ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+              <span className="text-[10px] text-gray-400 truncate">
+                {presence.statusEmoji} {presence.status}
+              </span>
+            </div>
           )}
         </div>
 
