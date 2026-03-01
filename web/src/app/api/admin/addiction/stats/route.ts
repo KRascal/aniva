@@ -6,6 +6,13 @@ export async function GET() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  // Guard: if addiction v2 tables not yet migrated, return placeholder
+  try {
+    await prisma.userCard.count();
+  } catch {
+    return NextResponse.json({ error: '中毒v2 DBマイグレーション未適用。管理者に連絡してください。' }, { status: 503 });
+  }
+
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   const past7Days = Array.from({ length: 7 }, (_, i) => {

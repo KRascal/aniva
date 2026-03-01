@@ -8,14 +8,20 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const letters = await prisma.letter.findMany({
-    where: { userId: session.user.id },
-    include: {
-      character: { select: { name: true, avatarUrl: true, slug: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
+  let letters;
+  try {
+    letters = await prisma.letter.findMany({
+      where: { userId: session.user.id },
+      include: {
+        character: { select: { name: true, avatarUrl: true, slug: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  } catch {
+    // DB migration pending (Letter table may not exist in production yet)
+    return NextResponse.json({ letters: [] });
+  }
 
   return NextResponse.json({ letters });
 }

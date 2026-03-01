@@ -27,6 +27,13 @@ export async function POST(req: Request) {
 
   const cost = COSTS[count];
 
+  // Guard: check if gacha tables exist (migration may be pending in production)
+  try {
+    await prisma.gachaBanner.count();
+  } catch {
+    return NextResponse.json({ error: 'ガチャ機能は準備中です' }, { status: 503 });
+  }
+
   const coinBalance = await prisma.coinBalance.upsert({
     where: { userId },
     create: { userId, balance: 0 },

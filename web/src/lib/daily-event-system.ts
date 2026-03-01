@@ -75,9 +75,21 @@ const EVENT_REWARDS: Record<DailyEventType, DailyEventReward> = {
 export async function getUserDailyEvent(userId: string): Promise<DailyEventResult> {
   const today = getJSTDateString();
 
-  const existing = await prisma.userDailyEvent.findFirst({
-    where: { userId, date: today },
-  });
+  // Guard: if UserDailyEvent table doesn't exist yet (migration pending), return normal event
+  let existing;
+  try {
+    existing = await prisma.userDailyEvent.findFirst({
+      where: { userId, date: today },
+    });
+  } catch {
+    // DB migration not yet applied — gracefully return normal event
+    return {
+      eventType: 'normal',
+      isNew: false,
+      reward: {},
+      displayData: EVENT_DISPLAY['normal'],
+    };
+  }
 
   if (existing) {
     const eventType = existing.eventType as DailyEventType;
@@ -92,14 +104,18 @@ export async function getUserDailyEvent(userId: string): Promise<DailyEventResul
   const eventType = rollEventType();
   const reward = EVENT_REWARDS[eventType];
 
-  await prisma.userDailyEvent.create({
-    data: {
-      userId,
-      date: today,
-      eventType,
-      reward: reward as Prisma.InputJsonValue,
-    },
-  });
+  try {
+    await prisma.userDailyEvent.create({
+      data: {
+        userId,
+        date: today,
+        eventType,
+        reward: reward as Prisma.InputJsonValue,
+      },
+    });
+  } catch {
+    // Silently skip if table not yet available
+  }
 
   if (reward.coins) {
     await prisma.coinBalance.upsert({
