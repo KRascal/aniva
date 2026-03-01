@@ -39,7 +39,11 @@ export async function POST(req: NextRequest) {
   // 1. 出会い記念日チェック
   const relationships = await prisma.relationship.findMany({
     where: { isFollowing: true },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      characterId: true,
+      createdAt: true,
       user: { select: { id: true, displayName: true, nickname: true } },
       character: { select: { id: true, name: true, slug: true } },
     },
@@ -99,12 +103,14 @@ export async function POST(req: NextRequest) {
   const todayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const birthdayChars = await prisma.character.findMany({
     where: { isActive: true, birthday: todayStr },
+    select: { id: true, name: true, slug: true, birthday: true },
   });
 
   for (const char of birthdayChars) {
     // このキャラをフォローしている全ユーザーに誕生日DMを送信
     const followers = await prisma.relationship.findMany({
       where: { characterId: char.id, isFollowing: true },
+      select: { id: true, userId: true, characterId: true },
     });
     for (const rel of followers) {
       // 最新会話を取得 or 新規作成
