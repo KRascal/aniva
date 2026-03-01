@@ -100,6 +100,7 @@ model Character {
   description       String?
   systemPrompt      String         @db.Text
   voiceModelId      String?
+  fcMonthlyCoins    Int            @default(500)  // FC月額コイン（キャラ別）
   live2dModelId     String?
   loraModelId       String?
   ragCollectionId   String?

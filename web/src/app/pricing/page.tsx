@@ -24,6 +24,23 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fcPrice, setFcPrice] = useState(500);
+  const [characterName, setCharacterName] = useState<string | null>(null);
+
+  // キャラ別FC価格取得
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const charId = params.get('character');
+    if (charId) {
+      fetch(`/api/characters/id/${charId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.fcMonthlyCoins) setFcPrice(data.fcMonthlyCoins);
+          if (data.name) setCharacterName(data.name);
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/api/coins/packages')
@@ -159,7 +176,7 @@ export default function PricingPage() {
 
             {/* 価格 */}
             <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-3xl font-bold text-white">500</span>
+              <span className="text-3xl font-bold text-white">{fcPrice}</span>
               <span className="text-gray-400 text-sm">コイン</span>
               <span className="text-gray-600 text-xs ml-1">/ 月</span>
             </div>

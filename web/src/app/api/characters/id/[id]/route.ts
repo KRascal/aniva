@@ -22,6 +22,7 @@ export async function GET(
       catchphrases: true,
       personalityTraits: true,
       fcMonthlyPriceJpy: true,
+      fcMonthlyCoins: true,
       fcIncludedCallMin: true,
       fcOverageCallCoinPerMin: true,
       voiceModelId: true,
