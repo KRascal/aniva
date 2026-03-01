@@ -32,6 +32,7 @@ async function grantWelcomeCoins(userId: string) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   adapter: PrismaAdapter(prisma),
+
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
