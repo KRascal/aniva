@@ -10,6 +10,16 @@ export interface MomentCharacter {
   avatarUrl: string | null;
 }
 
+export interface MomentComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  characterId?: string | null;
+  userId?: string | null;
+  character?: { name: string; slug: string; avatarUrl: string | null } | null;
+  user?: { id: string; name: string | null; email: string } | null;
+}
+
 export interface Moment {
   id: string;
   characterId: string;
@@ -240,6 +250,21 @@ export function MomentCard({
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [comments, setComments] = useState<MomentComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  async function fetchComments() {
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`/api/moments/${moment.id}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data.comments ?? []);
+      }
+    } catch { /* ignore */ } finally {
+      setLoadingComments(false);
+    }
+  }
 
   async function submitComment() {
     const text = commentText.trim();
@@ -254,6 +279,7 @@ export function MomentCard({
       });
       if (res.ok) {
         setCommentText('');
+        fetchComments();
       } else if (res.status === 401) {
         setCommentError('ログインが必要です');
       } else {
@@ -405,7 +431,12 @@ export function MomentCard({
           {/* Comment */}
           <button
             className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
-            onClick={() => setExpandedComments((prev) => !prev)}
+            onClick={() => {
+              setExpandedComments((prev) => {
+                if (!prev) fetchComments();
+                return !prev;
+              });
+            }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -448,6 +479,44 @@ export function MomentCard({
       {/* コメント展開エリア */}
       {expandedComments && (
         <div className="px-4 pb-4 pt-0 border-t border-white/5 space-y-3">
+          {/* コメント一覧 */}
+          {loadingComments ? (
+            <p className="text-white/30 text-xs text-center pt-2">読み込み中...</p>
+          ) : comments.length > 0 ? (
+            <div className="space-y-2 mt-3">
+              {comments.map((c) => (
+                <div
+                  key={c.id}
+                  className={`flex items-start gap-2 rounded-xl px-3 py-2 ${
+                    c.characterId ? 'bg-purple-900/20 border border-purple-500/20' : 'bg-gray-800/40'
+                  }`}
+                >
+                  {/* アバター */}
+                  {c.characterId && c.character ? (
+                    c.character.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.character.avatarUrl} alt={c.character.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
+                        {c.character.name.charAt(0)}
+                      </div>
+                    )
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">
+                      {(c.user?.name ?? 'U').charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-xs font-semibold mr-1.5 ${c.characterId ? 'text-purple-300' : 'text-white/60'}`}>
+                      {c.characterId ? (c.character?.name ?? 'キャラ') : (c.user?.name ?? 'ユーザー')}
+                      {c.characterId && <span className="ml-1 text-purple-400/60 text-[9px]">✨</span>}
+                    </span>
+                    <span className="text-gray-200 text-xs leading-relaxed">{c.content}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 mt-3">
             <input
               type="text"

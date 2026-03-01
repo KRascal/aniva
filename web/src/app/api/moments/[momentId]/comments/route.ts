@@ -15,6 +15,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       take: 50,
       include: {
         user: { select: { id: true, name: true, email: true } },
+        character: { select: { name: true, slug: true, avatarUrl: true } },
       },
     });
     return NextResponse.json({ comments });
@@ -36,7 +37,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
   const comment = await prisma.momentComment.create({
     data: { momentId, userId: session.user.id, content },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      character: { select: { name: true, slug: true, avatarUrl: true } },
+    },
   });
   return NextResponse.json({ comment }, { status: 201 });
 }
