@@ -186,35 +186,24 @@ export async function checkChatAccess(
     return { type: 'FC_UNLIMITED' };
   }
 
-  // キャラクターの無料上限を取得
+  // キャラクターのコイン消費量を取得
   const character = await prisma.character.findUnique({
     where: { id: characterId },
-    select: { freeMessageLimit: true },
+    select: { chatCoinPerMessage: true },
   });
 
-  const freeLimit = character?.freeMessageLimit ?? 10;
+  const chatCoinPerMessage = character?.chatCoinPerMessage ?? 10;
 
-  // 2. 月次使用量チェック
-  const { chatCount } = await getMonthlyUsage(userId, characterId);
-
-  if (chatCount < freeLimit) {
-    return {
-      type: 'FREE',
-      freeMessagesUsed: chatCount,
-      freeMessagesRemaining: freeLimit - chatCount,
-    };
-  }
-
-  // 3. コイン残高チェック
+  // 3. コイン残高チェック（freeBalance + paidBalance合算）
   const coin = await prisma.coinBalance.findUnique({
     where: { userId },
-    select: { balance: true },
+    select: { freeBalance: true, paidBalance: true },
   });
 
-  const balance = coin?.balance ?? 0;
+  const totalBalance = (coin?.freeBalance ?? 0) + (coin?.paidBalance ?? 0);
 
-  if (balance >= 10) {
-    return { type: 'COIN_REQUIRED', coinCost: 10 };
+  if (totalBalance >= chatCoinPerMessage) {
+    return { type: 'COIN_REQUIRED', coinCost: chatCoinPerMessage };
   }
 
   // 4. ブロック

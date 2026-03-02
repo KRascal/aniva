@@ -34,9 +34,11 @@ export async function POST(req: NextRequest) {
     });
     if (existing) {
       const currentBalance = await prisma.coinBalance.findUnique({ where: { userId } });
+      const freeBalance = currentBalance?.freeBalance ?? 0;
+      const paidBalance = currentBalance?.paidBalance ?? 0;
       return NextResponse.json({
         success: true,
-        balance: currentBalance?.balance ?? 0,
+        balance: freeBalance + paidBalance,
         transactionId: existing.id,
         skipped: true,
       });
@@ -46,20 +48,41 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const coinBalance = await tx.coinBalance.upsert({
         where: { userId },
-        create: { userId, balance: 0 },
+        create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
         update: {},
       });
 
-      if (coinBalance.balance < amount) {
+      const currentFree = coinBalance.freeBalance ?? 0;
+      const currentPaid = coinBalance.paidBalance ?? 0;
+      const totalBalance = currentFree + currentPaid;
+
+      if (totalBalance < amount) {
         throw new Error('INSUFFICIENT_COINS');
       }
 
-      const newBalance = coinBalance.balance - amount;
+      // freeBalance優先消費
+      const freeSpent = Math.min(currentFree, amount);
+      const paidSpent = amount - freeSpent;
+
+      const newFreeBalance = currentFree - freeSpent;
+      const newPaidBalance = currentPaid - paidSpent;
+      const newBalance = newFreeBalance + newPaidBalance;
 
       await tx.coinBalance.update({
         where: { userId },
-        data: { balance: newBalance },
+        data: {
+          freeBalance: newFreeBalance,
+          paidBalance: newPaidBalance,
+          balance: newBalance,
+        },
       });
+
+      // metadataにfreeSpent/paidSpentをマージ
+      const mergedMetadata: Prisma.InputJsonObject = {
+        ...(metadata ?? {}),
+        freeSpent,
+        paidSpent,
+      };
 
       const transaction = await tx.coinTransaction.create({
         data: {
@@ -70,7 +93,7 @@ export async function POST(req: NextRequest) {
           characterId: characterId ?? null,
           refId: idempotencyKey,
           description: description ?? null,
-          metadata: (metadata ?? {}) as Prisma.InputJsonValue,
+          metadata: mergedMetadata as Prisma.InputJsonValue,
         },
       });
 

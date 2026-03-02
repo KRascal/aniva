@@ -9,9 +9,17 @@ export async function GET() {
 
   const coinBalance = await prisma.coinBalance.upsert({
     where: { userId },
-    create: { userId, balance: 0 },
+    create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
     update: {},
   });
 
-  return NextResponse.json({ balance: coinBalance.balance, updatedAt: coinBalance.updatedAt });
+  const freeBalance = coinBalance.freeBalance ?? 0;
+  const paidBalance = coinBalance.paidBalance ?? 0;
+
+  return NextResponse.json({
+    balance: freeBalance + paidBalance,
+    freeBalance,
+    paidBalance,
+    updatedAt: coinBalance.updatedAt,
+  });
 }
