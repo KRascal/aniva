@@ -28,6 +28,8 @@ export async function GET() {
       fcOverageCallCoinPerMin: true,
       freeMessageLimit: true,
       freeCallMinutes: true,
+      fcMonthlyCoins: true,
+      chatCoinPerMessage: true,
       stripeProductId: true,
       fcSubscriberCount: true,
       createdAt: true,
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
     fcMonthlyPriceJpy, fcIncludedCallMin, callCoinPerMin, fcOverageCallCoinPerMin,
-    freeMessageLimit, freeCallMinutes,
+    freeMessageLimit, freeCallMinutes, fcMonthlyCoins, chatCoinPerMessage,
   } = body;
 
   if (!name || !slug || !franchise || !systemPrompt) {
@@ -105,6 +107,8 @@ export async function POST(req: NextRequest) {
       fcOverageCallCoinPerMin: overageCoin,
       freeMessageLimit: freeMessageLimit !== undefined ? toInt(freeMessageLimit, 10) : 10,
       freeCallMinutes: freeCallMinutes !== undefined ? toInt(freeCallMinutes, 5) : 5,
+      fcMonthlyCoins: fcMonthlyCoins !== undefined ? toInt(fcMonthlyCoins, 500) : 500,
+      chatCoinPerMessage: chatCoinPerMessage !== undefined ? toInt(chatCoinPerMessage, 10) : 10,
     },
   });
 
@@ -124,7 +128,7 @@ export async function PUT(req: NextRequest) {
     systemPrompt, voiceModelId, catchphrases, personalityTraits,
     avatarUrl, coverUrl, isActive,
     fcMonthlyPriceJpy, fcIncludedCallMin, callCoinPerMin, fcOverageCallCoinPerMin,
-    freeMessageLimit, freeCallMinutes,
+    freeMessageLimit, freeCallMinutes, fcMonthlyCoins, chatCoinPerMessage,
   } = data;
 
   const toInt = (v: unknown, fallback = 0) => {
@@ -166,6 +170,8 @@ export async function PUT(req: NextRequest) {
       fcOverageCallCoinPerMin: fcOverageCallCoinPerMin !== undefined ? toInt(fcOverageCallCoinPerMin, 100) : undefined,
       freeMessageLimit: freeMessageLimit !== undefined ? toInt(freeMessageLimit, 10) : undefined,
       freeCallMinutes: freeCallMinutes !== undefined ? toInt(freeCallMinutes, 5) : undefined,
+      fcMonthlyCoins: fcMonthlyCoins !== undefined ? toInt(fcMonthlyCoins, 500) : undefined,
+      chatCoinPerMessage: chatCoinPerMessage !== undefined ? toInt(chatCoinPerMessage, 10) : undefined,
     },
   });
 

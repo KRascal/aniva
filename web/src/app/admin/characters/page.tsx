@@ -26,6 +26,7 @@ interface Character {
   messageCount: number;
   uniqueUsers: number;
   fcMonthlyCoins?: number;
+  chatCoinPerMessage?: number;
   _count?: { relationships: number };
 }
 
@@ -51,6 +52,7 @@ const EMPTY_FORM = {
   freeMessageLimit: '10',
   freeCallMinutes: '5',
   fcMonthlyCoins: '500',
+  chatCoinPerMessage: '10',
 };
 
 // ---- Image Upload Field Component ----
@@ -444,6 +446,7 @@ export default function CharactersPage() {
       freeMessageLimit: String(c.freeMessageLimit ?? 10),
       freeCallMinutes: String(c.freeCallMinutes ?? 5),
       fcMonthlyCoins: String(c.fcMonthlyCoins || 500),
+      chatCoinPerMessage: String(c.chatCoinPerMessage ?? 10),
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -526,6 +529,7 @@ export default function CharactersPage() {
         freeMessageLimit: toInt(form.freeMessageLimit, 10),
         freeCallMinutes: toInt(form.freeCallMinutes, 5),
         fcMonthlyCoins: toInt(form.fcMonthlyCoins, 500),
+        chatCoinPerMessage: toInt(form.chatCoinPerMessage, 10),
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -851,6 +855,18 @@ export default function CharactersPage() {
                     max={10000}
                   />
                   <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
+                  <input
+                    type="number"
+                    value={form.chatCoinPerMessage}
+                    onChange={(e) => f('chatCoinPerMessage', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    min={1}
+                    max={100}
+                  />
+                  <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
