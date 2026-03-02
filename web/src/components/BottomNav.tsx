@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 
@@ -53,6 +54,25 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const [unreadLetters, setUnreadLetters] = useState(0);
+
+  useEffect(() => {
+    // 未読レター数を取得（30秒ごとにポーリング）
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/letters/unread-count');
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadLetters(data.count ?? 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
   if (pathname.startsWith('/chat/')) return null;
@@ -141,6 +161,11 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               {isMypage && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+              {unreadLetters > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none">
+                  {unreadLetters > 9 ? '9+' : unreadLetters}
+                </span>
+              )}
             </div>
             <span className={`text-[10px] font-semibold ${isMypage ? 'text-purple-400' : 'text-gray-500'}`}>{t('mypage')}</span>
           </Link>
