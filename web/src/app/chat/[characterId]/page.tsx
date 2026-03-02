@@ -276,7 +276,8 @@ export default function ChatCharacterPage() {
   const [showCall, setShowCall] = useState(false);
   const [showGift, setShowGift] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
-  const [presence, setPresence] = useState<{ isAvailable: boolean; status: string; statusEmoji: string } | null>(null);
+  const [presence, setPresence] = useState<{ isAvailable: boolean; status: string; statusEmoji: string; statusMessage?: string | null } | null>(null);
+  const [absenceBannerDismissed, setAbsenceBannerDismissed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [callToast, setCallToast] = useState(false);
@@ -361,7 +362,7 @@ export default function ChatCharacterPage() {
     if (!characterId) return;
     fetch(`/api/characters/${characterId}/presence`)
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data?.presence) setPresence(data.presence); })
+      .then((data) => { if (data?.presence) { setPresence(data.presence); setAbsenceBannerDismissed(false); } })
       .catch(() => {});
   }, [characterId]);
 
@@ -1197,6 +1198,31 @@ export default function ChatCharacterPage() {
               <span>縮小する</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════ 不在バナー ══════════════ */}
+      {presence && !presence.isAvailable && !absenceBannerDismissed && (
+        <div className="mx-4 mt-2 flex items-start gap-3 bg-gray-800/80 border border-gray-700/60 rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex-shrink-0 text-2xl mt-0.5">{presence.statusEmoji}</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-300">
+              {character?.name ?? 'キャラクター'}は今 <span className="text-yellow-400">{presence.status}</span>
+            </p>
+            {presence.statusMessage && (
+              <p className="text-xs text-gray-500 mt-0.5 italic">「{presence.statusMessage}」</p>
+            )}
+            <p className="text-xs text-gray-600 mt-1">メッセージは届くよ。後で返事が来るかも 📩</p>
+          </div>
+          <button
+            onClick={() => setAbsenceBannerDismissed(true)}
+            className="flex-shrink-0 p-1 text-gray-600 hover:text-gray-400 transition-colors"
+            aria-label="閉じる"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 

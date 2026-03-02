@@ -26,6 +26,7 @@ export async function GET(
       status: presence.status,
       statusEmoji: presence.statusEmoji,
       responseDelay: presence.responseDelay,
+      statusMessage: presence.statusMessage ?? null,
     },
     mood: {
       mood: mood.mood,
