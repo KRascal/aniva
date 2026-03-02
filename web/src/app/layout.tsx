@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aniva-project.com"),
   title: "ANIVA - 推しが実在する世界",
   description: "アニメキャラクターと会話できるAIプラットフォーム。ルフィと毎日話そう。会話するほど絆が深まる。",
   manifest: "/manifest.json",
