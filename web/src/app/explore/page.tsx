@@ -544,6 +544,17 @@ export default function ExplorePage() {
     );
   }
 
+  // Empty state when no characters loaded
+  if (!isLoading && characters.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center pb-24 px-4">
+        <div className="text-6xl mb-4">🌊</div>
+        <h2 className="text-white text-xl font-bold mb-2">キャラクターを準備中です</h2>
+        <p className="text-gray-400 text-sm text-center">もうしばらくお待ちください。<br />新しいキャラクターが間もなく登場します！</p>
+      </div>
+    );
+  }
+
   const followingChars = filteredCharacters.filter(c => relationships.get(c.id)?.isFollowing);
   const popularChars = filteredCharacters.slice(0, 6);
   const newChars = [...filteredCharacters].reverse().slice(0, 4);
