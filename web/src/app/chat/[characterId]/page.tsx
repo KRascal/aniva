@@ -295,9 +295,11 @@ export default function ChatCharacterPage() {
   const [hungryEmojis, setHungryEmojis] = useState<{ id: number; x: number; delay: number }[]>([]);
   const [showStars, setShowStars] = useState(false);
   const [lastEmotionMsgId, setLastEmotionMsgId] = useState<string | null>(null);
-  // Free plan 残りメッセージ
+  // Free plan 残りメッセージ（後方互換）
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
+  // コイン残高（チャット送信後に更新）
+  const [coinBalance, setCoinBalance] = useState<number | null>(null);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -575,8 +577,12 @@ export default function ChatCharacterPage() {
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
         generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
-      // 本日送信数インクリメント（Free plan 表示）
+      // 本日送信数インクリメント（Free plan 表示・後方互換）
       setTodayMsgCount((prev) => prev + 1);
+      // コイン残高更新
+      if (data.relationship?.coinBalance !== undefined) {
+        setCoinBalance(data.relationship.coinBalance);
+      }
 
       if (data.relationship) {
         setRelationship((prev) => ({
@@ -1215,13 +1221,20 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 入力エリア ══════════════ */}
       <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
-        {/* Free plan 残りメッセージ表示（FC非加入時のみ） */}
-        {userPlan === 'FREE' && !relationship?.isFanclub && (
+        {/* コイン残高表示（FC非加入時のみ） */}
+        {!relationship?.isFanclub && coinBalance !== null && (
           <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
-            <span className="text-amber-400">⚡</span>
+            <span className="text-amber-400">💰</span>
             <span className="text-amber-400/80">
-              残り<span className="font-bold text-amber-300">{Math.max(0, 3 - todayMsgCount)}</span>回
+              <span className="font-bold text-amber-300">{coinBalance}</span> コイン
             </span>
+            <span className="text-gray-600">|</span>
+            <a
+              href="/coins"
+              className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
+            >
+              コインを購入 →
+            </a>
             <span className="text-gray-600">|</span>
             <a
               href={`/relationship/${characterId}/fanclub`}

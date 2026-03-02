@@ -6,8 +6,6 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { Prisma } from '@prisma/client';
 
-const COIN_COST = 10;
-
 export async function POST(req: NextRequest) {
   try {
     // 認証チェック（IDOR修正: userIdはセッションから取得）
@@ -68,35 +66,50 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     } else if (access.type === 'COIN_REQUIRED') {
-      // コイン消費（coins/spend と同じロジック）
+      // コイン消費: freeBalance優先 → paidBalance消費
+      const characterForCost = await prisma.character.findUnique({
+        where: { id: characterId },
+        select: { chatCoinPerMessage: true },
+      });
+      const coinCost = characterForCost?.chatCoinPerMessage ?? 10;
       try {
         await prisma.$transaction(async (tx) => {
           const coinBalance = await tx.coinBalance.upsert({
             where: { userId },
-            create: { userId, balance: 0 },
+            create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
             update: {},
           });
 
-          if (coinBalance.balance < COIN_COST) {
+          const totalBalance = coinBalance.freeBalance + coinBalance.paidBalance;
+          if (totalBalance < coinCost) {
             throw new Error('INSUFFICIENT_COINS');
           }
 
-          const newBalance = coinBalance.balance - COIN_COST;
+          // freeBalance優先消費
+          const freeSpent = Math.min(coinBalance.freeBalance, coinCost);
+          const paidSpent = coinCost - freeSpent;
+          const newFreeBalance = coinBalance.freeBalance - freeSpent;
+          const newPaidBalance = coinBalance.paidBalance - paidSpent;
+          const newBalance = newFreeBalance + newPaidBalance;
 
           await tx.coinBalance.update({
             where: { userId },
-            data: { balance: newBalance },
+            data: {
+              balance: newBalance,
+              freeBalance: newFreeBalance,
+              paidBalance: newPaidBalance,
+            },
           });
 
           await tx.coinTransaction.create({
             data: {
               userId,
               type: 'CHAT_EXTRA',
-              amount: -COIN_COST,
+              amount: -coinCost,
               balanceAfter: newBalance,
               characterId,
               description: 'チャット送信',
-              metadata: {} as Prisma.InputJsonValue,
+              metadata: { freeSpent, paidSpent } as Prisma.InputJsonValue,
             },
           });
         });
@@ -192,6 +205,10 @@ export async function POST(req: NextRequest) {
     const leveledUp = (updatedRelationship?.level ?? 1) > prevLevel;
     const newLevel = updatedRelationship?.level ?? 1;
 
+    // コイン残高取得（UI表示用）
+    const latestBalance = await prisma.coinBalance.findUnique({ where: { userId } });
+    const coinBalance = latestBalance ? latestBalance.freeBalance + latestBalance.paidBalance : undefined;
+
     return NextResponse.json({
       userMessage: userMsg,
       characterMessage: charMsg,
@@ -203,6 +220,7 @@ export async function POST(req: NextRequest) {
         leveledUp,
         newLevel: leveledUp ? newLevel : undefined,
         freeMessagesRemaining: access.type === 'FREE' ? (access as { freeMessagesRemaining?: number }).freeMessagesRemaining : undefined,
+        coinBalance,
       },
     });
   } catch (error) {
