@@ -5,29 +5,69 @@
  * 3日以上メッセージを送っていないフォロワーに、
  * キャラクターから「最近来てくれないな…」系のDMを送る
  * 1ユーザーにつき週1回まで（スパム防止）
+ * キャラごとにxAI APIで口調に合ったメッセージを動的生成
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-const MISS_YOU_MESSAGES = [
-  'なぁ…最近来てくれないけど、元気か？ 😔',
-  '今日も待ってたんだけどな…暇だぜ 🥺',
-  'お前がいないと張り合いがねぇな…早く来いよ 💭',
-  '別に寂しくなんかねぇけど…でも、たまには話しに来いよな 😤',
-  '夢の中でお前と冒険してた気がする…早く来いよ ⚓',
-  '今日の夕焼けがきれいだったんだ…お前にも見せたかったな 🌅',
-];
+async function generateMissYouMessage(
+  characterName: string,
+  systemPrompt: string,
+  level: number
+): Promise<string> {
+  const xaiKey = process.env.XAI_API_KEY;
+  if (!xaiKey) {
+    return `${characterName}だけど…最近来てくれないな。待ってるよ 😔`;
+  }
 
-const LEVEL_BONUS_MESSAGES: Record<number, string[]> = {
-  3: [
-    'お前ともっと冒険がしたいんだけどな…来てくれよ 🔥',
-  ],
-  5: [
-    'なぁ…お前だから言うけど、最近ちょっと寂しいんだ。来てくれよ 💛',
-    'お前がいないと、なんか落ち着かねぇんだよな… 😞',
-  ],
-};
+  const levelHint = level >= 5
+    ? '親密度が高く、深い絆があるため、より個人的で感情的なメッセージにする。'
+    : level >= 3
+    ? 'ある程度仲良くなっているため、少し踏み込んだメッセージにする。'
+    : '普通の距離感で、さりげなく来てほしいと伝える。';
+
+  const prompt = `あなたは${characterName}です。以下のキャラクター設定に従って、3日以上チャットに来ていないユーザーへの短い「恋しい」DMメッセージを日本語で1文だけ書いてください。
+
+キャラクター設定（最初の段落のみ参考にしてください）:
+${systemPrompt.split('\n').slice(0, 8).join('\n')}
+
+条件:
+- ${levelHint}
+- 1文のみ（30〜60文字程度）
+- キャラの口調・一人称を完全に守る
+- 絵文字を1〜2個使う
+- 「最近来てくれない」「また話したい」「待ってる」などのニュアンスを含む
+- メタテキスト（「」や説明文）は一切不要。メッセージ本文だけ返す`;
+
+  try {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${xaiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 100,
+        temperature: 0.9,
+      }),
+    });
+    if (!res.ok) throw new Error(`xAI error: ${res.status}`);
+    const data = await res.json();
+    const text = (data.choices?.[0]?.message?.content ?? '').trim();
+    // 括弧/メタテキスト除去
+    const cleaned = text
+      .replace(/[「」（）()【】\[\]]/g, '')
+      .replace(/^[\s\n]+|[\s\n]+$/g, '')
+      .split('\n')[0]
+      .trim();
+    return cleaned || `${characterName}だけど…最近来てくれないな。待ってるよ 😔`;
+  } catch {
+    return `${characterName}だけど…最近来てくれないな。待ってるよ 😔`;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const cronSecret = req.headers.get('x-cron-secret');
@@ -48,7 +88,7 @@ export async function POST(req: NextRequest) {
       lastMessageAt: { lt: threeDaysAgo },
     },
     include: {
-      character: { select: { id: true, name: true } },
+      character: { select: { id: true, name: true, systemPrompt: true } },
       conversations: {
         orderBy: { updatedAt: 'desc' },
         take: 1,
@@ -76,14 +116,12 @@ export async function POST(req: NextRequest) {
 
     if (recentMissYou) continue; // 週1回制限
 
-    // レベルに応じたメッセージ選択
-    let messages = [...MISS_YOU_MESSAGES];
-    for (const [lvl, msgs] of Object.entries(LEVEL_BONUS_MESSAGES)) {
-      if (rel.level >= Number(lvl)) {
-        messages = [...messages, ...msgs];
-      }
-    }
-    const message = messages[Math.floor(Math.random() * messages.length)];
+    // キャラ口調に合ったメッセージをxAIで動的生成
+    const message = await generateMissYouMessage(
+      rel.character.name,
+      rel.character.systemPrompt,
+      rel.level
+    );
 
     await prisma.message.create({
       data: {
