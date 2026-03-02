@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { DailyBonus } from '@/components/DailyBonus';
+import { getTodayMainEvent } from '@/lib/today-events';
 
 interface Character {
   id: string;
@@ -703,6 +704,46 @@ export default function ExplorePage() {
                   </div>
                 </div>
               </FadeSection>
+
+              {/* 今日のイベントバナー（hype高めのみ表示） */}
+              {(() => {
+                const todayEvent = getTodayMainEvent();
+                const eventEmojis: Record<string, string> = {
+                  'ひな祭り': '🎎',
+                  'バレンタイン': '💝',
+                  'ホワイトデー': '🍬',
+                  'ハロウィン': '🎃',
+                  'クリスマスイブ': '🎄',
+                  'クリスマス': '🎄',
+                  '元日': '🎍',
+                  '大晦日': '🎊',
+                  '七夕': '🌟',
+                  '花見シーズン': '🌸',
+                  'TGIF！花金': '🎉',
+                  'ポッキーの日': '🍫',
+                  '猫の日': '🐱',
+                };
+                if (!todayEvent) return null;
+                const emoji = eventEmojis[todayEvent] ?? '✨';
+                return (
+                  <FadeSection delay={30}>
+                    <div className="rounded-2xl px-4 py-3 mb-5 flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(236,72,153,0.18), rgba(139,92,246,0.18))',
+                        border: '1px solid rgba(236,72,153,0.3)',
+                        boxShadow: '0 2px 16px rgba(236,72,153,0.12)',
+                      }}
+                      onClick={() => router.push('/moments')}
+                    >
+                      <span className="text-2xl flex-shrink-0">{emoji}</span>
+                      <div>
+                        <p className="text-white font-semibold text-sm">今日は{todayEvent}！</p>
+                        <p className="text-white/55 text-xs mt-0.5">推しと{todayEvent}を楽しもう →</p>
+                      </div>
+                    </div>
+                  </FadeSection>
+                );
+              })()}
 
               {/* Following characters strip (if any) */}
               {followingChars.length > 0 && (
