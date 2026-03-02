@@ -108,7 +108,7 @@ interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -302,6 +302,8 @@ export default function ChatCharacterPage() {
   const [todayMsgCount, setTodayMsgCount] = useState(0);
   // コイン残高（チャット送信後に更新）
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
+  const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
+  const [showDailyEvent, setShowDailyEvent] = useState(false);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -415,6 +417,21 @@ export default function ChatCharacterPage() {
         }
       }
       if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
+
+      // デイリーイベント判定（変動報酬）
+      try {
+        const eventRes = await fetch('/api/daily-event');
+        if (eventRes.ok) {
+          const eventData = await eventRes.json();
+          setDailyEvent(eventData);
+          // 新規判定かつnormal以外なら演出表示
+          if (eventData.isNew && eventData.eventType !== 'normal') {
+            setShowDailyEvent(true);
+            setTimeout(() => setShowDailyEvent(false), 4000);
+          }
+        }
+      } catch {}
+
       setIsLoadingHistory(false);
     } catch (err) {
       console.error('Failed to load relationship:', err);
@@ -429,6 +446,56 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
+
+  /* ── Farewell（離脱検知 → ピークエンドの法則） ── */
+  useEffect(() => {
+    if (!relationshipId) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && relationshipId && messages.length > 2) {
+        // バックグラウンドに移行 → farewell API呼び出し（fire-and-forget）
+        fetch('/api/chat/farewell', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ relationshipId }),
+          keepalive: true,
+        }).then(async (res) => {
+          if (res.ok) {
+            const data = await res.json();
+            if (data.shouldSend && data.message) {
+              // 次回表示時にfarewellメッセージを表示
+              sessionStorage.setItem(`farewell-${characterId}`, JSON.stringify({
+                message: data.message,
+                timestamp: Date.now(),
+              }));
+            }
+          }
+        }).catch(() => {}); // fire-and-forget
+      }
+      if (document.visibilityState === 'visible') {
+        // 復帰時にfarewellメッセージを表示
+        const stored = sessionStorage.getItem(`farewell-${characterId}`);
+        if (stored) {
+          try {
+            const { message: farewellText, timestamp } = JSON.parse(stored);
+            // 5分以内のfarewellのみ表示
+            if (Date.now() - timestamp < 5 * 60 * 1000) {
+              const farewellMsg: Message = {
+                id: `farewell-${Date.now()}`,
+                role: 'CHARACTER',
+                content: farewellText,
+                createdAt: new Date().toISOString(),
+                metadata: { emotion: 'warm', isFarewell: true },
+              };
+              setMessages((prev) => [...prev, farewellMsg]);
+            }
+          } catch {}
+          sessionStorage.removeItem(`farewell-${characterId}`);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [relationshipId, messages.length, characterId]);
 
   /* ── プレースホルダーローテーション（入力がない時のみ） ── */
   useEffect(() => {
@@ -584,6 +651,37 @@ export default function ChatCharacterPage() {
       // コイン残高更新
       if (data.relationship?.coinBalance !== undefined) {
         setCoinBalance(data.relationship.coinBalance);
+      }
+
+      // クリフハンガー予告メッセージ（キャラが自然に差し込む）
+      if (data.cliffhangerTease) {
+        setTimeout(() => {
+          const teaseMsg: Message = {
+            id: `cliff-${Date.now()}`,
+            role: 'CHARACTER',
+            content: data.cliffhangerTease,
+            createdAt: new Date().toISOString(),
+            metadata: { emotion: 'mysterious', isCliffhanger: true },
+          };
+          setMessages((prev) => [...prev, teaseMsg]);
+        }, 2000); // 2秒後に自然に差し込む
+      }
+
+      // ストリークマイルストーン通知
+      if (data.streak?.milestone) {
+        const milestoneMessages: Record<number, string> = {
+          7: '🔥 7日連続！すごい絆だ！',
+          30: '🔥 30日連続！もう離れられないな…',
+          100: '🔥 100日連続！伝説の絆！',
+          365: '🔥 365日！1年間ずっと一緒…最高の仲間だ！',
+        };
+        const streakMsg: Message = {
+          id: `streak-${Date.now()}`,
+          role: 'SYSTEM',
+          content: milestoneMessages[data.streak.milestone] || `🔥 ${data.streak.milestone}日連続ストリーク！`,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, streakMsg]);
       }
 
       if (data.relationship) {
@@ -937,6 +1035,37 @@ export default function ChatCharacterPage() {
           milestone={levelUpData.milestone}
           onClose={() => setLevelUpData(null)}
         />
+      )}
+
+      {/* デイリーイベント演出（good/rare/super_rare時） */}
+      {showDailyEvent && dailyEvent && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none"
+          style={{ animation: 'fadeInUp 0.5s ease-out' }}
+        >
+          <div
+            className="bg-black/80 backdrop-blur-xl rounded-2xl px-8 py-6 text-center border pointer-events-auto"
+            style={{
+              borderColor: dailyEvent.display.color,
+              boxShadow: `0 0 40px ${dailyEvent.display.color}40`,
+              animation: dailyEvent.display.animation === 'rainbow'
+                ? 'glowPulse 1s ease-in-out infinite'
+                : dailyEvent.display.animation === 'glow'
+                  ? 'glowPulse 2s ease-in-out infinite'
+                  : undefined,
+            }}
+          >
+            <div className="text-2xl font-bold mb-2" style={{ color: dailyEvent.display.color }}>
+              {dailyEvent.display.title}
+            </div>
+            <div className="text-gray-300 text-sm">{dailyEvent.display.description}</div>
+            {dailyEvent.reward?.coins && (
+              <div className="mt-3 text-amber-400 font-semibold">
+                +{dailyEvent.reward.coins} コイン獲得！
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ══════════════ ヘッダー ══════════════ */}

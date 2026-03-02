@@ -4,6 +4,8 @@ import { characterEngine } from '@/lib/character-engine';
 import { auth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
+import { updateStreak } from '@/lib/streak-system';
+import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
@@ -192,7 +194,35 @@ export async function POST(req: NextRequest) {
       data: { updatedAt: new Date() },
     });
 
-    // 7. FREE の場合、月次チャットカウントをインクリメント
+    // 7a. ストリーク更新
+    let streakResult: { streakDays: number; isNew: boolean; milestone: number | null } | null = null;
+    try {
+      streakResult = await updateStreak(relationship.id);
+    } catch (e) {
+      console.warn('Streak update failed (migration pending?):', e);
+    }
+
+    // 7b. クリフハンガー設定（20%の確率、1日1回 — 会話が5往復以上の時のみ）
+    let cliffhangerTease: string | null = null;
+    try {
+      const msgCount = await prisma.message.count({
+        where: { conversation: { relationshipId: relationship.id }, role: 'USER' },
+      });
+      if (msgCount >= 5 && Math.random() < 0.2) {
+        const character = await prisma.character.findUnique({
+          where: { id: characterId },
+          select: { slug: true },
+        });
+        const cliffhanger = await setCliffhanger(relationship.id, character?.slug ?? 'luffy');
+        if (cliffhanger) {
+          cliffhangerTease = cliffhanger.teaseMessage;
+        }
+      }
+    } catch (e) {
+      console.warn('Cliffhanger set failed (migration pending?):', e);
+    }
+
+    // 7c. FREE の場合、月次チャットカウントをインクリメント
     if (access.type === 'FREE') {
       await incrementMonthlyChat(userId, characterId);
     }
@@ -214,6 +244,12 @@ export async function POST(req: NextRequest) {
       characterMessage: charMsg,
       emotion: response.emotion,
       consumed,
+      cliffhangerTease,
+      streak: streakResult ? {
+        days: streakResult.streakDays,
+        isNew: streakResult.isNew,
+        milestone: streakResult.milestone,
+      } : undefined,
       relationship: {
         level: updatedRelationship?.level ?? 1,
         xp: updatedRelationship?.experiencePoints ?? 0,
