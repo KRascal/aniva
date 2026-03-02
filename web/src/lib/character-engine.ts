@@ -3,6 +3,7 @@ import { consumeCliffhanger } from './cliffhanger-system';
 import { getStreak } from './streak-system';
 import { getUserDailyEvent } from './daily-event-system';
 import { getSecretPromptAdditions } from './secret-content';
+import { getTodayMainEvent } from './today-events';
 import { prisma } from './prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -566,6 +567,12 @@ export class CharacterEngine {
         systemPrompt += `\n${instruction}`;
         break; // 最初にマッチしたものだけ
       }
+    }
+
+    // (6) 今日の記念日/季節イベント注入
+    const todayMainEvent = getTodayMainEvent();
+    if (todayMainEvent) {
+      systemPrompt += `\n【今日のイベント】今日は「${todayMainEvent}」だ。会話の中で自然なタイミングで1回だけ触れよ。無理に押しつけるな、流れで自然に。`;
     }
 
     // 6. LLM呼び出し
