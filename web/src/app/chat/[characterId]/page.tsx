@@ -124,6 +124,8 @@ interface RelationshipInfo {
   isFanclub?: boolean;
   isFollowing?: boolean;
   sharedTopics?: { type: string; text: string }[];
+  streakDays?: number;
+  isStreakActive?: boolean;
 }
 
 interface Character {
@@ -985,15 +987,23 @@ export default function ChatCharacterPage() {
               </a>
             )}
           </div>
-          {/* プレゼンスステータス */}
-          {presence && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presence.isAvailable ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-              <span className="text-[10px] text-gray-400 truncate">
-                {presence.statusEmoji} {presence.status}
-              </span>
-            </div>
-          )}
+          {/* プレゼンスステータス + ストリーク */}
+          <div className="flex items-center gap-2 mt-0.5">
+            {presence && (
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presence.isAvailable ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+                <span className="text-[10px] text-gray-400 truncate">
+                  {presence.statusEmoji} {presence.status}
+                </span>
+              </div>
+            )}
+            {relationship?.isStreakActive && (relationship.streakDays ?? 0) >= 2 && (
+              <div className="flex items-center gap-0.5 bg-orange-900/40 border border-orange-500/30 rounded-full px-1.5 py-0.5">
+                <span className="text-[10px]">🔥</span>
+                <span className="text-[10px] font-bold text-orange-400">{relationship.streakDays}日</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 📞 通話ボタン */}

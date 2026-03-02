@@ -45,6 +45,13 @@ export async function GET(
     ...(memo.importantFacts ?? []).slice(0, 3).map((f: string) => ({ type: 'fact', text: f })),
   ];
 
+  // ストリーク有効判定（最終メッセージが48h以内 = アクティブ）
+  const streakDays = relationship.streakDays ?? 0;
+  const streakLastDate = relationship.streakLastDate;
+  const isStreakActive = streakLastDate
+    ? Date.now() - new Date(streakLastDate).getTime() < 48 * 60 * 60 * 1000
+    : false;
+
   return NextResponse.json({
     level: relationship.level,
     levelName: currentLevel.name,
@@ -57,5 +64,7 @@ export async function GET(
     isFanclub: relationship.isFanclub,
     isFollowing: relationship.isFollowing,
     sharedTopics, // 覚えてくれてる記憶の可視化
+    streakDays: isStreakActive ? streakDays : 0,
+    isStreakActive,
   });
 }
