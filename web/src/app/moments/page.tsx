@@ -6,7 +6,15 @@ import Link from 'next/link';
 import { MomentCard, MOMENT_CARD_STYLES, type Moment, type MomentCharacter } from '@/components/moments/MomentCard';
 
 /* ── Stories Bar ── */
-function StoriesBar({ moments }: { moments: Moment[] }) {
+function StoriesBar({
+  moments,
+  activeId,
+  onSelect,
+}: {
+  moments: Moment[];
+  activeId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
   const seen = new Set<string>();
   const characters: { id: string; character: MomentCharacter }[] = [];
   for (const m of moments) {
@@ -20,26 +28,55 @@ function StoriesBar({ moments }: { moments: Moment[] }) {
 
   return (
     <div className="sticky top-[57px] z-[15] bg-gray-950/80 backdrop-blur-xl border-b border-white/5 overflow-hidden max-w-lg mx-auto">
-      <div className="flex gap-4 overflow-x-auto py-3 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {characters.map((item) => (
-          <Link key={item.id} href={`/profile/${item.id}`} className="flex flex-col items-center gap-1.5 flex-shrink-0">
-            <div className="relative p-0.5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500">
-              <div className="bg-gray-950 rounded-full p-0.5">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
-                  {item.character.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.character.avatarUrl} alt={item.character.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                      {item.character.name.charAt(0)}
-                    </div>
-                  )}
-                </div>
+      <div className="flex gap-3 overflow-x-auto py-3 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {/* 全員ボタン */}
+        <button
+          onClick={() => onSelect(null)}
+          className="flex flex-col items-center gap-1.5 flex-shrink-0"
+        >
+          <div className={`relative p-0.5 rounded-full ${activeId === null ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500' : 'bg-gray-700/50'} transition-all`}>
+            <div className="bg-gray-950 rounded-full p-0.5">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                <span className="text-xl">🌊</span>
               </div>
             </div>
-            <span className="text-white/60 text-[10px] text-center w-14 truncate">{item.character.name}</span>
-          </Link>
-        ))}
+          </div>
+          <span className={`text-[10px] text-center w-14 truncate ${activeId === null ? 'text-white font-bold' : 'text-white/50'}`}>全員</span>
+        </button>
+
+        {characters.map((item) => {
+          const isActive = activeId === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelect(isActive ? null : item.id)}
+              className="flex flex-col items-center gap-1.5 flex-shrink-0"
+            >
+              <div className={`relative p-0.5 rounded-full transition-all ${isActive ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 scale-110' : 'bg-gray-700/50 hover:bg-gradient-to-br hover:from-purple-500/50 hover:via-pink-500/50 hover:to-rose-500/50'}`}>
+                <div className="bg-gray-950 rounded-full p-0.5">
+                  <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
+                    {item.character.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.character.avatarUrl} alt={item.character.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                        {item.character.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {isActive && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-pink-500 rounded-full border-2 border-gray-950 flex items-center justify-center">
+                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] text-center w-14 truncate transition-all ${isActive ? 'text-white font-bold' : 'text-white/60'}`}>{item.character.name}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -93,6 +130,7 @@ export default function MomentsPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
   const [isFollowingNone, setIsFollowingNone] = useState(false);
+  const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
 
   const touchStartY = useRef<number | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -267,7 +305,7 @@ export default function MomentsPage() {
         {/* Stories bar */}
         {!loading && moments.length > 0 && (
           <div className="max-w-lg mx-auto">
-            <StoriesBar moments={moments} />
+            <StoriesBar moments={moments} activeId={activeCharacterId} onSelect={setActiveCharacterId} />
           </div>
         )}
 
@@ -296,6 +334,24 @@ export default function MomentsPage() {
                   {seeding ? '投入中…' : 'サンプルデータ投入'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* アクティブフィルターラベル */}
+          {activeCharacterId && !loading && (
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-purple-300 font-medium">
+                {moments.find(m => m.characterId === activeCharacterId)?.character.name ?? ''} のモーメント
+              </span>
+              <button
+                onClick={() => setActiveCharacterId(null)}
+                className="text-xs text-white/40 hover:text-white/70 flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                クリア
+              </button>
             </div>
           )}
 
@@ -336,9 +392,15 @@ export default function MomentsPage() {
             </div>
           ) : (
             <>
-              {moments.map((moment) => (
+              {(activeCharacterId ? moments.filter(m => m.characterId === activeCharacterId) : moments).map((moment) => (
                 <MomentCard key={moment.id} moment={moment} onLike={handleLike} currentUserId={(session?.user as { id?: string })?.id} />
               ))}
+              {activeCharacterId && moments.filter(m => m.characterId === activeCharacterId).length === 0 && (
+                <div className="text-center py-16">
+                  <div className="text-5xl mb-3">🌸</div>
+                  <p className="text-white/50 text-sm">まだモーメントがありません</p>
+                </div>
+              )}
 
               {nextCursor && (
                 <button
