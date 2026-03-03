@@ -1423,19 +1423,47 @@ export default function ChatCharacterPage() {
         )}
 
         {messages.map((msg, idx) => {
+          // 日付セパレーター計算
+          const msgDate = new Date(msg.createdAt);
+          const prevMsg = messages[idx - 1];
+          const prevDate = prevMsg ? new Date(prevMsg.createdAt) : null;
+          const showDateSeparator = !prevDate || msgDate.toDateString() !== prevDate.toDateString();
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          let dateLabelText = '';
+          if (showDateSeparator) {
+            if (msgDate.toDateString() === today.toDateString()) {
+              dateLabelText = '今日';
+            } else if (msgDate.toDateString() === yesterday.toDateString()) {
+              dateLabelText = '昨日';
+            } else {
+              dateLabelText = `${msgDate.getMonth() + 1}月${msgDate.getDate()}日`;
+            }
+          }
+
           // SYSTEM メッセージ（CTA等）は専用UI
           if (msg.role === 'SYSTEM') {
             return (
-              <div key={msg.id} className="msg-animate flex justify-center my-2" style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}>
-                <a
-                  href={`/profile/${characterId}#fc`}
-                  className="block max-w-[85%] bg-gradient-to-r from-purple-900/60 to-pink-900/60 border border-purple-500/30 rounded-2xl px-5 py-3 text-center backdrop-blur-sm hover:border-purple-400/50 transition-all"
-                >
-                  <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
-                  <span className="inline-block mt-2 text-xs font-bold text-purple-300 bg-purple-500/20 px-4 py-1.5 rounded-full">
-                    FC会員になる →
-                  </span>
-                </a>
+              <div key={msg.id}>
+                {showDateSeparator && (
+                  <div className="flex items-center gap-3 my-4 px-2">
+                    <div className="flex-1 h-px bg-gray-800" />
+                    <span className="text-[11px] text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
+                    <div className="flex-1 h-px bg-gray-800" />
+                  </div>
+                )}
+                <div className="msg-animate flex justify-center my-2" style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}>
+                  <a
+                    href={`/profile/${characterId}#fc`}
+                    className="block max-w-[85%] bg-gradient-to-r from-purple-900/60 to-pink-900/60 border border-purple-500/30 rounded-2xl px-5 py-3 text-center backdrop-blur-sm hover:border-purple-400/50 transition-all"
+                  >
+                    <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
+                    <span className="inline-block mt-2 text-xs font-bold text-purple-300 bg-purple-500/20 px-4 py-1.5 rounded-full">
+                      FC会員になる →
+                    </span>
+                  </a>
+                </div>
               </div>
             );
           }
@@ -1451,8 +1479,15 @@ export default function ChatCharacterPage() {
           const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
 
           return (
+            <div key={msg.id}>
+              {showDateSeparator && (
+                <div className="flex items-center gap-3 my-4 px-2">
+                  <div className="flex-1 h-px bg-gray-800" />
+                  <span className="text-[11px] text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
+                  <div className="flex-1 h-px bg-gray-800" />
+                </div>
+              )}
             <div
-              key={msg.id}
               className={`msg-animate flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
               style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}
             >
@@ -1546,6 +1581,7 @@ export default function ChatCharacterPage() {
                   )}
                 </span>
               </div>
+            </div>
             </div>
           );
         })}
