@@ -21,6 +21,7 @@ interface RawCharacter {
   slug: string;
   franchise: string;
   avatarUrl?: string | null;
+  catchphrases?: string[];
 }
 
 const Q1_OPTIONS: { value: Q1Answer; label: string }[] = [
@@ -220,12 +221,60 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                           />
                         ) : (
                           <div
-                            className="w-full h-full flex items-center justify-center text-3xl"
+                            className="w-full h-full relative flex items-center justify-center overflow-hidden"
                             style={{
-                              background: `hsl(${(idx * 47) % 360}, 60%, 20%)`,
+                              background: `linear-gradient(135deg, hsl(${(idx * 47) % 360}, 70%, 25%) 0%, #0d0015 100%)`,
                             }}
                           >
-                            ✨
+                            {/* Glow effect */}
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                background: `radial-gradient(circle at 50% 40%, hsla(${(idx * 47) % 360}, 80%, 50%, 0.3) 0%, transparent 70%)`,
+                              }}
+                            />
+                            {/* Particle dots */}
+                            {[...Array(4)].map((_, pi) => (
+                              <div
+                                key={pi}
+                                className="absolute rounded-full"
+                                style={{
+                                  width: `${3 + (pi % 2) * 2}px`,
+                                  height: `${3 + (pi % 2) * 2}px`,
+                                  background: `hsla(${(idx * 47 + pi * 30) % 360}, 80%, 70%, 0.7)`,
+                                  top: `${20 + pi * 18}%`,
+                                  left: `${10 + pi * 20}%`,
+                                  animation: `charParticle ${2 + pi * 0.5}s ${pi * 0.3}s ease-in-out infinite`,
+                                }}
+                              />
+                            ))}
+                            {/* Initial letter */}
+                            <span
+                              className="relative z-10 text-4xl font-black"
+                              style={{
+                                color: `hsl(${(idx * 47) % 360}, 80%, 80%)`,
+                                textShadow: `0 0 20px hsla(${(idx * 47) % 360}, 80%, 70%, 0.8)`,
+                              }}
+                            >
+                              {char.name.charAt(0)}
+                            </span>
+                            <style>{`
+                              @keyframes charParticle {
+                                0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+                                50%       { transform: translateY(-8px) scale(1.3); opacity: 0.9; }
+                              }
+                            `}</style>
+                          </div>
+                        )}
+                        {/* Franchise / catchphrase overlay at bottom */}
+                        {(char.catchphrases?.[0] || char.franchise) && (
+                          <div
+                            className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-center"
+                            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}
+                          >
+                            <p className="text-white/70 text-[9px] leading-tight truncate">
+                              {char.catchphrases?.[0] ? `「${char.catchphrases[0]}」` : char.franchise}
+                            </p>
                           </div>
                         )}
                         {/* Overlay on non-selected when one is selected */}
@@ -343,8 +392,14 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl">
-                          ✨
+                        <div className="w-full h-full relative flex items-center justify-center overflow-hidden"
+                          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #1a0033 100%)' }}>
+                          <div className="absolute inset-0"
+                            style={{ background: 'radial-gradient(circle at 50% 40%, rgba(168,85,247,0.4) 0%, transparent 70%)' }} />
+                          <span className="relative z-10 text-5xl font-black text-white"
+                            style={{ textShadow: '0 0 20px rgba(168,85,247,0.8)' }}>
+                            {matchedChar.name.charAt(0)}
+                          </span>
                         </div>
                       )}
                     </motion.div>

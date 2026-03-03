@@ -40,6 +40,7 @@ model User {
   letters                Letter[]
   userCards              UserCard[]
   dailyEvents            UserDailyEvent[]
+  userStoryProgress      UserStoryProgress[]
 }
 
 model PushSubscription {
@@ -135,6 +136,8 @@ model Character {
   characterSubscriptions  CharacterSubscription[]
   letters                 Letter[]
   gachaCards              GachaCard[]
+  storyChapters           StoryChapter[]
+  userStoryProgress       UserStoryProgress[]
 }
 
 model Relationship {
@@ -467,4 +470,41 @@ model UserDailyEvent {
 
   @@unique([userId, date])
   @@index([userId])
+}
+
+// ========== ストーリーモード ==========
+model StoryChapter {
+  id            String              @id @default(cuid())
+  characterId   String
+  character     Character           @relation(fields: [characterId], references: [id])
+  chapterNumber Int
+  title         String
+  synopsis      String              @db.Text
+  unlockLevel   Int                 @default(1)
+  isFcOnly      Boolean             @default(false)
+  triggerPrompt String              @db.Text
+  choices       Json?               // [{ text, consequence, nextTease }]
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+
+  @@unique([characterId, chapterNumber])
+  @@index([characterId])
+  userProgress  UserStoryProgress[]
+}
+
+model UserStoryProgress {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  characterId String
+  character   Character    @relation(fields: [characterId], references: [id])
+  chapterId   String
+  chapter     StoryChapter @relation(fields: [chapterId], references: [id])
+  choicesMade Json         @default("[]")
+  isCompleted Boolean      @default(false)
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  @@unique([userId, chapterId])
+  @@index([userId, characterId])
 }

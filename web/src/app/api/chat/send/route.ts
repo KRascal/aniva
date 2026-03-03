@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { characterId, message } = await req.json();
+    const { characterId, message, locale } = await req.json();
 
     if (!characterId || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
       characterId,
       relationship.id,
       message,
+      typeof locale === 'string' ? locale : 'ja',
     );
 
     // 5. キャラクター応答保存

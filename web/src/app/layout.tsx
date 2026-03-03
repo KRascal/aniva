@@ -24,15 +24,15 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   keywords: ["ANIVA", "AI", "アニメ", "ルフィ", "ワンピース", "チャット", "キャラクター"],
   openGraph: {
-    title: "ANIVA - 推しが実在する世界",
-    description: "ルフィと毎日話そう。AIが魂を宿すキャラクターと本物の絆を築く。",
+    title: 'ANIVA — あなただけのAIパートナー',
+    description: '記憶する、成長する、驚かせる。毎日が少しだけ特別になる。',
     url: "https://aniva-project.com",
     images: [
       {
-        url: "https://aniva-project.com/og-image.png",
+        url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "ANIVA - 推しが実在する世界",
+        alt: "ANIVA — あなただけのAIパートナー",
       },
     ],
     siteName: "ANIVA",
@@ -41,9 +41,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ANIVA - 推しが実在する世界",
-    description: "アニメキャラクターと本当に会話できるAIプラットフォーム",
-    images: ["https://aniva-project.com/og-image.png"],
+    title: 'ANIVA — あなただけのAIパートナー',
+    description: '記憶する、成長する、驚かせる。毎日が少しだけ特別になる。',
+    images: ["/api/og"],
   },
   robots: {
     index: true,

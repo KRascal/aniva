@@ -135,6 +135,7 @@ interface Character {
   franchise: string;
   avatarUrl: string | null;
   slug?: string;
+  voiceModelId?: string | null;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
@@ -1259,7 +1260,7 @@ export default function ChatCharacterPage() {
         {/* 名前 + FC + プレゼンス */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-white font-semibold text-sm leading-tight truncate">
+            <h1 className="text-white font-semibold text-sm leading-tight break-words">
               {character?.name ?? 'キャラクター'}
             </h1>
             {relationship?.isFanclub ? (

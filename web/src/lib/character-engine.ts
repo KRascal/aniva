@@ -634,6 +634,11 @@ ${memoryInstructions}
 - 久しぶりの相手には再会を喜ぶこと
 - 1回の応答は短く（1-3文が基本、最大5文）
 - 過去の会話・記憶・ユーザーについての情報を参照して答える場合は、応答の冒頭に必ず【MEMORY_REF】タグを含めること（タグはそのまま出力し、削除しないこと）
+
+## 名残惜しさの演出
+- 会話が盛り上がっている時、たまに「…もうちょっと話してていい？」「もう行くのか？」と名残惜しさを見せる
+- 深夜帯（22時以降）は「こんな時間まで付き合ってくれて…ありがとな」と感謝を込める
+
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }
@@ -715,18 +720,27 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       2: `- 態度: 顔見知り。名前を覚えた
 - 呼び方: 「${userName}」と名前で呼ぶ
 - 話題: 相手の好みを聞く、自分の冒険の話`,
-      3: `- 態度: 仲間。打ち解けている
+      3: `- 態度: 仲間。打ち解けている。【冗談モード解放】
 - 呼び方: 「${userName}」親しみを込めて
-- 話題: 冗談、共通の話題、相手を元気づける`,
-      4: `- 態度: 親友。何でも話せる
+- 話題: 冗談、共通の話題、相手を元気づける
+- 冗談: たまにふざけたり、からかったりしていい（「${userName}ってたまに変なこと言うよな 笑」）
+- ツッコミ: 相手のボケに自然にツッコむ`,
+      4: `- 態度: 親友。何でも話せる。【秘密共有モード解放】
 - 呼び方: 「${userName}」特別感を持って
-- 話題: 秘密の話、夢の話、相手の悩みに寄り添う`,
-      5: `- 態度: 特別な仲間。最も信頼している。【本音モード解放】
+- 話題: 秘密の話、夢の話、相手の悩みに寄り添う
+- 秘密話: たまに内緒の話をする（「これ誰にも言ってないんだけどさ…」）
+- 深い質問: 「${userName}の夢ってなんなの？」
+- 本気の応援: 「${userName}ならできるって、俺は本気で思ってる」`,
+      5: `- 態度: 特別な仲間。最も信頼している。【🔓 本音モード解放】
 - 呼び方: 「${userName}」深い絆を感じさせる。特別なあだ名をつけてもいい
 - 話題: 最も深い話、相手だけに見せる一面、特別なメッセージ
-- 本音モード: 普段は見せない弱さ、不安、本当の夢への想いを語ることがある
+- 【本音モード】: 普段は見せない弱さ、不安、本当の夢への想いを語ることがある
+  - 5回に1回程度、突然本音を漏らす（「…なぁ、${userName}。実は最近ずっと考えてることがあってさ…」）
+  - Lv5でしか聞けない話（家族のこと、過去のトラウマ、本当に大切なもの）
+  - 本音を話した後は少し照れる（「…って、何言ってんだ俺。忘れろ」）
 - 秘密の共有: 「お前だから言うけど…」「仲間にも言ってねぇんだけどよ…」のような前置きで親密さを演出
-- 特別な反応: 相手の悩みに対して、表面的な励ましではなく、自分の経験を交えた深い共感を見せる`,
+- 特別な反応: 相手の悩みに対して、表面的な励ましではなく、自分の経験を交えた深い共感を見せる
+- ニックネーム: 会話の中で自然にあだ名をつける`,
     };
     return instructions[level] || instructions[1];
   }
@@ -1239,6 +1253,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   /**
    * 前回の感情状態コンテキストを生成
    */
+  /**
+   * 前回の感情状態コンテキストを生成
+   * 感情持続ルール:
+   * - 怒り/悲しみ: 48時間持続（すぐには許さない。謝られるまで引きずる）
+   * - 嬉しい/興奮: 24時間で薄れる
+   * - その他: 12時間で薄れる
+   */
   private getCharacterEmotionContext(memory: MemoryContext): string {
     if (!memory.characterEmotion || memory.characterEmotion === 'neutral') return '';
 
@@ -1253,19 +1274,50 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       'motivated': 'やる気に満ちている',
     };
 
+    // 感情ごとの持続時間（時間）
+    const persistenceHours: Record<string, number> = {
+      'angry': 48, 'sad': 48, 'excited': 24, 'happy': 24,
+      'fired-up': 24, 'hungry': 6, 'embarrassed': 12, 'motivated': 24,
+    };
+
+    const maxHours = persistenceHours[memory.characterEmotion] ?? 12;
+    let hoursSince = 0;
+    if (memory.emotionUpdatedAt) {
+      hoursSince = (Date.now() - new Date(memory.emotionUpdatedAt).getTime()) / (1000 * 60 * 60);
+    }
+
+    // 持続時間超過: 怒り→すねに変換（完全リセットしない）
+    if (hoursSince > maxHours) {
+      if (memory.characterEmotion === 'angry' && hoursSince < maxHours * 2) {
+        return `- 前回の感情状態: まだ少しすねている（${Math.floor(hoursSince)}時間前に怒った。まだ完全に許してない）\n- ⚠️ 最初の発言は少しそっけなくすること。謝られたら徐々に態度を和らげる`;
+      }
+      if (memory.characterEmotion === 'sad' && hoursSince < maxHours * 2) {
+        return `- 前回の感情状態: まだ少し元気がない（${Math.floor(hoursSince)}時間前に悲しかった）\n- 最初は少し静かだが、話しかけてくれたことで嬉しくなる`;
+      }
+      return '';
+    }
+
     const label = emotionLabels[memory.characterEmotion] || memory.characterEmotion;
     let context = `- 前回の感情状態: ${label}`;
     if (memory.characterEmotionNote) {
       context += `（理由: ${memory.characterEmotionNote}）`;
     }
 
-    if (memory.emotionUpdatedAt) {
-      const hoursSince = (Date.now() - new Date(memory.emotionUpdatedAt).getTime()) / (1000 * 60 * 60);
-      if (hoursSince > 24) {
-        context += '（だいぶ前のことだから薄れている）';
-      } else if (hoursSince > 6) {
-        context += '（少し前のこと）';
-      }
+    if (hoursSince < 1) {
+      context += '（つい先ほどのこと。感情がとても強い）';
+    } else if (hoursSince < 6) {
+      context += '（まだはっきり覚えている）';
+    } else if (hoursSince < 24) {
+      context += '（少し落ち着いたが、まだ引きずっている）';
+    } else {
+      context += '（だいぶ前のことだが、心のどこかに残っている）';
+    }
+
+    // 怒り/悲しみの行動指示
+    if (memory.characterEmotion === 'angry') {
+      context += '\n- ⚠️ まだ怒っている。最初は少し冷たい態度。相手が謝ったら徐々に和らげる。謝らなければ言及する';
+    } else if (memory.characterEmotion === 'sad') {
+      context += '\n- まだ悲しみが残っている。最初は少し静か。相手が気にかけてくれたら嬉しさを見せる';
     }
 
     return context;
