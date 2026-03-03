@@ -53,6 +53,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameSaveMsg, setNameSaveMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -77,6 +80,7 @@ export default function SettingsPage() {
             displayName: data.displayName ?? null,
             plan: data.plan ?? 'FREE',
           });
+          setDisplayNameInput(data.displayName ?? '');
         }
       })
       .catch(console.error)
@@ -128,6 +132,27 @@ export default function SettingsPage() {
       }
     } else {
       alert('通知をOFFにするにはブラウザの設定から変更してください');
+    }
+  };
+
+  const handleSaveName = async () => {
+    setIsSavingName(true);
+    setNameSaveMsg(null);
+    try {
+      const res = await fetch('/api/users/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: displayNameInput }),
+      });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      setAccount((prev) => prev ? { ...prev, displayName: data.displayName } : prev);
+      setNameSaveMsg('保存しました ✓');
+    } catch {
+      setNameSaveMsg('保存に失敗しました');
+    } finally {
+      setIsSavingName(false);
+      setTimeout(() => setNameSaveMsg(null), 3000);
     }
   };
 
@@ -272,8 +297,46 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* アカウント情報 */}
+        {/* 推しに呼ばれる名前 */}
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '180ms' }}>
+          <div className="px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
+            <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
+              <span>💌</span> 推しに呼ばれる名前
+            </h2>
+          </div>
+          <div className="px-4 py-4">
+            <p className="text-xs text-[var(--color-muted)] mb-3">
+              キャラクターがあなたを呼ぶ名前を設定できます（最大20文字）
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={displayNameInput}
+                onChange={(e) => setDisplayNameInput(e.target.value.slice(0, 20))}
+                placeholder={account?.email?.split('@')[0] ?? 'ニックネーム'}
+                className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-purple-500 transition-colors"
+                maxLength={20}
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={isSavingName}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSavingName ? (
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : '保存'}
+              </button>
+            </div>
+            {nameSaveMsg && (
+              <p className={`text-xs mt-2 ${nameSaveMsg.includes('失敗') ? 'text-red-400' : 'text-green-400'}`}>
+                {nameSaveMsg}
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* アカウント情報 */}
+        <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
           <div className="px-4 pt-4 pb-2 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
               <span>👤</span> アカウント
