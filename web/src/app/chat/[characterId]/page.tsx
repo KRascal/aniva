@@ -345,6 +345,42 @@ export default function ChatCharacterPage() {
   const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
   const [showDailyEvent, setShowDailyEvent] = useState(false);
 
+  /* ── メッセージ長押しコンテキストメニュー ── */
+  const [ctxMenu, setCtxMenu] = useState<{ msgId: string; content: string } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMsgLongPressStart = useCallback((msgId: string, content: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setCtxMenu({ msgId, content });
+    }, 500);
+  }, []);
+
+  const handleMsgLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleCopyMsg = useCallback(async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setShareToast('コピーしました ✓');
+      setTimeout(() => setShareToast(null), 2000);
+    } catch {
+      // fallback
+      const el = document.createElement('textarea');
+      el.value = content;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setShareToast('コピーしました ✓');
+      setTimeout(() => setShareToast(null), 2000);
+    }
+    setCtxMenu(null);
+  }, []);
+
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1561,7 +1597,7 @@ export default function ChatCharacterPage() {
                 )}
 
                 <div
-                  className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 ${
+                  className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 select-none ${
                     isUser
                       ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
                       : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
@@ -1570,6 +1606,13 @@ export default function ChatCharacterPage() {
                     }`
                   }`}
                   style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
+                  onTouchStart={!isUser ? () => handleMsgLongPressStart(msg.id, displayContent) : undefined}
+                  onTouchEnd={!isUser ? handleMsgLongPressEnd : undefined}
+                  onTouchMove={!isUser ? handleMsgLongPressEnd : undefined}
+                  onMouseDown={!isUser ? () => handleMsgLongPressStart(msg.id, displayContent) : undefined}
+                  onMouseUp={!isUser ? handleMsgLongPressEnd : undefined}
+                  onMouseLeave={!isUser ? handleMsgLongPressEnd : undefined}
+                  onContextMenu={!isUser ? (e) => { e.preventDefault(); setCtxMenu({ msgId: msg.id, content: displayContent }); } : undefined}
                 >
                   <span className="whitespace-pre-wrap break-words">{displayContent}</span>
                   {emotionEmoji && (
@@ -1780,6 +1823,48 @@ export default function ChatCharacterPage() {
           {inputText.length > 0 && `${inputText.length}/2000`}
         </div>
       </div>
+      {/* メッセージ長押しコンテキストメニュー */}
+      {ctxMenu && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center"
+          onClick={() => setCtxMenu(null)}
+        >
+          <div
+            className="bg-gray-800 border border-white/10 rounded-2xl shadow-2xl p-1 min-w-[160px] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => handleCopyMsg(ctxMenu.content)}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
+            >
+              <span className="text-lg">📋</span>
+              <span>コピー</span>
+            </button>
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ text: ctxMenu.content }).catch(() => {});
+                } else {
+                  handleCopyMsg(ctxMenu.content);
+                }
+                setCtxMenu(null);
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
+            >
+              <span className="text-lg">🔗</span>
+              <span>シェア</span>
+            </button>
+            <button
+              onClick={() => setCtxMenu(null)}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-400 text-sm text-left"
+            >
+              <span className="text-lg">✕</span>
+              <span>閉じる</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* シェアトースト */}
       {shareToast && (
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-gray-800/95 text-white text-sm px-5 py-2.5 rounded-full shadow-lg border border-white/10 pointer-events-none">
