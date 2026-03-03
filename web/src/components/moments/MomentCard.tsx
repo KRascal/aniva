@@ -33,6 +33,7 @@ export interface Moment {
   reactionCount: number;
   userHasLiked: boolean;
   isLocked: boolean;
+  commentCount?: number;
 }
 
 /* ────────────────────────────────── CSS animations ── */
@@ -240,9 +241,11 @@ export function MediaPlaceholder({
 export function MomentCard({
   moment,
   onLike,
+  currentUserId,
 }: {
   moment: Moment;
   onLike: (id: string) => void;
+  currentUserId?: string | null;
 }) {
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [bouncing, setBouncing] = useState(false);
@@ -441,7 +444,7 @@ export function MomentCard({
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span className="text-xs">コメント</span>
+            <span className="text-xs">コメント{(moment.commentCount ?? 0) > 0 ? ` ${moment.commentCount}` : ''}</span>
           </button>
 
           {/* DM */}
@@ -513,6 +516,21 @@ export function MomentCard({
                     </span>
                     <span className="text-gray-200 text-xs leading-relaxed">{c.content}</span>
                   </div>
+                  {/* 削除ボタン（自分のコメントのみ） */}
+                  {currentUserId && c.userId === currentUserId && (
+                    <button
+                      className="text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
+                      title="削除"
+                      onClick={async () => {
+                        const res = await fetch(`/api/moments/${moment.id}/comments/${c.id}`, { method: 'DELETE' });
+                        if (res.ok) setComments((prev) => prev.filter((x) => x.id !== c.id));
+                      }}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

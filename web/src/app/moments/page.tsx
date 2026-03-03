@@ -337,7 +337,7 @@ export default function MomentsPage() {
           ) : (
             <>
               {moments.map((moment) => (
-                <MomentCard key={moment.id} moment={moment} onLike={handleLike} />
+                <MomentCard key={moment.id} moment={moment} onLike={handleLike} currentUserId={(session?.user as { id?: string })?.id} />
               ))}
 
               {nextCursor && (

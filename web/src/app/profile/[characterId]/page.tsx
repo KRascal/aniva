@@ -669,7 +669,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               moments.map((moment) => (
-                <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} />
+                <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} currentUserId={userId} />
               ))
             )}
 
@@ -734,7 +734,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').map((moment) => (
-                    <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} />
+                    <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} currentUserId={userId} />
                   ))
                 )}
               </>

@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
       include: {
         character: { select: { name: true, avatarUrl: true } },
         reactions: { select: { userId: true, type: true } },
+        _count: { select: { comments: true } },
       },
       orderBy: { publishedAt: 'desc' },
       take: limit + 1,
@@ -96,6 +97,7 @@ export async function GET(req: NextRequest) {
       levelRequired: number;
       publishedAt: Date | null;
       reactions: { userId: string; type: string }[];
+      _count: { comments: number };
     };
     const result = (moments as MomentWithRelations[]).map((moment) => {
       const reactionCount = moment.reactions.filter((r) => r.type === 'like').length;
@@ -129,6 +131,7 @@ export async function GET(req: NextRequest) {
         reactionCount,
         userHasLiked,
         isLocked,
+        commentCount: moment._count.comments,
       };
     });
 
