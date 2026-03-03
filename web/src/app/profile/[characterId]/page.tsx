@@ -672,6 +672,36 @@ export default function ProfilePage() {
                 <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} />
               ))
             )}
+
+            {/* 🔒 親密度ゲート ティーザー */}
+            {relationship && level < 5 && (
+              <div className="mt-2 bg-gray-900/60 border border-white/8 rounded-2xl p-4 text-center space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-xl">{level >= 3 ? '⭐' : '🔒'}</span>
+                  <p className="text-white/70 text-sm font-medium">
+                    {level < 3
+                      ? `Lv3で特別な投稿が解放されます`
+                      : `Lv5でFC限定投稿が全解放されます`}
+                  </p>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, ((level - 1) / 4) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-white/30 text-xs">
+                  現在 Lv{level} — もっと話しかけて親密度を上げよう
+                </p>
+                <a
+                  href={`/chat/${characterId}`}
+                  className="inline-flex items-center gap-1.5 bg-purple-700/50 hover:bg-purple-700/70 text-purple-200 text-xs font-medium py-2 px-4 rounded-xl transition-colors border border-purple-600/30"
+                >
+                  <span>💬</span>
+                  話しかける
+                </a>
+              </div>
+            )}
           </div>
         )}
 

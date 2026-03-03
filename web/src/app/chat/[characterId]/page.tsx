@@ -1300,6 +1300,12 @@ export default function ChatCharacterPage() {
                 <span className="text-[10px] font-bold text-orange-400">{relationship.streakDays}日</span>
               </div>
             )}
+            {isLateNight && (
+              <div className="flex items-center gap-0.5 bg-amber-900/40 border border-amber-600/30 rounded-full px-1.5 py-0.5 animate-pulse">
+                <span className="text-[10px]">🌙</span>
+                <span className="text-[10px] font-medium text-amber-300">ふたりだけの夜</span>
+              </div>
+            )}
           </div>
         </div>
 
