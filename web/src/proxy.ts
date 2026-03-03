@@ -54,7 +54,8 @@ export default auth((req) => {
     pathname.startsWith('/api/onboarding/guest-chat') ||  // 邂逅フロー ゲストチャット
     pathname === '/api/coins/packages' ||  // 料金ページ（未ログインでも表示）
     pathname.startsWith('/api/geoip') ||   // ロケール検出（未ログインOK）
-    pathname.startsWith('/api/og');        // OGP動的生成（SNSクローラーOK）
+    pathname.startsWith('/api/og') ||      // OGP動的生成（SNSクローラーOK）
+    pathname.startsWith('/api/events');    // イベント情報（未ログインでも表示OK）
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
   // /api/auth/login は NextAuth の有効なアクションではない（有効なのは signin, signout, callback 等）
