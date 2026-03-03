@@ -1134,6 +1134,16 @@ export default function ChatCharacterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </a>
+              <a href={`/story/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+                <span className="text-xl">📖</span>
+                <div>
+                  <div className="font-medium">ストーリー</div>
+                  <div className="text-gray-500 text-xs">キャラとの物語</div>
+                </div>
+                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
               <a href={`/moments?character=${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
                 <span className="text-xl">📸</span>
                 <div><div className="font-medium">Moments</div></div>
