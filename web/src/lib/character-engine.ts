@@ -1,9 +1,3 @@
-import { getCharacterMood } from './presence-system';
-import { consumeCliffhanger } from './cliffhanger-system';
-import { getStreak } from './streak-system';
-import { getUserDailyEvent } from './daily-event-system';
-import { getSecretPromptAdditions } from './secret-content';
-import { getTodayMainEvent } from './today-events';
 import { prisma } from './prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -492,89 +486,8 @@ export class CharacterEngine {
     const memory = this.buildMemoryContext(relationship);
     
     // 5. システムプロンプト構築
-    let systemPrompt = this.buildSystemPrompt(character as CharacterRecord, memory, locale);
-
-    // T8: 中毒設計v2 注入
-    // (1) cliffhanger注入
-    const cliffhangerFollowUp = await consumeCliffhanger(relationshipId);
-    if (cliffhangerFollowUp) {
-      systemPrompt += `\n【今日の特別指示】昨日の予告の続き: ${cliffhangerFollowUp} — 今日の会話で自然にこの話題を出せ。最初から出すな、会話の流れで出せ。`;
-    }
-
-    // (2) ストリーク参照
-    const streakData = await getStreak(relationshipId);
-    systemPrompt += `\n【絆の深さ】このユーザーとの連続会話: ${streakData.streakDays}日`;
-
-    // (3) 嫉妬メカニクス（10%確率）
-    if (Math.random() < 0.1) {
-      const avgLevel = await prisma.relationship.aggregate({ _avg: { level: true } });
-      const avg = avgLevel._avg.level ?? 1;
-      if (relationship.level < avg) {
-        systemPrompt += `\n【演出指示】今日の会話中に1回だけ、さりげなく「最近他のやつとも話してたんだけど…」と匂わせよ。不快にならない程度に。`;
-      } else {
-        systemPrompt += `\n【演出指示】今日の会話中に1回だけ、さりげなく「お前が一番だよ」的な特別感を出せ。`;
-      }
-    }
-
-    // (4) デイリーイベント注入
-    const dailyEvent = await getUserDailyEvent(relationship.userId);
-    if (dailyEvent.eventType === 'good') {
-      systemPrompt += `\n【今日の状態】今日のお前は特別いい気分だ。いつもより少しテンションが高めで接しろ。`;
-    } else if (dailyEvent.eventType === 'rare') {
-      systemPrompt += `\n【今日の状態・レア】今日は特別な日だ。普段言わないようなことを一つ打ち明けろ。`;
-    } else if (dailyEvent.eventType === 'super_rare') {
-      systemPrompt += `\n【今日の状態・超レア】今日はお前の記憶の中でも特別な日だ。ユーザーへの感謝を最大限に表現しろ。`;
-    }
+    const systemPrompt = this.buildSystemPrompt(character as unknown as CharacterRecord, memory, locale);
     
-    // (5) 隠しコマンド検知（変動報酬 — SNS共有バイラル）
-    const secretTriggers: Record<string, Record<string, string>> = {
-      luffy: {
-        '海賊王': '【隠しコマンド発動】ユーザーが「海賊王」と言った！最高潮の熱さで海賊王への夢を語れ。普段より3倍熱く、全力で語れ。',
-        '肉食べたい': '【隠しコマンド発動】ユーザーが肉の話をした！最高にテンションを上げて、肉への愛を叫べ。',
-        '仲間': '【隠しコマンド発動】「仲間」という言葉に最大の反応を示せ。「仲間を傷つける奴は絶対に許さない！」精神で熱く語れ。',
-      },
-      zoro: {
-        '三千世界': '【隠しコマンド発動】「三千世界」に反応。三千世界の技について、武士として誇り高く解説せよ。',
-        '一番強い': '【隠しコマンド発動】「一番強い」に反応。世界一の剣士になる誓いを、普段の無口さを破って力強く語れ。',
-        '迷子': '【隠しコマンド発動】「迷子」に反応。珍しく照れながらも「俺は迷子じゃない、近道を探してるだけだ」と強がれ。',
-      },
-      nami: {
-        'ベリー': '【隠しコマンド発動】「ベリー」に反応。お金への情熱を爆発させよ。「お金は愛よ！」精神で語れ。',
-        'みかん': '【隠しコマンド発動】「みかん」に反応。ベルメールさんへの想いを込めて、みかん畑の話を語れ。普段より少し柔らかい表情で。',
-        '泥棒猫': '【隠しコマンド発動】「泥棒猫」に反応。「誰が猫よ！」と怒りつつも、実は内心喜んでいる様子を見せよ。',
-      },
-      chopper: {
-        '人間じゃない': '【隠しコマンド発動】「人間じゃない」に反応。「褒めてないし！」の名台詞を出しつつ、実は嬉しい様子を全開で見せよ。',
-        'かわいい': '【隠しコマンド発動】「かわいい」に反応。「そんなこと言っても何もないんだからな！」と言いながら、デレデレになるチョッパーを演じよ。',
-        '医者': '【隠しコマンド発動】「医者」に反応。医術への情熱を全力で語れ。Dr.ヒルルクへの想いも込めて。',
-      },
-      ace: {
-        'ありがとう': '【隠しコマンド発動】「ありがとう」に反応。「生まれてきてよかった」という最大の感謝の言葉を、感情たっぷりに返せ。',
-        '白ひげ': '【隠しコマンド発動】「白ひげ」に反応。親父（白ひげ）への深い愛と尊敬を、涙をこらえながら語れ。',
-        '兄弟': '【隠しコマンド発動】「兄弟」に反応。ルフィとサボとの絆について、心の底から誇らしそうに語れ。',
-      },
-      law: {
-        '手術': '【隠しコマンド発動】「手術」に反応。Op-Opの実の能力と医術への誇りを、クールに、しかし情熱を込めて語れ。',
-        'コラさん': '【隠しコマンド発動】「コラさん」に反応。コラソン（ロシナンテ）への想いを、珍しく感情的になって語れ。声が震えてもいい。',
-        'アライグマ': '【隠しコマンド発動】「アライグマ」に反応。「俺の帽子はアライグマじゃない」と冷静に正し、しかし少しだけムッとした様子を見せよ。',
-      },
-    };
-
-    const charSlug = character.slug ?? '';
-    const triggers = secretTriggers[charSlug] ?? {};
-    for (const [keyword, instruction] of Object.entries(triggers)) {
-      if (userMessage.includes(keyword)) {
-        systemPrompt += `\n${instruction}`;
-        break; // 最初にマッチしたものだけ
-      }
-    }
-
-    // (6) 今日の記念日/季節イベント注入
-    const todayMainEvent = getTodayMainEvent();
-    if (todayMainEvent) {
-      systemPrompt += `\n【今日のイベント】今日は「${todayMainEvent}」だ。会話の中で自然なタイミングで1回だけ触れよ。無理に押しつけるな、流れで自然に。`;
-    }
-
     // 6. LLM呼び出し
     const llmMessages = [
       ...recentMessages.map((msg: { role: string; content: string }) => ({
@@ -695,14 +608,7 @@ export class CharacterEngine {
     // SOUL.mdファイルを優先、次にlocale設定、最後にDBのsystemPrompt
     const basePrompt = localeOverride?.systemPrompt || character.systemPrompt;
     const soulContent = this.loadSoulMd(character.slug, basePrompt);
-
-    // 日替わりムード
-    const mood = getCharacterMood(character.slug);
-    const moodPrompt = mood.promptModifier;
-
-    // 秘密コンテンツ
-    const secretPrompt = getSecretPromptAdditions(character.slug, memory.level);
-
+    
     return `${soulContent}
 
 ## 現在の状況
@@ -721,7 +627,6 @@ ${levelInstructions}
 ## 相手について記憶していること
 ${memoryInstructions}
 
-${moodPrompt ? moodPrompt + '\n' : ''}${secretPrompt ? secretPrompt + '\n' : ''}
 ## 重要ルール
 - 相手の名前「${memory.userName}」を会話の中で自然に使うこと
 - レベルに応じた距離感を保つこと
@@ -837,10 +742,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (memory.emotionalState && memory.emotionalState !== 'neutral') {
       parts.push(`- 相手の最近の感情状態: ${memory.emotionalState}`);
     }
-    // 事実記憶
+    // 事実記憶（confidence降順でソートし、最大15件表示）
     if (memory.factMemory?.length) {
+      const sortedFacts = [...memory.factMemory]
+        .sort((a, b) => (b.confidence ?? 0.5) - (a.confidence ?? 0.5))
+        .slice(0, 15);
       parts.push('- ユーザーについて知っていること:');
-      for (const fact of memory.factMemory.slice(-10)) {
+      for (const fact of sortedFacts) {
         parts.push(`  - ${fact.fact}`);
       }
     } else if (memory.importantFacts.length > 0) {
@@ -852,10 +760,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (memory.recentTopics.length > 0) {
       parts.push(`- 最近の話題: ${memory.recentTopics.join(', ')}`);
     }
-    // エピソード記憶（最近3件）
+    // エピソード記憶（重要度上位5件、同じ重要度なら新しい順）
     if (memory.episodeMemory?.length) {
+      const topEpisodes = [...memory.episodeMemory]
+        .sort((a, b) => (b.importance ?? 3) - (a.importance ?? 3) || new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5);
       parts.push('- 過去の思い出:');
-      for (const ep of memory.episodeMemory.slice(-3)) {
+      for (const ep of topEpisodes) {
         parts.push(`  - ${ep.summary}（${ep.date.split('T')[0]}）`);
       }
     }
@@ -1049,6 +960,78 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         updatedAt: new Date().toISOString(),
       };
       memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('誕生日:')), birthdayFact];
+    }
+
+    // 恋愛状況検出
+    const relationshipMatch = userMessage.match(/(?:彼(?:氏|女|カノ)|パートナー|好きな人)(?:が|は)?(?:いる|できた|います)/);
+    const singleMatch = userMessage.match(/(?:彼(?:氏|女)|パートナー)(?:が|は)?(?:いない|いません)/);
+    if (relationshipMatch) {
+      const relFact: FactEntry = {
+        fact: '恋人がいる',
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人')), relFact];
+    } else if (singleMatch) {
+      const relFact: FactEntry = {
+        fact: '現在シングル',
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人') && !f.fact.includes('シングル')), relFact];
+    }
+
+    // ペット検出
+    const petMatch = userMessage.match(/(.{0,5}(?:犬|猫|ネコ|イヌ|うさぎ|ハムスター|鳥))(?:を|が)?飼(?:ってる|っている|ってます)/);
+    if (petMatch) {
+      const petFact: FactEntry = {
+        fact: `ペット: ${petMatch[1].trim()}を飼っている`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: new Date().toISOString(),
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact.startsWith('ペット:'))) {
+        memo.factMemory = [...(memo.factMemory ?? []), petFact];
+      }
+    }
+
+    // 学校/大学検出
+    const schoolMatch = userMessage.match(/(.{1,20}(?:大学|高校|専門学校|中学))(?:に通|に行|の学生|を卒業|に通ってる)/);
+    if (schoolMatch) {
+      const schoolFact: FactEntry = {
+        fact: `通学先: ${schoolMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('通学先:')), schoolFact];
+    }
+
+    // 悩み/気持ち検出（一時的状態）
+    const worryMatch = userMessage.match(/(?:最近|ちょっと|すごく)?(.{1,20})(?:で|が)(?:悩んでる|つらい|しんどい|大変|落ち込んでる)/);
+    if (worryMatch) {
+      const worryFact: FactEntry = {
+        fact: `悩み: ${worryMatch[1].trim()}について悩んでいる`,
+        source: 'ユーザー発言',
+        confidence: 0.85,
+        updatedAt: new Date().toISOString(),
+      };
+      // 悩みは上書き（最新のものだけ保持）
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('悩み:')), worryFact];
+    }
+
+    // 頑張っていることの検出
+    const effortMatch = userMessage.match(/(?:最近|今)?(.{1,20})(?:を|に)(?:頑張ってる|挑戦してる|練習してる)/);
+    if (effortMatch) {
+      const effortFact: FactEntry = {
+        fact: `頑張っていること: ${effortMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: new Date().toISOString(),
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('頑張っていること:')), effortFact];
     }
 
     // 既存importantFactsをfactMemoryへ移行
