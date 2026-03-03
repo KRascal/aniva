@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { GiftPanel } from './GiftPanel';
 
 interface CallModalProps {
   characterId: string;
@@ -19,6 +20,8 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [statusText, setStatusText] = useState('発信中...');
+  const [showCallGift, setShowCallGift] = useState(false);
+  const [giftAnimation, setGiftAnimation] = useState<{ emoji: string; reaction: string } | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -366,10 +369,10 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
 
         {/* 終話 + ギフト ボタン */}
         <div className="flex items-end gap-8">
-          {/* ギフトボタン */}
+          {/* ギフトボタン（通話中ギフティング） */}
           <div className="flex flex-col items-center gap-2">
             <button
-              onClick={() => window.location.href = `/coins?gift=${characterId}`}
+              onClick={() => setShowCallGift(true)}
               className="w-16 h-16 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
             >
               <span className="text-3xl">🎁</span>
@@ -396,6 +399,33 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
       {callState === 'connected' && typeof window !== 'undefined' && !(window as any).SpeechRecognition && !(window as any).webkitSpeechRecognition && (
         <div className="absolute bottom-40 left-0 right-0 text-center">
           <p className="text-xs text-amber-400/60">このブラウザは音声認識に対応していません</p>
+        </div>
+      )}
+
+      {/* 通話中ギフトパネル */}
+      {showCallGift && (
+        <div className="absolute inset-0 z-50 flex items-end">
+          <GiftPanel
+            characterId={characterId}
+            characterName={characterName}
+            isOpen={showCallGift}
+            onClose={() => setShowCallGift(false)}
+            onGiftSent={(reaction, giftEmoji) => {
+              setShowCallGift(false);
+              setGiftAnimation({ emoji: giftEmoji, reaction });
+              setTimeout(() => setGiftAnimation(null), 4000);
+            }}
+          />
+        </div>
+      )}
+
+      {/* ギフトアニメーション */}
+      {giftAnimation && (
+        <div className="absolute inset-0 z-40 pointer-events-none flex flex-col items-center justify-center">
+          <div className="animate-bounce text-7xl mb-4">{giftAnimation.emoji}</div>
+          <div className="bg-black/70 backdrop-blur-sm px-6 py-3 rounded-2xl border border-purple-500/30">
+            <p className="text-white text-center text-sm font-medium">{giftAnimation.reaction}</p>
+          </div>
         </div>
       )}
 
