@@ -396,6 +396,12 @@ export default function ChatCharacterPage() {
       .catch(console.error);
   }, [characterId]);
 
+  // チャット画面を開いた時刻をlocalStorageに記録（未読バッジのクリア用）
+  useEffect(() => {
+    if (!characterId || typeof window === 'undefined') return;
+    localStorage.setItem(`aniva_chat_visited_${characterId}`, Date.now().toString());
+  }, [characterId]);
+
   // プレゼンス（オンライン状態）取得
   useEffect(() => {
     if (!characterId) return;

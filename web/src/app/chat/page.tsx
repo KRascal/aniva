@@ -34,16 +34,16 @@ interface RelationshipInfo {
 function ChatRow({
   character,
   relationship,
+  hasUnread,
   onClick,
 }: {
   character: Character;
   relationship: RelationshipInfo;
+  hasUnread: boolean;
   onClick: () => void;
 }) {
   const lastMsg = relationship.lastMessage;
   const lastAt = relationship.lastMessageAt;
-  // Dummy unread count (future use)
-  const unread = 0;
 
   const formatTime = (dateStr: string | null) => {
     if (!dateStr) return '';
@@ -108,11 +108,11 @@ function ChatRow({
         </p>
       </div>
 
-      {/* 未読バッジ（ダミー） */}
+      {/* 未読バッジ */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-        {unread > 0 ? (
-          <span className="bg-pink-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-            {unread}
+        {hasUnread ? (
+          <span className="bg-pink-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+            ●
           </span>
         ) : (
           <svg className="w-4 h-4 text-gray-700 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -533,6 +533,22 @@ export default function ChatPage() {
   const [totalMessages, setTotalMessages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [, setBannerClosed] = useState(false);
+  const [lastVisitMap, setLastVisitMap] = useState<Map<string, number>>(new Map());
+
+  // localStorageから各キャラの最終訪問時刻を読み込む
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const map = new Map<string, number>();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('aniva_chat_visited_')) {
+        const charId = key.replace('aniva_chat_visited_', '');
+        const ts = parseInt(localStorage.getItem(key) ?? '0', 10);
+        if (ts) map.set(charId, ts);
+      }
+    }
+    setLastVisitMap(map);
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -631,14 +647,24 @@ export default function ChatPage() {
 
           return (
             <div className="space-y-2">
-              {charsWithHistory.map((character) => (
-                <ChatRow
-                  key={character.id}
-                  character={character}
-                  relationship={relationships.get(character.id)!}
-                  onClick={() => router.push(`/chat/${character.id}`)}
-                />
-              ))}
+              {charsWithHistory.map((character) => {
+                const rel = relationships.get(character.id)!;
+                // 最後にチャット画面を開いた時刻
+                const lastVisited = lastVisitMap.get(character.id) ?? 0;
+                // キャラからの最新メッセージが未読かどうか
+                const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
+                const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
+                const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
+                return (
+                  <ChatRow
+                    key={character.id}
+                    character={character}
+                    relationship={rel}
+                    hasUnread={hasUnread}
+                    onClick={() => router.push(`/chat/${character.id}`)}
+                  />
+                );
+              })}
             </div>
           );
         })()}
