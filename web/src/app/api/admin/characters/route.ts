@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
@@ -111,6 +113,21 @@ export async function POST(req: NextRequest) {
       chatCoinPerMessage: chatCoinPerMessage !== undefined ? toInt(chatCoinPerMessage, 10) : 10,
     },
   });
+
+    // SOUL.md自動生成（キャラ作成時）
+  try {
+    const agentsDir = join('/home/openclaw/.openclaw/agents', slug);
+    if (!existsSync(agentsDir)) {
+      mkdirSync(agentsDir, { recursive: true });
+    }
+    const soulPath = join(agentsDir, 'SOUL.md');
+    if (!existsSync(soulPath)) {
+      const soulContent = `# ${name}\n\n${systemPrompt}\n`;
+      writeFileSync(soulPath, soulContent, 'utf-8');
+    }
+  } catch (e) {
+    console.warn('[admin/characters] SOUL.md generation failed:', e);
+  }
 
   return NextResponse.json(character, { status: 201 });
 }

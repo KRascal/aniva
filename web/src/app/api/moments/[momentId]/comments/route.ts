@@ -6,8 +6,11 @@ interface RouteParams {
   params: Promise<{ momentId: string }>;
 }
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { momentId } = await params;
+  const session = await auth();
+  const userId = (session?.user as { id?: string })?.id;
+
   try {
     const comments = await prisma.momentComment.findMany({
       where: { momentId },
@@ -16,9 +19,22 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       include: {
         user: { select: { id: true, name: true, email: true } },
         character: { select: { name: true, slug: true, avatarUrl: true } },
+        likes: userId
+          ? { where: { userId }, select: { id: true } }
+          : false,
+        _count: { select: { likes: true } },
       },
     });
-    return NextResponse.json({ comments });
+
+    const enriched = comments.map((c) => ({
+      ...c,
+      likeCount: c._count.likes,
+      likedByMe: userId ? (c.likes as { id: string }[]).length > 0 : false,
+      likes: undefined,
+      _count: undefined,
+    }));
+
+    return NextResponse.json({ comments: enriched });
   } catch {
     return NextResponse.json({ comments: [] });
   }
@@ -42,5 +58,5 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       character: { select: { name: true, slug: true, avatarUrl: true } },
     },
   });
-  return NextResponse.json({ comment }, { status: 201 });
+  return NextResponse.json({ comment: { ...comment, likeCount: 0, likedByMe: false } }, { status: 201 });
 }

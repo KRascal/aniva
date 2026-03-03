@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { consumeCliffhanger } from './cliffhanger-system';
 
 // ============================================================
 // Prisma モデル型定義 (Prisma model types)
@@ -87,6 +88,12 @@ interface MemorySummaryData {
   factMemory?: FactEntry[];
   episodeMemory?: EpisodeEntry[];
   emotionMemory?: EmotionEntry[];
+  // 感情トレンド
+  emotionalTrend?: {
+    dominant: string;
+    frequency: number;
+    analyzed: string;
+  };
 }
 
 // ============================================================
@@ -485,8 +492,16 @@ export class CharacterEngine {
     // 4. パーソナライズメモリ構築
     const memory = this.buildMemoryContext(relationship);
     
+    // 4b. クリフハンガー消費（昨日の予告 → 今日のフォローアップ注入）
+    let cliffhangerFollowUp: string | null = null;
+    try {
+      cliffhangerFollowUp = await consumeCliffhanger(relationshipId);
+    } catch (e) {
+      console.warn('[CharacterEngine] consumeCliffhanger failed:', e);
+    }
+    
     // 5. システムプロンプト構築
-    const systemPrompt = this.buildSystemPrompt(character as unknown as CharacterRecord, memory, locale);
+    const systemPrompt = this.buildSystemPrompt(character as unknown as CharacterRecord, memory, locale, cliffhangerFollowUp);
     
     // 6. LLM呼び出し
     const llmMessages = [
@@ -595,7 +610,7 @@ export class CharacterEngine {
     return dbFallback;
   }
 
-  private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext, locale: string = 'ja'): string {
+  private buildSystemPrompt(character: CharacterRecord, memory: MemoryContext, locale: string = 'ja', cliffhangerFollowUp: string | null = null): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
     const timeContext = this.getTimeContext();
@@ -638,6 +653,11 @@ ${memoryInstructions}
 ## 名残惜しさの演出
 - 会話が盛り上がっている時、たまに「…もうちょっと話してていい？」「もう行くのか？」と名残惜しさを見せる
 - 深夜帯（22時以降）は「こんな時間まで付き合ってくれて…ありがとな」と感謝を込める
+
+${cliffhangerFollowUp ? `## 【重要】昨日の予告の続き（ツァイガルニク効果）
+- 昨日の会話でユーザーに予告したことがある。今日の会話の序盤で自然にその話題を持ち出すこと。
+- 指示: ${cliffhangerFollowUp}
+- ただし不自然にならないよう、会話の流れの中で触れること。「昨日言ってたやつだけど…」のように切り出す。` : ''}
 
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
@@ -755,6 +775,11 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     }
     if (memory.emotionalState && memory.emotionalState !== 'neutral') {
       parts.push(`- 相手の最近の感情状態: ${memory.emotionalState}`);
+    }
+    // 感情トレンド
+    const trend = (memory as MemorySummaryData).emotionalTrend;
+    if (trend && trend.frequency > 0.4) {
+      parts.push(`- 感情トレンド: 最近「${trend.dominant}」が多い（${Math.round(trend.frequency * 100)}%）→ この傾向に寄り添って話すこと`);
     }
     // 事実記憶（confidence降順でソートし、最大15件表示）
     if (memory.factMemory?.length) {
@@ -1068,6 +1093,39 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const topic = userMessage.slice(0, 30);
     const recentTopics = [topic, ...(memo.recentTopics ?? [])].slice(0, 5);
     memo.recentTopics = recentTopics;
+
+    // 記憶圧縮: factMemoryが25件超かつconfidence低い古いものを圧縮
+    if (memo.factMemory && memo.factMemory.length > 25) {
+      // confidence順でソート、低confidence & 古いものを削除
+      memo.factMemory = memo.factMemory
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 25);
+    }
+
+    // エピソード記憶圧縮: 15件超で重要度低いものを削除
+    if (memo.episodeMemory && memo.episodeMemory.length > 15) {
+      memo.episodeMemory = memo.episodeMemory
+        .sort((a, b) => b.importance - a.importance)
+        .slice(0, 15);
+    }
+
+    // 感情トレンド分析: 直近10件の感情記憶からトレンドを計算
+    if (memo.emotionMemory && memo.emotionMemory.length >= 3) {
+      const recentEmotions = memo.emotionMemory.slice(-10);
+      const emotionCounts: Record<string, number> = {};
+      for (const e of recentEmotions) {
+        emotionCounts[e.userEmotion] = (emotionCounts[e.userEmotion] || 0) + 1;
+      }
+      const dominantEmotion = Object.entries(emotionCounts)
+        .sort(([, a], [, b]) => b - a)[0];
+      if (dominantEmotion) {
+        memo.emotionalTrend = {
+          dominant: dominantEmotion[0],
+          frequency: dominantEmotion[1] / recentEmotions.length,
+          analyzed: new Date().toISOString(),
+        };
+      }
+    }
 
     // 10メッセージごとにAI要約を生成
     const newTotalMessages = relationship.totalMessages + 1;

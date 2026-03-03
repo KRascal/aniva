@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isOptimalDMTime } from '@/lib/user-activity-tracker';
 
 async function generateText(systemMessage: string, userMessage: string): Promise<string> {
   const xaiKey = process.env.XAI_API_KEY;
@@ -139,6 +140,15 @@ export async function POST(req: NextRequest) {
     });
     if (todaySmartDm) continue;
 
+    // アクティビティベースの最適タイミング判定（深夜/天候トリガー以外）
+    let activityOptimal = true;
+    try {
+      const timing = await isOptimalDMTime(rel.userId);
+      activityOptimal = timing.optimal;
+    } catch {
+      // トラッカーエラー時はデフォルト許可
+    }
+
     const userName = extractUserName(rel.memorySummary);
     const charName = rel.character.name;
     const systemPrompt = rel.character.systemPrompt;
@@ -222,8 +232,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // トリガーC: 長期不在
-    if (!triggered && rel.lastMessageAt && rel.lastMessageAt < sevenDaysAgo) {
+    // トリガーC: 長期不在（最適タイミングでのみ送信）
+    if (!triggered && activityOptimal && rel.lastMessageAt && rel.lastMessageAt < sevenDaysAgo) {
       const recentDeepMiss = await prisma.message.findFirst({
         where: {
           conversationId: { in: convIds },

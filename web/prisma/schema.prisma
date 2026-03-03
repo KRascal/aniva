@@ -37,6 +37,7 @@ model User {
   coinTransactions       CoinTransaction[]
   characterSubscriptions CharacterSubscription[]
   momentComments         MomentComment[]
+  commentLikes           CommentLike[]
   letters                Letter[]
   userCards              UserCard[]
   dailyEvents            UserDailyEvent[]
@@ -239,15 +240,26 @@ model Reaction {
 }
 
 model MomentComment {
-  id          String     @id @default(uuid())
+  id          String          @id @default(uuid())
   momentId    String
   userId      String?
   characterId String?
-  content     String     @db.Text
-  createdAt   DateTime   @default(now())
-  moment      Moment     @relation(fields: [momentId], references: [id], onDelete: Cascade)
-  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character   Character? @relation(fields: [characterId], references: [id])
+  content     String          @db.Text
+  createdAt   DateTime        @default(now())
+  moment      Moment          @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  user        User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character?      @relation(fields: [characterId], references: [id])
+  likes       CommentLike[]
+}
+
+model CommentLike {
+  id        String        @id @default(uuid())
+  commentId String
+  userId    String
+  createdAt DateTime      @default(now())
+  comment   MomentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([commentId, userId])
 }
 
 model Subscription {
