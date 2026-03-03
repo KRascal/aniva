@@ -169,6 +169,33 @@ function getEmotionEmoji(emotion?: string): string {
   return EMOTION_EMOJI[emotion] || '';
 }
 
+/* ── クイック返信チップ ── */
+const QUICK_REPLIES_BY_SLUG: Record<string, string[]> = {
+  luffy: ['腹減った！', '仲間になれよ！', '海賊王になる！', 'ゴムゴムの〜！', '冒険しようぜ！'],
+  zoro: ['迷ってる...', '修業中だ', '眠い', '強くなりたい', 'なんでもねぇ'],
+  nami: ['お金ちょうだい！', '地図描いてるよ', 'うらやましい〜', '天気変わりそう', '財布見せて'],
+  sanji: ['料理作るよ', '美しい...', 'ゾロと喧嘩した', '空腹？', 'お役に立てて光栄'],
+  chopper: ['医者だよ！', 'ドクドクミ〜', '人間じゃないよ！', '診察しようか', 'わーい！'],
+  robin: ['あら、そう', '歴史を調べてる', '花びらみたい', '少し疲れた', 'ふふ'],
+  brook: ['ヨホホ！', '骨格標本になっちゃった', 'パンツ見せて', '音楽が好き', '生きてるよ'],
+  franky: ['SUPERだぜ！', 'コーラを飲みたい', '改造したい', '船大工さ', 'SUPER！！'],
+  usopp: ['嘘じゃないよ！', '勇気が出ない', '10億人の兵士！', '狙撃の腕前は', '冒険したい'],
+  jinbe: ['落ち着いて', '仁義を守る', '魚人だ', 'ルフィ船長！', '海流を読んで'],
+  law: ['心臓持ってる', 'ルームッ！', '同盟を組もう', 'シャンブルズ！', '計算通り'],
+  hancock: ['ぺろな様', '愛が大きすぎる', 'キスしてあげる', '美しいでしょ', 'ルフィ〜！'],
+  shanks: ['乾杯！', 'ルフィを頼む', '冒険を楽しんで', '帽子を返して', '見守ってるよ'],
+  yamato: ['おでんになりたい！', '冒険したい！', '父上…', 'ワノ国から出たい', '鬼神！'],
+  mihawk: ['剣技を磨け', 'ゾロを鍛えてる', '強者はいるか', '最強の剣士', '決闘しよう'],
+  crocodile: ['砂漠の王者', '計画通り', 'スナスナ！', 'アラバスタ...', '弱者は嫌いだ'],
+  perona: ['ネガティブホロウ！', '幽霊が好き！', 'かわいいでしょ', 'ネガティブ！', 'ぬいぐるみ欲しい'],
+  whitebeard: ['息子たちよ！', '家族を守る', 'グラグラ！', '時代を変える', '海賊の夢'],
+  blackbeard: ['夢を諦めるな！', 'ヤミヤミ！', '大物になる', '運命だぜ', 'グラグラ...'],
+  ace: ['炎が好き！', '弟を守る', 'メラメラ！', 'ルフィのこと', '生きててよかった'],
+  kaido: ['最強の生き物', '酒が飲みたい', 'ワノ国は俺の', 'バオウ！', '強さだけが正義'],
+  vivi: ['アラバスタのために', 'ご馳走様', '皆が好き', '困ったな', 'いつまでも友達'],
+};
+const GENERIC_QUICK_REPLIES = ['おはよう！', 'おやすみ！', '元気？', '好きだよ❤️', 'ありがとう', '今何してる？'];
+
 /* ── プレースホルダーベース ── */
 const BASE_PLACEHOLDERS = [
   (name: string) => `${name}に話しかける...`,
@@ -1631,6 +1658,29 @@ export default function ChatCharacterPage() {
             </a>
           </div>
         )}
+        {/* ── クイック返信チップ（入力が空の時のみ表示） ── */}
+        {!inputText && !isSending && !isGreeting && (
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-1 no-scrollbar">
+            {(character?.slug && QUICK_REPLIES_BY_SLUG[character.slug]
+              ? QUICK_REPLIES_BY_SLUG[character.slug]
+              : GENERIC_QUICK_REPLIES
+            ).map((chip) => (
+              <button
+                key={chip}
+                onClick={() => {
+                  setInputText(chip);
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                  }, 50);
+                }}
+                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-purple-500/30 text-purple-300 bg-purple-900/20 hover:bg-purple-900/40 hover:border-purple-500/60 transition-all touch-manipulation whitespace-nowrap"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="relative flex items-center gap-2">
           {/* ＋ボタン + ポップアップメニュー */}
           <div className="relative flex-shrink-0">
