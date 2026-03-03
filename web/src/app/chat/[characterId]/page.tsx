@@ -381,6 +381,33 @@ export default function ChatCharacterPage() {
     setCtxMenu(null);
   }, []);
 
+  const handleBookmarkMsg = useCallback((msgId: string, content: string) => {
+    try {
+      const key = 'aniva_bookmarks';
+      const existing: Array<{ id: string; characterId: string; characterName: string; avatarUrl: string | null; content: string; savedAt: number }> =
+        JSON.parse(localStorage.getItem(key) ?? '[]');
+      // 重複チェック
+      if (!existing.find(b => b.id === msgId)) {
+        existing.unshift({
+          id: msgId,
+          characterId: character?.id ?? '',
+          characterName: character?.name ?? '',
+          avatarUrl: character?.avatarUrl ?? null,
+          content,
+          savedAt: Date.now(),
+        });
+        // 最大50件
+        if (existing.length > 50) existing.splice(50);
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+      setShareToast('ブックマークしました 🔖');
+      setTimeout(() => setShareToast(null), 2000);
+    } catch {
+      // ignore
+    }
+    setCtxMenu(null);
+  }, [character]);
+
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1839,6 +1866,13 @@ export default function ChatCharacterPage() {
             >
               <span className="text-lg">📋</span>
               <span>コピー</span>
+            </button>
+            <button
+              onClick={() => handleBookmarkMsg(ctxMenu.msgId, ctxMenu.content)}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
+            >
+              <span className="text-lg">🔖</span>
+              <span>ブックマーク</span>
             </button>
             <button
               onClick={() => {
