@@ -223,25 +223,48 @@ export default function RankingPage() {
         )}
 
         {/* 自分の順位（固定バー） */}
-        {data?.myRank && (
-          <div className="mb-4 bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-black text-purple-300">
-                {data.myRank.rank != null ? `#${data.myRank.rank}` : '?位'}
-              </span>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-white">あなたの順位</p>
-                <p className="text-xs text-gray-400">{data.myRank.valueLabel}</p>
+        {data?.myRank && (() => {
+          const myRank = data.myRank;
+          const rank = myRank.rank ?? 999;
+          // 1つ上のユーザー（嫉妬演出）
+          const aboveEntry = rank > 1 ? data.ranking.find(r => r.rank === rank - 1) : null;
+          const diff = aboveEntry ? aboveEntry.value - myRank.value : 0;
+          return (
+            <div className="mb-4 bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-black text-purple-300">
+                  {rank < 999 ? `#${rank}` : '圏外'}
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white">あなたの順位</p>
+                  <p className="text-xs text-gray-400">{myRank.valueLabel}</p>
+                </div>
+                <button onClick={scrollToMe} className="text-xs text-purple-400 hover:text-purple-300 underline">
+                  ↓ 見る
+                </button>
               </div>
-              <button
-                onClick={scrollToMe}
-                className="text-xs text-purple-400 hover:text-purple-300 underline"
-              >
-                ↓ 見る
-              </button>
+              {/* 嫉妬演出: 1つ上との差 */}
+              {aboveEntry && diff > 0 && tab === 'coins' && (
+                <a href="/coins" className="flex items-center gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2 hover:bg-red-900/50 transition">
+                  <span className="text-base">😤</span>
+                  <p className="text-xs text-red-300 flex-1">
+                    <span className="font-bold">{aboveEntry.displayName}</span> に勝つには あと <span className="font-black text-yellow-400">{diff.toLocaleString()}コイン</span>
+                  </p>
+                  <span className="text-[10px] text-red-400">→ 補充</span>
+                </a>
+              )}
+              {aboveEntry && tab === 'messages' && (
+                <a href="/chat" className="flex items-center gap-2 bg-blue-900/30 border border-blue-500/30 rounded-xl px-3 py-2 hover:bg-blue-900/50 transition">
+                  <span className="text-base">💬</span>
+                  <p className="text-xs text-blue-300 flex-1">
+                    <span className="font-bold">{aboveEntry.displayName}</span> に勝つには あと <span className="font-black text-white">{diff.toLocaleString()}通</span>
+                  </p>
+                  <span className="text-[10px] text-blue-400">→ 話しかける</span>
+                </a>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ランキングリスト */}
         {loading ? (
