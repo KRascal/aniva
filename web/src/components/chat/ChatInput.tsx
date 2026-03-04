@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 
 interface Character {
   id: string;
@@ -80,7 +80,9 @@ interface ChatInputProps {
   showPlusMenu: boolean;
   setShowPlusMenu: React.Dispatch<React.SetStateAction<boolean>>;
   onGift: () => void;
+  onFcClick?: () => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  lastCharacterMessage?: string;
 }
 
 export function ChatInput({
@@ -99,9 +101,35 @@ export function ChatInput({
   showPlusMenu,
   setShowPlusMenu,
   onGift,
+  onFcClick,
   handleKeyDown,
+  lastCharacterMessage,
 }: ChatInputProps) {
   const hasInput = inputText.length > 0;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('画像サイズは5MB以下にしてください');
+      return;
+    }
+    setSelectedImageName(file.name);
+    const url = URL.createObjectURL(file);
+    setImagePreviewUrl(url);
+    setShowPlusMenu(false);
+    // Reset file input so same file can be reselected
+    e.target.value = '';
+  };
+
+  const clearImage = () => {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setSelectedImageName(null);
+    setImagePreviewUrl(null);
+  };
 
   return (
     <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
@@ -120,12 +148,12 @@ export function ChatInput({
             コインを購入 →
           </a>
           <span className="text-gray-600">|</span>
-          <a
-            href={`/relationship/${characterId}/fanclub`}
+          <button
+            onClick={() => onFcClick?.()}
             className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
           >
             FC加入で無制限 →
-          </a>
+          </button>
         </div>
       )}
       {/* ── クイック返信チップ（入力が空の時のみ表示） ── */}
@@ -151,42 +179,98 @@ export function ChatInput({
         </div>
       )}
 
+      {/* 画像プレビュー */}
+      {imagePreviewUrl && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagePreviewUrl}
+              alt="選択した画像"
+              className="h-16 w-16 object-cover rounded-xl border border-purple-500/40"
+            />
+            <button
+              onClick={clearImage}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-300 hover:text-white flex items-center justify-center text-xs"
+            >
+              ✕
+            </button>
+          </div>
+          <span className="text-xs text-gray-400 truncate max-w-[160px]">{selectedImageName}</span>
+        </div>
+      )}
+
       <div className="relative flex items-center gap-2">
+        {/* 隠しファイル入力 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+          aria-hidden="true"
+        />
+
         {/* ＋ボタン + ポップアップメニュー */}
         <div className="relative flex-shrink-0">
           {showPlusMenu && (
-            <div className="absolute bottom-12 left-0 bg-gray-800 border border-white/10 rounded-2xl p-2 space-y-1 shadow-xl z-10 min-w-[160px]">
+            <div
+              className="absolute bottom-14 left-0 bg-gray-900 border border-white/10 rounded-2xl p-2 space-y-1 shadow-2xl z-10 min-w-[168px]"
+              style={{
+                animation: 'slideUpFade 0.18s ease-out',
+              }}
+            >
+              {/* 画像を送る */}
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowPlusMenu(false);
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm text-left"
+              >
+                <span className="text-xl">📷</span>
+                <span>画像を送る</span>
+              </button>
+              {/* ギフトを贈る */}
               <button
                 onClick={() => { onGift(); setShowPlusMenu(false); }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm text-left"
               >
                 <span className="text-xl">🎁</span>
-                <span>ギフトを送る</span>
+                <span>ギフトを贈る</span>
               </button>
+              {/* コインを購入 */}
               <a
                 href="/coins"
                 onClick={() => setShowPlusMenu(false)}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm"
               >
                 <span className="text-xl">💰</span>
                 <span>コインを購入</span>
               </a>
-              <button
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-gray-500 text-sm text-left cursor-not-allowed"
-                disabled
-              >
-                <span className="text-xl opacity-50">📷</span>
-                <span className="opacity-50">画像を送る</span>
-                <span className="ml-auto text-[10px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">準備中</span>
-              </button>
             </div>
           )}
           <button
             onClick={() => setShowPlusMenu((v) => !v)}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-all touch-manipulation border border-gray-700/60 text-xl font-light"
-            aria-label="メニューを開く"
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all touch-manipulation shadow-md"
+            style={{
+              background: showPlusMenu
+                ? 'linear-gradient(135deg, #6d28d9 0%, #9333ea 100%)'
+                : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+              boxShadow: showPlusMenu ? '0 0 12px rgba(168,85,247,0.5)' : '0 2px 8px rgba(124,58,237,0.3)',
+            }}
+            aria-label={showPlusMenu ? 'メニューを閉じる' : 'メニューを開く'}
           >
-            ＋
+            <span
+              className="text-white font-bold text-lg leading-none"
+              style={{
+                transform: showPlusMenu ? 'rotate(45deg)' : 'rotate(0deg)',
+                transition: 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                display: 'inline-block',
+              }}
+            >
+              ＋
+            </span>
           </button>
         </div>
         {/* テキスト入力 */}
@@ -206,7 +290,7 @@ export function ChatInput({
           disabled={isSending || isGreeting}
           style={{ fontSize: '16px', resize: 'none' }} // prevent iOS auto-zoom
           className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-3xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation overflow-y-auto ${
-            hasInput
+            hasInput || imagePreviewUrl
               ? 'border-purple-500/60 ring-1 ring-purple-500/30'
               : 'border-gray-700/60'
           }`}
@@ -215,19 +299,19 @@ export function ChatInput({
         {/* 送信ボタン */}
         <button
           onClick={onSend}
-          disabled={isSending || isGreeting || !hasInput}
+          disabled={isSending || isGreeting || (!hasInput && !imagePreviewUrl)}
           className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
             isSendBouncing ? 'send-bounce' : ''
-          } ${hasInput ? 'send-glow' : ''}`}
+          } ${(hasInput || imagePreviewUrl) ? 'send-glow' : ''}`}
           style={{
-            background: hasInput
+            background: (hasInput || imagePreviewUrl)
               ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)'
               : 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
           }}
           aria-label="送信"
         >
           {/* 光るハイライト */}
-          {hasInput && (
+          {(hasInput || imagePreviewUrl) && (
             <span className="absolute inset-0 bg-white/10 rounded-full" />
           )}
           <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,6 +327,19 @@ export function ChatInput({
       } text-[11px]`}>
         {inputText.length > 0 && `${inputText.length}/2000`}
       </div>
+
+      <style jsx>{`
+        @keyframes slideUpFade {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -36,7 +36,7 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
   const [streamingText, setStreamingText] = useState('');
   const [error, setError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const historyRef = useRef<ChatMessage[]>([]);
 
   // Scroll to bottom
@@ -321,19 +321,25 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
 
       {/* Input bar */}
       <div className="flex-none px-4 pb-8 pt-3">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <input
+        <div className="flex items-center gap-2">
+          <textarea
             ref={inputRef}
-            type="text"
+            rows={1}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              // auto-resize: 1〜4行
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
             disabled={isStreaming || turnIndex >= TOTAL_TURNS}
             placeholder={isStreaming ? '...' : '返事する'}
-            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-base placeholder-white/25 focus:outline-none focus:border-purple-500/50 disabled:opacity-40 transition-colors"
-            style={{ fontSize: '16px' }}
+            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-base placeholder-white/25 focus:outline-none focus:border-purple-500/50 disabled:opacity-40 transition-colors resize-none"
+            style={{ fontSize: '16px', maxHeight: '120px' }}
           />
           <motion.button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             disabled={isStreaming || !inputValue.trim() || turnIndex >= TOTAL_TURNS}
             className="w-11 h-11 rounded-full flex items-center justify-center flex-none bg-gradient-to-br from-purple-600 to-pink-600 disabled:opacity-30 transition-opacity"
             whileHover={{ scale: 1.05 }}
@@ -347,7 +353,7 @@ export default function PhaseFirstChat({ character, nickname, onComplete }: Phas
               </svg>
             )}
           </motion.button>
-        </form>
+        </div>
       </div>
     </motion.div>
   );

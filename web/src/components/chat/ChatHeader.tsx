@@ -45,6 +45,7 @@ interface ChatHeaderProps {
   onMenuClick: () => void;
   onMemoryClick: () => void;
   onProfileClick: () => void;
+  onFcClick?: () => void;
 }
 
 export function ChatHeader({
@@ -58,6 +59,7 @@ export function ChatHeader({
   onMenuClick,
   onMemoryClick,
   onProfileClick,
+  onFcClick,
 }: ChatHeaderProps) {
   return (
     <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
@@ -78,14 +80,19 @@ export function ChatHeader({
         className="flex-shrink-0"
         aria-label="キャラクタープロフィール"
       >
-        <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
-          {character?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-              🏴‍☠️
-            </div>
+        <div className="relative">
+          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
+            {character?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                🏴‍☠️
+              </div>
+            )}
+          </div>
+          {presence?.isAvailable && (
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse" />
           )}
         </div>
       </button>
@@ -99,24 +106,17 @@ export function ChatHeader({
           {relationship?.isFanclub ? (
             <span className="text-base leading-none flex-shrink-0">💜</span>
           ) : (
-            <a
-              href={`/relationship/${characterId}/fanclub`}
+            <button
+              onClick={() => onFcClick?.()}
               className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600/80 text-white border border-purple-400/40 hover:bg-purple-500 transition-colors"
             >
               FC
-            </a>
+            </button>
           )}
         </div>
         {/* プレゼンスステータス + ストリーク */}
         <div className="flex items-center gap-2 mt-0.5">
-          {presence && (
-            <div className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presence.isAvailable ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-              <span className="text-[10px] text-gray-400 truncate">
-                {presence.statusEmoji} {presence.status}
-              </span>
-            </div>
-          )}
+          {/* プレゼンス: アバター横の緑点で表現。テキスト不要 */}
           {relationship?.isStreakActive && (relationship.streakDays ?? 0) >= 2 && (
             <div className="flex items-center gap-0.5 bg-orange-900/40 border border-orange-500/30 rounded-full px-1.5 py-0.5">
               <span className="text-[10px]">🔥</span>

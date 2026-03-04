@@ -1,0 +1,12 @@
+{
+  "task": "ui-phase2a",
+  "status": "in_progress",
+  "summary": "UI改善 Phase 2A: ChatMenu.tsx + ChatInput.tsx完了、page.tsxの通話モーダル対応中",
+  "files_changed": [
+    "src/components/chat/ChatMenu.tsx",
+    "src/components/chat/ChatInput.tsx"
+  ],
+  "commit": "",
+  "risks": [],
+  "next_actions": []
+}

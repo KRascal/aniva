@@ -1,0 +1,19 @@
+{
+  "task": "character-runtime-step1",
+  "status": "success",
+  "summary": "character-loader.ts新規作成 + character-engine.tsリファクタ完了。DB→ファイル→ハードコードの優先順位でキャラ定義をロード、他ユーザー匂わせ機能追加。TSエラー0（新規ファイル）。",
+  "files_changed": [
+    "web/src/lib/character-loader.ts",
+    "web/src/lib/character-engine.ts"
+  ],
+  "commit": "9601ea0",
+  "risks": [
+    "pre-existing TSエラーがpage.tsxに存在（本タスクとは無関係）",
+    "VOICE.md/BOUNDARIES.mdはONE PIECEキャラには未作成（鬼滅・呪術のみ存在）—フォールバックで動作"
+  ],
+  "next_actions": [
+    "ONEPIECEキャラ（luffy/zoro/nami等）にVOICE.md/BOUNDARIES.mdを追加（Step2）",
+    "DBのCharacterレコードのsystemPromptをSOUL.md内容に同期（Step2）",
+    "character-loader経由のloading動作確認（ステージングテスト）"
+  ]
+}

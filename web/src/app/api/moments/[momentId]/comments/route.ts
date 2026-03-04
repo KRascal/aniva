@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       orderBy: { createdAt: 'asc' },
       take: 50,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, displayName: true, nickname: true, image: true } },
         character: { select: { name: true, slug: true, avatarUrl: true } },
         likes: userId
           ? { where: { userId }, select: { id: true } }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const comment = await prisma.momentComment.create({
     data: { momentId, userId: session.user.id, content },
     include: {
-      user: { select: { id: true, name: true, email: true } },
+      user: { select: { id: true, name: true, email: true, displayName: true, nickname: true, image: true } },
       character: { select: { name: true, slug: true, avatarUrl: true } },
     },
   });

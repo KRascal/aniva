@@ -30,7 +30,7 @@ export default function OnboardingChat({
   const [isFading, setIsFading] = useState(false);
   const [showFarewell, setShowFarewell] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const historyRef = useRef<GuestMessage[]>([]);
 
   // Load initial character message
@@ -144,10 +144,8 @@ export default function OnboardingChat({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    // スマホ: Enterは改行。送信はボタンのみ（長文入力対応）
+    // noop — textarea のデフォルト動作（改行）をそのまま使う
   }
 
   const isInputDisabled = isLoading || turnNumber > 3 || showFarewell;
@@ -275,14 +273,17 @@ export default function OnboardingChat({
             className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
             style={{ boxShadow: '0 0 20px rgba(168,85,247,0.05)' }}
           >
-            <input
+            <textarea
               ref={inputRef}
-              type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
+              }}
               placeholder="返事する…"
-              className="flex-1 bg-transparent text-white/90 placeholder-white/20 outline-none"
+              rows={1}
+              className="flex-1 bg-transparent text-white/90 placeholder-white/20 outline-none resize-none overflow-y-auto"
               style={{ fontSize: '16px' }}
             />
             <button

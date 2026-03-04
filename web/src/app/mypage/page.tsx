@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -83,54 +83,7 @@ const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> 
   PREMIUM:  { label: 'Premium',  color: 'text-purple-300', bg: 'bg-purple-900/40' },
 };
 
-/* ── アバターURL入力ダイアログ ── */
-function AvatarUrlDialog({
-  currentUrl,
-  onSave,
-  onClose,
-}: {
-  currentUrl: string;
-  onSave: (url: string) => void;
-  onClose: () => void;
-}) {
-  const [url, setUrl] = useState(currentUrl);
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4">
-        <h3 className="text-white font-bold text-base">プロフィール画像URLを入力</h3>
-        <p className="text-xs text-gray-400">画像URLを直接入力してください（ファイルアップロードは後日対応予定）</p>
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com/avatar.jpg"
-          className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60"
-          autoFocus
-        />
-        {url && (
-          <div className="flex justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="preview" className="w-16 h-16 rounded-full object-cover border border-white/20" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          </div>
-        )}
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSave(url)}
-            className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-sm font-medium text-white transition-colors"
-          >
-            保存
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm font-medium text-white transition-colors"
-          >
-            キャンセル
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ── (AvatarUrlDialog は削除 → ファイルアップロードに変更) ── */
 
 export default function MyPage() {
   const { data: session, status } = useSession();
@@ -148,7 +101,9 @@ export default function MyPage() {
   const [editBio, setEditBio] = useState('');
   const [editProfilePublic, setEditProfilePublic] = useState(true);
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
-  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -224,6 +179,44 @@ export default function MyPage() {
       setNotificationsEnabled(Notification.permission === 'granted');
     }
   }, [status]);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarUploadError('画像サイズは5MB以下にしてください');
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarUploadError('JPG・PNG・GIF・WebPのみ対応しています');
+      return;
+    }
+    setAvatarUploadError(null);
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await fetch('/api/users/profile', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json() as { avatarUrl: string };
+        setEditAvatarUrl(data.avatarUrl);
+        setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
+      } else {
+        const err = await res.json() as { error?: string };
+        setAvatarUploadError(err.error ?? 'アップロードに失敗しました');
+      }
+    } catch {
+      setAvatarUploadError('通信エラーが発生しました');
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (avatarFileInputRef.current) avatarFileInputRef.current.value = '';
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (isSaving) return;
@@ -324,33 +317,55 @@ export default function MyPage() {
 
         {/* ユーザープロフィールカード（編集可能） */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-5 flex flex-col items-center gap-4">
-          {/* アバター（タップで変更） */}
-          <button
-            onClick={() => setShowAvatarDialog(true)}
-            className="relative group"
-            aria-label="プロフィール画像を変更"
-          >
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
-              {editAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => setEditAvatarUrl('')} />
-              ) : (
-                avatarLetter
+          {/* アバター（タップでファイルアップロード） */}
+          <div className="relative">
+            {/* 隠しファイル入力 */}
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleAvatarFileChange}
+              className="hidden"
+              aria-hidden="true"
+            />
+            <button
+              onClick={() => avatarFileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              className="relative group"
+              aria-label="プロフィール画像を変更"
+            >
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
+                {isUploadingAvatar ? (
+                  <div className="w-8 h-8 rounded-full border-3 border-white border-t-transparent animate-spin" style={{ borderWidth: '3px' }} />
+                ) : editAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => setEditAvatarUrl('')} />
+                ) : (
+                  avatarLetter
+                )}
+              </div>
+              {/* カメラアイコンオーバーレイ */}
+              {!isUploadingAvatar && (
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
               )}
-            </div>
-            {/* カメラアイコンオーバーレイ */}
-            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-600 border-2 border-gray-900 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </span>
-          </button>
+              <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-600 border-2 border-gray-900 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </span>
+            </button>
+            {/* アップロードエラー */}
+            {avatarUploadError && (
+              <p className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-xs text-red-400 whitespace-nowrap bg-gray-900 px-2 py-1 rounded-lg border border-red-500/30">
+                {avatarUploadError}
+              </p>
+            )}
+          </div>
 
           {/* プロフィール編集フォーム */}
           <div className="w-full space-y-4">
@@ -843,17 +858,6 @@ export default function MyPage() {
         <p className="text-center text-xs text-gray-700 pb-2">ANIVA v1.0.0</p>
       </div>
 
-      {/* アバターURL入力ダイアログ */}
-      {showAvatarDialog && (
-        <AvatarUrlDialog
-          currentUrl={editAvatarUrl}
-          onSave={(url) => {
-            setEditAvatarUrl(url);
-            setShowAvatarDialog(false);
-          }}
-          onClose={() => setShowAvatarDialog(false)}
-        />
-      )}
     </div>
   );
 }

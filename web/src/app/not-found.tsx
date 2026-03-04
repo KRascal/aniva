@@ -9,7 +9,7 @@ export default function NotFound() {
         <p className="text-gray-400 mb-2">このページは海の果てに消えてしまった</p>
         <p className="text-gray-500 text-sm mb-6">ルフィも見つけられなかった...</p>
         <Link
-          href="/"
+          href="/explore"
           className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium inline-block"
         >
           ホームに戻る
