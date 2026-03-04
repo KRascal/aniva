@@ -515,7 +515,7 @@ export default function ProfilePage() {
   const catchphrases: string[] = character?.catchphrases ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-950 max-w-lg mx-auto pb-8">
+    <div className="min-h-screen bg-gray-950 max-w-lg mx-auto pb-24">
 
       {/* ══════════════ ヒーローセクション ══════════════ */}
       <div className="relative">

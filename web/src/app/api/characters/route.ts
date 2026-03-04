@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { getToken } from 'next-auth/jwt';
 
 export async function GET(req: NextRequest) {
   try {
     // ?q= または ?search= でキャラ名の部分一致検索
     const q = req.nextUrl.searchParams.get('q') ?? req.nextUrl.searchParams.get('search');
+    const followingOnly = req.nextUrl.searchParams.get('followingOnly') === 'true';
 
     const where: Prisma.CharacterWhereInput = { isActive: true };
     if (q && q.trim()) {
@@ -14,6 +16,19 @@ export async function GET(req: NextRequest) {
         { nameEn: { contains: q.trim(), mode: 'insensitive' } },
         { franchise: { contains: q.trim(), mode: 'insensitive' } },
       ];
+    }
+
+    // フォロー中のみフィルタ
+    if (followingOnly) {
+      const cookieName = req.cookies.has('authjs.session-token')
+        ? 'authjs.session-token'
+        : 'next-auth.session-token';
+      const token = await getToken({ req, cookieName });
+      if (token?.sub) {
+        where.relationships = {
+          some: { userId: token.sub, isFollowing: true },
+        };
+      }
     }
 
     const characters = await prisma.character.findMany({

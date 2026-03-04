@@ -422,7 +422,7 @@ export default function MomentsPage() {
           )}
         </main>
 
-        <div className="h-10" />
+        <div className="h-24" />
       </div>
     </>
   );

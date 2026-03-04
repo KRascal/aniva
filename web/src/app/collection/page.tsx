@@ -161,7 +161,7 @@ export default function CollectionPage() {
         .sparkle-particle { animation: sparkle-float 3s ease-in-out infinite; }
       `}</style>
 
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-gray-950 text-white pb-24">
         {/* ヘッダー */}
         <div className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800 px-4 py-3 flex items-center gap-3">
           <Link href="/mypage" className="text-gray-400 hover:text-white transition-colors">

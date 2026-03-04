@@ -1,0 +1,7 @@
+{
+  "task": "aniva-dl-content-admin-staging",
+  "status": "success",
+  "summary": "ステージングデプロイ成功。ビルド・DB同期・PM2再起動が完了し、HTTP 307を確認",
+  "http_status": "307",
+  "commit": "3342f2c"
+}

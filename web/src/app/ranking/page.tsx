@@ -33,9 +33,9 @@ interface Character {
 
 // ---- Constants ----
 const TABS: { type: RankingType; label: string; icon: string; desc: string }[] = [
-  { type: 'coins', icon: '💰', label: 'コイン', desc: 'コイン消費ランキング' },
-  { type: 'streak', icon: '🔥', label: 'ストリーク', desc: '連続ログイン日数' },
-  { type: 'messages', icon: '💬', label: 'トーク量', desc: 'メッセージ数' },
+  { type: 'coins', icon: '💰', label: '課金額', desc: '推しに使ったコイン数で競う' },
+  { type: 'streak', icon: '🔥', label: '連続ログイン', desc: '毎日ログインした連続日数' },
+  { type: 'messages', icon: '💬', label: 'トーク数', desc: '推しに送ったメッセージ数' },
 ];
 
 const PERIOD_TABS: { period: PeriodType; label: string }[] = [
@@ -73,9 +73,9 @@ export default function RankingPage() {
   const [selectedChar, setSelectedChar] = useState<string>('');
   const myRowRef = useRef<HTMLDivElement>(null);
 
-  // キャラクター一覧を取得
+  // フォロー中キャラクター一覧を取得
   useEffect(() => {
-    fetch('/api/characters')
+    fetch('/api/characters?followingOnly=true')
       .then(r => r.json())
       .then(d => {
         const chars: Character[] = Array.isArray(d) ? d : d.characters ?? [];
@@ -114,7 +114,7 @@ export default function RankingPage() {
   const taunt = getTauntText(data?.myRank ?? null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white pb-24">
       {/* ヘッダー */}
       <div className="sticky top-0 z-20 bg-gray-950 backdrop-blur-md border-b border-white/5">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
@@ -181,11 +181,15 @@ export default function RankingPage() {
             onChange={e => setSelectedChar(e.target.value)}
             className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50"
           >
-            <option value="">🌐 全キャラクター</option>
+            <option value="">🌐 フォロー中の全キャラ</option>
             {characters.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+          {/* タブ説明 */}
+          <p className="text-xs text-gray-500 mt-1.5 px-1">
+            {TABS.find(t => t.type === tab)?.desc}
+          </p>
         </div>
 
         {/* 煽りバナー */}
@@ -260,10 +264,21 @@ export default function RankingPage() {
 
             {/* 空の場合 */}
             {(!data || data.ranking.length === 0) && !loading && (
-              <div className="text-center py-20 text-gray-500">
-                <p className="text-4xl mb-3">🏆</p>
-                <p className="font-bold text-white">まだ誰も参戦していない...</p>
-                <p className="text-sm mt-1">1位を狙うチャンス！</p>
+              <div className="text-center py-16 px-6">
+                <div className="text-5xl mb-4">🏆</div>
+                <p className="font-bold text-white text-lg mb-2">まだ誰も参戦していない</p>
+                <p className="text-sm text-gray-400 mb-6">
+                  {tab === 'coins' && 'コインを使って推しに課金すると、ここにランクイン！'}
+                  {tab === 'streak' && '毎日ログインして連続記録を伸ばそう！'}
+                  {tab === 'messages' && '推しにたくさんメッセージを送って1位を目指そう！'}
+                </p>
+                <a
+                  href="/chat"
+                  className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-2xl transition-colors text-sm"
+                >
+                  <span>💬</span>
+                  推しとトークする
+                </a>
               </div>
             )}
           </div>

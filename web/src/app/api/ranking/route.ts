@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
         displayName: user?.nickname || user?.displayName || '匿名ファン',
         avatarUrl: user?.avatarUrl ?? null,
         value: coins,
-        valueLabel: `🪙 ${coins.toLocaleString()} coins`,
+        valueLabel: `🪙 ${coins.toLocaleString()} コイン`,
         isMe: t.userId === userId,
       };
     });

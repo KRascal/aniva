@@ -1008,7 +1008,7 @@ export default function GachaPage() {
         .pulling-anim { animation: coinPop 0.3s ease-out; }
       `}</style>
 
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-gray-950 text-white pb-24">
 
         {/* ===== CINEMATIC ANIMATION OVERLAY ===== */}
         {view === 'animating' && (
