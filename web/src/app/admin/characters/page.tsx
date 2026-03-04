@@ -8,6 +8,11 @@ import {
   LocaleConfigMap,
   SupportedLocale,
 } from '@/types/character-locale';
+import { ImageUploadField } from '@/components/admin/characters/ImageUploadField';
+import { GrossMarginPreview } from '@/components/admin/characters/GrossMarginPreview';
+import { VoiceTester } from '@/components/admin/characters/VoiceTester';
+import { SecretForm } from '@/components/admin/characters/SecretForm';
+import { CharacterField } from '@/components/admin/characters/CharacterField';
 
 interface Character {
   id: string;
@@ -63,270 +68,8 @@ const EMPTY_FORM = {
   chatCoinPerMessage: '10',
 };
 
-// ---- Image Upload Field Component ----
-function ImageUploadField({
-  label,
-  value,
-  onChange,
-  slug,
-  className,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  slug: string;
-  className?: string;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
 
-  const uploadFile = async (file: File) => {
-    setUploadError('');
-    if (!slug) {
-      setUploadError('先にスラッグを入力してください');
-      return;
-    }
 
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('slug', slug);
-
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setUploadError(data.error || 'アップロードに失敗しました');
-      } else {
-        onChange(data.url);
-      }
-    } catch {
-      setUploadError('アップロードに失敗しました');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) uploadFile(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(true);
-  };
-
-  const handleDragLeave = () => setDragging(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadFile(file);
-    // Reset so same file can be selected again
-    e.target.value = '';
-  };
-
-  return (
-    <div className={className}>
-      <label className="block text-gray-400 text-sm mb-1">{label}</label>
-
-      {/* Drop zone */}
-      <div
-        onClick={() => !uploading && inputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`
-          relative flex flex-col items-center justify-center gap-1
-          border-2 border-dashed rounded-lg px-4 py-3 cursor-pointer
-          transition-colors select-none
-          ${dragging
-            ? 'border-purple-500 bg-purple-900/20'
-            : 'border-gray-600 hover:border-purple-500/60 hover:bg-gray-800/60'}
-          ${uploading ? 'opacity-70 cursor-not-allowed' : ''}
-        `}
-      >
-        {uploading ? (
-          <div className="flex items-center gap-2 text-purple-400 text-sm py-1">
-            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-            アップロード中...
-          </div>
-        ) : (
-          <>
-            {/* Thumbnail preview */}
-            {value && (
-              <img
-                src={value}
-                alt="preview"
-                className="w-20 h-20 object-cover rounded mb-1"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            )}
-            <span className="text-gray-400 text-xs text-center">
-              画像をドロップ or クリックしてアップロード
-            </span>
-            <span className="text-gray-600 text-xs">jpg / png / webp / gif ・ 最大 5MB</span>
-          </>
-        )}
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </div>
-
-      {uploadError && (
-        <p className="text-red-400 text-xs mt-1">{uploadError}</p>
-      )}
-
-      {/* Manual URL input */}
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="または URL を直接入力"
-        className="mt-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-      />
-    </div>
-  );
-}
-
-// ---- Gross Margin Preview ----
-function GrossMarginPreview({
-  fcMonthlyPriceJpy,
-  freeMessageLimit,
-  fcIncludedCallMin,
-}: {
-  fcMonthlyPriceJpy: string;
-  freeMessageLimit: string;
-  fcIncludedCallMin: string;
-}) {
-  const price = parseInt(fcMonthlyPriceJpy, 10) || 0;
-  const msgs = parseInt(freeMessageLimit, 10) || 0;
-  const callMin = parseInt(fcIncludedCallMin, 10) || 0;
-
-  const revenue = price * 0.96;
-  const cost = msgs * 0.15 + callMin * 20;
-  const margin = revenue > 0 ? ((revenue - cost) / revenue) * 100 : 0;
-
-  const marginColor =
-    margin >= 60 ? 'text-green-400' :
-    margin >= 40 ? 'text-yellow-400' :
-    'text-red-400';
-
-  return (
-    <div className="mt-3 p-3 bg-gray-900/60 rounded-lg border border-gray-700/60">
-      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-2">📊 粗利率プレビュー</p>
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <p className="text-gray-500">Web手取り</p>
-          <p className="text-white font-medium">¥{Math.round(revenue).toLocaleString()}</p>
-        </div>
-        <div>
-          <p className="text-gray-500">推定原価</p>
-          <p className="text-white font-medium">¥{Math.round(cost).toLocaleString()}</p>
-        </div>
-        <div>
-          <p className="text-gray-500">粗利率</p>
-          <p className={`font-bold text-sm ${marginColor}`}>{margin.toFixed(1)}%</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---- Voice Tester Component ----
-function VoiceTester({ voiceModelId }: { voiceModelId: string }) {
-  const [testText, setTestText] = useState('こんにちは！テストです。');
-  const [testing, setTesting] = useState(false);
-  const [testError, setTestError] = useState('');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const runTest = async () => {
-    if (!voiceModelId.trim()) {
-      setTestError('音声モデルIDを入力してください');
-      return;
-    }
-    setTestError('');
-    setTesting(true);
-    try {
-      const res = await fetch('/api/admin/voice-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voiceModelId: voiceModelId.trim(), text: testText }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({ error: 'エラー' }));
-        setTestError(d.error || 'テスト失敗');
-        setTesting(false);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
-      }
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.play();
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        setTesting(false);
-      };
-      audio.onerror = () => {
-        setTestError('音声の再生に失敗しました');
-        setTesting(false);
-      };
-    } catch {
-      setTestError('テスト失敗: ネットワークエラー');
-      setTesting(false);
-    }
-  };
-
-  return (
-    <div className="mt-3 p-3 bg-gray-900/60 rounded-lg border border-purple-700/40">
-      <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-2">🔊 ボイステスト</p>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={testText}
-          onChange={(e) => setTestText(e.target.value)}
-          placeholder="テスト文章を入力..."
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
-        />
-        <button
-          type="button"
-          onClick={runTest}
-          disabled={testing || !voiceModelId.trim()}
-          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
-        >
-          {testing ? (
-            <>
-              <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              再生中...
-            </>
-          ) : '▶ 再生'}
-        </button>
-      </div>
-      {testError && <p className="text-red-400 text-xs mt-1.5">{testError}</p>}
-    </div>
-  );
-}
 
 // ---- Inline Quick Voice Test (in table row) ----
 function QuickVoiceTest({ character, onClose }: { character: Character; onClose: () => void }) {
@@ -936,11 +679,11 @@ export default function CharactersPage() {
           <div>
             <h3 className="text-purple-300 font-semibold mb-4">Step 1: 基本情報</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
-              <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
-              <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
-              <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
-              <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
+              <CharacterField label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
+              <CharacterField label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
+              <CharacterField label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
+              <CharacterField label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
+              <CharacterField label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
             </div>
             <div className="mt-4">
               <label className="block text-gray-400 text-sm mb-1">説明</label>
@@ -1810,11 +1553,11 @@ export default function CharactersPage() {
                 {editTab === 'basic' && (
                 <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
-                  <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
-                  <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
-                  <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
-                  <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
+                  <CharacterField label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
+                  <CharacterField label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
+                  <CharacterField label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
+                  <CharacterField label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
+                  <CharacterField label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
                 </div>
 
                 {/* ElevenLabs Voice Model ID - prominent section */}
@@ -2214,94 +1957,3 @@ export default function CharactersPage() {
   );
 }
 
-// ---- Secret Content Form ----
-function SecretForm({
-  draft,
-  onChange,
-}: {
-  draft: { unlockLevel: number; type: string; title: string; content: string; promptAddition: string };
-  onChange: (d: typeof draft) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-gray-500 text-xs mb-1">アンロックレベル (1-10)</label>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={draft.unlockLevel}
-            onChange={e => onChange({ ...draft, unlockLevel: parseInt(e.target.value, 10) || 3 })}
-            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
-          />
-        </div>
-        <div>
-          <label className="block text-gray-500 text-xs mb-1">タイプ</label>
-          <select
-            value={draft.type}
-            onChange={e => onChange({ ...draft, type: e.target.value })}
-            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
-          >
-            <option value="conversation_topic">conversation_topic</option>
-            <option value="backstory">backstory</option>
-            <option value="moment">moment</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label className="block text-gray-500 text-xs mb-1">タイトル</label>
-        <input
-          type="text"
-          value={draft.title}
-          onChange={e => onChange({ ...draft, title: e.target.value })}
-          placeholder="例: エースの話"
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
-        />
-      </div>
-      <div>
-        <label className="block text-gray-500 text-xs mb-1">内容</label>
-        <textarea
-          value={draft.content}
-          onChange={e => onChange({ ...draft, content: e.target.value })}
-          rows={2}
-          placeholder="秘密の内容..."
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
-        />
-      </div>
-      <div>
-        <label className="block text-gray-500 text-xs mb-1">プロンプト追加文</label>
-        <textarea
-          value={draft.promptAddition}
-          onChange={e => onChange({ ...draft, promptAddition: e.target.value })}
-          rows={2}
-          placeholder="【秘密解放: Lv●】..."
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
-        />
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label, value, onChange, placeholder, className,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label className="block text-gray-400 text-sm mb-1">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-      />
-    </div>
-  );
-}

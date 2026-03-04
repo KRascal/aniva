@@ -15,7 +15,7 @@ export default function PrivacyPage() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur border-b border-gray-800/50 px-6 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-50 bg-gray-950 border-b border-gray-800/50 px-6 py-4 flex items-center gap-4">
         <Link
           href="/"
           className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"

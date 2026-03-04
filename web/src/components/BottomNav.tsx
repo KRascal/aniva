@@ -92,7 +92,7 @@ export function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg bg-gray-950/90 border-t border-white/5"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-gray-950 border-t border-white/5"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}

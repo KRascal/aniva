@@ -49,7 +49,7 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-gray-950 border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button onClick={goBack} className="text-gray-400 hover:text-white transition-colors p-1">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
