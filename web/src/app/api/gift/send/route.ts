@@ -23,7 +23,7 @@ export async function GET() {
 // POST: ギフト送信
 export async function POST(req: Request) {
   const session = await auth();
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

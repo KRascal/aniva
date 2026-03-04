@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
 
     const url = new URL(req.url);
     const characterId = url.searchParams.get('characterId') ?? undefined;
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   try {
     // 認証チェック（管理者操作のため必須）
     const postSession = await auth();
-    const postUserId = (postSession?.user as any)?.id as string | undefined;
+    const postUserId = postSession?.user?.id as string | undefined;
     if (!postUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

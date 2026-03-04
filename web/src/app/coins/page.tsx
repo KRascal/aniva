@@ -60,7 +60,7 @@ export default async function CoinsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const session = await auth();
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
   if (!userId) redirect('/login');
 
   const params = await searchParams;

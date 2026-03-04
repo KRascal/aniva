@@ -26,8 +26,7 @@ export async function POST(req: NextRequest) {
         const coinAmount = parseInt(session.metadata?.coinAmount ?? '0', 10);
 
         if (userId && coinAmount > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const balance = await (prisma.coinBalance.upsert as any)({
+          const balance = await prisma.coinBalance.upsert({
             where: { userId },
             create: { userId, paidBalance: coinAmount, freeBalance: 0 },
             update: { paidBalance: { increment: coinAmount } },
@@ -48,8 +47,7 @@ export async function POST(req: NextRequest) {
         // FCファンクラブ加入処理（キャラクター別）
         const characterId = session.metadata?.characterId;
         if (userId && characterId) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const character = await (prisma.character.findUnique as any)({
+          const character = await prisma.character.findUnique({
             where: { id: characterId },
             select: { fcMonthlyCoins: true, fcIncludedCallMin: true, fcMonthlyPriceJpy: true },
           }) as { fcMonthlyCoins: number | null; fcIncludedCallMin: number | null; fcMonthlyPriceJpy: number | null } | null;
@@ -89,8 +87,7 @@ export async function POST(req: NextRequest) {
 
           // 月次コイン付与（paidBalance）
           if (fcCoins > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const balance = await (prisma.coinBalance.upsert as any)({
+            const balance = await prisma.coinBalance.upsert({
               where: { userId },
               create: { userId, paidBalance: fcCoins, freeBalance: 0 },
               update: { paidBalance: { increment: fcCoins } },
@@ -99,8 +96,7 @@ export async function POST(req: NextRequest) {
             await prisma.coinTransaction.create({
               data: {
                 userId,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                type: 'PURCHASE' as any, // FC月次コイン付与（スキーマにEARNがなければPURCHASEで代用）
+                type: 'PURCHASE', // FC月次コイン付与（スキーマにEARNがなければPURCHASEで代用）
                 amount: fcCoins,
                 balanceAfter: (balance.paidBalance ?? 0) + (balance.freeBalance ?? 0),
                 refId: session.id,

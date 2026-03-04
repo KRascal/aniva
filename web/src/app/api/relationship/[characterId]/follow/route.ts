@@ -12,7 +12,7 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -69,7 +69,7 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ isFollowing: false, isFanclub: false });
     }

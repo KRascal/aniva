@@ -404,31 +404,40 @@ export const CHARACTER_DEFINITIONS: Record<string, CharacterDefinition> = {
 
 // LLM provider abstraction - supports Anthropic, xAI (Grok), OpenAI
 async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assistant'; content: string }[]): Promise<string> {
-  // Try xAI (Grok) first, then Anthropic, then error
+  // Try xAI (Grok) first, then Anthropic as fallback
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
   if (xaiKey) {
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.LLM_MODEL || 'grok-3-mini',
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 500,
-        temperature: 0.85,
-      }),
-    });
-    if (!res.ok) throw new Error(`xAI API error ${res.status}: ${await res.text()}`);
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.LLM_MODEL || 'grok-3-mini',
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          max_tokens: 500,
+          temperature: 0.85,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[callLLM] xAI error ${res.status}: ${errText} — falling back to Anthropic`);
+      } else {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch (e) {
+      console.error('[callLLM] xAI fetch failed, falling back to Anthropic:', e);
+    }
   }
 
   if (anthropicKey) {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: anthropicKey });
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5',
       max_tokens: 500,
       system: systemPrompt,
       messages,

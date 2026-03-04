@@ -9,7 +9,7 @@ export async function GET(
 ) {
   // 認証チェック（IDOR修正: userIdはセッションから取得）
   const session = await auth();
-  const userId = (session?.user as any)?.id as string | undefined;
+  const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

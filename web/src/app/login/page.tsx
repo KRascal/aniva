@@ -68,8 +68,7 @@ function LoginForm() {
   // 既にログイン済みならリダイレクト
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      const user = session.user as { onboardingStep?: string | null };
-      if (!user.onboardingStep || user.onboardingStep !== 'completed') {
+      if (!session.user.onboardingStep || session.user.onboardingStep !== 'completed') {
         router.replace('/onboarding');
       } else {
         router.replace(callbackUrl);

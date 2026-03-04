@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: '認証が必要です' } },
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // JWTのIDでユーザーが見つからない場合、emailで検索（JWT/DB ID不一致対策）
     if (!user) {
-      const email = (session?.user as any)?.email as string | undefined;
+      const email = session?.user?.email;
       if (email) {
         user = await prisma.user.findUnique({ where: { email } });
       }

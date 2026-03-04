@@ -8,7 +8,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { subscription } = await req.json();
+  let subscription;
+  try {
+    ({ subscription } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   // subscription: { endpoint, keys: { p256dh, auth } }
 
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });

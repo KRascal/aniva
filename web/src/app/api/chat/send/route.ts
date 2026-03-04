@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     // 認証チェック（IDOR修正: userIdはセッションから取得）
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -37,6 +37,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message too long (max 2000 chars)' }, { status: 400 });
     }
 
+    // キャラクター情報を最初に1回取得（以降はcachedCharacterを使用）
+    const cachedCharacter = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: {
+        id: true,
+        slug: true,
+        freeMessageLimit: true,
+        fcMonthlyPriceJpy: true,
+        chatCoinPerMessage: true,
+      },
+    });
+    if (!cachedCharacter) {
+      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+    }
+
     // Relationship取得 or 作成
     let relationship = await prisma.relationship.findUnique({
       where: { userId_characterId: { userId, characterId } },
@@ -54,26 +69,18 @@ export async function POST(req: NextRequest) {
 
     if (access.type === 'BLOCKED') {
       // 月次制限に達しており、コインも不足
-      const character = await prisma.character.findUnique({
-        where: { id: characterId },
-        select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
-      });
       return NextResponse.json(
         {
           error: 'FREE_LIMIT_REACHED',
           type: 'CHAT_LIMIT',
-          freeMessageLimit: character?.freeMessageLimit ?? 10,
-          fcMonthlyPriceJpy: character?.fcMonthlyPriceJpy ?? 3480,
+          freeMessageLimit: cachedCharacter.freeMessageLimit ?? 10,
+          fcMonthlyPriceJpy: cachedCharacter.fcMonthlyPriceJpy ?? 3480,
         },
         { status: 402 },
       );
     } else if (access.type === 'COIN_REQUIRED') {
       // コイン消費: freeBalance優先 → paidBalance消費
-      const characterForCost = await prisma.character.findUnique({
-        where: { id: characterId },
-        select: { chatCoinPerMessage: true },
-      });
-      const coinCost = characterForCost?.chatCoinPerMessage ?? 10;
+      const coinCost = cachedCharacter.chatCoinPerMessage ?? 10;
       try {
         await prisma.$transaction(async (tx) => {
           const coinBalance = await tx.coinBalance.upsert({
@@ -119,16 +126,12 @@ export async function POST(req: NextRequest) {
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : '';
         if (errMsg === 'INSUFFICIENT_COINS') {
-          const character = await prisma.character.findUnique({
-            where: { id: characterId },
-            select: { freeMessageLimit: true, fcMonthlyPriceJpy: true },
-          });
           return NextResponse.json(
             {
               error: 'FREE_LIMIT_REACHED',
               type: 'CHAT_LIMIT',
-              freeMessageLimit: character?.freeMessageLimit ?? 10,
-              fcMonthlyPriceJpy: character?.fcMonthlyPriceJpy ?? 3480,
+              freeMessageLimit: cachedCharacter.freeMessageLimit ?? 10,
+              fcMonthlyPriceJpy: cachedCharacter.fcMonthlyPriceJpy ?? 3480,
             },
             { status: 402 },
           );
@@ -210,11 +213,7 @@ export async function POST(req: NextRequest) {
         where: { conversation: { relationshipId: relationship.id }, role: 'USER' },
       });
       if (msgCount >= 5 && Math.random() < 0.2) {
-        const character = await prisma.character.findUnique({
-          where: { id: characterId },
-          select: { slug: true },
-        });
-        const cliffhanger = await setCliffhanger(relationship.id, character?.slug ?? 'luffy');
+        const cliffhanger = await setCliffhanger(relationship.id, cachedCharacter.slug ?? 'luffy');
         if (cliffhanger) {
           cliffhangerTease = cliffhanger.teaseMessage;
         }

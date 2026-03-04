@@ -18,9 +18,9 @@ export const authConfig = {
     async session({ session, token }) {
       // JWTのonboardingStep/nicknameをセッションに伝播
       if (session.user) {
-        (session.user as any).id = token.userId ?? token.sub;
-        (session.user as any).onboardingStep = token.onboardingStep ?? null;
-        (session.user as any).nickname = token.nickname ?? null;
+        session.user.id = (token.userId ?? token.sub) as string;
+        session.user.onboardingStep = token.onboardingStep ?? null;
+        session.user.nickname = token.nickname ?? null;
       }
       return session;
     },

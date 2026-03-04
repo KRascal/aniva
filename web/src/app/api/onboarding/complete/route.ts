@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: '認証が必要です' } },
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     let effectiveUserId = userId;
     const existingUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!existingUser) {
-      const email = (session?.user as any)?.email as string | undefined;
+      const email = session?.user?.email;
       if (email) {
         const byEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } });
         if (byEmail) effectiveUserId = byEmail.id;

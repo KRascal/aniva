@@ -11,5 +11,5 @@ export async function requireAdmin(): Promise<{ email: string; id: string } | nu
   if (!session?.user?.email) return null;
   const ok = await isAdminEmail(session.user.email);
   if (!ok) return null;
-  return { email: session.user.email, id: (session.user as any).id };
+  return { email: session.user.email, id: session.user.id };
 }

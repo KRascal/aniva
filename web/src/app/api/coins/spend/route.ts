@@ -15,7 +15,7 @@ interface SpendRequest {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body: SpendRequest = await req.json();

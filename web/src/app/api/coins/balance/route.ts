@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const coinBalance = await prisma.coinBalance.upsert({

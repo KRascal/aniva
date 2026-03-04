@@ -187,7 +187,7 @@ async function streamFromAnthropic(
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: '認証が必要です' } },

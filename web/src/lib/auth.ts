@@ -175,10 +175,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         if (token.userId) {
-          (session.user as any).id = token.userId;
+          session.user.id = token.userId;
         }
-        (session.user as any).onboardingStep = token.onboardingStep ?? null;
-        (session.user as any).nickname = token.nickname ?? null;
+        session.user.onboardingStep = token.onboardingStep ?? null;
+        session.user.nickname = token.nickname ?? null;
       }
       return session;
     },

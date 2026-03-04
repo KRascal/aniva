@@ -423,11 +423,11 @@ export default function ExplorePage() {
   // オンボーディング未完了ならリダイレクト（stale JWT対策: proxyをバイパスした場合のフォールバック）
   useEffect(() => {
     if (status === 'authenticated') {
-      const step = (session?.user as any)?.onboardingStep;
+      const step = session?.user?.onboardingStep;
       if (step !== 'completed') {
         // JWTがstaleかもしれない → update()でDB最新を取得してから再判定
         update().then((updated) => {
-          const updatedStep = (updated?.user as any)?.onboardingStep;
+          const updatedStep = updated?.user?.onboardingStep;
           if (updatedStep !== 'completed') {
             router.push('/onboarding');
           }

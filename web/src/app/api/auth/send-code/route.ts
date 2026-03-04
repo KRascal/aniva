@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           </div>
         `,
       });
-      console.log(`[ANIVA AUTH] Verification email sent to ${emailLower}`);
+      console.info(`[ANIVA AUTH] Verification email sent to ${emailLower}`);
     } catch (emailError) {
       // Log error but don't fail — code is already saved in DB
       console.error(`[ANIVA AUTH] Failed to send email to ${emailLower}:`, emailError);

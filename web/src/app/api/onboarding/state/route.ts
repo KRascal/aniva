@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await auth();
-    const userId = (session?.user as any)?.id as string | undefined;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
@@ -22,7 +22,7 @@ export async function GET() {
       },
     });
     if (!user) {
-      const email = (session?.user as any)?.email as string | undefined;
+      const email = session?.user?.email;
       if (email) {
         user = await prisma.user.findUnique({
           where: { email },
