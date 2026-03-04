@@ -222,31 +222,40 @@ export function ChatInput({
             >
               {/* 画像を送る */}
               <button
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  setShowPlusMenu(false);
-                }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm text-left"
+                onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-white text-sm text-left group"
               >
-                <span className="text-xl">📷</span>
-                <span>画像を送る</span>
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-white/80">画像を送る</span>
               </button>
               {/* ギフトを贈る */}
               <button
                 onClick={() => { onGift(); setShowPlusMenu(false); }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm text-left"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-white text-sm text-left group"
               >
-                <span className="text-xl">🎁</span>
-                <span>ギフトを贈る</span>
+                <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-pink-500/30 transition-colors">
+                  <svg className="w-4 h-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a4 4 0 00-4-4 4 4 0 00-4 4v2h8zM12 8V6a4 4 0 014-4 4 4 0 014 4v2h-8zM3 9h18v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  </svg>
+                </div>
+                <span className="text-white/80">ギフトを贈る</span>
               </button>
               {/* コインを購入 */}
               <a
                 href="/coins"
                 onClick={() => setShowPlusMenu(false)}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-purple-900/30 transition-colors text-white text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-white text-sm group"
               >
-                <span className="text-xl">💰</span>
-                <span>コインを購入</span>
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500/30 transition-colors">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="12" cy="12" r="8" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v2m0 8v2m-4-6h8" />
+                  </svg>
+                </div>
+                <span className="text-white/80">コインを購入</span>
               </a>
             </div>
           )}

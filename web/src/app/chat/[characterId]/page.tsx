@@ -531,6 +531,15 @@ export default function ChatCharacterPage() {
         setShowOnboarding(true);
       }
 
+      // コイン残高取得
+      try {
+        const balRes = await fetch('/api/coins/balance');
+        if (balRes.ok) {
+          const balData = await balRes.json();
+          setCoinBalance(balData.balance ?? 0);
+        }
+      } catch {}
+
       // デイリーイベント判定（変動報酬）
       try {
         const eventRes = await fetch('/api/daily-event');
@@ -770,10 +779,10 @@ export default function ChatCharacterPage() {
           body: JSON.stringify({ missionId: 'chat_today' }),
         }).catch(() => {/* ignore */});
       }
-      // コイン残高更新
-      if (data.relationship?.coinBalance !== undefined) {
-        setCoinBalance(data.relationship.coinBalance);
-      }
+      // コイン残高更新（APIから最新取得）
+      fetch('/api/coins/balance').then(r => r.json()).then(d => {
+        if (d.balance !== undefined) setCoinBalance(d.balance);
+      }).catch(() => {});
 
       // クリフハンガー予告メッセージ（キャラが自然に差し込む）
       if (data.cliffhangerTease) {

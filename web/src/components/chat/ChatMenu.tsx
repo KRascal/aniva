@@ -109,7 +109,7 @@ export function ChatMenu({
       icon: <IconUser />,
       label: 'プロフィール',
       sublabel: character?.franchise ?? '',
-      href: `/character/${character?.slug ?? characterId}`,
+      href: `/profile/${characterId}`,
       accent: 'text-blue-400 bg-blue-500/15',
     },
     {
@@ -144,7 +144,7 @@ export function ChatMenu({
       icon: <IconChart />,
       label: '関係値',
       sublabel: `Lv.${relationship?.level ?? 1} ${relationship?.levelName ?? ''}`,
-      href: `/relationship/${characterId}`,
+      href: `/mypage?tab=relationships`,
       accent: 'text-green-400 bg-green-500/15',
     },
     {
