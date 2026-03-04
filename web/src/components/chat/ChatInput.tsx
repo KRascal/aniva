@@ -74,7 +74,7 @@ interface ChatInputProps {
   characterId: string;
   coinBalance: number | null;
   relationship: RelationshipInfo | null;
-  inputRef: React.RefObject<HTMLTextAreaElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   isSendBouncing: boolean;
   placeholderIndex: number;
   showPlusMenu: boolean;

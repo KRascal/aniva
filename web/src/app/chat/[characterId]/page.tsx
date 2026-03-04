@@ -172,44 +172,6 @@ function getEmotionEmoji(emotion?: string): string {
   return EMOTION_EMOJI[emotion] || '';
 }
 
-/* ── クイック返信チップ ── */
-const QUICK_REPLIES_BY_SLUG: Record<string, string[]> = {
-  luffy: ['腹減った！', '仲間になれよ！', '海賊王になる！', 'ゴムゴムの〜！', '冒険しようぜ！'],
-  zoro: ['迷ってる...', '修業中だ', '眠い', '強くなりたい', 'なんでもねぇ'],
-  nami: ['お金ちょうだい！', '地図描いてるよ', 'うらやましい〜', '天気変わりそう', '財布見せて'],
-  sanji: ['料理作るよ', '美しい...', 'ゾロと喧嘩した', '空腹？', 'お役に立てて光栄'],
-  chopper: ['医者だよ！', 'ドクドクミ〜', '人間じゃないよ！', '診察しようか', 'わーい！'],
-  robin: ['あら、そう', '歴史を調べてる', '花びらみたい', '少し疲れた', 'ふふ'],
-  brook: ['ヨホホ！', '骨格標本になっちゃった', 'パンツ見せて', '音楽が好き', '生きてるよ'],
-  franky: ['SUPERだぜ！', 'コーラを飲みたい', '改造したい', '船大工さ', 'SUPER！！'],
-  usopp: ['嘘じゃないよ！', '勇気が出ない', '10億人の兵士！', '狙撃の腕前は', '冒険したい'],
-  jinbe: ['落ち着いて', '仁義を守る', '魚人だ', 'ルフィ船長！', '海流を読んで'],
-  law: ['心臓持ってる', 'ルームッ！', '同盟を組もう', 'シャンブルズ！', '計算通り'],
-  hancock: ['ぺろな様', '愛が大きすぎる', 'キスしてあげる', '美しいでしょ', 'ルフィ〜！'],
-  shanks: ['乾杯！', 'ルフィを頼む', '冒険を楽しんで', '帽子を返して', '見守ってるよ'],
-  yamato: ['おでんになりたい！', '冒険したい！', '父上…', 'ワノ国から出たい', '鬼神！'],
-  mihawk: ['剣技を磨け', 'ゾロを鍛えてる', '強者はいるか', '最強の剣士', '決闘しよう'],
-  crocodile: ['砂漠の王者', '計画通り', 'スナスナ！', 'アラバスタ...', '弱者は嫌いだ'],
-  perona: ['ネガティブホロウ！', '幽霊が好き！', 'かわいいでしょ', 'ネガティブ！', 'ぬいぐるみ欲しい'],
-  whitebeard: ['息子たちよ！', '家族を守る', 'グラグラ！', '時代を変える', '海賊の夢'],
-  blackbeard: ['夢を諦めるな！', 'ヤミヤミ！', '大物になる', '運命だぜ', 'グラグラ...'],
-  ace: ['炎が好き！', '弟を守る', 'メラメラ！', 'ルフィのこと', '生きててよかった'],
-  kaido: ['最強の生き物', '酒が飲みたい', 'ワノ国は俺の', 'バオウ！', '強さだけが正義'],
-  vivi: ['アラバスタのために', 'ご馳走様', '皆が好き', '困ったな', 'いつまでも友達'],
-};
-const GENERIC_QUICK_REPLIES = ['おはよう！', 'おやすみ！', '元気？', '好きだよ❤️', 'ありがとう', '今何してる？'];
-
-/* ── プレースホルダーベース ── */
-const BASE_PLACEHOLDERS = [
-  (name: string) => `${name}に話しかける...`,
-  (name: string) => `${name}に何か聞いてみよう！`,
-  (_: string) => '今日はどんな気分？',
-  (_: string) => '推しに伝えたいことは？',
-  (name: string) => `${name}と話そう 😊`,
-  (_: string) => '一緒に冒険しようぜ！',
-];
-
-
 /* ─────────────── ミニ音声プレーヤー ─────────────── */
 // 波形バーの高さプリセット（再生中のビジュアルリズム）
 const WAVE_HEIGHTS = [40, 70, 55, 85, 45, 60, 80, 50, 65, 35];
@@ -613,7 +575,7 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     if (inputText.length > 0) return;
     const timer = setInterval(() => {
-      setPlaceholderIndex((i) => (i + 1) % BASE_PLACEHOLDERS.length);
+      setPlaceholderIndex((i) => (i + 1) % 6); // BASE_PLACEHOLDERS.length = 6
     }, 3500);
     return () => clearInterval(timer);
   }, [inputText]);
@@ -1195,86 +1157,13 @@ export default function ChatCharacterPage() {
       )}
 
       {/* ≡ メニューパネル（右スライド） */}
-      {showMenu && (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowMenu(false)}
-        >
-          <div
-            className="w-72 h-full bg-gray-900 border-l border-white/10 flex flex-col overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <span className="text-white font-semibold">{character?.name ?? 'キャラクター'}</span>
-              <button onClick={() => setShowMenu(false)} className="text-gray-400 hover:text-white transition-colors p-1">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <nav className="flex-1 px-3 py-4 space-y-1">
-              <a href={`/relationship/${characterId}/fanclub`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">💜</span>
-                <div>
-                  <div className="font-medium">ファンクラブ</div>
-                  <div className="text-gray-500 text-xs">{relationship?.isFanclub ? 'FC会員' : '未加入'}</div>
-                </div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href={`/relationship/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">📊</span>
-                <div>
-                  <div className="font-medium">関係値</div>
-                  <div className="text-gray-500 text-xs">Lv.{relationship?.level ?? 1} {relationship?.levelName ?? ''}</div>
-                </div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href={`/story/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">📖</span>
-                <div>
-                  <div className="font-medium">ストーリー</div>
-                  <div className="text-gray-500 text-xs">キャラとの物語</div>
-                </div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href={`/moments?character=${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">📸</span>
-                <div><div className="font-medium">Moments</div></div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href={`/events?character=${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">📅</span>
-                <div><div className="font-medium">イベント</div></div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href={`/chat/export/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">📝</span>
-                <div><div className="font-medium">チャット履歴エクスポート</div></div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
-                <span className="text-xl">⚙️</span>
-                <div><div className="font-medium">設定</div></div>
-                <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </nav>
-          </div>
-        </div>
-      )}
+      <ChatMenu
+        character={character}
+        relationship={relationship}
+        characterId={characterId}
+        isOpen={showMenu}
+        onClose={() => setShowMenu(false)}
+      />
 
       {/* 📞 通話準備中トースト */}
       {callToast && (
@@ -1336,114 +1225,18 @@ export default function ChatCharacterPage() {
       )}
 
       {/* ══════════════ ヘッダー ══════════════ */}
-      <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
-        {/* 戻るボタン */}
-        <button
-          onClick={() => router.push('/chat')}
-          className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1 flex-shrink-0 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
-          aria-label="戻る"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        {/* アバター */}
-        <button
-          onClick={() => router.push(`/profile/${characterId}`)}
-          className="flex-shrink-0"
-          aria-label="キャラクタープロフィール"
-        >
-          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
-            {character?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                🏴‍☠️
-              </div>
-            )}
-          </div>
-        </button>
-
-        {/* 名前 + FC + プレゼンス */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-white font-semibold text-sm leading-tight break-words">
-              {character?.name ?? 'キャラクター'}
-            </h1>
-            {relationship?.isFanclub ? (
-              <span className="text-base leading-none flex-shrink-0">💜</span>
-            ) : (
-              <a
-                href={`/relationship/${characterId}/fanclub`}
-                className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600/80 text-white border border-purple-400/40 hover:bg-purple-500 transition-colors"
-              >
-                FC
-              </a>
-            )}
-          </div>
-          {/* プレゼンスステータス + ストリーク */}
-          <div className="flex items-center gap-2 mt-0.5">
-            {presence && (
-              <div className="flex items-center gap-1">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${presence.isAvailable ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-                <span className="text-[10px] text-gray-400 truncate">
-                  {presence.statusEmoji} {presence.status}
-                </span>
-              </div>
-            )}
-            {relationship?.isStreakActive && (relationship.streakDays ?? 0) >= 2 && (
-              <div className="flex items-center gap-0.5 bg-orange-900/40 border border-orange-500/30 rounded-full px-1.5 py-0.5">
-                <span className="text-[10px]">🔥</span>
-                <span className="text-[10px] font-bold text-orange-400">{relationship.streakDays}日</span>
-              </div>
-            )}
-            {isLateNight && (
-              <div className="flex items-center gap-0.5 bg-amber-900/40 border border-amber-600/30 rounded-full px-1.5 py-0.5 animate-pulse">
-                <span className="text-[10px]">🌙</span>
-                <span className="text-[10px] font-medium text-amber-300">ふたりだけの夜</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 🧠 記憶ペークボタン */}
-        <button
-          onClick={openMemoryPeek}
-          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-purple-400 hover:bg-purple-900/30 transition-colors"
-          aria-label="キャラの記憶を見る"
-          title="キャラの記憶"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-        </button>
-
-        {/* 📞 通話ボタン */}
-        <button
-          onClick={() => setShowCallModal(true)}
-          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
-          aria-label="通話する"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
-        </button>
-
-        {/* ≡ メニューボタン */}
-        <button
-          onClick={() => setShowMenu(true)}
-          className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-          aria-label="メニュー"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </header>
+      <ChatHeader
+        character={character}
+        relationship={relationship}
+        presence={presence}
+        characterId={characterId}
+        isLateNight={isLateNight}
+        onBack={() => router.push('/chat')}
+        onCallClick={() => setShowCallModal(true)}
+        onMenuClick={() => setShowMenu(true)}
+        onMemoryClick={openMemoryPeek}
+        onProfileClick={() => router.push(`/profile/${characterId}`)}
+      />
 
       {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
       {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (
@@ -1715,146 +1508,24 @@ export default function ChatCharacterPage() {
       </div>
 
       {/* ══════════════ 入力エリア ══════════════ */}
-      <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
-        {/* コイン残高表示（FC非加入時のみ） */}
-        {!relationship?.isFanclub && coinBalance !== null && (
-          <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
-            <span className="text-amber-400">💰</span>
-            <span className="text-amber-400/80">
-              <span className="font-bold text-amber-300">{coinBalance}</span> コイン
-            </span>
-            <span className="text-gray-600">|</span>
-            <a
-              href="/coins"
-              className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
-            >
-              コインを購入 →
-            </a>
-            <span className="text-gray-600">|</span>
-            <a
-              href={`/relationship/${characterId}/fanclub`}
-              className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
-            >
-              FC加入で無制限 →
-            </a>
-          </div>
-        )}
-        {/* ── クイック返信チップ（入力が空の時のみ表示） ── */}
-        {!inputText && !isSending && !isGreeting && (
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-1 no-scrollbar">
-            {(character?.slug && QUICK_REPLIES_BY_SLUG[character.slug]
-              ? QUICK_REPLIES_BY_SLUG[character.slug]
-              : GENERIC_QUICK_REPLIES
-            ).map((chip) => (
-              <button
-                key={chip}
-                onClick={() => {
-                  setInputText(chip);
-                  setTimeout(() => {
-                    inputRef.current?.focus();
-                  }, 50);
-                }}
-                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-purple-500/30 text-purple-300 bg-purple-900/20 hover:bg-purple-900/40 hover:border-purple-500/60 transition-all touch-manipulation whitespace-nowrap"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="relative flex items-center gap-2">
-          {/* ＋ボタン + ポップアップメニュー */}
-          <div className="relative flex-shrink-0">
-            {showPlusMenu && (
-              <div className="absolute bottom-12 left-0 bg-gray-800 border border-white/10 rounded-2xl p-2 space-y-1 shadow-xl z-10 min-w-[160px]">
-                <button
-                  onClick={() => { setShowGift(true); setShowPlusMenu(false); }}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
-                >
-                  <span className="text-xl">🎁</span>
-                  <span>ギフトを送る</span>
-                </button>
-                <a
-                  href="/coins"
-                  onClick={() => setShowPlusMenu(false)}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm"
-                >
-                  <span className="text-xl">💰</span>
-                  <span>コインを購入</span>
-                </a>
-                <button
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-gray-500 text-sm text-left cursor-not-allowed"
-                  disabled
-                >
-                  <span className="text-xl opacity-50">📷</span>
-                  <span className="opacity-50">画像を送る</span>
-                  <span className="ml-auto text-[10px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">準備中</span>
-                </button>
-              </div>
-            )}
-            <button
-              onClick={() => setShowPlusMenu((v) => !v)}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-all touch-manipulation border border-gray-700/60 text-xl font-light"
-              aria-label="メニューを開く"
-            >
-              ＋
-            </button>
-          </div>
-          {/* テキスト入力 */}
-          <textarea
-            ref={inputRef}
-            value={inputText}
-            onChange={(e) => {
-              setInputText(e.target.value);
-              // auto-resize: 1行〜最大5行
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
-            maxLength={2000}
-            rows={1}
-            disabled={isSending || isGreeting}
-            style={{ fontSize: '16px', resize: 'none' }} // prevent iOS auto-zoom
-            className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-3xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation overflow-y-auto ${
-              hasInput
-                ? 'border-purple-500/60 ring-1 ring-purple-500/30'
-                : 'border-gray-700/60'
-            }`}
-          />
-
-          {/* 送信ボタン */}
-          <button
-            onClick={handleSendClick}
-            disabled={isSending || isGreeting || !hasInput}
-            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
-              isSendBouncing ? 'send-bounce' : ''
-            } ${hasInput ? 'send-glow' : ''}`}
-            style={{
-              background: hasInput
-                ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)'
-                : 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
-            }}
-            aria-label="送信"
-          >
-            {/* 光るハイライト */}
-            {hasInput && (
-              <span className="absolute inset-0 bg-white/10 rounded-full" />
-            )}
-            <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 文字数カウンター */}
-        <div className={`text-right mt-1 pr-14 transition-colors ${
-          inputText.length >= 1900 ? 'text-red-400' :
-          inputText.length >= 1500 ? 'text-amber-400' : 'text-gray-600'
-        } text-[11px]`}>
-          {inputText.length > 0 && `${inputText.length}/2000`}
-        </div>
-      </div>
+      <ChatInput
+        inputText={inputText}
+        setInputText={setInputText}
+        onSend={handleSendClick}
+        isSending={isSending}
+        isGreeting={isGreeting}
+        character={character}
+        characterId={characterId}
+        coinBalance={coinBalance}
+        relationship={relationship}
+        inputRef={inputRef}
+        isSendBouncing={isSendBouncing}
+        placeholderIndex={placeholderIndex}
+        showPlusMenu={showPlusMenu}
+        setShowPlusMenu={setShowPlusMenu}
+        onGift={() => setShowGift(true)}
+        handleKeyDown={handleKeyDown}
+      />
       {/* メッセージ長押しコンテキストメニュー */}
       {ctxMenu && (
         <div
