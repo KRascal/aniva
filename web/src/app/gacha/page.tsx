@@ -747,6 +747,38 @@ export default function GachaPage() {
     }
   }
 
+  async function pullFree() {
+    if (!selectedBanner || isPulling) return;
+    setIsPulling(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/gacha/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bannerId: selectedBanner.id, count: 1, free: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'エラーが発生しました');
+        setIsPulling(false);
+        return;
+      }
+      const pullResults: CardResult[] = data.results ?? [];
+      setResults(pullResults);
+      setCoinBalance(data.coinBalance ?? 0);
+      setRevealedSet(new Set());
+      setFreeGachaAvailable(false); // consumed
+
+      const topRarity = getHighestRarity(pullResults);
+      setAnimRarity(topRarity);
+      setView('animating');
+    } catch {
+      setError('通信エラーが発生しました');
+      setIsPulling(false);
+    }
+  }
+
   function onAnimationComplete() {
     setIsPulling(false);
     setView('results');
@@ -1001,9 +1033,18 @@ export default function GachaPage() {
                 </div>
 
                 {freeGachaAvailable && (
-                  <div className="mt-3 text-center text-sm text-green-400">
-                    🎁 本日の無料ガチャが利用可能です！
-                  </div>
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={pullFree}
+                    disabled={isPulling}
+                    className="mt-4 w-full py-3.5 rounded-xl border-2 border-green-500/60 bg-green-900/20 text-green-300 font-bold text-base flex items-center justify-center gap-2 hover:bg-green-900/40 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    🎁 今日の無料ガチャを引く
+                    {isPulling && (
+                      <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                    )}
+                  </motion.button>
                 )}
 
                 {/* Odds hint */}

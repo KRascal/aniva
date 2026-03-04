@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { pullGacha } from '@/lib/gacha-system';
+import { pullGacha, getFreeGachaAvailable } from '@/lib/gacha-system';
 
 const COSTS: Record<number, number> = {
   1: 100,
@@ -19,13 +19,11 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { bannerId, count } = body as { bannerId: string; count: 1 | 10 };
+  const { bannerId, count, free } = body as { bannerId: string; count: 1 | 10; free?: boolean };
 
-  if (!bannerId || !count || !COSTS[count]) {
+  if (!bannerId || !count) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
-
-  const cost = COSTS[count];
 
   // Guard: check if gacha tables exist (migration may be pending in production)
   try {
@@ -33,6 +31,34 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: 'ガチャ機能は準備中です' }, { status: 503 });
   }
+
+  // ── 無料ガチャ ──
+  if (free) {
+    const available = await getFreeGachaAvailable(userId);
+    if (!available) {
+      return NextResponse.json({ error: '本日の無料ガチャは既に使用済みです' }, { status: 400 });
+    }
+
+    try {
+      const results = await pullGacha(userId, bannerId, 1, 'login_bonus');
+      const coinBalance = await prisma.coinBalance.upsert({
+        where: { userId },
+        create: { userId, balance: 0 },
+        update: {},
+      });
+      return NextResponse.json({ results, coinBalance: coinBalance.balance, free: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gacha failed';
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ── 通常ガチャ（コイン消費） ──
+  if (!COSTS[count]) {
+    return NextResponse.json({ error: 'Invalid count' }, { status: 400 });
+  }
+
+  const cost = COSTS[count];
 
   const coinBalance = await prisma.coinBalance.upsert({
     where: { userId },

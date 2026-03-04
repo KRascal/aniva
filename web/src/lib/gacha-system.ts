@@ -52,6 +52,7 @@ export async function pullGacha(
   userId: string,
   bannerId: string,
   count: 1 | 10,
+  source: string = 'gacha',
 ): Promise<PullResult[]> {
   const banner = await prisma.gachaBanner.findUniqueOrThrow({ where: { id: bannerId } });
 
@@ -105,7 +106,7 @@ export async function pullGacha(
     const isNew = !existingCardIds.has(card.id);
     if (isNew) {
       existingCardIds.add(card.id);
-      newCards.push({ userId, cardId: card.id, source: 'gacha' });
+      newCards.push({ userId, cardId: card.id, source });
     }
 
     results.push({
