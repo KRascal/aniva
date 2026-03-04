@@ -8,15 +8,25 @@ import { generateDailyEmotionForEngine } from '@/lib/character-engine';
  */
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ characterId: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { characterId } = await params;
+  const { slug } = await params;
 
-  if (!characterId) {
-    return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
+  if (!slug) {
+    return NextResponse.json({ error: 'slug is required' }, { status: 400 });
   }
 
   try {
+    // slugまたはIDでキャラクターを検索
+    const character = await prisma.character.findFirst({
+      where: { OR: [{ slug }, { id: slug }] },
+      select: { id: true },
+    });
+    if (!character) {
+      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+    }
+    const characterId = character.id;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -32,15 +42,6 @@ export async function GET(
 
     // 未生成の場合はその場で生成
     if (!dailyState) {
-      // キャラクターが存在するか確認
-      const character = await prisma.character.findUnique({
-        where: { id: characterId },
-        select: { id: true },
-      });
-      if (!character) {
-        return NextResponse.json({ error: 'Character not found' }, { status: 404 });
-      }
-
       const generated = generateDailyEmotionForEngine(new Date());
       dailyState = await prisma.characterDailyState.create({
         data: {

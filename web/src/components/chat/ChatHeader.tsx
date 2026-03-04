@@ -80,14 +80,15 @@ export function ChatHeader({
   const [dailyState, setDailyState] = useState<DailyState | null>(null);
 
   useEffect(() => {
-    if (!characterId) return;
-    fetch(`/api/characters/${characterId}/daily-state`)
+    const key = character?.slug || characterId;
+    if (!key) return;
+    fetch(`/api/characters/${key}/daily-state`)
       .then((res) => res.ok ? res.json() : null)
       .then((data: DailyState | null) => {
         if (data) setDailyState(data);
       })
       .catch((err) => console.warn('[ChatHeader] daily-state fetch failed:', err));
-  }, [characterId]);
+  }, [characterId, character?.slug]);
 
   return (
     <div className="flex-shrink-0">
