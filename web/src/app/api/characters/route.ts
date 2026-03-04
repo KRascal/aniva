@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         avatarUrl: true,
         coverUrl: true,
         catchphrases: true,
+        birthday: true,
         _count: {
           select: {
             relationships: {

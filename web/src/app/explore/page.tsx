@@ -20,6 +20,23 @@ interface Character {
   coverUrl: string | null;
   catchphrases: string[];
   followerCount?: number;
+  birthday?: string | null;
+}
+
+/** 誕生日が今日から daysAhead 日以内かチェック (MM-DD or M/D 形式対応) */
+function getBirthdayCountdown(birthday: string | null | undefined): number | null {
+  if (!birthday) return null;
+  const normalized = birthday.includes('/') ? birthday.replace('/', '-').padStart(5, '0') : birthday;
+  const [mm, dd] = normalized.split('-').map(Number);
+  if (!mm || !dd) return null;
+  const now = new Date();
+  const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const year = jstNow.getUTCFullYear();
+  let bday = new Date(Date.UTC(year, mm - 1, dd));
+  if (bday < jstNow) bday = new Date(Date.UTC(year + 1, mm - 1, dd));
+  const diffMs = bday.getTime() - jstNow.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return diffDays <= 7 ? diffDays : null;
 }
 
 interface RelationshipInfo {
@@ -881,6 +898,50 @@ export default function ExplorePage() {
                         <p className="text-white font-semibold text-sm">今日は{todayEvent}！</p>
                         <p className="text-white/55 text-xs mt-0.5">推しと{todayEvent}を楽しもう →</p>
                       </div>
+                    </div>
+                  </FadeSection>
+                );
+              })()}
+
+              {/* 誕生日カウントダウンバナー（7日以内） */}
+              {(() => {
+                const upcomingBirthdays = characters
+                  .map(c => ({ c, days: getBirthdayCountdown(c.birthday) }))
+                  .filter(({ days }) => days !== null)
+                  .sort((a, b) => (a.days ?? 99) - (b.days ?? 99))
+                  .slice(0, 2);
+                if (upcomingBirthdays.length === 0) return null;
+                return (
+                  <FadeSection delay={35}>
+                    <div className="mb-5 space-y-2">
+                      {upcomingBirthdays.map(({ c, days }) => (
+                        <div
+                          key={c.id}
+                          className="rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(244,63,94,0.15))',
+                            border: '1px solid rgba(251,191,36,0.3)',
+                            boxShadow: '0 2px 16px rgba(251,191,36,0.08)',
+                          }}
+                          onClick={() => router.push(`/chat/${c.slug}`)}
+                        >
+                          {c.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={c.avatarUrl} alt={c.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-yellow-400/40" />
+                          ) : (
+                            <span className="text-2xl flex-shrink-0">🎂</span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-semibold text-sm">
+                              {days === 0 ? `🎉 今日は${c.name.split('・').pop()}の誕生日！` : `🎂 ${c.name.split('・').pop()}の誕生日まであと${days}日`}
+                            </p>
+                            <p className="text-yellow-300/70 text-xs mt-0.5">
+                              {days === 0 ? 'お祝いメッセージを送ろう ✨' : `特別なメッセージを届けよう →`}
+                            </p>
+                          </div>
+                          <span className="text-yellow-400 text-lg flex-shrink-0">🎁</span>
+                        </div>
+                      ))}
                     </div>
                   </FadeSection>
                 );
