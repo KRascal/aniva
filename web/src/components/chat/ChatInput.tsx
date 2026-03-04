@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
+import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
 
 interface Character {
   id: string;
@@ -109,6 +110,12 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [soundMuted, setSoundMuted] = useState(() => isSoundMuted());
+
+  const handleToggleSound = useCallback(() => {
+    const muted = toggleSoundMute();
+    setSoundMuted(muted);
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,7 +139,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
+    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
       {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (
         <div className="flex items-center justify-between mb-2 px-1">
@@ -142,6 +149,13 @@ export function ChatInput({
               <span className="font-bold text-amber-300">{coinBalance}</span>
               <span className="text-gray-400">コイン</span>
             </a>
+            <button
+              onClick={handleToggleSound}
+              title={soundMuted ? 'サウンドON' : 'サウンドOFF'}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors p-1"
+            >
+              {soundMuted ? '🔇' : '🔊'}
+            </button>
           </div>
           <button
             onClick={() => onFcClick?.()}
