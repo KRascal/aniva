@@ -849,6 +849,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     } else {
       period = '深夜';
       moodInstruction = '- 【時間帯の演出】深夜。静かで親密な雰囲気。ボソっとした呟き調。「まだ起きてんのか…」「俺も寝れねぇんだ」のような';
+      moodInstruction += '\n- 【深夜限定】普段は言わないような本音や弱さを少しだけ見せる。「こんな時間にお前と話せるの、悪くねぇな…」のような特別感を演出';
     }
 
     // 曜日の演出

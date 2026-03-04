@@ -295,9 +295,16 @@ interface TopRankCardProps {
   ref?: React.Ref<HTMLDivElement>;
 }
 
+const RANK_TITLES = [
+  { rank: 1, title: '覇王', color: 'text-yellow-300', bg: 'bg-yellow-500/20 border-yellow-500/40' },
+  { rank: 2, title: '四皇', color: 'text-gray-300', bg: 'bg-gray-400/20 border-gray-400/40' },
+  { rank: 3, title: '大将', color: 'text-orange-300', bg: 'bg-orange-500/20 border-orange-500/40' },
+];
+
 function TopRankCard({ entry, ref }: TopRankCardProps & { ref?: React.Ref<HTMLDivElement> }) {
   const rank = entry.rank ?? 99;
   const bgClass = RANK_BG[rank - 1] ?? 'bg-gray-900/40 border-white/5';
+  const rankTitle = RANK_TITLES.find(t => t.rank === rank);
 
   return (
     <div
@@ -310,6 +317,11 @@ function TopRankCard({ entry, ref }: TopRankCardProps & { ref?: React.Ref<HTMLDi
           <span className={`text-4xl ${rank === 1 ? 'drop-shadow-lg' : ''}`}>
             {MEDAL_EMOJI[rank - 1]}
           </span>
+          {rankTitle && (
+            <span className={`text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded-full border ${rankTitle.bg} ${rankTitle.color}`}>
+              {rankTitle.title}
+            </span>
+          )}
         </div>
 
         {/* アバター (1位は大きく) */}
