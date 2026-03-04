@@ -126,7 +126,7 @@ export default function UserProfilePage() {
     );
   }
 
-  const displayName = profile.displayName || 'ユーザー';
+  const displayName = profile.nickname || profile.displayName || 'ユーザー';
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const stats = profile.stats;
   const fcFollowing = (profile.following ?? []).filter(f => f.isFanclub);
@@ -134,7 +134,7 @@ export default function UserProfilePage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-20">
       {/* Header */}
-      <header className="bg-black/60 backdrop-blur-md border-b border-white/8 px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
+      <header className="bg-gray-950 border-b border-white/8 px-4 py-3 flex items-center gap-3 sticky top-0 z-40">
         <button onClick={() => router.back()} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 -ml-1">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
         </button>

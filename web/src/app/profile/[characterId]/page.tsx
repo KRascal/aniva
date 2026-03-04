@@ -660,7 +660,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ══════════════ タブナビゲーション ══════════════ */}
-        <div className="sticky top-[57px] z-10 -mx-4 px-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
+        <div className="sticky top-0 z-30 -mx-4 px-4 bg-gray-950 border-b border-white/5">
           <div className="flex">
             {[
               { id: 'posts' as const, label: '投稿' },

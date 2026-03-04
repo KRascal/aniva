@@ -282,13 +282,13 @@ export default function MyPage() {
 
   const plan = user?.plan ?? 'FREE';
   const planInfo = PLAN_LABELS[plan] ?? PLAN_LABELS.FREE;
-  const displayName = user?.displayName || user?.email || 'ユーザー';
+  const displayName = user?.nickname || user?.displayName || user?.email || 'ユーザー';
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-24">
       {/* ヘッダー */}
-      <header className="bg-black/60 backdrop-blur-md border-b border-white/8 px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-40 bg-gray-950 border-b border-white/8 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.back()}
           className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1"
