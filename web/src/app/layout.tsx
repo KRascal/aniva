@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PushSetup } from "@/components/PushSetup";
 import { BottomNav } from "@/components/BottomNav";
+import { LoginBonusPopup } from "@/components/LoginBonusPopup";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -91,6 +92,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <PushSetup />
+            <LoginBonusPopup />
             {children}
             <BottomNav />
           </Providers>

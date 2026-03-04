@@ -143,12 +143,23 @@ export async function POST() {
     const streakMessage = STREAK_MESSAGES[streak];
     const greeting = streakMessage || CHARACTER_GREETINGS[Math.floor(Math.random() * CHARACTER_GREETINGS.length)];
 
+    // 初回登録かチェック（BONUSトランザクションの件数で判定）
+    const bonusCount = await prisma.coinTransaction.count({
+      where: { userId, type: 'BONUS', description: { startsWith: 'daily_login' } },
+    });
+    const isFirstLogin = bonusCount <= 1; // 今のが初回
+
     return NextResponse.json({
       alreadyClaimed: false,
+      awarded: true,
+      amount: coins,
       coins,
       streak,
+      streakDays: streak,
       multiplier,
-      totalBalance: balance.balance,
+      totalBalance: balance.freeBalance + balance.paidBalance,
+      isFirstLogin,
+      welcomeAmount: 500,
       message: greeting,
       isStreakMilestone: !!streakMessage,
     });

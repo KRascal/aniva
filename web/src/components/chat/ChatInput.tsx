@@ -133,26 +133,22 @@ export function ChatInput({
 
   return (
     <div className="flex-shrink-0 border-t border-white/8 bg-black/60 backdrop-blur-md px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
-      {/* コイン残高表示（FC非加入時のみ） */}
+      {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (
-        <div className="flex items-center gap-1.5 text-xs mb-2 px-1">
-          <span className="text-amber-400">💰</span>
-          <span className="text-amber-400/80">
-            <span className="font-bold text-amber-300">{coinBalance}</span> コイン
-          </span>
-          <span className="text-gray-600">|</span>
-          <a
-            href="/coins"
-            className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
-          >
-            コインを購入 →
-          </a>
-          <span className="text-gray-600">|</span>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center gap-2">
+            <a href="/coins" className="flex items-center gap-1 text-xs bg-gray-800/80 rounded-full px-2.5 py-1 hover:bg-gray-700/80 transition-colors">
+              <span className="text-amber-400 text-sm">🪙</span>
+              <span className="font-bold text-amber-300">{coinBalance}</span>
+              <span className="text-gray-400">コイン</span>
+            </a>
+          </div>
           <button
             onClick={() => onFcClick?.()}
-            className="text-purple-400 hover:text-purple-300 hover:underline transition-colors"
+            className="flex items-center gap-1 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full px-3 py-1.5 font-medium hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30"
           >
-            FC加入で無制限 →
+            <span>⭐</span>
+            <span>FC加入でチャット無制限</span>
           </button>
         </div>
       )}
