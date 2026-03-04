@@ -467,6 +467,7 @@ interface MemoryContext {
   emotionalState?: string;
   totalMessages?: number;
   lastMessageAt?: Date | null;
+  firstMessageAt?: Date | null;
   characterEmotion?: string;
   characterEmotionNote?: string | null;
   emotionUpdatedAt?: Date | null;
@@ -501,6 +502,32 @@ export class CharacterEngine {
     // 3. 会話履歴取得（直近20件）
     const recentMessages = await this.getRecentMessages(relationshipId, 20);
     
+    // 3b. 今日のキャラのグローバル感情状態を取得（未生成なら即時生成）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let dailyState: { emotion: string; context: string | null; bonusXpMultiplier: number } | null = null;
+    try {
+      dailyState = await prisma.characterDailyState.findUnique({
+        where: { characterId_date: { characterId, date: today } },
+        select: { emotion: true, context: true, bonusXpMultiplier: true },
+      });
+      if (!dailyState) {
+        const generated = generateDailyEmotionForEngine(new Date());
+        dailyState = await prisma.characterDailyState.create({
+          data: {
+            characterId,
+            date: today,
+            emotion: generated.emotion,
+            context: generated.context,
+            bonusXpMultiplier: generated.bonusXpMultiplier,
+          },
+          select: { emotion: true, context: true, bonusXpMultiplier: true },
+        });
+      }
+    } catch (e) {
+      console.warn('[CharacterEngine] Failed to get/create CharacterDailyState:', e);
+    }
+
     // 4. パーソナライズメモリ構築
     const memory = this.buildMemoryContext(relationship);
     
@@ -561,6 +588,7 @@ export class CharacterEngine {
       characterContext,
       dailyFanCount,
       relationship.experiencePoints, // intimacyLevel = XP (0-99 Lv1, 100-299 Lv2, 300-599 Lv3, 600-999 Lv4, 1000+ Lv5)
+      dailyState,
     );
     
     // 6. LLM呼び出し
@@ -593,7 +621,12 @@ export class CharacterEngine {
     await this.updateMemory(relationshipId, userMessage, cleanedText, recentMessages);
     
     // 10. 関係性経験値更新（感情状態も同時に保存）
-    await this.updateRelationshipXP(relationshipId, emotion, this.getEmotionReason(emotion, userMessage));
+    await this.updateRelationshipXP(
+      relationshipId,
+      emotion,
+      this.getEmotionReason(emotion, userMessage),
+      dailyState?.bonusXpMultiplier ?? 1.0,
+    );
     
     return {
       text: cleanedText,
@@ -636,6 +669,7 @@ export class CharacterEngine {
       emotionalState: memo.emotionalState,
       totalMessages: relationship.totalMessages,
       lastMessageAt: relationship.lastMessageAt,
+      firstMessageAt: relationship.firstMessageAt,
       characterEmotion: relationship.characterEmotion,
       characterEmotionNote: relationship.characterEmotionNote,
       emotionUpdatedAt: relationship.emotionUpdatedAt,
@@ -702,6 +736,7 @@ export class CharacterEngine {
     characterContext?: { systemPrompt: string; voiceConfig: { toneNotes?: string }; personality: { name: string } } | null,
     dailyFanCount: number = 0,
     intimacyLevel?: number | null,
+    dailyState?: { emotion: string; context: string | null; bonusXpMultiplier: number } | null,
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
@@ -709,6 +744,9 @@ export class CharacterEngine {
     const timeContext = this.getTimeContext();
     const reunionContext = this.getReunionContext(memory);
     const emotionContext = this.getCharacterEmotionContext(memory);
+    const dailyConditionContext = dailyState
+      ? `\n## 今日のキャラのコンディション\n- 感情: ${dailyState.emotion}（${dailyState.context ?? '特に理由なし'}）\n- この感情に合わせた返答をすること${dailyState.bonusXpMultiplier > 1.0 ? `\n- 今日は絆EXP ${dailyState.bonusXpMultiplier}倍デー！テンション少し高め` : ''}`
+      : '';
     
     // 言語別設定の取得
     const localeOverride = (character.localeConfig as Record<string, LocaleOverride> | null)?.[locale];
@@ -732,6 +770,7 @@ export class CharacterEngine {
     return `${soulContent}
 
 ${intimacyToneInstruction}
+${dailyConditionContext}
 
 ## 現在の状況
 - 現在時刻: ${timeContext.timeStr}（${timeContext.period}）
@@ -894,10 +933,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const memoryHints: string[] = [];
     if (diffDays >= 3) {
       if (recentTopic) {
-        memoryHints.push(`- 🎯 記憶演出: 会話の序盤で「${recentTopic}の話、あれからどうなった？」のように前回の話題に自然に触れること`);
+        memoryHints.push(`- 🎯 前回トピック・フォローアップ: 会話の序盤（最初か2番目の発言）で必ず「${recentTopic}の話、あれからどうなった？気になってたんだよ」「${recentTopic}って言ってたじゃん、その後どうなったか教えてよ」のように具体的に前回の話題を持ち出すこと。質問は1つに絞り、相手の答えを引き出すこと`);
       }
       if (latestEpisode) {
-        memoryHints.push(`- 直近の思い出: ${latestEpisode}`);
+        memoryHints.push(`- 直近の思い出（参考にして自然に触れていい）: ${latestEpisode}`);
+      }
+      if (diffDays >= 7) {
+        memoryHints.push(`- ロングブレイク演出: 久しぶり感を大げさに（でも嬉しそうに）表現。「${diffDays}日も…待ってたんだけど！」「やっと来てくれた、どこ行ってたんだよ」のような寂しさを見せた後、嬉しさで回収する`);
       }
     }
     // 毎日来てるユーザーへの特別感
@@ -986,6 +1028,50 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       parts.push('- 過去の思い出:');
       for (const ep of topEpisodes) {
         parts.push(`  - ${ep.summary}（${ep.date.split('T')[0]}）`);
+      }
+
+      // 記念日エピソード検出: 7日前/30日前/初回会話日の±1日以内
+      const now = new Date();
+      const anniversaryEpisodes: string[] = [];
+      for (const ep of memory.episodeMemory) {
+        const epDate = new Date(ep.date);
+        const epMonth = epDate.getMonth();
+        const epDay = epDate.getDate();
+        const nowMonth = now.getMonth();
+        const nowDay = now.getDate();
+
+        // 年をまたいで同月同日±1日を比較するヘルパー
+        const isSameMonthDay = (m1: number, d1: number, m2: number, d2: number, toleranceDays: number): boolean => {
+          const base = new Date(now.getFullYear(), m1, d1);
+          const target = new Date(now.getFullYear(), m2, d2);
+          return Math.abs(base.getTime() - target.getTime()) <= toleranceDays * 24 * 60 * 60 * 1000;
+        };
+
+        // 7日前の今日
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        if (Math.abs(epDate.getTime() - sevenDaysAgo.getTime()) <= 24 * 60 * 60 * 1000) {
+          anniversaryEpisodes.push(`  - 🗓️ 【7日前の今日】${ep.summary}（${ep.date.split('T')[0]}）`);
+        }
+        // 30日前の今日
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        if (Math.abs(epDate.getTime() - thirtyDaysAgo.getTime()) <= 24 * 60 * 60 * 1000) {
+          anniversaryEpisodes.push(`  - 🗓️ 【1ヶ月前の今日】${ep.summary}（${ep.date.split('T')[0]}）`);
+        }
+        // 初回会話日の記念日（年単位）
+        if (memory.firstMessageAt) {
+          const firstDate = new Date(memory.firstMessageAt);
+          if (isSameMonthDay(epMonth, epDay, firstDate.getMonth(), firstDate.getDate(), 1) &&
+            epDate.getFullYear() < now.getFullYear()) {
+            anniversaryEpisodes.push(`  - 🎂 【出会い記念日エピソード】${ep.summary}（${ep.date.split('T')[0]}）`);
+          }
+        }
+      }
+      if (anniversaryEpisodes.length > 0) {
+        parts.push('- 🌟 記念日に近い思い出（積極的に話題に出すこと）:');
+        parts.push(...anniversaryEpisodes);
+        parts.push('  ↑ これらの思い出を自然に会話に取り入れ「○日前の今日〜」のように話すこと');
       }
     }
     // 感情記憶（避けるべき話題/喜ぶ話題）
@@ -1434,9 +1520,9 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       }
     }
 
-    // 10メッセージごとにAI要約を生成
+    // 5メッセージごとにAI要約を生成
     const newTotalMessages = relationship.totalMessages + 1;
-    if (newTotalMessages % 10 === 0 && recentMessages.length > 0) {
+    if (newTotalMessages % 5 === 0 && recentMessages.length > 0) {
       try {
         const summaryResult = await this.generateMemorySummary(
           recentMessages,
@@ -1459,8 +1545,19 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         }
         // エピソード記憶の追加
         if (summaryResult.episode) {
+          // 感情変化・関係進展をエピソードのサマリーに付加
+          const episodeSuffix: string[] = [];
+          if (summaryResult.emotionalChange && summaryResult.emotionalChange !== '変化なし') {
+            episodeSuffix.push(`感情変化: ${summaryResult.emotionalChange}`);
+          }
+          if (summaryResult.relationshipProgress && summaryResult.relationshipProgress !== '変化なし') {
+            episodeSuffix.push(`関係進展: ${summaryResult.relationshipProgress}`);
+          }
+          const fullSummary = episodeSuffix.length > 0
+            ? `${summaryResult.episode}（${episodeSuffix.join(' / ')}）`
+            : summaryResult.episode;
           const episodeEntry: EpisodeEntry = {
-            summary: summaryResult.episode,
+            summary: fullSummary,
             date: new Date().toISOString(),
             emotion: summaryResult.emotion,
             importance: summaryResult.episodeImportance ?? 3,
@@ -1497,7 +1594,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   private async generateMemorySummary(
     messages: { role: string; content: string }[],
     existingSummary: string,
-  ): Promise<{ summary: string; facts: string[]; emotion: string; episode?: string; episodeImportance?: number }> {
+  ): Promise<{ summary: string; facts: string[]; emotion: string; episode?: string; episodeImportance?: number; emotionalChange?: string; relationshipProgress?: string }> {
     const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) {
       return { summary: existingSummary, facts: [], emotion: 'neutral' };
@@ -1518,7 +1615,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         messages: [
           {
             role: 'system',
-            content: `以下の会話を分析し、必ずJSON形式のみで返せ（前後に余分なテキスト不要）:\n{"summary":"200字以内の要約","facts":["重要な事実1","重要な事実2"],"emotion":"感情1単語","episode":"この会話で最も印象的だったエピソード（1文）","episodeImportance":3}\n\n条件:\n1. summaryは200字以内の日本語要約\n2. factsはユーザーについての重要な事実（最大5つ）\n3. emotionはユーザーの感情状態を表す1単語（例: 嬉しい、悲しい、neutral等）\n4. episodeはこの会話の最も印象的なエピソード（1文、日本語）\n5. episodeImportanceは1〜5の重要度`,
+            content: `以下の会話を分析し、必ずJSON形式のみで返せ（前後に余分なテキスト不要）:\n{"summary":"200字以内の要約","facts":["重要な事実1","重要な事実2"],"emotion":"感情1単語","episode":"この会話で最も印象的だったエピソード（1文）","episodeImportance":3,"emotionalChange":"ユーザーの感情変化（例: 不安→安心、neutral→嬉しい）","relationshipProgress":"キャラとユーザーの関係の進展（例: より打ち解けた、秘密を共有した、悩みを打ち明けた）"}\n\n条件:\n1. summaryは200字以内の日本語要約\n2. factsはユーザーについての重要な事実（最大5つ）\n3. emotionはユーザーの感情状態を表す1単語（例: 嬉しい、悲しい、neutral等）\n4. episodeはこの会話の最も印象的なエピソード（1文、日本語）\n5. episodeImportanceは1〜5の重要度\n6. emotionalChangeはこの会話でユーザーの感情がどう変化したか（1文。変化がない場合は"変化なし"）\n7. relationshipProgressはキャラとユーザーの関係がどう進展したか（1文。変化がない場合は"変化なし"）`,
           },
           {
             role: 'user',
@@ -1543,7 +1640,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : '{}';
 
-    let parsed: { summary?: string; facts?: string[]; emotion?: string; episode?: string; episodeImportance?: number } = {};
+    let parsed: { summary?: string; facts?: string[]; emotion?: string; episode?: string; episodeImportance?: number; emotionalChange?: string; relationshipProgress?: string } = {};
     try {
       parsed = JSON.parse(jsonStr) as typeof parsed;
     } catch {
@@ -1556,18 +1653,21 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       emotion: parsed.emotion ?? 'neutral',
       episode: parsed.episode,
       episodeImportance: typeof parsed.episodeImportance === 'number' ? parsed.episodeImportance : undefined,
+      emotionalChange: parsed.emotionalChange,
+      relationshipProgress: parsed.relationshipProgress,
     };
   }
   
   /**
    * 関係性経験値を更新（感情状態も同時に保存）
    */
-  private async updateRelationshipXP(relationshipId: string, emotion?: string, emotionNote?: string) {
+  private async updateRelationshipXP(relationshipId: string, emotion?: string, emotionNote?: string, bonusXpMultiplier: number = 1.0) {
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
     
-    const newXP = relationship.experiencePoints + 10;
+    const baseXP = 10;
+    const newXP = relationship.experiencePoints + Math.round(baseXP * bonusXpMultiplier);
     const newTotalMessages = relationship.totalMessages + 1;
     
     // レベルアップ判定
@@ -1690,3 +1790,40 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
 }
 
 export const characterEngine = new CharacterEngine();
+
+/**
+ * character-engine内でも使う日次感情生成ヘルパー（cron/emotion-updateと同じロジック）
+ */
+export function generateDailyEmotionForEngine(now: Date): { emotion: string; context: string; bonusXpMultiplier: number } {
+  const emotions = [
+    { name: 'happy',      weight: 30, contexts: ['今日はなんかいい気分！', '朝から調子がいい', 'ポジティブな気持ちで過ごせてる'] },
+    { name: 'excited',    weight: 15, contexts: ['冒険に出たくてうずうず！', '今日はテンション高め！', 'ワクワクが止まらない！'] },
+    { name: 'mysterious', weight: 10, contexts: ['なんか不思議な予感がする日', '今日は少し謎めいた気分', '言葉では説明できない感覚…'] },
+    { name: 'tired',      weight: 15, contexts: ['昨日は修行しすぎたかも…', '少しだけ疲れてる', 'ちょっと眠い…でもお前となら話せる'] },
+    { name: 'nostalgic',  weight: 10, contexts: ['昔のことをふと思い出した', '懐かしい気持ちになってる', '過去の仲間のことを考えてた'] },
+    { name: 'playful',    weight: 20, contexts: ['今日はいたずら心旺盛！', 'からかいたい気分！', 'なんかノリノリ！'] },
+  ];
+
+  const totalWeight = emotions.reduce((sum, e) => sum + e.weight, 0);
+  let rand = Math.random() * totalWeight;
+  let selectedEmotion = emotions[0];
+  for (const emotion of emotions) {
+    rand -= emotion.weight;
+    if (rand <= 0) {
+      selectedEmotion = emotion;
+      break;
+    }
+  }
+
+  const context = selectedEmotion.contexts[Math.floor(Math.random() * selectedEmotion.contexts.length)];
+
+  const dayOfMonth = now.getDate();
+  let bonusXpMultiplier = 1.0;
+  if (dayOfMonth === 1) {
+    bonusXpMultiplier = 2.0;
+  } else if (selectedEmotion.name === 'excited' || selectedEmotion.name === 'playful') {
+    bonusXpMultiplier = 1.5;
+  }
+
+  return { emotion: selectedEmotion.name, context, bonusXpMultiplier };
+}

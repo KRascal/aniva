@@ -150,6 +150,7 @@ model Character {
   secretContents          SecretContent[]
   downloadableContents    DownloadableContent[]
   shopItems               ShopItem[]
+  dailyStates             CharacterDailyState[]
 }
 
 model SecretContent {
@@ -616,4 +617,18 @@ model ShopOrder {
 
   @@index([userId])
   @@index([itemId])
+}
+
+// ========== 感情状態システム ==========
+model CharacterDailyState {
+  id                String    @id @default(uuid())
+  characterId       String
+  date              DateTime  @db.Date
+  emotion           String    // happy / excited / mysterious / tired / nostalgic / playful
+  context           String?
+  bonusXpMultiplier Float     @default(1.0)
+  createdAt         DateTime  @default(now())
+  character         Character @relation(fields: [characterId], references: [id])
+
+  @@unique([characterId, date])
 }

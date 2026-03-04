@@ -305,7 +305,7 @@ export function ChatMessageList({
                         boxShadow: '0 0 8px 2px rgba(168,85,247,0.25)',
                       }}
                     >
-                      💭 覚えてるよ
+                      ✨ 覚えてるよ
                     </span>
                   )}
 

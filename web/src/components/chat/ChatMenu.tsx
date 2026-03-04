@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { MemoryTimeline } from '@/components/chat/MemoryTimeline';
 
 interface Character {
   id: string;
@@ -86,6 +87,21 @@ const IconChevron = () => (
   </svg>
 );
 
+const IconMemory = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const IconChevronDown = ({ open }: { open: boolean }) => (
+  <svg
+    className={`w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
 interface MenuItem {
   icon: React.ReactNode;
   label: string;
@@ -104,6 +120,8 @@ export function ChatMenu({
   onClose,
   onFcClick,
 }: ChatMenuProps) {
+  const [showMemory, setShowMemory] = useState(false);
+
   const menuItems: MenuItem[] = [
     {
       icon: <IconUser />,
@@ -125,6 +143,13 @@ export function ChatMenu({
       sublabel: 'キャラが覚えていること',
       comingSoon: true,
       accent: 'text-purple-400 bg-purple-500/15',
+    },
+    {
+      icon: <IconMemory />,
+      label: '思い出',
+      sublabel: 'エピソードタイムライン',
+      accent: 'text-amber-400 bg-amber-500/15',
+      onClick: () => setShowMemory((v) => !v),
     },
     {
       icon: <IconBook />,
@@ -199,6 +224,8 @@ export function ChatMenu({
         {/* メニューリスト */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {menuItems.map((item) => {
+            const isMemoryItem = item.label === '思い出';
+
             const content = (
               <>
                 {/* アイコンバッジ */}
@@ -217,6 +244,8 @@ export function ChatMenu({
                   <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700/80 text-gray-400 border border-gray-600/30">
                     近日公開
                   </span>
+                ) : isMemoryItem ? (
+                  <IconChevronDown open={showMemory} />
                 ) : (
                   <IconChevron />
                 )}
@@ -230,9 +259,18 @@ export function ChatMenu({
 
             if (item.onClick) {
               return (
-                <button key={item.label} onClick={item.onClick} className={`${baseClass} ${hoverClass}`}>
-                  {content}
-                </button>
+                <div key={item.label}>
+                  <button onClick={item.onClick} className={`${baseClass} ${hoverClass}`}>
+                    {content}
+                  </button>
+                  {/* 思い出タイムライン — インライン展開 */}
+                  {isMemoryItem && showMemory && (
+                    <div className="mt-1 mx-1 rounded-2xl border border-white/8 overflow-hidden"
+                      style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <MemoryTimeline characterId={characterId} />
+                    </div>
+                  )}
+                </div>
               );
             }
             if (item.href && !item.comingSoon) {

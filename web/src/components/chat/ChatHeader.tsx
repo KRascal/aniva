@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Character {
   id: string;
@@ -48,6 +48,22 @@ interface ChatHeaderProps {
   onFcClick?: () => void;
 }
 
+const EMOTION_EMOJI: Record<string, string> = {
+  happy: '😊',
+  excited: '🔥',
+  mysterious: '🌙',
+  tired: '😴',
+  nostalgic: '🌸',
+  playful: '😆',
+};
+
+interface DailyState {
+  emotion: string;
+  context: string | null;
+  bonusXpMultiplier: number;
+  isBonus: boolean;
+}
+
 export function ChatHeader({
   character,
   relationship,
@@ -61,8 +77,27 @@ export function ChatHeader({
   onProfileClick,
   onFcClick,
 }: ChatHeaderProps) {
+  const [dailyState, setDailyState] = useState<DailyState | null>(null);
+
+  useEffect(() => {
+    if (!characterId) return;
+    fetch(`/api/characters/${characterId}/daily-state`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data: DailyState | null) => {
+        if (data) setDailyState(data);
+      })
+      .catch((err) => console.warn('[ChatHeader] daily-state fetch failed:', err));
+  }, [characterId]);
+
   return (
-    <header className="flex-shrink-0 bg-gray-950 border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
+    <div className="flex-shrink-0">
+      {/* ✨ ボーナスEXPバナー */}
+      {dailyState?.isBonus && (
+        <div className="bg-yellow-400 text-yellow-900 text-center text-xs font-bold py-1 px-3">
+          ✨ 絆EXP {dailyState.bonusXpMultiplier}倍デー！
+        </div>
+      )}
+    <header className="bg-gray-950 border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
       {/* 戻るボタン */}
       <button
         onClick={onBack}
@@ -103,6 +138,14 @@ export function ChatHeader({
           <h1 className="text-white font-semibold text-sm leading-tight break-words">
             {character?.name ?? 'キャラクター'}
           </h1>
+          {dailyState && (
+            <span
+              className="text-base leading-none flex-shrink-0"
+              title={`今日の気分: ${dailyState.emotion}${dailyState.context ? `（${dailyState.context}）` : ''}`}
+            >
+              {EMOTION_EMOJI[dailyState.emotion] ?? '😊'}
+            </span>
+          )}
           {relationship?.isFanclub ? (
             <span className="text-base leading-none flex-shrink-0">💜</span>
           ) : (
@@ -168,5 +211,6 @@ export function ChatHeader({
         </svg>
       </button>
     </header>
+    </div>
   );
 }
