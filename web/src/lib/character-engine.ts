@@ -33,6 +33,7 @@ interface LocaleOverride {
 interface UserRecord {
   id: string;
   displayName?: string | null;
+  nickname?: string | null;
 }
 
 /** DBから取得する関係性レコードの型 */

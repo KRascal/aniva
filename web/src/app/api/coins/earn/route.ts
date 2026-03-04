@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
 
     const actualAmount = Math.min(amount, DAILY_EARN_LIMIT - alreadyEarned);
 
+    const existingBalance = await prisma.coinBalance.findUnique({ where: { userId } });
+    const newBalance = (existingBalance?.balance ?? 0) + actualAmount;
+
     await prisma.$transaction([
       prisma.coinBalance.upsert({
         where: { userId },
@@ -64,6 +67,7 @@ export async function POST(req: NextRequest) {
           userId,
           amount: actualAmount,
           type: 'BONUS',
+          balanceAfter: newBalance,
           description: `random_event: ${reason ?? 'chat'}`,
         },
       }),

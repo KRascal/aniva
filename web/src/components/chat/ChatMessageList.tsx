@@ -137,7 +137,7 @@ export interface ChatMessageListProps {
   playingAudioId: string | null;
   hungryEmojis: { id: number; x: number; delay: number }[];
   showStars: boolean;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onAudioToggle: (messageId: string, audioUrl: string) => void;
   onMsgLongPressStart: (msgId: string, content: string) => void;
   onMsgLongPressEnd: () => void;

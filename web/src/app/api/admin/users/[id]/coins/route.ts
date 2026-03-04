@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await requireAdmin();
@@ -24,7 +24,7 @@ export async function POST(
       return NextResponse.json({ error: 'amount must be a non-zero number' }, { status: 400 });
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // CoinBalanceをupsert
     const cb = await prisma.coinBalance.upsert({
@@ -55,11 +55,13 @@ export async function POST(
     }
 
     // トランザクション履歴に記録
+    const currentBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     await prisma.coinTransaction.create({
       data: {
         userId,
         amount,
         type: 'ADMIN_ADJUST',
+        balanceAfter: currentBalance?.balance ?? 0,
         description: note ?? (amount > 0 ? `管理者付与: +${amount}` : `管理者減算: ${amount}`),
       },
     });
