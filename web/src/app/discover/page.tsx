@@ -107,13 +107,17 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
+  const [displayedPhrase, setDisplayedPhrase] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   const featured = characters.slice(0, 5);
 
   const goTo = useCallback((idx: number) => {
     if (transitioning) return;
     setTransitioning(true);
+    setDisplayedPhrase('');
     setTimeout(() => {
       setCurrent(idx);
       setTransitioning(false);
@@ -124,22 +128,61 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
     goTo((current + 1) % featured.length);
   }, [current, featured.length, goTo]);
 
+  const goPrev = useCallback(() => {
+    goTo((current - 1 + featured.length) % featured.length);
+  }, [current, featured.length, goTo]);
+
   useEffect(() => {
     if (featured.length === 0) return;
-    intervalRef.current = setInterval(goNext, 5000);
+    intervalRef.current = setInterval(goNext, 5500);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [goNext, featured.length]);
+
+  // Typewriter effect for catchphrase
+  useEffect(() => {
+    if (transitioning) return;
+    const char = featured[current];
+    if (!char?.catchphrases[0]) return;
+    const phrase = char.catchphrases[0];
+    let i = 0;
+    setDisplayedPhrase('');
+    const tick = () => {
+      i++;
+      setDisplayedPhrase(phrase.slice(0, i));
+      if (i < phrase.length) {
+        typewriterRef.current = setTimeout(tick, 35);
+      }
+    };
+    typewriterRef.current = setTimeout(tick, 400);
+    return () => { if (typewriterRef.current) clearTimeout(typewriterRef.current); };
+  }, [current, transitioning, featured]);
 
   if (featured.length === 0) return null;
 
   const char = featured[current];
   const gradient = BANNER_GRADIENTS[current % BANNER_GRADIENTS.length];
   const accent = BANNER_ACCENT_COLORS[current % BANNER_ACCENT_COLORS.length];
+  const rank = current + 1;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (Math.abs(dx) < 40) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (dx < 0) { goNext(); } else { goPrev(); }
+    intervalRef.current = setInterval(goNext, 5500);
+  };
 
   return (
     <div
       className="relative w-full overflow-hidden"
-      style={{ height: '60vh', minHeight: '360px', maxHeight: '500px' }}
+      style={{ height: '62vh', minHeight: '380px', maxHeight: '520px' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Background gradient */}
       <div
@@ -147,7 +190,16 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
         style={{
           background: gradient,
           opacity: transitioning ? 0 : 1,
-          transition: 'opacity 0.3s ease',
+          transition: 'opacity 0.35s ease',
+        }}
+      />
+
+      {/* Animated scan lines overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px)',
+          opacity: 0.4,
         }}
       />
 
@@ -158,14 +210,14 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
       <div
         className="absolute pointer-events-none"
         style={{
-          right: '10%',
-          top: '10%',
-          width: '300px',
-          height: '300px',
+          right: '5%',
+          top: '5%',
+          width: '340px',
+          height: '340px',
           borderRadius: '50%',
           background: `radial-gradient(ellipse, ${accent} 0%, transparent 70%)`,
-          opacity: transitioning ? 0 : 0.6,
-          transition: 'opacity 0.3s ease',
+          opacity: transitioning ? 0 : 0.55,
+          transition: 'opacity 0.35s ease',
         }}
       />
 
@@ -176,10 +228,10 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
           right: 0,
           top: 0,
           bottom: 0,
-          width: '55%',
+          width: '58%',
           opacity: transitioning ? 0 : 1,
-          transform: transitioning ? 'translateX(20px)' : 'translateX(0)',
-          transition: 'opacity 0.4s ease, transform 0.4s ease',
+          transform: transitioning ? 'translateX(24px) scale(0.97)' : 'translateX(0) scale(1)',
+          transition: 'opacity 0.45s ease, transform 0.45s ease',
         }}
       >
         {char.avatarUrl ? (
@@ -191,10 +243,7 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
             priority
           />
         ) : (
-          <div
-            className="absolute inset-0 flex items-end justify-center pb-8"
-            style={{}}
-          >
+          <div className="absolute inset-0 flex items-end justify-center pb-8">
             <div
               className="w-32 h-48 rounded-t-full flex items-center justify-center"
               style={{
@@ -207,61 +256,137 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
             </div>
           </div>
         )}
+        {/* Avatar bottom fade */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+          style={{ background: `linear-gradient(to top, ${gradient.split(',')[0].replace('linear-gradient(135deg, ', '')}, transparent)` }}
+        />
       </div>
 
       {/* Left content */}
       <div
-        className="absolute left-0 top-0 bottom-0 flex flex-col justify-center px-6 py-8"
+        className="absolute left-0 top-0 bottom-0 flex flex-col justify-center px-5 py-10"
         style={{
-          width: '55%',
+          width: '58%',
+          zIndex: 2,
           opacity: transitioning ? 0 : 1,
-          transform: transitioning ? 'translateX(-10px)' : 'translateX(0)',
-          transition: 'opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s',
+          transform: transitioning ? 'translateX(-12px)' : 'translateX(0)',
+          transition: 'opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s',
         }}
       >
-        <p className="text-white/40 text-xs tracking-[0.2em] mb-1">{char.franchise}</p>
+        {/* Top badges */}
+        <div className="flex items-center gap-2 mb-3">
+          {/* Rank badge */}
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: rank === 1 ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.1)',
+              border: `1px solid ${rank === 1 ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.15)'}`,
+              color: rank === 1 ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+            }}
+          >
+            {rank === 1 ? '👑 #1' : `#${rank}`}
+          </span>
+          {/* Franchise pill */}
+          {char.franchise && (
+            <span
+              className="text-[9px] tracking-wider px-2 py-0.5 rounded-full truncate max-w-[80px]"
+              style={{
+                background: `${accent.replace(',0.6)', ',0.15)')}`,
+                border: `1px solid ${accent.replace(',0.6)', ',0.35)')}`,
+                color: 'rgba(255,255,255,0.6)',
+              }}
+            >
+              {char.franchise}
+            </span>
+          )}
+        </div>
+
+        {/* Online status */}
+        <div className="flex items-center gap-1.5 mb-2">
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{
+              background: '#22c55e',
+              boxShadow: '0 0 6px #22c55e',
+              animation: 'pulse 2s infinite',
+            }}
+          />
+          <span className="text-white/40 text-[10px] tracking-wider">オンライン</span>
+        </div>
+
+        {/* Name */}
         <h2
-          className="text-white text-2xl font-light tracking-wide mb-3"
-          style={{ textShadow: `0 0 20px ${accent}` }}
+          className="text-white text-2xl font-light tracking-wide mb-3 leading-tight"
+          style={{ textShadow: `0 0 24px ${accent}, 0 2px 8px rgba(0,0,0,0.5)` }}
         >
           {char.name}
         </h2>
-        {char.catchphrases[0] && (
-          <p className="text-white/60 text-sm leading-relaxed mb-4 line-clamp-2">
-            「{char.catchphrases[0]}」
+
+        {/* Typewriter catchphrase */}
+        <div
+          className="mb-4 min-h-[40px]"
+          style={{
+            borderLeft: `2px solid ${accent.replace(',0.6)', ',0.5)')}`,
+            paddingLeft: '10px',
+          }}
+        >
+          <p className="text-white/65 text-xs leading-relaxed line-clamp-3">
+            「{displayedPhrase}
+            {displayedPhrase.length < (char.catchphrases[0]?.length ?? 0) && (
+              <span
+                className="inline-block w-0.5 h-3 ml-0.5 align-middle"
+                style={{
+                  background: 'rgba(255,255,255,0.7)',
+                  animation: 'blink 0.8s step-end infinite',
+                }}
+              />
+            )}
+            {displayedPhrase.length >= (char.catchphrases[0]?.length ?? 0) && displayedPhrase.length > 0 && '」'}
           </p>
-        )}
+        </div>
+
+        {/* Follower count */}
         <div className="flex items-center gap-2 mb-5">
           <div
-            className="h-px flex-1"
-            style={{ background: `linear-gradient(to right, ${accent}, transparent)`, maxWidth: '60px' }}
+            className="h-px"
+            style={{ width: '40px', background: `linear-gradient(to right, ${accent}, transparent)` }}
           />
-          <p className="text-white/30 text-xs">{char.followerCount.toLocaleString()} フォロワー</p>
+          <p className="text-white/35 text-[10px]">
+            ♡ {char.followerCount.toLocaleString()} ファン
+          </p>
         </div>
+
+        {/* CTA button */}
         <button
           onClick={() => router.push(`/c/${char.slug}`)}
-          className="self-start px-5 py-2 rounded-full text-sm font-light text-white border border-white/20 backdrop-blur-sm hover:bg-white/10 transition-colors"
-          style={{ boxShadow: `0 0 20px ${accent}` }}
+          className="self-start px-5 py-2.5 rounded-full text-sm text-white transition-all active:scale-95"
+          style={{
+            background: `linear-gradient(135deg, ${accent.replace(',0.6)', ',0.35)')}, ${accent.replace(',0.6)', ',0.15)')})`,
+            border: `1px solid ${accent.replace(',0.6)', ',0.6)')}`,
+            boxShadow: `0 0 20px ${accent.replace(',0.6)', ',0.4)')}, inset 0 1px 0 rgba(255,255,255,0.1)`,
+            backdropFilter: 'blur(8px)',
+          }}
         >
           話しかける →
         </button>
       </div>
 
       {/* Dots */}
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2" style={{ zIndex: 3 }}>
         {featured.map((_, i) => (
           <button
             key={i}
             onClick={() => {
               if (intervalRef.current) clearInterval(intervalRef.current);
               goTo(i);
-              intervalRef.current = setInterval(goNext, 5000);
+              intervalRef.current = setInterval(goNext, 5500);
             }}
             className="rounded-full transition-all"
             style={{
-              width: i === current ? '20px' : '6px',
+              width: i === current ? '22px' : '6px',
               height: '6px',
-              background: i === current ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)',
+              background: i === current ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)',
             }}
           />
         ))}
@@ -269,9 +394,15 @@ function HeroCarousel({ characters }: { characters: DiscoverCharacter[] }) {
 
       {/* Bottom fade */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
         style={{ background: 'linear-gradient(to bottom, transparent, #000)' }}
       />
+
+      {/* Keyframes */}
+      <style>{`
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+      `}</style>
     </div>
   );
 }
