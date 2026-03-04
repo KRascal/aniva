@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import type { CharacterData } from '@/hooks/useOnboarding';
 import type { Q1Answer, Q2Answer } from '@/lib/onboarding-utils';
@@ -57,6 +57,7 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
   const [characters, setCharacters] = useState<RawCharacter[]>([]);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [revealingId, setRevealingId] = useState<string | null>(null); // シルエット解放中
 
   // Quiz state
   const [quizStep, setQuizStep] = useState<QuizStep>('q1');
@@ -77,8 +78,11 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
       .finally(() => setFetchLoading(false));
   }, []);
 
-  const handleIntuitionSelect = (char: RawCharacter) => {
+  const handleIntuitionSelect = useCallback((char: RawCharacter) => {
+    if (revealingId || isLoading) return;
     setSelectedId(char.id);
+    setRevealingId(char.id);
+    // シルエット解放アニメーション完了後に次フェーズへ
     setTimeout(() => {
       onSelect({
         id: char.id,
@@ -87,8 +91,8 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
         avatarUrl: char.avatarUrl ?? null,
         franchise: char.franchise,
       });
-    }, 400);
-  };
+    }, 900);
+  }, [revealingId, isLoading, onSelect]);
 
   const handleQ1Select = (val: Q1Answer) => {
     setQ1(val);
@@ -142,12 +146,20 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
       {/* Header */}
       <div className="flex-none pt-12 pb-4 px-6 text-center">
         <motion.p
-          className="text-white/50 text-sm mb-6"
+          className="text-white/50 text-sm mb-1"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           誰と話す？
+        </motion.p>
+        <motion.p
+          className="text-white/25 text-xs mb-5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          タップして、扉を開けよう
         </motion.p>
 
         {/* Tabs */}
@@ -191,64 +203,74 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                   initial="hidden"
                   animate="show"
                 >
-                  {characters.map((char, idx) => (
+                  {characters.map((char, idx) => {
+                    const isRevealing = revealingId === char.id;
+                    const isSelected = selectedId === char.id;
+                    const isDimmed = !!selectedId && !isSelected;
+                    return (
                     <motion.button
                       key={char.id}
                       variants={cardItem}
                       onClick={() => handleIntuitionSelect(char)}
-                      disabled={isLoading}
+                      disabled={!!isLoading || !!revealingId}
                       className={`relative rounded-2xl overflow-hidden bg-white/5 border transition-all duration-300 text-left
                         ${
-                          selectedId === char.id
-                            ? 'border-purple-500 scale-105'
-                            : 'border-white/10 hover:border-purple-500/50 hover:scale-102'
+                          isSelected
+                            ? 'border-purple-400 scale-105'
+                            : 'border-white/10 hover:border-purple-500/50'
                         }`}
                       style={{
-                        boxShadow:
-                          selectedId === char.id
-                            ? '0 0 20px rgba(139,92,246,0.4)'
-                            : undefined,
+                        boxShadow: isRevealing
+                          ? '0 0 60px rgba(255,255,200,0.9), 0 0 30px rgba(139,92,246,0.7)'
+                          : isSelected
+                          ? '0 0 24px rgba(139,92,246,0.5)'
+                          : undefined,
                       }}
                       whileHover={{ scale: selectedId ? 1 : 1.03 }}
                       whileTap={{ scale: 0.97 }}
                     >
                       <div className="aspect-square relative">
+                        {/* ── 画像 or プレースホルダー ── */}
                         {char.avatarUrl ? (
-                          <img
+                          <motion.img
                             src={char.avatarUrl}
                             alt={char.name}
                             className="w-full h-full object-cover"
+                            /* シルエット→カラー解放アニメーション */
+                            animate={
+                              isRevealing
+                                ? { filter: 'brightness(1) saturate(1)', scale: 1.08 }
+                                : isSelected
+                                ? { filter: 'brightness(1) saturate(1)', scale: 1 }
+                                : { filter: 'brightness(0.08) saturate(0)', scale: 1 }
+                            }
+                            transition={
+                              isRevealing
+                                ? { duration: 0.55, ease: 'easeOut' }
+                                : { duration: 0.3 }
+                            }
                           />
                         ) : (
-                          <div
+                          <motion.div
                             className="w-full h-full relative flex items-center justify-center overflow-hidden"
                             style={{
                               background: `linear-gradient(135deg, hsl(${(idx * 47) % 360}, 70%, 25%) 0%, #0d0015 100%)`,
                             }}
+                            animate={
+                              isRevealing
+                                ? { filter: 'brightness(1.4) saturate(1.5)', scale: 1.08 }
+                                : isSelected
+                                ? { filter: 'brightness(1) saturate(1)', scale: 1 }
+                                : { filter: 'brightness(0.15) saturate(0)', scale: 1 }
+                            }
+                            transition={isRevealing ? { duration: 0.55 } : { duration: 0.3 }}
                           >
-                            {/* Glow effect */}
                             <div
                               className="absolute inset-0"
                               style={{
                                 background: `radial-gradient(circle at 50% 40%, hsla(${(idx * 47) % 360}, 80%, 50%, 0.3) 0%, transparent 70%)`,
                               }}
                             />
-                            {/* Particle dots */}
-                            {[...Array(4)].map((_, pi) => (
-                              <div
-                                key={pi}
-                                className="absolute rounded-full"
-                                style={{
-                                  width: `${3 + (pi % 2) * 2}px`,
-                                  height: `${3 + (pi % 2) * 2}px`,
-                                  background: `hsla(${(idx * 47 + pi * 30) % 360}, 80%, 70%, 0.7)`,
-                                  top: `${20 + pi * 18}%`,
-                                  left: `${10 + pi * 20}%`,
-                                  animation: `charParticle ${2 + pi * 0.5}s ${pi * 0.3}s ease-in-out infinite`,
-                                }}
-                              />
-                            ))}
-                            {/* Initial letter */}
                             <span
                               className="relative z-10 text-4xl font-black"
                               style={{
@@ -258,15 +280,27 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                             >
                               {char.name.charAt(0)}
                             </span>
-                            <style>{`
-                              @keyframes charParticle {
-                                0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
-                                50%       { transform: translateY(-8px) scale(1.3); opacity: 0.9; }
-                              }
-                            `}</style>
-                          </div>
+                          </motion.div>
                         )}
-                        {/* Franchise / catchphrase overlay at bottom */}
+
+                        {/* ── 光バースト（解放時） ── */}
+                        <AnimatePresence>
+                          {isRevealing && (
+                            <motion.div
+                              className="absolute inset-0 pointer-events-none z-20"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: [0, 1, 0] }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.7, times: [0, 0.3, 1] }}
+                              style={{
+                                background:
+                                  'radial-gradient(circle at 50% 40%, rgba(255,255,230,0.95) 0%, rgba(200,160,255,0.6) 40%, transparent 75%)',
+                              }}
+                            />
+                          )}
+                        </AnimatePresence>
+
+                        {/* ── キャッチフレーズ ── */}
                         {(char.catchphrases?.[0] || char.franchise) && (
                           <div
                             className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-center"
@@ -277,14 +311,21 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                             </p>
                           </div>
                         )}
-                        {/* Overlay on non-selected when one is selected */}
-                        {selectedId && selectedId !== char.id && (
+
+                        {/* ── 非選択時ダークオーバーレイ ── */}
+                        {isDimmed && (
                           <motion.div
-                            className="absolute inset-0 bg-black/60"
+                            className="absolute inset-0 bg-black/50"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3 }}
                           />
+                        )}
+
+                        {/* ── ホバー時パープルヒント ── */}
+                        {!selectedId && (
+                          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                               style={{ background: 'radial-gradient(circle at 50% 50%, rgba(139,92,246,0.25) 0%, transparent 70%)' }} />
                         )}
                       </div>
                       <div className="p-2">
@@ -292,7 +333,8 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                         <p className="text-white/40 text-xs truncate">{char.franchise}</p>
                       </div>
                     </motion.button>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               )}
             </motion.div>
@@ -378,11 +420,11 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                     {/* Character card */}
                     <motion.div
                       className="relative rounded-3xl overflow-hidden mb-6 w-36 h-36"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.5 }}
+                      initial={{ scale: 0.8, opacity: 0, filter: 'brightness(0) saturate(0)' }}
+                      animate={{ scale: 1, opacity: 1, filter: 'brightness(1) saturate(1)' }}
+                      transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
                       style={{
-                        boxShadow: '0 0 40px rgba(139,92,246,0.4)',
+                        boxShadow: '0 0 40px rgba(139,92,246,0.5)',
                       }}
                     >
                       {matchedChar.avatarUrl ? (
@@ -402,6 +444,16 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                           </span>
                         </div>
                       )}
+                      {/* 診断結果 光バースト */}
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none"
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ delay: 0.4, duration: 0.6 }}
+                        style={{
+                          background: 'radial-gradient(circle at 50% 40%, rgba(255,255,220,0.9) 0%, rgba(180,120,255,0.5) 50%, transparent 80%)',
+                        }}
+                      />
                     </motion.div>
 
                     <motion.div
