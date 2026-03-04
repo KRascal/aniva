@@ -1,9 +1,18 @@
 {
   "task": "bugs-phase1a",
-  "status": "in_progress",
-  "summary": "作業中",
-  "files_changed": ["src/components/BottomNav.tsx", "src/components/moments/MomentCard.tsx"],
-  "commit": "",
-  "risks": [],
-  "next_actions": []
+  "status": "success",
+  "summary": "BottomNav チャット常時ハイライト修正・ガチャ追加・コメントユーザー名フォールバック修正（+ChatMenu.tsx既存TSバグ修正）",
+  "files_changed": [
+    "src/components/BottomNav.tsx",
+    "src/components/moments/MomentCard.tsx",
+    "src/components/chat/ChatMenu.tsx"
+  ],
+  "commit": "414b664",
+  "risks": [
+    "ガチャページ /gacha はまだ存在しない可能性あり（navリンクのみ追加）"
+  ],
+  "next_actions": [
+    "ガチャページ /gacha の実装（別タスク）",
+    "コメントのemail表示が望ましくない場合はAPI側でemailを除外する対応も検討"
+  ]
 }
