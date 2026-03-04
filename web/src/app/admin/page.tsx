@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface ActivityItem {
   type: 'conversation' | 'registration' | 'payment';
@@ -183,6 +185,126 @@ function BarChart({
       </div>
       {/* Baseline */}
       <div className="mt-1 h-px bg-gray-700/60 w-full" />
+    </div>
+  );
+}
+
+// Quick action definitions
+const QUICK_ACTIONS = [
+  {
+    label: '+ キャラクター追加',
+    href: '/admin/characters?action=new',
+    gradient: 'from-purple-600 to-pink-600',
+    shadow: 'shadow-purple-900/40',
+    icon: '🎭',
+  },
+  {
+    label: '+ モーメンツ投稿',
+    href: '/admin/moments?action=new',
+    gradient: 'from-blue-600 to-cyan-500',
+    shadow: 'shadow-blue-900/40',
+    icon: '📸',
+  },
+  {
+    label: '+ ガチャバナー作成',
+    href: '/admin/gacha?action=new',
+    gradient: 'from-yellow-500 to-orange-500',
+    shadow: 'shadow-orange-900/40',
+    icon: '🎰',
+  },
+  {
+    label: '📊 ユーザー一覧',
+    href: '/admin/users',
+    gradient: 'from-green-600 to-teal-500',
+    shadow: 'shadow-green-900/40',
+    icon: '👥',
+  },
+  {
+    label: '🛒 ショップ管理',
+    href: '/admin/shop',
+    gradient: 'from-red-600 to-pink-500',
+    shadow: 'shadow-red-900/40',
+    icon: '🛍',
+  },
+];
+
+// Quick action panel
+function QuickActions() {
+  return (
+    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
+      <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">クイックアクション</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {QUICK_ACTIONS.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className={`group relative bg-gradient-to-br ${action.gradient} rounded-xl p-4 flex flex-col items-center justify-center gap-2 text-center
+              shadow-lg ${action.shadow} hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer overflow-hidden`}
+          >
+            {/* Shimmer overlay on hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-white rounded-xl" />
+            <span className="text-2xl">{action.icon}</span>
+            <span className="text-white text-xs font-semibold leading-tight">{action.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Recent conversations preview (chat-style)
+function RecentConversations({ items }: { items: ActivityItem[] }) {
+  const conversations = items.filter((i) => i.type === 'conversation').slice(0, 3);
+  if (conversations.length === 0) return null;
+
+  const timeAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'たった今';
+    if (mins < 60) return `${mins}分前`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}時間前`;
+    return `${Math.floor(hrs / 24)}日前`;
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="p-5 border-b border-gray-800 flex items-center justify-between">
+        <h2 className="text-white font-semibold">💬 最近の会話</h2>
+        <span className="text-gray-500 text-xs">直近のやりとり</span>
+      </div>
+      <div className="divide-y divide-gray-800/60">
+        {conversations.map((item) => {
+          const userName = item.userName || item.userEmail?.split('@')[0] || 'ユーザー';
+          return (
+            <div key={`conv-${item.id}`} className="p-4 hover:bg-gray-800/20 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                {/* Character avatar */}
+                <div className="w-7 h-7 rounded-full bg-purple-800/60 border border-purple-700/40 flex items-center justify-center text-xs shrink-0 overflow-hidden">
+                  {item.characterAvatar ? (
+                    <img src={item.characterAvatar} alt={item.characterName ?? ''} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{item.characterName?.charAt(0) ?? '?'}</span>
+                  )}
+                </div>
+                <span className="text-purple-400 text-sm font-medium">{item.characterName ?? 'キャラクター'}</span>
+                <span className="text-gray-600 text-xs">×</span>
+                <span className="text-gray-300 text-sm">{userName}</span>
+                <span className="ml-auto text-gray-600 text-xs shrink-0">{timeAgo(item.createdAt)}</span>
+              </div>
+              {/* Chat bubble preview */}
+              <div className="ml-9 flex flex-col gap-1.5">
+                <div className="inline-flex items-center gap-1.5 bg-purple-900/30 border border-purple-800/30 rounded-xl rounded-tl-sm px-3 py-1.5 w-fit max-w-[90%]">
+                  <span className="text-purple-300 text-xs">会話が開始されました</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 bg-gray-800/60 border border-gray-700/30 rounded-xl rounded-tr-sm px-3 py-1.5 w-fit max-w-[90%] self-end">
+                  <span className="text-gray-400 text-xs">{userName} さんがメッセージを送りました</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,7 @@
+{
+  "task": "admin-improvement",
+  "status": "in_progress",
+  "started_at": "2026-03-05T01:03:00+09:00",
+  "files_changed": [],
+  "notes": "Admin UI improvements: quick actions panel, recent conversations preview, header with email, improved sidenav"
+}

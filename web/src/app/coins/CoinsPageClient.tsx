@@ -58,7 +58,7 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* 戻るボタン */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-white/5">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-white/5">
         <div className="max-w-2xl mx-auto px-4 h-12 flex items-center">
           <button
             onClick={() => window.history.back()}

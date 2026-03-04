@@ -27,7 +27,7 @@ function StoriesBar({
   if (characters.length === 0) return null;
 
   return (
-    <div className="sticky top-[57px] z-[15] bg-gray-950/80 backdrop-blur-xl border-b border-white/5 overflow-hidden max-w-lg mx-auto">
+    <div className="sticky top-[57px] z-[15] bg-gray-950 border-b border-white/5 overflow-hidden max-w-lg mx-auto">
       <div className="flex gap-3 overflow-x-auto py-3 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* 全員ボタン */}
         <button
@@ -270,7 +270,7 @@ export default function MomentsPage() {
         </div>
 
         {/* Header */}
-        <header className="sticky top-0 z-20 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+        <header className="sticky top-0 z-20 bg-gray-950 border-b border-white/5">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-white">タイムライン</h1>

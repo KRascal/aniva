@@ -506,7 +506,7 @@ export default function ExplorePage() {
           <div className="absolute -top-40 -left-20 w-80 h-80 rounded-full bg-purple-600/15 blur-3xl" />
           <div className="absolute top-1/3 right-0 w-64 h-64 rounded-full bg-pink-600/10 blur-3xl" />
         </div>
-        <header className="sticky top-0 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+        <header className="sticky top-0 z-30 bg-gray-950 border-b border-white/5">
           <div className="max-w-lg mx-auto px-4 pt-4 pb-3">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">A</div>
@@ -589,8 +589,8 @@ export default function ExplorePage() {
         </div>
 
         {/* Header */}
-        <header className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/5"
-          style={{ background: 'rgba(3,7,18,0.85)' }}
+        <header className="sticky top-0 z-30 border-b border-white/5"
+          style={{ background: 'rgb(3,7,18)' }}
         >
           <div className="max-w-lg mx-auto px-4 pt-4 pb-3">
             <div className="flex items-center gap-3 mb-3">

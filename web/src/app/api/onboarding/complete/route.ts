@@ -27,12 +27,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { notificationPermission } = body as { notificationPermission: boolean | null };
 
+    // ニックネームが設定されている場合、displayNameも同期
+    const preUser = await prisma.user.findUnique({
+      where: { id: effectiveUserId },
+      select: { nickname: true, displayName: true },
+    });
+
     const updatedUser = await prisma.user.update({
       where: { id: effectiveUserId },
       data: {
         onboardingStep: 'completed',
         onboardingCompletedAt: new Date(),
         notificationPermission: notificationPermission ?? null,
+        // nicknameが設定済みかつdisplayNameがメアド由来なら同期
+        ...(preUser?.nickname && preUser.displayName?.includes('@') || preUser?.displayName?.includes('+')
+          ? { displayName: preUser.nickname }
+          : {}),
       },
     });
 

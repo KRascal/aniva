@@ -58,7 +58,7 @@ export default function RankingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-purple-950/20 to-black text-white">
       {/* ヘッダー */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md border-b border-white/5 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-gray-950 border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
             ← 

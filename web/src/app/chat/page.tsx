@@ -602,7 +602,7 @@ export default function ChatPage() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-gray-950/70 backdrop-blur-xl border-b border-white/5 px-4 py-3">
+      <header className="sticky top-0 z-20 bg-gray-950 border-b border-white/5 px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-purple-500/40">

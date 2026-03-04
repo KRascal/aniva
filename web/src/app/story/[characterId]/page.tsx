@@ -136,7 +136,7 @@ export default function StoryPage() {
       />
 
       {/* ヘッダー */}
-      <header className="relative z-10 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm px-4 py-4">
+      <header className="relative z-10 border-b border-gray-800 bg-gray-950 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             onClick={() => router.back()}
