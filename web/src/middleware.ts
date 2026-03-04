@@ -26,7 +26,8 @@ export default async function proxy(req: NextRequest) {
     : 'authjs.session-token';
   let token: { onboardingStep?: string | null; sub?: string } | null = null;
   try {
-    token = await getToken({ req, secret, cookieName }) as typeof token;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    token = await getToken({ req, secret, cookieName }) as any;
   } catch {
     // getToken失敗時は未認証として扱う
   }
