@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       select: { id: true, level: true, experiencePoints: true },
     });
 

@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
     if (updatedUser.onboardingCharacterId) {
       await prisma.relationship.upsert({
         where: {
-          userId_characterId: {
+          userId_characterId_locale: {
             userId: effectiveUserId,
             characterId: updatedUser.onboardingCharacterId,
+            locale: 'ja',
           },
         },
         create: {

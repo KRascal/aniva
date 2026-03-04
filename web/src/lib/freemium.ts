@@ -51,7 +51,7 @@ export async function getMonthlyUsage(
   characterId: string
 ): Promise<{ chatCount: number; callMinutes: number }> {
   const rel = await prisma.relationship.findUnique({
-    where: { userId_characterId: { userId, characterId } },
+    where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     select: { memorySummary: true },
   });
 
@@ -80,7 +80,7 @@ export async function incrementMonthlyChat(
   characterId: string
 ): Promise<void> {
   const rel = await prisma.relationship.findUnique({
-    where: { userId_characterId: { userId, characterId } },
+    where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     select: { id: true, memorySummary: true },
   });
 
@@ -120,7 +120,7 @@ export async function incrementMonthlyCallMinutes(
   if (minutes <= 0) return;
 
   const rel = await prisma.relationship.findUnique({
-    where: { userId_characterId: { userId, characterId } },
+    where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     select: { id: true, memorySummary: true },
   });
 

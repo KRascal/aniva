@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { prisma } from './prisma';
 import { CHARACTER_DEFINITIONS } from './character-engine';
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type CharacterLocaleConfigEntry, type SupportedLocale } from './types/i18n';
 
 // ============================================================
 // 返却型
@@ -139,6 +140,10 @@ export async function loadCharacterContext(
   slug: string,
   locale: string = 'ja',
 ): Promise<CharacterContext> {
+  // 未対応localeはデフォルトにフォールバック
+  const safeLocale: SupportedLocale = (SUPPORTED_LOCALES as string[]).includes(locale)
+    ? (locale as SupportedLocale)
+    : DEFAULT_LOCALE;
   // --- ハードコードのフォールバック定義を先に取得 ---
   const hardcoded = CHARACTER_DEFINITIONS[slug];
 
@@ -170,13 +175,17 @@ export async function loadCharacterContext(
         : [];
 
       // ロケール別上書き
-      const localeConf = dbChar.localeConfig as Record<string, { voiceModelId?: string; systemPrompt?: string; catchphrases?: string[]; toneNotes?: string }> | null;
-      if (localeConf && localeConf[locale]) {
-        const override = localeConf[locale];
-        if (override.systemPrompt) dbSystemPrompt = override.systemPrompt;
-        if (override.voiceModelId) dbVoiceModelId = override.voiceModelId;
-        if (override.toneNotes) dbToneNotes = override.toneNotes;
-        if (override.catchphrases?.length) dbCatchphrases = override.catchphrases;
+      // フォールバック順: localeConfig[safeLocale] → localeConfig['ja'] → デフォルト
+      const localeConf = dbChar.localeConfig as Record<string, CharacterLocaleConfigEntry> | null;
+      if (localeConf) {
+        const localeOverride: CharacterLocaleConfigEntry | undefined =
+          localeConf[safeLocale] ?? (safeLocale !== 'ja' ? localeConf['ja'] : undefined);
+        if (localeOverride) {
+          if (localeOverride.systemPrompt) dbSystemPrompt = localeOverride.systemPrompt;
+          if (localeOverride.voiceModelId) dbVoiceModelId = localeOverride.voiceModelId;
+          if (localeOverride.toneNotes) dbToneNotes = localeOverride.toneNotes;
+          if (localeOverride.catchphrases?.length) dbCatchphrases = localeOverride.catchphrases;
+        }
       }
     }
   } catch {

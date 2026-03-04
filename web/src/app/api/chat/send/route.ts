@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // Relationship取得 or 作成
     let relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     });
 
     if (!relationship) {

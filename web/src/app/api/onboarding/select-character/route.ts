@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Relationship作成（既存の場合はupsert）
     const relationship = await prisma.relationship.upsert({
-      where: { userId_characterId: { userId: effectiveUserId, characterId } },
+      where: { userId_characterId_locale: { userId: effectiveUserId, characterId, locale: 'ja' } },
       create: {
         userId: effectiveUserId,
         characterId,

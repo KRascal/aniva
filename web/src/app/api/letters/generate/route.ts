@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
   try {
     // Relationship取得
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       include: {
         user: { select: { displayName: true } },
         character: { select: { name: true, systemPrompt: true, slug: true } },

@@ -26,7 +26,7 @@ export async function POST(
     }
 
     const existing = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     });
 
     const currentlyFanclub = existing?.isFanclub ?? false;
@@ -48,7 +48,7 @@ export async function POST(
     const newFanclub = !currentlyFanclub;
 
     const relationship = await prisma.relationship.upsert({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       create: {
         userId,
         characterId,

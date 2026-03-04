@@ -23,7 +23,7 @@ export async function GET(
 
     // Relationship → Character 取得
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       include: { character: { select: { name: true } } },
     });
 

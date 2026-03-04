@@ -106,7 +106,7 @@ export async function GET(
 
     // ユーザーのリレーションシップ取得
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       select: { level: true },
     });
     const userLevel = relationship?.level ?? 1;

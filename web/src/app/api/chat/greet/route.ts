@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Relationship 取得
     let relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     });
 
     // 2. totalMessages > 0 なら既に挨拶済み

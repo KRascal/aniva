@@ -98,9 +98,10 @@ export async function POST(req: Request) {
     // レベルアップチェック
     const relationship = await prisma.relationship.findUnique({
       where: {
-        userId_characterId: {
+        userId_characterId_locale: {
           userId: userId,
           characterId,
+          locale: 'ja',
         },
       },
     });

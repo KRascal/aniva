@@ -30,6 +30,7 @@ model User {
   bio                    String?
   profilePublic          Boolean                 @default(true)
   coverImageUrl          String?
+  locale                 String                  @default("ja")
   accounts               Account[]
   sessions               Session[]
   relationships          Relationship[]
@@ -181,6 +182,7 @@ model Relationship {
   streakDays           Int            @default(0)
   streakLastDate       DateTime?
   pendingCliffhanger   Json?
+  locale               String         @default("ja")
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   user                 User           @relation(fields: [userId], references: [id])
@@ -188,7 +190,8 @@ model Relationship {
   conversations        Conversation[]
   letters              Letter[]
 
-  @@unique([userId, characterId])
+  @@unique([userId, characterId, locale])
+  @@index([userId, locale])
 }
 
 model Conversation {
@@ -222,6 +225,7 @@ enum MessageRole {
 model Moment {
   id            String          @id @default(uuid())
   characterId   String
+  locale        String?
   type          MomentType
   content       String?         @db.Text
   mediaUrl      String?
@@ -233,6 +237,8 @@ model Moment {
   character     Character       @relation(fields: [characterId], references: [id])
   reactions     Reaction[]
   comments      MomentComment[]
+
+  @@index([characterId, locale])
 }
 
 enum MomentType {
@@ -523,6 +529,7 @@ model StoryChapter {
   characterId   String
   character     Character           @relation(fields: [characterId], references: [id])
   chapterNumber Int
+  locale        String              @default("ja")
   title         String
   synopsis      String              @db.Text
   unlockLevel   Int                 @default(1)

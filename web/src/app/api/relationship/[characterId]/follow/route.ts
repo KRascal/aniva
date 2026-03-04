@@ -27,13 +27,13 @@ export async function POST(
 
     // Relationship を upsert してフォロー状態をトグル
     const existing = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     });
 
     const newFollowing = !(existing?.isFollowing ?? false);
 
     const relationship = await prisma.relationship.upsert({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       create: {
         userId,
         characterId,
@@ -77,7 +77,7 @@ export async function GET(
     const { characterId } = await params;
 
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       select: { isFollowing: true, isFanclub: true },
     });
 

@@ -77,7 +77,7 @@ export async function POST(
 
     // Relationship の memorySummary にストーリーの選択を追記
     const relationship = await prisma.relationship.findUnique({
-      where: { userId_characterId: { userId, characterId } },
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
     });
 
     if (relationship) {
