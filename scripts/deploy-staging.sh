@@ -39,7 +39,10 @@ echo "🏗️ Building in staging..."
 pnpm build
 
 echo "🔄 Restarting staging..."
-pm2 restart aniva-staging
+pm2 delete aniva-staging 2>/dev/null || true
+cd "$STAGING_DIR/web"
+pm2 start ecosystem.staging.config.cjs
+pm2 save
 
 echo "⏳ Waiting for startup..."
 sleep 5

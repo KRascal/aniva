@@ -5,13 +5,21 @@ module.exports = {
       script: 'node_modules/next/dist/bin/next',
       args: 'start -p 3050',
       cwd: '/home/openclaw/.openclaw/workspace/projects/aniva/web',
-      max_restarts: 10,
-      min_uptime: '10s',
-      restart_delay: 5000,
+      node_args: '--max-old-space-size=512',
       env: {
         NODE_ENV: 'production',
         PORT: '3050',
       },
+      // Crash loop防止
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,
+      max_memory_restart: '400M',
+      kill_timeout: 5000,
+      exp_backoff_restart_delay: 1000,
+      // ログ
+      merge_logs: true,
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
   ],
 };
