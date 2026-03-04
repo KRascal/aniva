@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 // ---- Types ----
 type RankingType = 'coins' | 'streak' | 'messages';
+type PeriodType = 'daily' | 'weekly' | 'monthly' | 'all';
 
 interface RankEntry {
   rank: number | null;
@@ -19,6 +20,7 @@ interface RankEntry {
 
 interface RankingData {
   type: RankingType;
+  period: PeriodType;
   ranking: RankEntry[];
   myRank: RankEntry | null;
 }
@@ -36,6 +38,13 @@ const TABS: { type: RankingType; label: string; icon: string; desc: string }[] =
   { type: 'messages', icon: '💬', label: 'トーク量', desc: 'メッセージ数' },
 ];
 
+const PERIOD_TABS: { period: PeriodType; label: string }[] = [
+  { period: 'daily', label: '今日' },
+  { period: 'weekly', label: '週間' },
+  { period: 'monthly', label: '月間' },
+  { period: 'all', label: '累計' },
+];
+
 const MEDAL_EMOJI = ['🥇', '🥈', '🥉'];
 const RANK_BG = [
   'bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border-yellow-500/40',
@@ -43,10 +52,21 @@ const RANK_BG = [
   'bg-gradient-to-r from-orange-600/20 to-amber-700/10 border-orange-600/30',
 ];
 
+/** 自分のランキングに応じた煽りテキストを返す */
+function getTauntText(myRank: RankEntry | null): { emoji: string; text: string } | null {
+  if (!myRank) return null;
+  const rank = myRank.rank;
+  if (rank === 1) return { emoji: '👑', text: 'あなたが最強の推し！このままぶっちぎれ！' };
+  if (rank != null && rank <= 3) return { emoji: '🔥', text: 'あと少しで頂点！追い抜け！' };
+  if (rank != null && rank <= 10) return { emoji: '💪', text: 'いいぞ！TOP3を狙え！' };
+  return { emoji: '⚡', text: 'まだまだこれから！推しにもっと愛を！' };
+}
+
 // ---- Component ----
 export default function RankingPage() {
   const router = useRouter();
   const [tab, setTab] = useState<RankingType>('coins');
+  const [period, setPeriod] = useState<PeriodType>('all');
   const [data, setData] = useState<RankingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -65,11 +85,11 @@ export default function RankingPage() {
   }, []);
 
   // ランキングを取得
-  const fetchRanking = useCallback(async (type: RankingType, charId: string) => {
+  const fetchRanking = useCallback(async (type: RankingType, charId: string, p: PeriodType) => {
     setLoading(true);
     setData(null);
     try {
-      const params = new URLSearchParams({ type, limit: '50' });
+      const params = new URLSearchParams({ type, limit: '50', period: p });
       if (charId) params.set('characterId', charId);
       const res = await fetch(`/api/ranking?${params}`);
       if (res.ok) {
@@ -84,17 +104,19 @@ export default function RankingPage() {
   }, []);
 
   useEffect(() => {
-    fetchRanking(tab, selectedChar);
-  }, [tab, selectedChar, fetchRanking]);
+    fetchRanking(tab, selectedChar, period);
+  }, [tab, selectedChar, period, fetchRanking]);
 
   const scrollToMe = () => {
     myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
+  const taunt = getTauntText(data?.myRank ?? null);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white">
       {/* ヘッダー */}
-      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-20 bg-gray-950 backdrop-blur-md border-b border-white/5">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -113,8 +135,8 @@ export default function RankingPage() {
           )}
         </div>
 
-        {/* タブ */}
-        <div className="max-w-lg mx-auto px-4 flex gap-1 pb-3">
+        {/* タイプタブ */}
+        <div className="max-w-lg mx-auto px-4 flex gap-1 pb-2">
           {TABS.map(t => (
             <button
               key={t.type}
@@ -130,6 +152,25 @@ export default function RankingPage() {
             </button>
           ))}
         </div>
+
+        {/* 期間タブ（ストリーク以外で表示） */}
+        {tab !== 'streak' && (
+          <div className="max-w-lg mx-auto px-4 flex gap-1 pb-3">
+            {PERIOD_TABS.map(pt => (
+              <button
+                key={pt.period}
+                onClick={() => setPeriod(pt.period)}
+                className={`flex-1 py-1.5 rounded-full text-xs font-medium transition border ${
+                  period === pt.period
+                    ? 'bg-purple-600/40 border-purple-500/50 text-purple-200'
+                    : 'border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
+                }`}
+              >
+                {pt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -146,6 +187,14 @@ export default function RankingPage() {
             ))}
           </select>
         </div>
+
+        {/* 煽りバナー */}
+        {taunt && (
+          <div className="mb-4 bg-gradient-to-r from-purple-900/50 to-pink-900/30 border border-purple-500/30 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0">{taunt.emoji}</span>
+            <p className="text-sm font-bold text-white">{taunt.text}</p>
+          </div>
+        )}
 
         {/* 自分の順位（固定バー） */}
         {data?.myRank && (
@@ -211,9 +260,10 @@ export default function RankingPage() {
 
             {/* 空の場合 */}
             {(!data || data.ranking.length === 0) && !loading && (
-              <div className="text-center py-20 text-gray-600">
+              <div className="text-center py-20 text-gray-500">
                 <p className="text-4xl mb-3">🏆</p>
-                <p>ランキングデータがありません</p>
+                <p className="font-bold text-white">まだ誰も参戦していない...</p>
+                <p className="text-sm mt-1">1位を狙うチャンス！</p>
               </div>
             )}
           </div>

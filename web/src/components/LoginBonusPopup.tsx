@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
+import { playSound } from '@/lib/sound-effects';
 
 interface BonusData {
   awarded: boolean;
@@ -31,6 +32,7 @@ export function LoginBonusPopup() {
       if (data.awarded || data.isFirstLogin) {
         setBonusData(data);
         setShow(true);
+        playSound(data.isFirstLogin ? 'level_up' : 'login_bonus');
         // アニメーションシーケンス
         setTimeout(() => setAnimPhase('coins'), 400);
         setTimeout(() => setAnimPhase('streak'), 1200);

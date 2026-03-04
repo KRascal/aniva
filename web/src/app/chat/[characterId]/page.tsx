@@ -8,6 +8,7 @@ import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
 import { CallModal } from '@/components/chat/CallModal';
 import { GiftPanel } from '@/components/chat/GiftPanel';
+import { playSound } from '@/lib/sound-effects';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -773,6 +774,7 @@ export default function ChatCharacterPage() {
       }
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
+        playSound('message_receive');
         generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
       // 本日送信数インクリメント（Free plan 表示・後方互換）
@@ -861,6 +863,7 @@ export default function ChatCharacterPage() {
 
   const handleSendClick = () => {
     if (!inputText.trim() || isSending || isGreeting) return;
+    playSound('message_send');
     setIsSendBouncing(true);
     setTimeout(() => setIsSendBouncing(false), 400);
     if (inputRef.current) {
