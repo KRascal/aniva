@@ -164,17 +164,12 @@ export default function UserProfilePage() {
             </div>
             <div className="pb-2 flex-1 min-w-0">
               <h2 className="text-2xl font-black text-white truncate">{displayName}</h2>
-              {profile.nickname && <p className="text-sm text-purple-300">「{profile.nickname}」と呼んで</p>}
+              {profile.bio && <p className="text-sm text-gray-400 line-clamp-2">{profile.bio}</p>}
               {stats && <p className="text-xs text-gray-500 mt-1">{stats.daysSinceJoin}日前に参加</p>}
             </div>
           </div>
 
-          {/* Bio */}
-          {profile.bio && (
-            <p className="mt-3 text-gray-300 text-sm leading-relaxed bg-gray-900/50 border border-white/5 rounded-xl p-3">
-              {profile.bio}
-            </p>
-          )}
+          {/* Bio is shown inline above */}
         </section>
 
         {/* Private profile guard */}
