@@ -8,7 +8,25 @@ export const authConfig = {
     signIn: '/login',
   },
   callbacks: {
-    authorized({ auth }) {
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      // 公開ページ・APIは認証不要
+      const publicPaths = [
+        '/login',
+        '/signup',
+        '/c/',           // オンボーディング（ゲスト体験）
+        '/user/',         // 公開プロフィール
+        '/api/users/',    // 公開プロフィールAPI
+        '/api/onboarding/guest-chat',
+        '/api/characters',
+        '/api/auth',
+        '/explore',
+        '/moments',
+        '/',
+      ];
+      if (publicPaths.some(p => pathname.startsWith(p) || pathname === p)) {
+        return true;
+      }
       return !!auth?.user;
     },
     async jwt({ token }) {

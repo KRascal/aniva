@@ -14,9 +14,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 全キャラ取得
+    // フォロー中のキャラのみ取得
+    const followedRelationships = await prisma.relationship.findMany({
+      where: { userId, isFollowing: true },
+      select: { characterId: true },
+    });
+    const followedIds = followedRelationships.map(r => r.characterId);
+
     const characters = await prisma.character.findMany({
-      where: { isActive: true },
+      where: { isActive: true, id: { in: followedIds.length > 0 ? followedIds : ['__none__'] } },
       select: {
         id: true,
         name: true,

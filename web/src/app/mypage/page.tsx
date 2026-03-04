@@ -309,7 +309,7 @@ export default function MyPage() {
             <span>＋</span>
             <span>購入</span>
           </a>
-          <ThemeToggle />
+          {/* テーマ切替は現在ダークモード固定のため非表示 */}
         </div>
       </header>
 
@@ -322,16 +322,16 @@ export default function MyPage() {
             {/* 隠しファイル入力 */}
             <input
               ref={avatarFileInputRef}
+              id="avatar-upload"
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleAvatarFileChange}
               className="hidden"
               aria-hidden="true"
             />
-            <button
-              onClick={() => avatarFileInputRef.current?.click()}
-              disabled={isUploadingAvatar}
-              className="relative group"
+            <label
+              htmlFor="avatar-upload"
+              className="relative group cursor-pointer block"
               aria-label="プロフィール画像を変更"
             >
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
@@ -346,19 +346,19 @@ export default function MyPage() {
               </div>
               {/* カメラアイコンオーバーレイ */}
               {!isUploadingAvatar && (
-                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center">
                   <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
               )}
-              <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-600 border-2 border-gray-900 flex items-center justify-center">
+              <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-600 border-2 border-gray-900 flex items-center justify-center pointer-events-none">
                 <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </span>
-            </button>
+            </label>
             {/* アップロードエラー */}
             {avatarUploadError && (
               <p className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-xs text-red-400 whitespace-nowrap bg-gray-900 px-2 py-1 rounded-lg border border-red-500/30">
