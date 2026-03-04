@@ -23,6 +23,7 @@ rsync -a --delete \
   --exclude='.env.staging.local' \
   --exclude='.env.production' \
   --exclude='.env.production.local' \
+  --exclude='ecosystem.staging.config.cjs' \
   "$ANIVA_DIR/web/" "$STAGING_DIR/web/"
 
 echo "📦 Installing dependencies in staging..."
