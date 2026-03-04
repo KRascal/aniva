@@ -3,7 +3,7 @@
  * 管理者がユーザーにコインを付与/減算する
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(
@@ -11,8 +11,8 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
-    const authError = await requireAdmin();
-    if (authError) return authError;
+    const admin = await requireAdmin();
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { amount, type = 'free', note } = await req.json() as {
       amount: number;
