@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle, Circle } from 'lucide-react';
+import { CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import { playSound } from '@/lib/sound-effects';
 
 interface Mission {
@@ -13,11 +13,22 @@ interface Mission {
   completed: boolean;
 }
 
+interface WeeklyMission extends Mission {
+  target: number;
+  progress: number;
+}
+
 interface MissionsData {
   missions: Mission[];
   date: string;
   completedCount: number;
   remainingCoins: number;
+  weekly?: {
+    missions: WeeklyMission[];
+    week: string;
+    completedCount: number;
+    remainingCoins: number;
+  };
 }
 
 export default function DailyMissionsCard() {
@@ -25,6 +36,7 @@ export default function DailyMissionsCard() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showWeekly, setShowWeekly] = useState(false);
 
   const fetchMissions = useCallback(async () => {
     try {
@@ -171,6 +183,100 @@ export default function DailyMissionsCard() {
       {allDone && (
         <div className="absolute inset-0 rounded-2xl pointer-events-none"
           style={{ boxShadow: 'inset 0 0 30px rgba(74, 222, 128, 0.1)' }} />
+      )}
+
+      {/* ─── Weekly Challenges ─── */}
+      {data.weekly && (
+        <div className="mt-3 pt-3 border-t border-white/10">
+          <button
+            onClick={() => setShowWeekly(v => !v)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div>
+              <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
+                🏆 週チャレンジ
+                {data.weekly.completedCount > 0 && (
+                  <span className="bg-amber-500/20 text-amber-300 text-[9px] px-1.5 rounded-full ml-1">
+                    {data.weekly.completedCount}/{data.weekly.missions.length}完了
+                  </span>
+                )}
+              </span>
+              <p className="text-[10px] text-gray-500 mt-0.5">
+                {data.weekly.completedCount >= data.weekly.missions.length
+                  ? '全チャレンジ達成！来週また挑戦 🎊'
+                  : `最大 ${data.weekly.remainingCoins}コイン獲得チャンス`}
+              </p>
+            </div>
+            {showWeekly ? (
+              <ChevronUp className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            )}
+          </button>
+
+          {showWeekly && (
+            <div className="space-y-2 mt-2">
+              {data.weekly.missions.map(mission => {
+                const pct = Math.round((mission.progress / mission.target) * 100);
+                return (
+                  <div
+                    key={mission.id}
+                    className={`rounded-xl px-3 py-2.5 transition-all ${
+                      mission.completed
+                        ? 'bg-amber-900/20 border border-amber-700/30'
+                        : 'bg-white/5 border border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <span className="text-lg w-6 text-center shrink-0">{mission.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold truncate ${mission.completed ? 'text-amber-300' : 'text-white'}`}>
+                          {mission.title}
+                        </p>
+                        <p className="text-[10px] text-gray-400 truncate">{mission.desc}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-amber-400 font-bold">+{mission.coins}</span>
+                        {mission.completed ? (
+                          <CheckCircle className="w-5 h-5 text-amber-400" />
+                        ) : (
+                          <button
+                            onClick={() => void completeMission(mission.id)}
+                            disabled={claiming === mission.id || mission.progress < mission.target}
+                            className="flex items-center gap-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition-colors"
+                          >
+                            {claiming === mission.id ? (
+                              <Circle className="w-3 h-3 animate-spin" />
+                            ) : mission.progress >= mission.target ? (
+                              '受取'
+                            ) : (
+                              '挑戦中'
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    {!mission.completed && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              background: pct >= 100 ? '#f59e0b' : 'linear-gradient(90deg, #7c3aed, #f59e0b)',
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-gray-500 shrink-0">{mission.progress}/{mission.target}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Toast */}
