@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { CheckCircle, Circle } from 'lucide-react';
+import { playSound } from '@/lib/sound-effects';
 
 interface Mission {
   id: string;
@@ -62,6 +63,7 @@ export default function DailyMissionsCard() {
       } else if (json.ok === false) {
         showToast(json.message ?? 'まだ条件を満たしていないよ！');
       } else if (json.coins) {
+        playSound('coin_earn');
         showToast(`+${json.coins}コイン獲得！🎉`);
         // 完了状態を楽観的更新
         setData(prev => prev ? {

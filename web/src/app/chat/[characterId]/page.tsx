@@ -733,6 +733,18 @@ export default function ChatCharacterPage() {
         setMessages((prev) => [...prev, streakMsg]);
       }
 
+      // メッセージ数マイルストーン演出
+      if (data.relationship?.msgMilestone) {
+        const msgMilestoneMsg: Message = {
+          id: `msgmilestone-${Date.now()}`,
+          role: 'SYSTEM',
+          content: `🎉 ${data.relationship.msgMilestone} — 一緒に${data.relationship.totalMsgCount}通…本物の絆だ`,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, msgMilestoneMsg]);
+        playSound('level_up');
+      }
+
       if (data.relationship) {
         setRelationship((prev) => ({
           ...(prev || { levelName: '', xp: 0, nextLevelXp: null, totalMessages: 0 }),

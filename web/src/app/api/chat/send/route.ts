@@ -235,6 +235,19 @@ export async function POST(req: NextRequest) {
     const leveledUp = (updatedRelationship?.level ?? 1) > prevLevel;
     const newLevel = updatedRelationship?.level ?? 1;
 
+    // メッセージ数マイルストーン判定（10/50/100/200/500通）
+    const totalMsgCount = await prisma.message.count({
+      where: { conversation: { relationshipId: relationship.id } },
+    }).catch(() => 0);
+    const MILESTONES: Record<number, string> = {
+      10:  '初めての10通！',
+      50:  '50通達成！',
+      100: '100通の絆！',
+      200: '200通…本物だ',
+      500: '伝説の500通',
+    };
+    const msgMilestone = MILESTONES[totalMsgCount] ?? null;
+
     // コイン残高取得（UI表示用）
     const latestBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const coinBalance = latestBalance ? latestBalance.freeBalance + latestBalance.paidBalance : undefined;
@@ -255,6 +268,8 @@ export async function POST(req: NextRequest) {
         xp: updatedRelationship?.experiencePoints ?? 0,
         leveledUp,
         newLevel: leveledUp ? newLevel : undefined,
+        msgMilestone,
+        totalMsgCount,
         freeMessagesRemaining: access.type === 'FREE' ? (access as { freeMessagesRemaining?: number }).freeMessagesRemaining : undefined,
         coinBalance,
       },
