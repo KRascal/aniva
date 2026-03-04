@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
+import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
 
 /* ── Achievement definitions ── */
 interface AchievementDef {
@@ -441,6 +442,9 @@ export default function MyPage() {
             )}
           </section>
         )}
+
+        {/* デイリーミッション */}
+        <DailyMissionsCard />
 
         {/* ブックマーク */}
         {bookmarks.length > 0 && (
