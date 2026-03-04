@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/admin/characters/generate-story
  * 新規キャラ追加フロー(P7-2): 初期ストーリーチャプター3件をAI生成してDBに保存

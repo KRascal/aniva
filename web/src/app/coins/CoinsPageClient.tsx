@@ -6,11 +6,15 @@ import { PackageDisplayItem } from './page';
 interface Props {
   packages: PackageDisplayItem[];
   currentBalance: number;
+  freeBalance?: number;
+  paidBalance?: number;
   status?: string;
 }
 
-export default function CoinsPageClient({ packages, currentBalance, status }: Props) {
+export default function CoinsPageClient({ packages, currentBalance, freeBalance = 0, paidBalance = 0, status }: Props) {
   const [balance, setBalance] = useState(currentBalance);
+  const [freeCoins, setFreeCoins] = useState(freeBalance);
+  const [paidCoins, setPaidCoins] = useState(paidBalance);
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(
     status === 'success' ? '購入が完了しました！' : status === 'cancel' ? '購入がキャンセルされました' : null
@@ -35,6 +39,7 @@ export default function CoinsPageClient({ packages, currentBalance, status }: Pr
       // デモモード: 残高即時反映
       if (data.success && data.balance !== undefined) {
         setBalance(data.balance);
+        setPaidCoins(prev => prev + pkg.coinAmount);
         setMessage(`${pkg.coinAmount.toLocaleString()}コインを付与しました（デモモード）`);
         return;
       }
@@ -66,11 +71,26 @@ export default function CoinsPageClient({ packages, currentBalance, status }: Pr
           <p className="text-gray-400 text-sm mb-6">コインを使って音声通話・特別機能をお楽しみください</p>
 
           {/* 現在の残高 */}
-          <div className="inline-flex items-center gap-2 bg-gray-800/80 border border-gray-700/60 rounded-full px-5 py-2.5">
-            <div className="w-4 h-4 rounded-full bg-yellow-500/40 border border-yellow-500/60" />
-            <span className="text-gray-400 text-sm">現在の残高</span>
-            <span className="text-white font-bold text-lg">{balance.toLocaleString()}</span>
-            <span className="text-gray-400 text-sm">コイン</span>
+          <div className="inline-block bg-gray-800/80 border border-gray-700/60 rounded-2xl px-5 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-4 h-4 rounded-full bg-yellow-500/40 border border-yellow-500/60" />
+              <span className="text-gray-400 text-sm">合計残高</span>
+              <span className="text-white font-bold text-lg">{balance.toLocaleString()}</span>
+              <span className="text-gray-400 text-sm">コイン</span>
+            </div>
+            {(freeCoins > 0 || paidCoins > 0) && (
+              <div className="flex items-center justify-center gap-3 text-xs">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  無料 {freeCoins.toLocaleString()}
+                </span>
+                <span className="text-gray-600">|</span>
+                <span className="flex items-center gap-1 text-yellow-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
+                  有料 {paidCoins.toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

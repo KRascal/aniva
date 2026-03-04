@@ -26,7 +26,7 @@ export default function OnboardingChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [turnNumber, setTurnNumber] = useState(0); // 0 = initial, 1-3 = active turns
+  const [turnNumber, setTurnNumber] = useState(0); // 0 = initial, 1-2 = active turns (2ラリーで登録へ)
   const [isFading, setIsFading] = useState(false);
   const [showFarewell, setShowFarewell] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -83,7 +83,7 @@ export default function OnboardingChat({
 
   async function handleSend() {
     const text = inputValue.trim();
-    if (!text || isLoading || turnNumber > 3) return;
+    if (!text || isLoading || turnNumber > 2) return;
 
     const userMsg: ChatMessage = { role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
@@ -148,7 +148,7 @@ export default function OnboardingChat({
     // noop — textarea のデフォルト動作（改行）をそのまま使う
   }
 
-  const isInputDisabled = isLoading || turnNumber > 3 || showFarewell;
+  const isInputDisabled = isLoading || turnNumber > 2 || showFarewell;
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col">

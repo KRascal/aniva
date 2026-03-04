@@ -86,14 +86,22 @@ export default async function CoinsPage({
         }))
       : FALLBACK_PACKAGES;
 
-  // 現在の残高
+  // 現在の残高（free/paid分離）
   const coinBalance = await prisma.coinBalance.findUnique({ where: { userId } });
-  const currentBalance = coinBalance?.balance ?? 0;
+  const freeBalance = coinBalance?.freeBalance ?? 0;
+  const paidBalance = coinBalance?.paidBalance ?? 0;
+  // 後方互換: freeBalance/paidBalance未移行の場合はlegacy balanceを利用
+  const legacyBalance = coinBalance?.balance ?? 0;
+  const currentBalance = (freeBalance + paidBalance > 0 || legacyBalance === 0)
+    ? freeBalance + paidBalance
+    : legacyBalance;
 
   return (
     <CoinsPageClient
       packages={packages}
       currentBalance={currentBalance}
+      freeBalance={freeBalance}
+      paidBalance={paidBalance}
       status={status}
     />
   );

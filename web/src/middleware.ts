@@ -18,10 +18,15 @@ export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   // JWT tokenを直接取得（auth()ラッパー不使用 — Edge Runtimeで安定）
+  // NextAuth v5はcookie名が変わった: "authjs.session-token" (dev) / "__Secure-authjs.session-token" (prod)
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '';
+  const useSecureCookies = req.nextUrl.protocol === 'https:';
+  const cookieName = useSecureCookies
+    ? '__Secure-authjs.session-token'
+    : 'authjs.session-token';
   let token: { onboardingStep?: string | null; sub?: string } | null = null;
   try {
-    token = await getToken({ req, secret }) as typeof token;
+    token = await getToken({ req, secret, cookieName }) as typeof token;
   } catch {
     // getToken失敗時は未認証として扱う
   }

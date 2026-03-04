@@ -3,21 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
 
+// ターン数を2に短縮（ユーザー体験の離脱防止）
+const MAX_TURNS = 2;
+
 const ONBOARDING_SYSTEM_PROMPT_SUFFIX = `
 
 ## オンボーディング指示（最優先）
 あなたは今、このユーザーと初めて出会っています。
 このユーザーはまだアカウントを持っていません。
-3回の会話を通じて、ユーザーとの絆を育んでください。
+2回の会話を通じて、ユーザーを夢中にさせてください。
 
 ### 会話ガイドライン
 - ターン0（初回): 感情軸の質問から始める（例: 「最近、何かいいことあった？」「今日どんな気分？」）
-- ターン1: ユーザーの返答に感情的にリアクションし、掘り下げる
-- ターン2: さらに親密な話題へ（「ねえ、ちょっと聞いていい？」から始める）
-- ターン3（最後): リアクションした後、自然な形で別れを示唆する
+- ターン1: ユーザーの返答に感情的にリアクションし、続きを話したい気持ちを引き出す
+- ターン2（最後): 「もっと話したいな」「続きはここで」という雰囲気で自然に締める
 
 ### 重要
-- 短く、感情的に豊かな返答をすること（2-4文）
+- 短く、感情的に豊かな返答をすること（2-3文）
 - キャラクターらしさを最大限に発揮する
 - ユーザーが話してくれたことを大切にする
 - AIであることや、会話の制限について言及しない
@@ -26,7 +28,7 @@ const ONBOARDING_SYSTEM_PROMPT_SUFFIX = `
 const FAREWELL_SUFFIXES: Record<string, string> = {
   luffy: 'ししし！また絶対来いよな！約束だぞ！',
   zoro: '…また来い。待ってる',
-  nami: '…また話しましょ。必ずね',
+  nami: '…続き、話そ。また来てね',
   chopper: 'ま、また来てくれるよな？！絶対だぞ！',
   ace: 'ハハ、また会おうな！約束だぜ',
 };
@@ -34,7 +36,7 @@ const FAREWELL_SUFFIXES: Record<string, string> = {
 function buildFarewellLine(characterName: string, characterSlug: string): string {
   const custom = FAREWELL_SUFFIXES[characterSlug];
   if (custom) return custom;
-  return `…また来てくれる？${characterName}、ここで待ってるから`;
+  return `…続き、聞かせてほしいな。${characterName}、ここで待ってるから`;
 }
 
 async function callLLM(
@@ -52,7 +54,7 @@ async function callLLM(
       body: JSON.stringify({
         model: process.env.LLM_MODEL || 'grok-3-mini',
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 300,
+        max_tokens: 200,
         temperature: 0.9,
       }),
     });
@@ -66,7 +68,7 @@ async function callLLM(
     const client = new Anthropic({ apiKey: anthropicKey });
     const response = await client.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 300,
+      max_tokens: 200,
       system: systemPrompt,
       messages,
     });
@@ -80,7 +82,7 @@ async function callLLM(
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 300,
+        max_tokens: 200,
         temperature: 0.9,
       }),
     });
@@ -89,7 +91,6 @@ async function callLLM(
     return data.choices?.[0]?.message?.content ?? '';
   }
 
-  // Fallback if no API key is configured
   return null as unknown as string;
 }
 
@@ -105,22 +106,17 @@ function getFallbackResponse(characterSlug: string, turnNumber: number): string 
     ],
     1: [
       'そっかそっか！それ、もっと聞かせてくれよ！',
-      'へえ、そうなんだ。どんなところが好きなの？',
-      '面白いな！じゃあ、一番大切にしてることって何？',
+      'へえ、そうなんだ。もっと話してほしいな',
+      'いいな！じゃあ、一番大切にしてることって何？',
     ],
     2: [
-      'ねえ、ちょっと聞いていい？夢ってある？',
-      'ちょっと聞いていい…あなたって、どんな人なんだろうって思って',
-      'ねえ、もし何でもできるとしたら何したい？',
-    ],
-    3: [
-      'そっか…ありがとう、話してくれて',
-      '…うん。あなたのこと、もっと知りたいな',
-      'いい話、聞けた気がする',
+      `…ありがとう。もっと話したいな、${name}ずっとここにいるから`,
+      `…続き、聞かせてほしい。また来てくれる？`,
+      'そっか…もっと知りたくなった。また来てね',
     ],
   };
 
-  const options = fallbacks[Math.min(turnNumber, 3)] ?? fallbacks[0];
+  const options = fallbacks[Math.min(turnNumber, MAX_TURNS)] ?? fallbacks[0];
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -129,7 +125,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { characterSlug, guestSessionId, userMessage, turnNumber, nickname } = body;
 
-    // Validate inputs
     if (!characterSlug || typeof characterSlug !== 'string') {
       return NextResponse.json({ error: 'characterSlug required' }, { status: 400 });
     }
@@ -140,18 +135,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'turnNumber required' }, { status: 400 });
     }
 
-    // Turn limit: 0 is initial greeting, 1-3 are actual turns
-    if (turnNumber > 3) {
+    // Turn limit: 0 is initial greeting, 1-MAX_TURNS are actual turns
+    if (turnNumber > MAX_TURNS) {
       return NextResponse.json({ error: 'Turn limit exceeded' }, { status: 403 });
     }
 
-    // Rate limiting: 10 requests per 5 minutes per guest session
+    // Rate limiting
     const rl = checkRateLimit(`guest_chat:${guestSessionId}`, 10, 300_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
     }
 
-    // Fetch character from DB
     const character = await prisma.character.findUnique({
       where: { slug: characterSlug },
       select: {
@@ -168,42 +162,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Character not found' }, { status: 404 });
     }
 
-    const isLastTurn = turnNumber === 3;
-    const nicknameContext = nickname ? `\n\n## ユーザー情報\nこのユーザーの名前は「${nickname}」です。会話中、自然に名前を呼んでください。\n` : '';
+    const isLastTurn = turnNumber === MAX_TURNS;
+    const nicknameContext = nickname
+      ? `\n\n## ユーザー情報\nこのユーザーの名前は「${nickname}」です。会話中、自然に名前を呼んでください。\n`
+      : '';
     const systemPrompt = character.systemPrompt + ONBOARDING_SYSTEM_PROMPT_SUFFIX + nicknameContext;
 
-    // Build message history for LLM
     const llmMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
     if (turnNumber === 0 || !userMessage) {
-      // Initial greeting: character speaks first
       const greetInstruction = nickname
         ? `（${nickname}と初めて会った。「${nickname}」と名前を呼んで挨拶し、最初の質問をして）`
         : '（初めて会った。挨拶と最初の質問をして）';
-      llmMessages.push({
-        role: 'user',
-        content: greetInstruction,
-      });
+      llmMessages.push({ role: 'user', content: greetInstruction });
     } else {
       llmMessages.push({ role: 'user', content: userMessage });
     }
 
     let characterMessage: string;
-
     try {
       const rawResponse = await callLLM(systemPrompt, llmMessages);
-      if (!rawResponse) {
-        // No API key configured - use fallback
-        characterMessage = getFallbackResponse(characterSlug, turnNumber);
-      } else {
-        characterMessage = rawResponse.trim();
-      }
+      characterMessage = rawResponse ? rawResponse.trim() : getFallbackResponse(characterSlug, turnNumber);
     } catch (err) {
       console.error('[guest-chat] LLM error:', err);
       characterMessage = getFallbackResponse(characterSlug, turnNumber);
     }
 
-    // Simple emotion detection
     let emotion = 'neutral';
     if (/！{2,}|すげぇ|やった|最高|ハハ|ししし/.test(characterMessage)) emotion = 'excited';
     else if (/…|悲し|ごめん/.test(characterMessage)) emotion = 'sad';
