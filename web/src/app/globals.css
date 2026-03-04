@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
 /* ===== Light Mode (default) ===== */
+/* NOTE: ライトモードは現在未対応。全ページがダーク前提のため、
+   ライト設定でもダーク値を使用。フルライトモード対応は将来バージョン */
 :root {
-  --background: #f4f4f8;
-  --foreground: #111118;
+  --background: #0a0a0f;
+  --foreground: #f8f8ff;
 
-  /* ANIVA Design Tokens v2 - Light */
-  --color-bg: #f4f4f8;
-  --color-surface: #ffffff;
-  --color-surface-2: #eeeef4;
-  --color-border: rgba(0,0,0,0.08);
+  /* ANIVA Design Tokens v2 - Dark値で統一 */
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-2: #1a1a24;
+  --color-border: rgba(255,255,255,0.08);
   --color-accent: #7c3aed;
   --color-accent-2: #db2777;
-  --color-text: #111118;
-  --color-muted: #6b6b80;
+  --color-text: #f8f8ff;
+  --color-muted: #8b8b9e;
   --radius-card: 16px;
   --radius-btn: 12px;
 }

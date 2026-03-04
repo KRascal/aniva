@@ -224,17 +224,24 @@ export default function SettingsPage() {
               {THEME_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => handleSave({ theme: opt.value })}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                    settings.theme === opt.value
+                  onClick={() => {
+                    // ダークモードのみ対応中。ライト/システムは近日公開
+                    if (opt.value !== 'dark') return;
+                    handleSave({ theme: opt.value });
+                  }}
+                  className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
+                    opt.value === 'dark'
                       ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-muted)] hover:border-purple-500/40 hover:text-[var(--color-text)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-muted)] opacity-50 cursor-not-allowed'
                   }`}
                 >
                   <span className="text-xl">{opt.icon}</span>
                   <span className="text-xs font-medium">{opt.label}</span>
-                  {settings.theme === opt.value && (
+                  {opt.value === 'dark' && (
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  )}
+                  {opt.value !== 'dark' && (
+                    <span className="absolute top-1 right-1 text-[8px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full">Soon</span>
                   )}
                 </button>
               ))}
