@@ -780,6 +780,27 @@ function BannerCard({
         {banner.description && (
           <div className="text-white/70 text-xs mb-3 line-clamp-2">{banner.description}</div>
         )}
+        {/* FOMAカウントダウン */}
+        {banner.endAt && (() => {
+          const diffMs = new Date(banner.endAt).getTime() - Date.now();
+          const diffDays = Math.floor(diffMs / 86400000);
+          const diffH = Math.floor((diffMs % 86400000) / 3600000);
+          if (diffMs <= 0) return null;
+          if (diffDays <= 3) return (
+            <div className="flex items-center gap-1.5 text-xs bg-red-900/50 border border-red-500/40 rounded-xl px-3 py-1.5 mb-3 animate-pulse">
+              <span>⏰</span>
+              <span className="text-red-300 font-bold">
+                {diffDays > 0 ? `残り${diffDays}日${diffH}時間` : `残り${diffH}時間`}で終了！
+              </span>
+            </div>
+          );
+          return (
+            <div className="flex items-center gap-1 text-[10px] text-white/40 mb-2">
+              <span>📅</span>
+              <span>残り{diffDays}日</span>
+            </div>
+          );
+        })()}
         <div className="mt-auto flex items-end justify-between">
           <div>
             <div className="text-white/60 text-xs">1回: {banner.costCoins}コイン</div>
