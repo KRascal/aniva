@@ -558,7 +558,7 @@ export default function DiscoverPage() {
       {/* Header */}
       <div
         className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ background: 'rgb(3,7,18)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
       >
         <button
           onClick={() => router.push('/')}
