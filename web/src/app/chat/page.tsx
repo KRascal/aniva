@@ -106,6 +106,17 @@ function ChatRow({
         <p className="text-xs text-gray-400 truncate leading-relaxed">
           {previewText}
         </p>
+        {/* 長時間未トーク時の煽り */}
+        {lastAt && (() => {
+          const diffH = Math.floor((Date.now() - new Date(lastAt).getTime()) / 3600000);
+          if (diffH >= 48) return (
+            <p className="text-[10px] text-pink-400/80 mt-0.5">💭 {character.name}が寂しがってる…</p>
+          );
+          if (diffH >= 12) return (
+            <p className="text-[10px] text-purple-400/60 mt-0.5">✨ {character.name}が話したがってる</p>
+          );
+          return null;
+        })()}
       </div>
 
       {/* 未読バッジ */}
