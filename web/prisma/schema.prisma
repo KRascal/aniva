@@ -22,11 +22,14 @@ model User {
   settings               Json                    @default("{}")
   // === オンボーディングフィールド ===
   nickname               String?
-  onboardingStep         String?                 // 'nickname' | 'character_select' | 'first_chat' | 'completed'
+  onboardingStep         String? // 'nickname' | 'character_select' | 'first_chat' | 'completed'
   onboardingCompletedAt  DateTime?
   notificationPermission Boolean?
   onboardingCharacterId  String?
   onboardingDeeplinkSlug String?
+  bio                    String?
+  profilePublic          Boolean                 @default(true)
+  coverImageUrl          String?
   accounts               Account[]
   sessions               Session[]
   relationships          Relationship[]
@@ -95,43 +98,43 @@ enum Plan {
 }
 
 model Character {
-  id                String         @id @default(uuid())
-  name              String
-  nameEn            String?
-  slug              String         @unique
-  franchise         String
-  franchiseEn       String?
-  description       String?
-  systemPrompt      String         @db.Text
-  voiceModelId      String?
-  fcMonthlyCoins    Int            @default(500)  // FC月額コイン（キャラ別）
-  chatCoinPerMessage Int           @default(10)   // チャット1回のコイン消費（キャラ別）
-  loginBonusCoins   Int            @default(50)   // ログインボーナス付与コイン
-  live2dModelId     String?
-  loraModelId       String?
-  ragCollectionId   String?
-  catchphrases      String[]
-  personalityTraits Json           @default("[]")
-  avatarUrl         String?
-  coverUrl          String?
+  id                      String                  @id @default(uuid())
+  name                    String
+  nameEn                  String?
+  slug                    String                  @unique
+  franchise               String
+  franchiseEn             String?
+  description             String?
+  systemPrompt            String                  @db.Text
+  voiceModelId            String?
+  fcMonthlyCoins          Int                     @default(500) // FC月額コイン（キャラ別）
+  chatCoinPerMessage      Int                     @default(10) // チャット1回のコイン消費（キャラ別）
+  loginBonusCoins         Int                     @default(50) // ログインボーナス付与コイン
+  live2dModelId           String?
+  loraModelId             String?
+  ragCollectionId         String?
+  catchphrases            String[]
+  personalityTraits       Json                    @default("[]")
+  avatarUrl               String?
+  coverUrl                String?
   isActive                Boolean                 @default(true)
   // === 課金設定 ===
-  fcMonthlyPriceJpy       Int                     @default(3480)   // FC月額（円）最低3480
-  fcIncludedCallMin       Int                     @default(30)     // FC込み通話時間（分/月）
-  callCoinPerMin          Int                     @default(200)    // 非FC通話料金（コイン/分）最低200
-  fcOverageCallCoinPerMin Int                     @default(100)    // FC超過通話料金（コイン/分）最低100
-  freeMessageLimit        Int                     @default(10)     // 無料チャット上限（通数）
-  freeCallMinutes         Int                     @default(5)      // 無料通話上限（分）
-  stripeProductId         String?                                  // Stripe Product ID
-  fcSubscriberCount       Int                     @default(0)      // FC加入者数キャッシュ
-  onboardingGreetings     Json?                   @default("[]")   // オンボーディング第一声（3パターン）
+  fcMonthlyPriceJpy       Int                     @default(3480) // FC月額（円）最低3480
+  fcIncludedCallMin       Int                     @default(30) // FC込み通話時間（分/月）
+  callCoinPerMin          Int                     @default(200) // 非FC通話料金（コイン/分）最低200
+  fcOverageCallCoinPerMin Int                     @default(100) // FC超過通話料金（コイン/分）最低100
+  freeMessageLimit        Int                     @default(10) // 無料チャット上限（通数）
+  freeCallMinutes         Int                     @default(5) // 無料通話上限（分）
+  stripeProductId         String? // Stripe Product ID
+  fcSubscriberCount       Int                     @default(0) // FC加入者数キャッシュ
+  onboardingGreetings     Json?                   @default("[]") // オンボーディング第一声（3パターン）
   // === 多言語・地域対応 ===
   // localeConfig: { "en": { voiceModelId, systemPrompt, catchphrases[], toneNotes }, "ko": {...} }
-  localeConfig            Json?                   @default("{}")   // 言語別の声優/口調/プロンプト設定
-  birthday                String?                                  // "MM-DD" format e.g. "05-05" for May 5th
-  presenceStatus          String?                                  // 手動上書きステータス（nullなら自動）
-  presenceEmoji           String?                                  // 手動上書き絵文字
-  presenceManualMode      Boolean                 @default(false)  // trueなら手動モード
+  localeConfig            Json?                   @default("{}") // 言語別の声優/口調/プロンプト設定
+  birthday                String? // "MM-DD" format e.g. "05-05" for May 5th
+  presenceStatus          String? // 手動上書きステータス（nullなら自動）
+  presenceEmoji           String? // 手動上書き絵文字
+  presenceManualMode      Boolean                 @default(false) // trueなら手動モード
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]
@@ -160,17 +163,17 @@ model SecretContent {
 }
 
 model Relationship {
-  id               String         @id @default(uuid())
-  userId           String
-  characterId      String
-  level            Int            @default(1)
-  experiencePoints Int            @default(0)
-  totalMessages    Int            @default(0)
-  firstMessageAt   DateTime?
-  lastMessageAt    DateTime?
-  memorySummary    Json           @default("{}")
-  milestones       Json           @default("[]")
-  isFollowing      Boolean        @default(false)
+  id                   String         @id @default(uuid())
+  userId               String
+  characterId          String
+  level                Int            @default(1)
+  experiencePoints     Int            @default(0)
+  totalMessages        Int            @default(0)
+  firstMessageAt       DateTime?
+  lastMessageAt        DateTime?
+  memorySummary        Json           @default("{}")
+  milestones           Json           @default("[]")
+  isFollowing          Boolean        @default(false)
   isFanclub            Boolean        @default(false)
   characterEmotion     String         @default("neutral")
   characterEmotionNote String?
@@ -178,12 +181,12 @@ model Relationship {
   streakDays           Int            @default(0)
   streakLastDate       DateTime?
   pendingCliffhanger   Json?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  user             User           @relation(fields: [userId], references: [id])
-  character        Character      @relation(fields: [characterId], references: [id])
-  conversations    Conversation[]
-  letters          Letter[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  user                 User           @relation(fields: [userId], references: [id])
+  character            Character      @relation(fields: [characterId], references: [id])
+  conversations        Conversation[]
+  letters              Letter[]
 
   @@unique([userId, characterId])
 }
@@ -217,17 +220,17 @@ enum MessageRole {
 }
 
 model Moment {
-  id            String     @id @default(uuid())
+  id            String          @id @default(uuid())
   characterId   String
   type          MomentType
-  content       String?    @db.Text
+  content       String?         @db.Text
   mediaUrl      String?
-  visibility    Visibility @default(PUBLIC)
-  levelRequired Int        @default(0)
+  visibility    Visibility      @default(PUBLIC)
+  levelRequired Int             @default(0)
   scheduledAt   DateTime?
   publishedAt   DateTime?
-  createdAt     DateTime   @default(now())
-  character     Character  @relation(fields: [characterId], references: [id])
+  createdAt     DateTime        @default(now())
+  character     Character       @relation(fields: [characterId], references: [id])
   reactions     Reaction[]
   comments      MomentComment[]
 }
@@ -258,15 +261,15 @@ model Reaction {
 }
 
 model MomentComment {
-  id          String          @id @default(uuid())
+  id          String        @id @default(uuid())
   momentId    String
   userId      String?
   characterId String?
-  content     String          @db.Text
-  createdAt   DateTime        @default(now())
-  moment      Moment          @relation(fields: [momentId], references: [id], onDelete: Cascade)
-  user        User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character   Character?      @relation(fields: [characterId], references: [id])
+  content     String        @db.Text
+  createdAt   DateTime      @default(now())
+  moment      Moment        @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character?    @relation(fields: [characterId], references: [id])
   likes       CommentLike[]
 }
 
@@ -277,6 +280,7 @@ model CommentLike {
   createdAt DateTime      @default(now())
   comment   MomentComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([commentId, userId])
 }
 
@@ -335,9 +339,9 @@ model VerificationCode {
 model CoinBalance {
   id          String   @id @default(uuid())
   userId      String   @unique
-  balance     Int      @default(0)  // 後方互換用（freeBalance + paidBalanceの合算）
-  freeBalance Int      @default(0)  // 無料コイン（ログボ等、消費優先）
-  paidBalance Int      @default(0)  // 購入コイン（Stripe決済）
+  balance     Int      @default(0) // 後方互換用（freeBalance + paidBalanceの合算）
+  freeBalance Int      @default(0) // 無料コイン（ログボ等、消費優先）
+  paidBalance Int      @default(0) // 購入コイン（Stripe決済）
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -443,19 +447,23 @@ enum GachaRarity {
 }
 
 model GachaCard {
-  id          String      @id @default(uuid())
-  characterId String
-  name        String
-  description String?     @db.Text
-  imageUrl    String?
-  voiceUrl    String?
-  rarity      GachaRarity
-  category    String      @default("memory") // memory | costume | scene
-  effect      Json        @default("{}")      // { type: "background"|"voice"|"episode", data: ... }
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  character   Character   @relation(fields: [characterId], references: [id])
-  userCards   UserCard[]
+  id              String      @id @default(uuid())
+  characterId     String
+  name            String
+  description     String?     @db.Text
+  imageUrl        String?
+  voiceUrl        String?
+  rarity          GachaRarity
+  category        String      @default("memory") // memory | costume | scene
+  effect          Json        @default("{}") // { type: "background"|"voice"|"episode", data: ... }
+  franchise       String? // アニメ名
+  cardImageUrl    String? // カード表面画像
+  illustrationUrl String? // フルイラスト画像
+  frameType       String?     @default("standard") // standard/gold/rainbow
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  character       Character   @relation(fields: [characterId], references: [id])
+  userCards       UserCard[]
 
   @@index([characterId])
   @@index([rarity])
@@ -475,16 +483,23 @@ model UserCard {
 }
 
 model GachaBanner {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  characterId String?   // null = 全キャラ混合
-  rateUp      Json      @default("{}") // { cardId: multiplier }
-  costCoins   Int       @default(100)
-  startAt     DateTime
-  endAt       DateTime
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  characterId    String? // null = 全キャラ混合
+  rateUp         Json     @default("{}") // { cardId: multiplier }
+  costCoins      Int      @default(100)
+  cost10Coins    Int? // 10連コスト（省略時はcostCoins×10）
+  guaranteedSrAt Int? // SR確定天井（省略時はnull=天井なし）
+  franchise      String? // アニメ名（ONE PIECE / 鬼滅の刃 / 呪術廻戦）
+  bannerImageUrl String? // バナー画像URL
+  themeColor     String? // テーマカラー (#f97316等)
+  animationType  String? // 演出タイプ (standard/fire/flame/cursed/golden)
+  preRollConfig  Json? // 事前演出設定
+  startAt        DateTime
+  endAt          DateTime
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
 
   @@index([isActive])
 }
@@ -492,8 +507,8 @@ model GachaBanner {
 model UserDailyEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      String   // "YYYY-MM-DD"
-  eventType String   // "normal" | "good" | "rare" | "super_rare"
+  date      String // "YYYY-MM-DD"
+  eventType String // "normal" | "good" | "rare" | "super_rare"
   reward    Json     @default("{}")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
@@ -513,13 +528,13 @@ model StoryChapter {
   unlockLevel   Int                 @default(1)
   isFcOnly      Boolean             @default(false)
   triggerPrompt String              @db.Text
-  choices       Json?               // [{ text, consequence, nextTease }]
+  choices       Json? // [{ text, consequence, nextTease }]
   isActive      Boolean             @default(true)
   createdAt     DateTime            @default(now())
+  userProgress  UserStoryProgress[]
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])
-  userProgress  UserStoryProgress[]
 }
 
 model UserStoryProgress {

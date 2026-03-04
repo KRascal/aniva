@@ -50,6 +50,11 @@ interface UserInfo {
   id: string;
   email: string;
   displayName: string | null;
+  nickname: string | null;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  bio: string | null;
+  profilePublic: boolean;
   plan: string;
 }
 
@@ -78,6 +83,55 @@ const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> 
   PREMIUM:  { label: 'Premium',  color: 'text-purple-300', bg: 'bg-purple-900/40' },
 };
 
+/* ── アバターURL入力ダイアログ ── */
+function AvatarUrlDialog({
+  currentUrl,
+  onSave,
+  onClose,
+}: {
+  currentUrl: string;
+  onSave: (url: string) => void;
+  onClose: () => void;
+}) {
+  const [url, setUrl] = useState(currentUrl);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+      <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4">
+        <h3 className="text-white font-bold text-base">プロフィール画像URLを入力</h3>
+        <p className="text-xs text-gray-400">画像URLを直接入力してください（ファイルアップロードは後日対応予定）</p>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://example.com/avatar.jpg"
+          className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60"
+          autoFocus
+        />
+        {url && (
+          <div className="flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="preview" className="w-16 h-16 rounded-full object-cover border border-white/20" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={() => onSave(url)}
+            className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-sm font-medium text-white transition-colors"
+          >
+            保存
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm font-medium text-white transition-colors"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -86,9 +140,17 @@ export default function MyPage() {
   const [following, setFollowing] = useState<Character[]>([]);
   const [relationships, setRelationships] = useState<RelationshipData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // プロフィール編集状態
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editNickname, setEditNickname] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editProfilePublic, setEditProfilePublic] = useState(true);
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // ブックマーク
   interface BookmarkedMessage {
@@ -145,7 +207,11 @@ export default function MyPage() {
       .then(([userData, followingData, relData]) => {
         if (userData && !userData.error) {
           setUser(userData);
-          setEditName(userData.displayName ?? userData.email ?? '');
+          setEditDisplayName(userData.displayName ?? '');
+          setEditNickname(userData.nickname ?? '');
+          setEditBio(userData.bio ?? '');
+          setEditProfilePublic(userData.profilePublic ?? true);
+          setEditAvatarUrl(userData.avatarUrl ?? '');
         }
         if (followingData?.following) setFollowing(followingData.following);
         if (relData?.relationships) setRelationships(relData.relationships);
@@ -159,14 +225,32 @@ export default function MyPage() {
     }
   }, [status]);
 
-  const handleSaveName = async () => {
-    if (!editName.trim()) return;
+  const handleSaveProfile = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
     try {
-      // displayName更新（現時点ではAPIがない場合はローカルのみ反映）
-      setUser((prev) => prev ? { ...prev, displayName: editName.trim() } : prev);
-      setIsEditingName(false);
+      const res = await fetch('/api/users/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: editDisplayName.trim() || null,
+          nickname: editNickname.trim() || null,
+          avatarUrl: editAvatarUrl.trim() || null,
+          bio: editBio.trim() || null,
+          profilePublic: editProfilePublic,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setUser(updated);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -183,7 +267,6 @@ export default function MyPage() {
       const permission = await Notification.requestPermission();
       setNotificationsEnabled(permission === 'granted');
     } else {
-      // OFF にする（ブラウザ側での解除は設定から行う旨を伝える）
       alert('通知をOFFにするにはブラウザの設定から変更してください');
     }
   };
@@ -239,64 +322,149 @@ export default function MyPage() {
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
 
-        {/* ユーザープロフィールカード */}
+        {/* ユーザープロフィールカード（編集可能） */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-5 flex flex-col items-center gap-4">
-          {/* アバター */}
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg">
-            {avatarLetter}
-          </div>
+          {/* アバター（タップで変更） */}
+          <button
+            onClick={() => setShowAvatarDialog(true)}
+            className="relative group"
+            aria-label="プロフィール画像を変更"
+          >
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
+              {editAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => setEditAvatarUrl('')} />
+              ) : (
+                avatarLetter
+              )}
+            </div>
+            {/* カメラアイコンオーバーレイ */}
+            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-purple-600 border-2 border-gray-900 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </span>
+          </button>
 
-          {/* 表示名（編集可能） */}
-          {isEditingName ? (
-            <div className="flex flex-col items-center gap-2 w-full max-w-xs">
+          {/* プロフィール編集フォーム */}
+          <div className="w-full space-y-4">
+            {/* 表示名 */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">表示名</label>
               <input
                 type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
                 maxLength={30}
-                className="w-full bg-gray-800 text-white text-center rounded-xl px-3 py-2 border border-purple-500/60 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                autoFocus
+                placeholder="表示名を入力"
+                className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors"
               />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveName}
-                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-sm font-medium transition-colors"
-                >
-                  保存
-                </button>
-                <button
-                  onClick={() => { setIsEditingName(false); setEditName(user?.displayName ?? user?.email ?? ''); }}
-                  className="px-4 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium transition-colors"
-                >
-                  キャンセル
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white">{displayName}</h2>
-                <button
-                  onClick={() => setIsEditingName(true)}
-                  className="text-gray-500 hover:text-purple-400 transition-colors"
-                  aria-label="名前を編集"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-              </div>
-              <p className="text-sm text-gray-500">{user?.email}</p>
-            </div>
-          )}
 
-          {/* プランバッジ（有料プランのみ表示） */}
-          {plan !== 'FREE' && (
-            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full ${planInfo.bg}`}>
-              <span className={`text-sm font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
+            {/* ニックネーム */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">
+                ニックネーム <span className="text-gray-600">（キャラがこの名前で呼びます）</span>
+              </label>
+              <input
+                type="text"
+                value={editNickname}
+                onChange={(e) => setEditNickname(e.target.value)}
+                maxLength={30}
+                placeholder="キャラに呼ばれる名前"
+                className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors"
+              />
             </div>
-          )}
+
+            {/* 自己紹介 */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs text-gray-400 font-medium">自己紹介</label>
+                <span className="text-xs text-gray-600">{editBio.length}/200</span>
+              </div>
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value.slice(0, 200))}
+                maxLength={200}
+                rows={3}
+                placeholder="自分について一言（200文字以内）"
+                className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors resize-none"
+              />
+            </div>
+
+            {/* 公開設定 */}
+            <div className="flex items-center justify-between py-2 border-t border-white/5">
+              <div>
+                <p className="text-sm text-white font-medium">プロフィールを公開する</p>
+                <p className="text-xs text-gray-500">ONにすると他のユーザーがあなたのプロフィールを見られます</p>
+              </div>
+              <button
+                onClick={() => setEditProfilePublic(v => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-3 ${
+                  editProfilePublic ? 'bg-purple-600' : 'bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    editProfilePublic ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* 保存ボタン */}
+            <button
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                saveSuccess
+                  ? 'bg-green-600 text-white'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-60'
+              }`}
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : saveSuccess ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  保存しました
+                </>
+              ) : (
+                '保存する'
+              )}
+            </button>
+
+            {/* メール・プラン表示 */}
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-600">{user?.email}</p>
+              {plan !== 'FREE' && (
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${planInfo.bg}`}>
+                  <span className={`text-xs font-bold ${planInfo.color}`}>{planInfo.label} プラン</span>
+                </div>
+              )}
+            </div>
+
+            {/* 公開プロフィールへのリンク */}
+            {user?.id && editProfilePublic && (
+              <a
+                href={`/user/${user.id}`}
+                className="flex items-center gap-2 text-xs text-purple-400 hover:text-purple-300 transition-colors justify-center"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                公開プロフィールを見る
+              </a>
+            )}
+          </div>
         </section>
 
         {/* ファンクラブ加入中 */}
@@ -674,6 +842,18 @@ export default function MyPage() {
         {/* バージョン情報 */}
         <p className="text-center text-xs text-gray-700 pb-2">ANIVA v1.0.0</p>
       </div>
+
+      {/* アバターURL入力ダイアログ */}
+      {showAvatarDialog && (
+        <AvatarUrlDialog
+          currentUrl={editAvatarUrl}
+          onSave={(url) => {
+            setEditAvatarUrl(url);
+            setShowAvatarDialog(false);
+          }}
+          onClose={() => setShowAvatarDialog(false)}
+        />
+      )}
     </div>
   );
 }

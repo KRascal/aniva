@@ -11,6 +11,13 @@ interface GachaBanner {
   characterId: string | null;
   isActive: boolean;
   costCoins: number;
+  cost10Coins: number | null;
+  guaranteedSrAt: number | null;
+  franchise: string | null;
+  bannerImageUrl: string | null;
+  themeColor: string | null;
+  animationType: string | null;
+  preRollConfig: Record<string, unknown> | null;
   startAt: string;
   endAt: string;
 }
@@ -21,6 +28,10 @@ interface GachaCard {
   rarity: string;
   category: string;
   characterId: string;
+  franchise: string | null;
+  cardImageUrl: string | null;
+  illustrationUrl: string | null;
+  frameType: string | null;
   character?: { name: string };
 }
 
@@ -33,6 +44,22 @@ const RARITY_COLOR: Record<string, string> = {
   UR: 'bg-pink-800 text-pink-200',
 };
 
+const FRANCHISES = ['ONE PIECE', '鬼滅の刃', '呪術廻戦', 'カスタム'] as const;
+
+const ANIMATION_TYPES = [
+  { value: 'standard', label: 'スタンダード', desc: '通常の演出' },
+  { value: 'fire', label: 'ファイア 🔥', desc: '炎が画面を包む演出' },
+  { value: 'flame', label: 'フレイム 🌊', desc: '青白い炎の演出' },
+  { value: 'cursed', label: 'カースド ☠️', desc: '呪力が溢れ出す演出' },
+  { value: 'golden', label: 'ゴールデン ✨', desc: '黄金の粒子が輝く演出' },
+] as const;
+
+const FRAME_TYPES = [
+  { value: 'standard', label: 'スタンダード' },
+  { value: 'gold', label: 'ゴールド' },
+  { value: 'rainbow', label: 'レインボー' },
+] as const;
+
 const BANNER_EMPTY = {
   name: '',
   description: '',
@@ -40,6 +67,13 @@ const BANNER_EMPTY = {
   startAt: '',
   endAt: '',
   costCoins: '100',
+  cost10Coins: '900',
+  guaranteedSrAt: '100',
+  franchise: '',
+  bannerImageUrl: '',
+  themeColor: '#6d28d9',
+  animationType: 'standard',
+  preRollConfig: '',
 };
 const CARD_EMPTY = {
   name: '',
@@ -47,6 +81,10 @@ const CARD_EMPTY = {
   characterId: '',
   rarity: 'R',
   category: 'memory',
+  franchise: '',
+  cardImageUrl: '',
+  illustrationUrl: '',
+  frameType: 'standard',
 };
 
 export default function AdminGachaPage() {
@@ -59,6 +97,7 @@ export default function AdminGachaPage() {
   // Forms
   const [showBannerForm, setShowBannerForm] = useState(false);
   const [bannerForm, setBannerForm] = useState(BANNER_EMPTY);
+  const [preRollJsonError, setPreRollJsonError] = useState('');
   const [showCardForm, setShowCardForm] = useState(false);
   const [cardForm, setCardForm] = useState(CARD_EMPTY);
   const [saving, setSaving] = useState(false);
@@ -79,6 +118,19 @@ export default function AdminGachaPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Validate preRollConfig JSON
+  const parsePreRollConfig = (): Record<string, unknown> | null => {
+    if (!bannerForm.preRollConfig.trim()) return null;
+    try {
+      const parsed = JSON.parse(bannerForm.preRollConfig);
+      setPreRollJsonError('');
+      return parsed as Record<string, unknown>;
+    } catch {
+      setPreRollJsonError('JSONフォーマットエラー');
+      return undefined as unknown as null;
+    }
+  };
+
   // ---- Banner actions ----
   const createBanner = async () => {
     setError('');
@@ -86,6 +138,9 @@ export default function AdminGachaPage() {
       setError('バナー名・開始日・終了日は必須です');
       return;
     }
+    const preRollConfig = parsePreRollConfig();
+    if (preRollJsonError) return;
+
     setSaving(true);
     const r = await fetch('/api/admin/gacha/banners', {
       method: 'POST',
@@ -97,6 +152,13 @@ export default function AdminGachaPage() {
         startAt: bannerForm.startAt,
         endAt: bannerForm.endAt,
         costCoins: Number(bannerForm.costCoins) || 100,
+        cost10Coins: Number(bannerForm.cost10Coins) || 900,
+        guaranteedSrAt: Number(bannerForm.guaranteedSrAt) || 100,
+        franchise: bannerForm.franchise || null,
+        bannerImageUrl: bannerForm.bannerImageUrl || null,
+        themeColor: bannerForm.themeColor || null,
+        animationType: bannerForm.animationType || 'standard',
+        preRollConfig,
       }),
     });
     setSaving(false);
@@ -132,7 +194,13 @@ export default function AdminGachaPage() {
     const r = await fetch('/api/admin/gacha/cards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cardForm),
+      body: JSON.stringify({
+        ...cardForm,
+        franchise: cardForm.franchise || null,
+        cardImageUrl: cardForm.cardImageUrl || null,
+        illustrationUrl: cardForm.illustrationUrl || null,
+        frameType: cardForm.frameType || 'standard',
+      }),
     });
     setSaving(false);
     if (!r.ok) { setError('作成失敗'); return; }
@@ -185,6 +253,8 @@ export default function AdminGachaPage() {
             <div className="bg-gray-800 rounded-lg p-4 mb-4 border border-purple-700">
               <h3 className="font-semibold mb-3">新規バナー</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
+
+                {/* バナー名 */}
                 <div className="col-span-2">
                   <label className="text-gray-400 block mb-1">バナー名 *</label>
                   <input
@@ -194,6 +264,8 @@ export default function AdminGachaPage() {
                     onChange={(e) => setBannerForm({ ...bannerForm, name: e.target.value })}
                   />
                 </div>
+
+                {/* 説明 */}
                 <div className="col-span-2">
                   <label className="text-gray-400 block mb-1">説明</label>
                   <input
@@ -203,6 +275,23 @@ export default function AdminGachaPage() {
                     onChange={(e) => setBannerForm({ ...bannerForm, description: e.target.value })}
                   />
                 </div>
+
+                {/* フランチャイズ */}
+                <div>
+                  <label className="text-gray-400 block mb-1">フランチャイズ</label>
+                  <select
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={bannerForm.franchise}
+                    onChange={(e) => setBannerForm({ ...bannerForm, franchise: e.target.value })}
+                  >
+                    <option value="">選択なし</option>
+                    {FRANCHISES.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 特定キャラ */}
                 <div>
                   <label className="text-gray-400 block mb-1">特定キャラ (任意)</label>
                   <select
@@ -216,8 +305,59 @@ export default function AdminGachaPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* テーマカラー */}
                 <div>
-                  <label className="text-gray-400 block mb-1">コスト (コイン)</label>
+                  <label className="text-gray-400 block mb-1">テーマカラー</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="w-12 h-10 rounded cursor-pointer bg-transparent border border-gray-600"
+                      value={bannerForm.themeColor}
+                      onChange={(e) => setBannerForm({ ...bannerForm, themeColor: e.target.value })}
+                    />
+                    <input
+                      className="flex-1 bg-gray-700 rounded px-3 py-2 text-white font-mono text-sm"
+                      value={bannerForm.themeColor}
+                      onChange={(e) => setBannerForm({ ...bannerForm, themeColor: e.target.value })}
+                      placeholder="#6d28d9"
+                    />
+                  </div>
+                </div>
+
+                {/* 演出タイプ */}
+                <div>
+                  <label className="text-gray-400 block mb-1">演出タイプ</label>
+                  <select
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={bannerForm.animationType}
+                    onChange={(e) => setBannerForm({ ...bannerForm, animationType: e.target.value })}
+                  >
+                    {ANIMATION_TYPES.map((a) => (
+                      <option key={a.value} value={a.value}>{a.label}</option>
+                    ))}
+                  </select>
+                  {bannerForm.animationType && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      {ANIMATION_TYPES.find(a => a.value === bannerForm.animationType)?.desc}
+                    </p>
+                  )}
+                </div>
+
+                {/* バナー画像URL */}
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">バナー画像URL</label>
+                  <input
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    placeholder="https://example.com/banner.jpg"
+                    value={bannerForm.bannerImageUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, bannerImageUrl: e.target.value })}
+                  />
+                </div>
+
+                {/* コスト */}
+                <div>
+                  <label className="text-gray-400 block mb-1">1回コスト (コイン)</label>
                   <input
                     type="number"
                     className="w-full bg-gray-700 rounded px-3 py-2 text-white"
@@ -225,6 +365,28 @@ export default function AdminGachaPage() {
                     onChange={(e) => setBannerForm({ ...bannerForm, costCoins: e.target.value })}
                   />
                 </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">10連コスト (コイン)</label>
+                  <input
+                    type="number"
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={bannerForm.cost10Coins}
+                    onChange={(e) => setBannerForm({ ...bannerForm, cost10Coins: e.target.value })}
+                  />
+                </div>
+
+                {/* SR天井 */}
+                <div>
+                  <label className="text-gray-400 block mb-1">SR天井（何連目でSR確定）</label>
+                  <input
+                    type="number"
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={bannerForm.guaranteedSrAt}
+                    onChange={(e) => setBannerForm({ ...bannerForm, guaranteedSrAt: e.target.value })}
+                  />
+                </div>
+
+                {/* 開始・終了日 */}
                 <div>
                   <label className="text-gray-400 block mb-1">開始日時 *</label>
                   <input
@@ -243,7 +405,34 @@ export default function AdminGachaPage() {
                     onChange={(e) => setBannerForm({ ...bannerForm, endAt: e.target.value })}
                   />
                 </div>
+
+                {/* 事前演出設定 (JSON) */}
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">事前演出設定 (JSON)</label>
+                  <textarea
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono text-xs"
+                    rows={4}
+                    placeholder='{"intro": "アニメ名", "bgm": "theme.mp3"}'
+                    value={bannerForm.preRollConfig}
+                    onChange={(e) => {
+                      setBannerForm({ ...bannerForm, preRollConfig: e.target.value });
+                      setPreRollJsonError('');
+                    }}
+                  />
+                  {preRollJsonError && (
+                    <p className="text-red-400 text-xs mt-1">{preRollJsonError}</p>
+                  )}
+                  {bannerForm.preRollConfig && !preRollJsonError && (() => {
+                    try {
+                      JSON.parse(bannerForm.preRollConfig);
+                      return <p className="text-green-500 text-xs mt-1">✓ 有効なJSON</p>;
+                    } catch {
+                      return null;
+                    }
+                  })()}
+                </div>
               </div>
+
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={createBanner}
@@ -253,7 +442,7 @@ export default function AdminGachaPage() {
                   {saving ? '作成中...' : '作成'}
                 </button>
                 <button
-                  onClick={() => { setShowBannerForm(false); setError(''); }}
+                  onClick={() => { setShowBannerForm(false); setError(''); setPreRollJsonError(''); }}
                   className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm"
                 >
                   キャンセル
@@ -268,26 +457,51 @@ export default function AdminGachaPage() {
             {banners.map((b) => (
               <div key={b.id} className={`rounded-lg p-4 border flex justify-between items-start ${
                 b.isActive ? 'bg-gray-800 border-purple-700' : 'bg-gray-900 border-gray-700 opacity-60'
-              }`}>
+              }`}
+                style={b.themeColor ? { borderLeftColor: b.themeColor, borderLeftWidth: '4px' } : {}}
+              >
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-semibold">{b.name}</span>
+                    {b.franchise && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-800 text-indigo-200">
+                        {b.franchise}
+                      </span>
+                    )}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       b.isActive ? 'bg-green-700 text-green-200' : 'bg-gray-700 text-gray-400'
                     }`}>
                       {b.isActive ? 'アクティブ' : '停止中'}
                     </span>
                     <span className="text-xs text-yellow-400">💰 {b.costCoins}コイン</span>
+                    {b.cost10Coins && (
+                      <span className="text-xs text-yellow-300">10連: {b.cost10Coins}コイン</span>
+                    )}
+                    {b.animationType && b.animationType !== 'standard' && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">
+                        {ANIMATION_TYPES.find(a => a.value === b.animationType)?.label ?? b.animationType}
+                      </span>
+                    )}
                   </div>
                   {b.description && <p className="text-gray-400 text-sm mb-1">{b.description}</p>}
                   {b.characterId && (
                     <p className="text-gray-500 text-xs">キャラ: {charName(b.characterId)}</p>
                   )}
+                  {b.guaranteedSrAt && (
+                    <p className="text-gray-500 text-xs">SR天井: {b.guaranteedSrAt}連</p>
+                  )}
                   <p className="text-gray-500 text-xs mt-1">
                     {new Date(b.startAt).toLocaleDateString('ja-JP')} 〜 {new Date(b.endAt).toLocaleDateString('ja-JP')}
                   </p>
                 </div>
-                <div className="flex gap-2 shrink-0 ml-4">
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  {b.themeColor && (
+                    <div
+                      className="w-5 h-5 rounded-full border border-gray-600"
+                      style={{ backgroundColor: b.themeColor }}
+                      title={b.themeColor}
+                    />
+                  )}
                   <button
                     onClick={() => toggleBanner(b.id, b.isActive)}
                     className={`text-xs px-3 py-1 rounded ${
@@ -329,6 +543,8 @@ export default function AdminGachaPage() {
             <div className="bg-gray-800 rounded-lg p-4 mb-4 border border-purple-700">
               <h3 className="font-semibold mb-3">新規カード</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
+
+                {/* カード名 */}
                 <div className="col-span-2">
                   <label className="text-gray-400 block mb-1">カード名 *</label>
                   <input
@@ -338,6 +554,8 @@ export default function AdminGachaPage() {
                     onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
                   />
                 </div>
+
+                {/* 説明 */}
                 <div className="col-span-2">
                   <label className="text-gray-400 block mb-1">説明</label>
                   <input
@@ -347,6 +565,8 @@ export default function AdminGachaPage() {
                     onChange={(e) => setCardForm({ ...cardForm, description: e.target.value })}
                   />
                 </div>
+
+                {/* キャラクター */}
                 <div>
                   <label className="text-gray-400 block mb-1">キャラクター *</label>
                   <select
@@ -360,6 +580,8 @@ export default function AdminGachaPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* レアリティ */}
                 <div>
                   <label className="text-gray-400 block mb-1">レアリティ *</label>
                   <select
@@ -370,6 +592,8 @@ export default function AdminGachaPage() {
                     {RARITIES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
+
+                {/* カテゴリ */}
                 <div>
                   <label className="text-gray-400 block mb-1">カテゴリ</label>
                   <select
@@ -383,7 +607,59 @@ export default function AdminGachaPage() {
                     <option value="art">art</option>
                   </select>
                 </div>
+
+                {/* フランチャイズ */}
+                <div>
+                  <label className="text-gray-400 block mb-1">フランチャイズ</label>
+                  <select
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={cardForm.franchise}
+                    onChange={(e) => setCardForm({ ...cardForm, franchise: e.target.value })}
+                  >
+                    <option value="">選択なし</option>
+                    {FRANCHISES.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* フレームタイプ */}
+                <div>
+                  <label className="text-gray-400 block mb-1">フレームタイプ</label>
+                  <select
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    value={cardForm.frameType}
+                    onChange={(e) => setCardForm({ ...cardForm, frameType: e.target.value })}
+                  >
+                    {FRAME_TYPES.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* カード表面画像URL */}
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">カード表面画像URL</label>
+                  <input
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    placeholder="https://example.com/card.jpg"
+                    value={cardForm.cardImageUrl}
+                    onChange={(e) => setCardForm({ ...cardForm, cardImageUrl: e.target.value })}
+                  />
+                </div>
+
+                {/* フルイラスト画像URL */}
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">フルイラスト画像URL</label>
+                  <input
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    placeholder="https://example.com/illustration.jpg"
+                    value={cardForm.illustrationUrl}
+                    onChange={(e) => setCardForm({ ...cardForm, illustrationUrl: e.target.value })}
+                  />
+                </div>
               </div>
+
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={createCard}
@@ -412,9 +688,25 @@ export default function AdminGachaPage() {
                     {c.rarity}
                   </span>
                   <span className="text-gray-400 text-xs">{c.category}</span>
+                  {c.frameType && c.frameType !== 'standard' && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-900 text-yellow-300">
+                      {FRAME_TYPES.find(f => f.value === c.frameType)?.label}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm font-medium text-white truncate">{c.name}</p>
                 <p className="text-gray-400 text-xs mt-0.5">{c.character?.name ?? charName(c.characterId)}</p>
+                {c.franchise && (
+                  <p className="text-indigo-400 text-xs mt-0.5">{c.franchise}</p>
+                )}
+                {c.cardImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.cardImageUrl}
+                    alt={c.name}
+                    className="w-full h-20 object-cover rounded mt-2"
+                  />
+                )}
                 {c.description && (
                   <p className="text-gray-500 text-xs mt-1 line-clamp-2">{c.description}</p>
                 )}
