@@ -26,25 +26,91 @@ export async function POST(req: NextRequest) {
         const coinAmount = parseInt(session.metadata?.coinAmount ?? '0', 10);
 
         if (userId && coinAmount > 0) {
-          const balance = await prisma.coinBalance.upsert({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const balance = await (prisma.coinBalance.upsert as any)({
             where: { userId },
-            create: { userId, balance: coinAmount },
-            update: { balance: { increment: coinAmount } },
-          });
+            create: { userId, paidBalance: coinAmount, freeBalance: 0 },
+            update: { paidBalance: { increment: coinAmount } },
+          }) as { paidBalance: number; freeBalance: number };
 
           await prisma.coinTransaction.create({
             data: {
               userId,
               type: 'PURCHASE',
               amount: coinAmount,
-              balanceAfter: balance.balance,
+              balanceAfter: (balance.paidBalance ?? 0) + (balance.freeBalance ?? 0),
               refId: session.id,
               metadata: { packageId: packageId ?? null },
             },
           });
         }
+      } else if (session.metadata?.type === 'fc_subscription') {
+        // FCファンクラブ加入処理（キャラクター別）
+        const characterId = session.metadata?.characterId;
+        if (userId && characterId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const character = await (prisma.character.findUnique as any)({
+            where: { id: characterId },
+            select: { fcMonthlyCoins: true, fcIncludedCallMin: true, fcMonthlyPriceJpy: true },
+          }) as { fcMonthlyCoins: number | null; fcIncludedCallMin: number | null; fcMonthlyPriceJpy: number | null } | null;
+          const fcCoins = character?.fcMonthlyCoins ?? 500;
+          const fcCallMin = character?.fcIncludedCallMin ?? 30;
+          const fcPrice = character?.fcMonthlyPriceJpy ?? 3480;
+
+          // CharacterSubscription作成（既存のACTIVEがあればスキップ）
+          try {
+            await prisma.characterSubscription.create({
+              data: {
+                userId,
+                characterId,
+                stripeSubscriptionId: session.subscription as string,
+                status: 'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                pricePaidJpy: fcPrice,
+                callMinutesTotal: fcCallMin,
+                callMinutesRemaining: fcCallMin,
+              },
+            });
+          } catch (_e) {
+            // 既に存在する場合は更新
+            await prisma.characterSubscription.updateMany({
+              where: { userId, characterId },
+              data: {
+                stripeSubscriptionId: session.subscription as string,
+                status: 'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                callMinutesTotal: fcCallMin,
+                callMinutesRemaining: fcCallMin,
+              },
+            });
+          }
+
+          // 月次コイン付与（paidBalance）
+          if (fcCoins > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const balance = await (prisma.coinBalance.upsert as any)({
+              where: { userId },
+              create: { userId, paidBalance: fcCoins, freeBalance: 0 },
+              update: { paidBalance: { increment: fcCoins } },
+            }) as { paidBalance: number; freeBalance: number };
+
+            await prisma.coinTransaction.create({
+              data: {
+                userId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                type: 'PURCHASE' as any, // FC月次コイン付与（スキーマにEARNがなければPURCHASEで代用）
+                amount: fcCoins,
+                balanceAfter: (balance.paidBalance ?? 0) + (balance.freeBalance ?? 0),
+                refId: session.id,
+                metadata: { source: 'fc_monthly_coins', characterId },
+              },
+            });
+          }
+        }
       } else {
-        // サブスクリプション処理
+        // サブスクリプション処理（汎用プラン）
         const plan = session.metadata?.plan as 'STANDARD' | 'PREMIUM';
 
         if (userId && plan) {
@@ -70,6 +136,14 @@ export async function POST(req: NextRequest) {
     
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
+
+      // CharacterSubscription（FC）のキャンセル
+      await prisma.characterSubscription.updateMany({
+        where: { stripeSubscriptionId: sub.id },
+        data: { status: 'CANCELED', canceledAt: new Date() },
+      });
+
+      // 汎用Subscriptionのキャンセル
       await prisma.subscription.updateMany({
         where: { stripeSubscriptionId: sub.id },
         data: { status: 'CANCELED' },

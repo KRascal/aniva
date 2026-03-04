@@ -1229,10 +1229,28 @@ export default function ChatCharacterPage() {
           fcIncludedCallMin={character.fcIncludedCallMin ?? 30}
           fcMonthlyCoins={character.fcMonthlyCoins ?? 500}
           onClose={() => setShowFcModal(false)}
-          onSubscribe={() => {
-            // TODO: Stripe決済フローに接続
-            setShowFcModal(false);
-            router.push(`/profile/${characterId}#fc`);
+          onSubscribe={async () => {
+            try {
+              const res = await fetch('/api/fc/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ characterId }),
+              });
+              const data = await res.json() as { checkoutUrl?: string; error?: string };
+              if (data.checkoutUrl) {
+                window.location.href = data.checkoutUrl;
+              } else if (data.error === 'Already subscribed') {
+                setShowFcModal(false);
+                router.push(`/chat/${characterId}?fc_active=1`);
+              } else {
+                throw new Error(data.error ?? 'Failed to create checkout session');
+              }
+            } catch (err) {
+              console.error('FC subscribe error:', err);
+              // フォールバック: プロフィールページへ
+              setShowFcModal(false);
+              router.push(`/profile/${characterId}#fc`);
+            }
           }}
         />
       )}
