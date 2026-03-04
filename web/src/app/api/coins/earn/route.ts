@@ -1,0 +1,77 @@
+/**
+ * POST /api/coins/earn
+ * ランダムイベント等でコインをユーザーに付与する（上限: 1日50コインまで）
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+import { prisma } from '@/lib/prisma';
+
+const DAILY_EARN_LIMIT = 50; // 1日の上限
+
+export async function POST(req: NextRequest) {
+  try {
+    const cookieName = req.cookies.has('authjs.session-token')
+      ? 'authjs.session-token'
+      : 'next-auth.session-token';
+    const token = await getToken({ req, cookieName });
+    if (!token?.sub) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { amount, reason } = await req.json() as { amount: number; reason?: string };
+    if (!amount || amount <= 0 || amount > 50) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    }
+
+    const userId = token.sub;
+
+    // 今日付与済みのコイン数を確認（ランダムイベント経由のみカウント）
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEarned = await prisma.coinTransaction.aggregate({
+      where: {
+        userId,
+        type: 'BONUS',
+        description: { contains: 'random_event' },
+        createdAt: { gte: todayStart },
+      },
+      _sum: { amount: true },
+    });
+
+    const alreadyEarned = todayEarned._sum.amount ?? 0;
+    if (alreadyEarned >= DAILY_EARN_LIMIT) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'daily_limit' });
+    }
+
+    const actualAmount = Math.min(amount, DAILY_EARN_LIMIT - alreadyEarned);
+
+    await prisma.$transaction([
+      prisma.coinBalance.upsert({
+        where: { userId },
+        create: {
+          userId,
+          balance: actualAmount,
+          freeBalance: actualAmount,
+          paidBalance: 0,
+        },
+        update: {
+          balance: { increment: actualAmount },
+          freeBalance: { increment: actualAmount },
+        },
+      }),
+      prisma.coinTransaction.create({
+        data: {
+          userId,
+          amount: actualAmount,
+          type: 'BONUS',
+          description: `random_event: ${reason ?? 'chat'}`,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({ ok: true, earned: actualAmount });
+  } catch (error) {
+    console.error('[coins/earn] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

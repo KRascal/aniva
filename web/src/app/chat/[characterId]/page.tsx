@@ -20,6 +20,7 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatMenu } from '@/components/chat/ChatMenu';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { FcSubscribeModal } from '@/components/chat/FcSubscribeModal';
+import { rollRandomEvent, type RandomEvent } from '@/lib/random-events';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -197,6 +198,7 @@ export default function ChatCharacterPage() {
   // Free plan 残りメッセージ（後方互換）
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
+  const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
   // コイン残高（チャット送信後に更新）
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
@@ -662,7 +664,30 @@ export default function ChatCharacterPage() {
         generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
       }
       // 本日送信数インクリメント（Free plan 表示・後方互換）
-      setTodayMsgCount((prev) => prev + 1);
+      setTodayMsgCount((prev) => {
+        const next = prev + 1;
+        // チャット内ランダムイベント判定（5ターン以上経過時）
+        if (next >= 3) {
+          const level = relationship?.level ?? 1;
+          const event = rollRandomEvent(level);
+          if (event) {
+            setRandomEvent(event);
+            setTimeout(() => setRandomEvent(null), 4000);
+            if (event.type === 'coin_gift' && event.coinReward) {
+              playSound('coin_earn');
+              // コイン付与API呼び出し（fire-and-forget）
+              fetch('/api/coins/earn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: event.coinReward, reason: 'random_event' }),
+              }).catch(() => {});
+            } else {
+              playSound('success');
+            }
+          }
+        }
+        return next;
+      });
       // デイリーミッション: chat_today 自動完了（1セッション1回）
       if (!sessionStorage.getItem('mission_triggered_chat_today')) {
         sessionStorage.setItem('mission_triggered_chat_today', '1');
@@ -1327,6 +1352,22 @@ export default function ChatCharacterPage() {
               </svg>
               <span>縮小する</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ ランダムイベント演出 ══════════════ */}
+      {randomEvent && (
+        <div className="mx-4 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-gradient-to-r from-purple-900/80 to-pink-900/60 border border-purple-500/40 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl">{randomEvent.emoji}</span>
+            <div>
+              <p className="text-xs font-black text-purple-300 uppercase tracking-wider">{randomEvent.title}</p>
+              <p className="text-sm text-white/80 italic">「{randomEvent.message}」</p>
+              {randomEvent.coinReward && (
+                <p className="text-xs text-yellow-400 mt-0.5">🪙 +{randomEvent.coinReward} コイン</p>
+              )}
+            </div>
           </div>
         </div>
       )}
