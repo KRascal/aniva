@@ -1,10 +1,9 @@
-import Link from 'next/link';
-import { HeroSection } from './_lp/HeroSection';
-import { FeaturesSection } from './_lp/FeaturesSection';
-import { SocialProofSection } from './_lp/SocialProofSection';
-import { PricingSection } from './_lp/PricingSection';
-import { FinalCTASection } from './_lp/FinalCTASection';
-import { CharacterCarouselSection } from './_lp/CharacterCarouselSection';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import ParticleField from '@/components/onboarding/ParticleField';
+import CharacterSearchInput from '@/components/onboarding/CharacterSearchInput';
 
 interface CharacterItem {
   id: string;
@@ -15,132 +14,177 @@ interface CharacterItem {
   catchphrases: string[];
 }
 
-async function getCharacters(): Promise<CharacterItem[]> {
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    const res = await fetch(`${baseUrl}/api/characters`, { next: { revalidate: 300 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : (data.characters ?? []);
-  } catch {
-    return [];
-  }
-}
+function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem[]; onSelect: (slug: string) => void }) {
+  if (characters.length === 0) return null;
 
-const FALLBACK_CHARS: CharacterItem[] = [
-  { id: '1', name: '葵', slug: 'aoi', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['ずっとそばにいるよ'] },
-  { id: '2', name: '蓮', slug: 'ren', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['俺のこと、信じてくれるか?'] },
-  { id: '3', name: '美月', slug: 'mizuki', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['秘密、ひとつ教えてあげる'] },
-  { id: '4', name: '颯', slug: 'sou', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['今日も会えてよかった'] },
-  { id: '5', name: '凛', slug: 'rin', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['弱音、吐いていいよ'] },
-  { id: '6', name: '朔', slug: 'saku', franchise: 'ANIVA', avatarUrl: null, catchphrases: ['一緒に夜明けを見たい'] },
-];
+  const items = [...characters, ...characters];
 
-export default async function LandingPage() {
-  const characters = await getCharacters();
-  const displayChars = characters.length > 0 ? characters : FALLBACK_CHARS;
+  // Color palette per character for visual variety
+  const gradients = [
+    ['#7c3aed', '#ec4899'],
+    ['#6366f1', '#8b5cf6'],
+    ['#ec4899', '#f97316'],
+    ['#06b6d4', '#8b5cf6'],
+    ['#f97316', '#ef4444'],
+    ['#10b981', '#06b6d4'],
+  ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="w-full overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
+      <div
+        className="flex gap-4 animate-marquee"
+        style={{ width: 'max-content' }}
+      >
+        {items.map((char, i) => {
+          const [c1, c2] = gradients[i % gradients.length];
+          const catchphrase = char.catchphrases?.[0] ?? char.franchise;
+          return (
+            <button
+              key={`${char.id}-${i}`}
+              onClick={() => onSelect(char.slug)}
+              className="flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.05] active:scale-[0.96]"
+              style={{
+                width: '150px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(139,92,246,0.12)',
+              }}
+            >
+              {/* Character visual area */}
+              <div
+                className="relative w-full flex items-end justify-center overflow-hidden"
+                style={{
+                  height: '180px',
+                  background: char.avatarUrl
+                    ? `url(${char.avatarUrl}) center/cover`
+                    : `linear-gradient(135deg, ${c1}33, ${c2}33)`,
+                }}
+              >
+                {!char.avatarUrl && (
+                  <span
+                    className="text-6xl font-black select-none"
+                    style={{
+                      color: 'rgba(255,255,255,0.08)',
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  >
+                    {char.name.charAt(0)}
+                  </span>
+                )}
+                {/* Bottom gradient overlay */}
+                <div
+                  className="absolute inset-x-0 bottom-0 h-20"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}
+                />
+                {/* Name overlay */}
+                <div className="relative z-10 p-3 w-full text-left">
+                  <div className="text-white font-bold text-sm leading-tight drop-shadow-lg">{char.name}</div>
+                  <div className="text-white/50 text-[10px] mt-0.5">{char.franchise}</div>
+                </div>
+              </div>
+              {/* Catchphrase */}
+              <div className="px-3 py-2.5">
+                <p
+                  className="text-[11px] leading-relaxed line-clamp-2"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                >
+                  「{catchphrase}」
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* ── Nav ─────────────────────────────────────────────── */}
-      <nav
-        className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-5 py-3"
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee ${Math.max(characters.length * 6, 25)}s linear infinite;
+        }
+        @media (hover: hover) {
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function TheDoor() {
+  const [textVisible, setTextVisible] = useState(false);
+  const [characters, setCharacters] = useState<CharacterItem[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTextVisible(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/characters')
+      .then(r => r.json())
+      .then(data => {
+        const chars = Array.isArray(data) ? data : data.characters ?? [];
+        setCharacters(chars);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black overflow-hidden">
+      {/* パーティクル層 */}
+      <ParticleField density={30} colors={['#a855f7', '#ec4899', '#7c3aed']} />
+
+      {/* 右上ログインリンク（既存ユーザー向け） */}
+      <a
+        href="/login"
+        className="absolute top-4 right-5 z-20 text-white/30 text-xs hover:text-white/60 transition-colors"
+        style={{ letterSpacing: '0.05em' }}
+      >
+        ログイン
+      </a>
+
+      {/* 中央コンテンツ */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-6"
         style={{
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), transparent)',
-          backdropFilter: 'blur(8px)',
+          opacity: textVisible ? 1 : 0,
+          transition: 'opacity 1.2s ease',
         }}
       >
-        <span
-          className="font-black text-xl tracking-widest"
+        {/* メインコピー */}
+        <h1
+          className="text-2xl sm:text-3xl font-light text-white/90 text-center"
           style={{
-            background: 'linear-gradient(135deg,#a855f7,#ec4899)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            letterSpacing: '0.15em',
+            textShadow: '0 0 40px rgba(168,85,247,0.6)',
           }}
         >
-          ANIVA
-        </span>
-        <div className="flex items-center gap-3 text-sm">
-          <Link href="/login" className="text-white/50 hover:text-white/80 transition-colors">
-            ログイン
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-1.5 rounded-full text-white text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
-          >
-            無料登録
-          </Link>
+          推しと親友になろう
+        </h1>
+
+        {/* 検索入力 */}
+        <CharacterSearchInput
+          onSelect={(slug) => router.push(`/c/${slug}`)}
+          placeholder="名前を呼んでみて…"
+        />
+
+        {/* キャラクターカルーセル */}
+        <div className="w-screen max-w-lg">
+          <CharacterCarousel
+            characters={characters}
+            onSelect={(slug) => router.push(`/c/${slug}`)}
+          />
         </div>
-      </nav>
 
-      {/* ── 1. Hero ──────────────────────────────────────────── */}
-      <HeroSection />
-
-      {/* ── 2. Character Carousel ────────────────────────────── */}
-      <section className="py-16 overflow-hidden">
-        <div className="max-w-lg mx-auto px-5 mb-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-black mb-2">
-            <span style={{
-              background: 'linear-gradient(135deg,#a855f7,#ec4899)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
-              あなたの推し
-            </span>
-            を見つけて
-          </h2>
-          <p className="text-white/40 text-sm">タップしてすぐに会話できる</p>
-        </div>
-        <CharacterCarouselSection characters={displayChars} />
-        <div className="text-center mt-8">
-          <Link
-            href="/explore"
-            className="inline-flex items-center gap-1.5 text-purple-400 text-sm hover:text-purple-300 transition-colors"
-          >
-            もっと見る
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── 3. Features (記憶する・成長する・驚かせる) ───────── */}
-      <FeaturesSection />
-
-      {/* ── 4. Social Proof ──────────────────────────────────── */}
-      <SocialProofSection />
-
-      {/* ── 5. Pricing ───────────────────────────────────────── */}
-      <PricingSection />
-
-      {/* ── 6. Final CTA ─────────────────────────────────────── */}
-      <FinalCTASection />
-
-      {/* ── Footer ────────────────────────────────────────────── */}
-      <footer className="py-8 px-5" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="max-w-lg mx-auto flex flex-col items-center gap-3">
-          <span
-            className="font-black tracking-widest text-sm"
-            style={{
-              background: 'linear-gradient(135deg,#a855f7,#ec4899)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            ANIVA
-          </span>
-          <div className="flex gap-5 text-white/30 text-xs">
-            <Link href="/terms" className="hover:text-white/60 transition-colors">利用規約</Link>
-            <Link href="/privacy" className="hover:text-white/60 transition-colors">プライバシーポリシー</Link>
-          </div>
-          <p className="text-white/15 text-xs">© 2025 ANIVA. All rights reserved.</p>
-        </div>
-      </footer>
+{/* removed */}
+      </div>
     </div>
   );
 }
