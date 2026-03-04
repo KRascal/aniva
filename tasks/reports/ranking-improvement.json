@@ -3,6 +3,7 @@
   "status": "in_progress",
   "started_at": "2026-03-05T01:02:00+09:00",
   "files_changed": [
-    "src/app/api/ranking/route.ts"
+    "src/app/api/ranking/route.ts",
+    "src/app/ranking/page.tsx"
   ]
 }

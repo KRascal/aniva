@@ -364,6 +364,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 }
 
 export default function AdminDashboard() {
+  const { data: session } = useSession();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -413,10 +414,21 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">ダッシュボード</h1>
+        <div className="flex items-center gap-3">
+          {/* ANIVA Admin logo */}
+          <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-900/40">
+            A
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">ANIVA Admin</h1>
+            {session?.user?.email && (
+              <p className="text-gray-500 text-xs leading-tight">{session.user.email}</p>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-gray-500 text-xs">
+            <span className="text-gray-500 text-xs hidden sm:block">
               更新: {lastUpdated.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
@@ -434,6 +446,9 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -495,6 +510,11 @@ export default function AdminDashboard() {
           />
         </div>
       </div>
+
+      {/* Recent conversations preview */}
+      {stats.activityFeed.some((i) => i.type === 'conversation') && (
+        <RecentConversations items={stats.activityFeed} />
+      )}
 
       {/* Bottom row: character ranking + activity feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
