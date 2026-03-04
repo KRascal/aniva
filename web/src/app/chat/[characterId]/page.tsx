@@ -17,6 +17,7 @@ import { WelcomeBackModal } from '@/components/chat/WelcomeBackModal';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatMenu } from '@/components/chat/ChatMenu';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { FcSubscribeModal } from '@/components/chat/FcSubscribeModal';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
@@ -139,6 +140,9 @@ interface Character {
   avatarUrl: string | null;
   slug?: string;
   voiceModelId?: string | null;
+  fcMonthlyPriceJpy?: number;
+  fcIncludedCallMin?: number;
+  fcMonthlyCoins?: number;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {
@@ -283,6 +287,7 @@ export default function ChatCharacterPage() {
   const [presence, setPresence] = useState<{ isAvailable: boolean; status: string; statusEmoji: string; statusMessage?: string | null } | null>(null);
   const [absenceBannerDismissed, setAbsenceBannerDismissed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showFcModal, setShowFcModal] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [callToast, setCallToast] = useState(false);
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
@@ -1192,6 +1197,23 @@ export default function ChatCharacterPage() {
         />
       )}
 
+      {/* FC加入ポップアップ */}
+      {showFcModal && character && (
+        <FcSubscribeModal
+          characterName={character.name}
+          characterAvatar={character.avatarUrl ?? undefined}
+          fcMonthlyPriceJpy={character.fcMonthlyPriceJpy ?? 3480}
+          fcIncludedCallMin={character.fcIncludedCallMin ?? 30}
+          fcMonthlyCoins={character.fcMonthlyCoins ?? 500}
+          onClose={() => setShowFcModal(false)}
+          onSubscribe={() => {
+            // TODO: Stripe決済フローに接続
+            setShowFcModal(false);
+            router.push(`/profile/${characterId}#fc`);
+          }}
+        />
+      )}
+
       {/* レベルアップモーダル */}
       {levelUpData && (
         <LevelUpModal
@@ -1357,15 +1379,15 @@ export default function ChatCharacterPage() {
                   </div>
                 )}
                 <div className="msg-animate flex justify-center my-2" style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}>
-                  <a
-                    href={`/profile/${characterId}#fc`}
+                  <button
+                    onClick={() => setShowFcModal(true)}
                     className="block max-w-[85%] bg-gradient-to-r from-purple-900/60 to-pink-900/60 border border-purple-500/30 rounded-2xl px-5 py-3 text-center backdrop-blur-sm hover:border-purple-400/50 transition-all"
                   >
                     <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
                     <span className="inline-block mt-2 text-xs font-bold text-purple-300 bg-purple-500/20 px-4 py-1.5 rounded-full">
                       FC会員になる →
                     </span>
-                  </a>
+                  </button>
                 </div>
               </div>
             );
