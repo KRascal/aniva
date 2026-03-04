@@ -1,6 +1,13 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  SUPPORTED_LOCALES,
+  LOCALE_LABELS,
+  CharacterLocaleConfig,
+  LocaleConfigMap,
+  SupportedLocale,
+} from '@/types/character-locale';
 
 interface Character {
   id: string;
@@ -27,6 +34,7 @@ interface Character {
   uniqueUsers: number;
   fcMonthlyCoins?: number;
   chatCoinPerMessage?: number;
+  localeConfig?: LocaleConfigMap | null;
   _count?: { relationships: number };
 }
 
@@ -440,6 +448,13 @@ export default function CharactersPage() {
   const [mood, setMood] = useState<{ moodLabel?: string; moodEmoji?: string } | null>(null);
   const [secrets, setSecrets] = useState<{ id?: string; unlockLevel: number; title: string; type: string; content: string; promptAddition?: string | null; order?: number }[]>([]);
 
+  // Locale config state
+  const [editTab, setEditTab] = useState<'basic' | 'locale'>('basic');
+  const [localeConfig, setLocaleConfig] = useState<LocaleConfigMap>({});
+  const [activeLocale, setActiveLocale] = useState<SupportedLocale>('en');
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState('');
+
   // Presence edit state
   const [presenceManualMode, setPresenceManualMode] = useState(false);
   const [presenceEditStatus, setPresenceEditStatus] = useState('');
@@ -484,6 +499,8 @@ export default function CharactersPage() {
     setShowForm(true);
     setError('');
     setWizardStep(1);
+    setLocaleConfig({});
+    setEditTab('basic');
     setSoulText('');
     setVoiceText('');
     setBoundariesText('');
@@ -496,6 +513,10 @@ export default function CharactersPage() {
   };
 
   const openEdit = (c: Character) => {
+    setEditTab('basic');
+    setLocaleConfig((c.localeConfig as LocaleConfigMap) ?? {});
+    setActiveLocale('en');
+    setTranslateError('');
     setForm({
       id: c.id,
       name: c.name,
@@ -630,6 +651,7 @@ export default function CharactersPage() {
         freeCallMinutes: toInt(form.freeCallMinutes, 5),
         fcMonthlyCoins: toInt(form.fcMonthlyCoins, 500),
         chatCoinPerMessage: toInt(form.chatCoinPerMessage, 10),
+        localeConfig: localeConfig,
       };
 
       const r = await fetch('/api/admin/characters', {
@@ -744,6 +766,60 @@ export default function CharactersPage() {
 
   const f = (key: keyof typeof EMPTY_FORM, val: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: val }));
+
+  // ---- Locale config helpers ----
+  const updateLocaleField = (locale: SupportedLocale, field: keyof CharacterLocaleConfig, value: string) => {
+    setLocaleConfig(prev => ({
+      ...prev,
+      [locale]: {
+        ...(prev[locale] ?? {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleAutoTranslate = async () => {
+    if (!form.systemPrompt) {
+      setTranslateError('日本語のシステムプロンプトを入力してください');
+      return;
+    }
+    setTranslateError('');
+    setTranslating(true);
+    try {
+      const targetLangs = SUPPORTED_LOCALES.filter(l => l !== 'ja') as SupportedLocale[];
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: form.systemPrompt,
+          sourceLang: 'ja',
+          targetLangs,
+          context: form.name ? `キャラクター名: ${form.name}` : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTranslateError(data.error || '翻訳に失敗しました');
+        return;
+      }
+      const { translations } = data as { translations: Record<string, string> };
+      setLocaleConfig(prev => {
+        const updated = { ...prev };
+        for (const lang of targetLangs) {
+          if (translations[lang]) {
+            updated[lang] = {
+              ...(updated[lang] ?? {}),
+              systemPrompt: translations[lang],
+            };
+          }
+        }
+        return updated;
+      });
+    } catch {
+      setTranslateError('翻訳に失敗しました');
+    }
+    setTranslating(false);
+  };
 
   // ---- Presence save ----
   const handleSavePresence = async () => {
@@ -1569,8 +1645,170 @@ export default function CharactersPage() {
             ) : (
               /* ---- EDIT MODE (existing character, flat form) ---- */
               <>
+                {/* Tab navigation */}
+                <div className="flex gap-1 mb-6 border-b border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setEditTab('basic')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${editTab === 'basic' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                  >基本設定</button>
+                  <button
+                    type="button"
+                    onClick={() => setEditTab('locale')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${editTab === 'locale' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                  >🌐 多言語設定</button>
+                </div>
+
                 {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>}
 
+                {/* ---- LOCALE CONFIG TAB ---- */}
+                {editTab === 'locale' && (
+                  <div>
+                    {/* Auto translate button */}
+                    <div className="mb-4 p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl">
+                      <p className="text-gray-300 text-sm mb-2">
+                        日本語のシステムプロンプトをベースに他言語へ自動翻訳します。
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleAutoTranslate}
+                        disabled={translating || !form.systemPrompt}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                      >
+                        {translating ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            翻訳中...
+                          </>
+                        ) : '🤖 自動翻訳 (EN / KO / ZH)'}
+                      </button>
+                      {translateError && (
+                        <p className="text-red-400 text-xs mt-2">{translateError}</p>
+                      )}
+                    </div>
+
+                    {/* Locale sub-tabs */}
+                    <div className="flex gap-1 mb-4 overflow-x-auto">
+                      {SUPPORTED_LOCALES.filter(l => l !== 'ja').map(locale => (
+                        <button
+                          key={locale}
+                          type="button"
+                          onClick={() => setActiveLocale(locale)}
+                          className={`px-3 py-1.5 text-sm font-medium rounded-lg shrink-0 transition-colors ${
+                            activeLocale === locale
+                              ? 'bg-blue-700 text-white'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                          }`}
+                        >
+                          {LOCALE_LABELS[locale]}
+                          {localeConfig[locale]?.systemPrompt && (
+                            <span className="ml-1 text-green-400 text-xs">✓</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Locale fields */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">
+                          キャラ名 ({LOCALE_LABELS[activeLocale]})
+                        </label>
+                        <input
+                          type="text"
+                          value={localeConfig[activeLocale]?.name ?? ''}
+                          onChange={(e) => updateLocaleField(activeLocale, 'name', e.target.value)}
+                          placeholder={`${form.name} の${LOCALE_LABELS[activeLocale]}名`}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">
+                          Bio / 説明 ({LOCALE_LABELS[activeLocale]})
+                        </label>
+                        <textarea
+                          value={localeConfig[activeLocale]?.bio ?? ''}
+                          onChange={(e) => updateLocaleField(activeLocale, 'bio', e.target.value)}
+                          rows={2}
+                          placeholder="キャラクター説明文..."
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">
+                          グリーティング ({LOCALE_LABELS[activeLocale]})
+                        </label>
+                        <input
+                          type="text"
+                          value={localeConfig[activeLocale]?.greeting ?? ''}
+                          onChange={(e) => updateLocaleField(activeLocale, 'greeting', e.target.value)}
+                          placeholder="初回挨拶..."
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">
+                          システムプロンプト ({LOCALE_LABELS[activeLocale]})
+                        </label>
+                        <textarea
+                          value={localeConfig[activeLocale]?.systemPrompt ?? ''}
+                          onChange={(e) => updateLocaleField(activeLocale, 'systemPrompt', e.target.value)}
+                          rows={10}
+                          placeholder={`${LOCALE_LABELS[activeLocale]}版のシステムプロンプト（🤖 自動翻訳で生成可）`}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
+                        />
+                      </div>
+
+                      <div className="p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-purple-400 text-sm font-semibold">
+                            🎙 ElevenLabs ボイスID ({LOCALE_LABELS[activeLocale]})
+                          </span>
+                          {localeConfig[activeLocale]?.voiceModelId ? (
+                            <span className="bg-green-900/40 text-green-400 text-xs px-2 py-0.5 rounded-full border border-green-800/40">設定済み</span>
+                          ) : (
+                            <span className="bg-gray-700 text-gray-400 text-xs px-2 py-0.5 rounded-full">未設定</span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={localeConfig[activeLocale]?.voiceModelId ?? ''}
+                          onChange={(e) => updateLocaleField(activeLocale, 'voiceModelId', e.target.value)}
+                          placeholder="ElevenLabs Voice ID (例: 21m00Tcm4TlvDq8ikWAM)"
+                          className="w-full bg-gray-900 border border-purple-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 font-mono placeholder-gray-600"
+                        />
+                        <p className="text-gray-500 text-xs mt-1.5">
+                          {LOCALE_LABELS[activeLocale]}用の声優 (未設定時はデフォルト声優にフォールバック)
+                        </p>
+                        {localeConfig[activeLocale]?.voiceModelId && (
+                          <VoiceTester voiceModelId={localeConfig[activeLocale]?.voiceModelId ?? ''} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex gap-3">
+                      <button
+                        onClick={handleSubmit}
+                        disabled={saving}
+                        className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >{saving ? '保存中...' : '保存'}</button>
+                      <button
+                        onClick={() => setShowForm(false)}
+                        className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+                      >キャンセル</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ---- BASIC SETTINGS TAB ---- */}
+                {editTab === 'basic' && (
+                <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
                   <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
@@ -1965,6 +2203,8 @@ export default function CharactersPage() {
                     className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
                   >キャンセル</button>
                 </div>
+                </div>
+                )}
               </>
             )}
           </div>

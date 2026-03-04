@@ -32,6 +32,7 @@ export async function GET() {
       freeCallMinutes: true,
       fcMonthlyCoins: true,
       chatCoinPerMessage: true,
+      localeConfig: true,
       stripeProductId: true,
       fcSubscriberCount: true,
       createdAt: true,
@@ -146,6 +147,7 @@ export async function PUT(req: NextRequest) {
     avatarUrl, coverUrl, isActive,
     fcMonthlyPriceJpy, fcIncludedCallMin, callCoinPerMin, fcOverageCallCoinPerMin,
     freeMessageLimit, freeCallMinutes, fcMonthlyCoins, chatCoinPerMessage,
+    localeConfig,
   } = data;
 
   const toInt = (v: unknown, fallback = 0) => {
@@ -189,6 +191,7 @@ export async function PUT(req: NextRequest) {
       freeCallMinutes: freeCallMinutes !== undefined ? toInt(freeCallMinutes, 5) : undefined,
       fcMonthlyCoins: fcMonthlyCoins !== undefined ? toInt(fcMonthlyCoins, 500) : undefined,
       chatCoinPerMessage: chatCoinPerMessage !== undefined ? toInt(chatCoinPerMessage, 10) : undefined,
+      localeConfig: localeConfig !== undefined ? localeConfig : undefined,
     },
   });
 
