@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  try {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -161,4 +162,8 @@ export async function GET() {
     retentionData,
     totalConversations: (conversationsRaw as { day: string; count: string }[]).reduce((s, r) => s + Number(r.count), 0),
   });
+  } catch (error) {
+    console.error('[admin/analytics] GET error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
