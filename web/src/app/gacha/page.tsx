@@ -876,6 +876,7 @@ export default function GachaPage() {
 
   async function pull(count: 1 | 10) {
     if (!selectedBanner || isPulling) return;
+    playSound('gacha_pull');
     setIsPulling(true);
     setError(null);
 
