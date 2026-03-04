@@ -62,7 +62,7 @@ export function ChatHeader({
   onFcClick,
 }: ChatHeaderProps) {
   return (
-    <header className="flex-shrink-0 bg-black/60 backdrop-blur-md border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
+    <header className="flex-shrink-0 bg-gray-950 border-b border-white/8 px-3 py-2.5 flex items-center gap-2.5 z-10">
       {/* 戻るボタン */}
       <button
         onClick={onBack}
