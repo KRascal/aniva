@@ -89,6 +89,7 @@ export async function POST() {
 
     // ストリークカウント: 直近のBONUSトランザクションから逆算
     let streak = 1; // 今日で1日目
+    let streakBroken = false; // ストリーク切れフラグ
     if (yesterdayBonus) {
       // 昨日もログインしていた → ストリーク継続
       const recentBonuses = await prisma.coinTransaction.findMany({
@@ -156,6 +157,7 @@ export async function POST() {
       coins,
       streak,
       streakDays: streak,
+      streakBroken: !yesterdayBonus && streak === 1 && !isFirstLogin,
       multiplier,
       totalBalance: balance.freeBalance + balance.paidBalance,
       isFirstLogin,

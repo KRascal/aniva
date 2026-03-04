@@ -8,6 +8,7 @@ interface BonusData {
   awarded: boolean;
   amount: number;
   streakDays: number;
+  streakBroken?: boolean;
   isFirstLogin: boolean; // 初回登録ボーナス
   welcomeAmount?: number; // 初回登録ボーナス額
   totalBalance: number;
@@ -114,7 +115,14 @@ export function LoginBonusPopup() {
             <div className={`transition-all duration-500 ${
               animPhase === 'streak' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}>
-              {bonusData.streakDays > 1 && (
+              {bonusData.streakBroken && (
+                <div className="flex flex-col items-center justify-center gap-1 text-sm mb-2">
+                  <span className="text-2xl">💔</span>
+                  <span className="text-red-300 font-bold text-xs">ストリーク途切れちゃった…</span>
+                  <span className="text-gray-400 text-[10px]">でも今日から再スタート！🔥</span>
+                </div>
+              )}
+              {!bonusData.streakBroken && bonusData.streakDays > 1 && (
                 <div className="flex items-center justify-center gap-1 text-sm">
                   <span className="text-orange-400">🔥</span>
                   <span className="text-orange-300 font-bold">{bonusData.streakDays}日連続ログイン！</span>
