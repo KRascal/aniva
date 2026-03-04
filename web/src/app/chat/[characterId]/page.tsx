@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
@@ -249,6 +249,7 @@ export default function ChatCharacterPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const characterId = params.characterId as string;
 
   /* ── 既存 state（変更なし） ── */
@@ -288,6 +289,7 @@ export default function ChatCharacterPage() {
   const [absenceBannerDismissed, setAbsenceBannerDismissed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showFcModal, setShowFcModal] = useState(false);
+  const [showFcSuccess, setShowFcSuccess] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [callToast, setCallToast] = useState(false);
   const [isViewerExpanded, setIsViewerExpanded] = useState(false); // デフォルト縮小
@@ -406,6 +408,15 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     return () => { audioRef.current?.pause(); };
   }, []);
+
+  /* FC決済完了後のお祝いモーダル表示 */
+  useEffect(() => {
+    if (searchParams.get('fc_success') === '1') {
+      setShowFcSuccess(true);
+      // URLからパラメータを除去
+      router.replace(`/chat/${characterId}`);
+    }
+  }, [searchParams, characterId, router]);
 
   /* ─────────── 既存ロジック（変更なし） ─────────── */
   useEffect(() => {
@@ -1220,6 +1231,37 @@ export default function ChatCharacterPage() {
         />
       )}
 
+      {/* FC加入決済完了お祝いモーダル */}
+      {showFcSuccess && character && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative bg-gradient-to-b from-[#1a0a2e] to-[#0d0d1a] border border-yellow-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            {/* キラキラエフェクト */}
+            <div className="text-5xl mb-2 animate-bounce">🎉</div>
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+              {['✨','⭐','💫','🌟','✨'].map((s, i) => (
+                <span key={i} className="absolute text-xl animate-ping opacity-70"
+                  style={{ top: `${15 + i * 16}%`, left: `${10 + i * 18}%`, animationDelay: `${i * 0.3}s`, animationDuration: '2s' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+            <h2 className="text-2xl font-bold text-yellow-400 mb-2">FC加入完了！</h2>
+            <p className="text-white/80 text-sm mb-1">
+              {character.name}のファンクラブへようこそ💖
+            </p>
+            <p className="text-white/60 text-xs mb-6">
+              チャット無制限・月{character.fcMonthlyCoins ?? 500}コイン・特典コンテンツが解放されました
+            </p>
+            <button
+              onClick={() => setShowFcSuccess(false)}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-base hover:opacity-90 transition"
+            >
+              {character.name}と話す ▶
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* FC加入ポップアップ */}
       {showFcModal && character && (
         <FcSubscribeModal
@@ -1308,6 +1350,7 @@ export default function ChatCharacterPage() {
         onMenuClick={() => setShowMenu(true)}
         onMemoryClick={openMemoryPeek}
         onProfileClick={() => router.push(`/profile/${characterId}`)}
+        onFcClick={() => setShowFcModal(true)}
       />
 
       {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
