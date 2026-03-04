@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { DailyBonus } from '@/components/DailyBonus';
 import { getTodayMainEvent } from '@/lib/today-events';
+import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
 interface Character {
@@ -272,6 +273,22 @@ function CharacterVerticalCard({
           </div>
 
           <p className="text-white font-bold text-sm leading-tight mb-1">{character.name}</p>
+          {/* 今日のキャラ状態バッジ */}
+          {(() => {
+            const state = getDailyState(character.slug ?? character.id);
+            return (
+              <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 mb-1 text-[9px] font-medium ${
+                state.isRareDay
+                  ? 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-300'
+                  : state.energy === 'high'
+                  ? 'bg-purple-600/20 border border-purple-500/30 text-purple-300'
+                  : 'bg-gray-700/40 border border-gray-600/30 text-gray-400'
+              }`}>
+                <span>{state.moodEmoji}</span>
+                <span>{state.mood}</span>
+              </div>
+            );
+          })()}
           {catchphrase && (
             <p className="text-white/65 text-[10px] leading-tight line-clamp-2 mb-1 italic">
               &ldquo;{catchphrase}&rdquo;

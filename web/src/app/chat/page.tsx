@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getDailyState } from '@/lib/character-daily-state';
 
 interface Character {
   id: string;
@@ -106,6 +107,17 @@ function ChatRow({
         <p className="text-xs text-gray-400 truncate leading-relaxed">
           {previewText}
         </p>
+        {/* 今日のキャラ状態バッジ */}
+        {(() => {
+          const state = getDailyState(character.slug ?? character.id);
+          return (
+            <span className={`inline-flex items-center gap-0.5 text-[9px] rounded-full px-1.5 py-0.5 mr-1 mb-0.5 ${
+              state.isRareDay ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-800/80 text-gray-500'
+            }`}>
+              {state.moodEmoji} {state.mood}
+            </span>
+          );
+        })()}
         {/* 長時間未トーク時の煽り */}
         {lastAt && (() => {
           const diffH = Math.floor((Date.now() - new Date(lastAt).getTime()) / 3600000);
