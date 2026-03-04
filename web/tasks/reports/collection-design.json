@@ -1,7 +1,19 @@
 {
   "task": "collection-design",
-  "status": "in_progress",
+  "status": "success",
   "started_at": "2026-03-05T01:02:00+09:00",
+  "completed_at": "2026-03-05T01:06:00+09:00",
   "file": "src/app/collection/page.tsx",
-  "changes": []
+  "commit": "4dcde76",
+  "changes": [
+    "SSR/URカードにCSS keyframeキラキラエフェクト追加",
+    "カードグリッドを3カラム→2カラムに拡大",
+    "ホバー/タップ時 scale-110 + glow強化",
+    "詳細モーダル: カード画像をw-48 h-48に拡大",
+    "詳細モーダル: レアリティ別背景グラデーション",
+    "詳細モーダル: SSR/URキラキラパーティクル背景",
+    "詳細モーダル: シェア・お気に入りボタン追加（UI only）",
+    "ヘッダー: bg-gray-950/90 → bg-gray-950に不透明化",
+    "完成率バー: グラデーション+アニメーションキラキラ強化"
+  ]
 }
