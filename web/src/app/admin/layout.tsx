@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -55,11 +55,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🚫</div>
-          <h1 className="text-2xl font-bold text-white mb-2">アクセス拒否</h1>
-          <p className="text-gray-400">管理者権限が必要です</p>
-          <Link href="/" className="mt-4 inline-block text-purple-400 hover:text-purple-300">
+        <div className="text-center max-w-sm mx-auto px-4">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-2xl font-bold text-white mb-2">管理者権限が必要です</h1>
+          {session?.user?.email ? (
+            <>
+              <p className="text-gray-400 mb-1">現在のログイン:</p>
+              <p className="text-white font-mono text-sm mb-4 bg-gray-800 px-3 py-2 rounded-lg">{session.user.email}</p>
+              <p className="text-gray-500 text-xs mb-6">このメールアドレスには管理者権限がありません。<br/>管理者アカウントでログインし直してください。</p>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors mb-3 w-full"
+              >
+                別のアカウントでログイン
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-400 mb-6">管理画面にアクセスするにはログインが必要です。</p>
+              <Link
+                href="/login"
+                className="inline-block px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors mb-3 w-full text-center"
+              >
+                ログインする
+              </Link>
+            </>
+          )}
+          <Link href="/" className="inline-block text-gray-500 hover:text-gray-300 text-sm mt-2">
             ← トップへ戻る
           </Link>
         </div>
