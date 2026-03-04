@@ -283,6 +283,15 @@ export function MomentCard({
       if (res.ok) {
         setCommentText('');
         fetchComments();
+        // デイリーミッション: moment_comment 自動完了（1セッション1回）
+        if (!sessionStorage.getItem('mission_triggered_moment_comment')) {
+          sessionStorage.setItem('mission_triggered_moment_comment', '1');
+          fetch('/api/missions/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ missionId: 'moment_comment' }),
+          }).catch(() => {/* ignore */});
+        }
       } else if (res.status === 401) {
         setCommentError('ログインが必要です');
       } else {

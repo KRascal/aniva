@@ -89,6 +89,15 @@ export default function StoryPage() {
         setSelectedChapter(null);
         // データ更新
         await fetchStory();
+        // デイリーミッション: story_read 自動完了（1セッション1回）
+        if (!sessionStorage.getItem('mission_triggered_story_read')) {
+          sessionStorage.setItem('mission_triggered_story_read', '1');
+          fetch('/api/missions/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ missionId: 'story_read' }),
+          }).catch(() => {/* ignore */});
+        }
       } else {
         showToast('エラーが発生しました');
       }

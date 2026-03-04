@@ -722,6 +722,15 @@ export default function ChatCharacterPage() {
       }
       // 本日送信数インクリメント（Free plan 表示・後方互換）
       setTodayMsgCount((prev) => prev + 1);
+      // デイリーミッション: chat_today 自動完了（1セッション1回）
+      if (!sessionStorage.getItem('mission_triggered_chat_today')) {
+        sessionStorage.setItem('mission_triggered_chat_today', '1');
+        fetch('/api/missions/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ missionId: 'chat_today' }),
+        }).catch(() => {/* ignore */});
+      }
       // コイン残高更新
       if (data.relationship?.coinBalance !== undefined) {
         setCoinBalance(data.relationship.coinBalance);

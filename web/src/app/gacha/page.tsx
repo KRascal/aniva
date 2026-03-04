@@ -233,6 +233,16 @@ export default function GachaPage() {
       setCoinBalance(data.coinBalance ?? 0);
       setShowResults(true);
 
+      // デイリーミッション: gacha_pull 自動完了（1セッション1回）
+      if (!sessionStorage.getItem('mission_triggered_gacha_pull')) {
+        sessionStorage.setItem('mission_triggered_gacha_pull', '1');
+        fetch('/api/missions/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ missionId: 'gacha_pull' }),
+        }).catch(() => {/* ignore */});
+      }
+
       // 1回引きは自動でめくる
       if (count === 1) {
         await new Promise((r) => setTimeout(r, 300));
