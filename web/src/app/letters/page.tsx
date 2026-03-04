@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
 interface Letter {
   id: string;
@@ -16,6 +17,10 @@ interface Letter {
 export default function LettersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // ミッション「レターをチェック」自動完了
+  useMissionTrigger('letter_check');
+
   const [letters, setLetters] = useState<Letter[]>([]);
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [loading, setLoading] = useState(true);

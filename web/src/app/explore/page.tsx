@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { DailyBonus } from '@/components/DailyBonus';
 import { getTodayMainEvent } from '@/lib/today-events';
+import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
 interface Character {
   id: string;
@@ -409,6 +410,9 @@ function CharacterHorizontalCard({
 export default function ExplorePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+
+  // ミッション「キャラを探す」自動完了
+  useMissionTrigger('explore_visit');
 
   const [characters, setCharacters] = useState<Character[]>([]);
   const [relationships, setRelationships] = useState<Map<string, RelationshipInfo>>(new Map());
