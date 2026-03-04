@@ -16,10 +16,15 @@ export async function GET() {
 
     const freeBalance = coinBalance.freeBalance ?? 0;
     const paidBalance = coinBalance.paidBalance ?? 0;
+    // 後方互換: freeBalance/paidBalanceが未移行の場合はlegacy balanceフィールドを使用
+    const legacyBalance = coinBalance.balance ?? 0;
+    const total = (freeBalance + paidBalance > 0 || legacyBalance === 0)
+      ? freeBalance + paidBalance
+      : legacyBalance;
 
     return NextResponse.json({
-      balance: freeBalance + paidBalance,
-      freeBalance,
+      balance: total,
+      freeBalance: freeBalance > 0 ? freeBalance : legacyBalance,
       paidBalance,
       updatedAt: coinBalance.updatedAt,
     });

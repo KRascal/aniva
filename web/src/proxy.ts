@@ -1,17 +1,12 @@
-import NextAuth from 'next-auth';
-import { authConfig } from '@/lib/auth.config';
-import { NextResponse } from 'next/server';
-
-const { auth } = NextAuth(authConfig);
+import { NextResponse, type NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 const SUPPORTED_LOCALES = ['ja', 'en'];
 const DEFAULT_LOCALE = 'ja';
 
-function detectLocale(req: { headers: Headers; cookies: { get: (name: string) => { value: string } | undefined } }): string {
-  // 1. Cookie
+function detectLocale(req: NextRequest): string {
   const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value;
   if (cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale)) return cookieLocale;
-  // 2. Accept-Language header
   const acceptLang = req.headers.get('accept-language') ?? '';
   for (const locale of SUPPORTED_LOCALES) {
     if (acceptLang.includes(locale)) return locale;
@@ -19,22 +14,28 @@ function detectLocale(req: { headers: Headers; cookies: { get: (name: string) =>
   return DEFAULT_LOCALE;
 }
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  // req.auth?.user はNextAuth拡張型。onboardingStepはカスタムフィールドのため型キャストが必要
-  type AuthUser = { onboardingStep?: string | null };
-  const onboardingStep = (req.auth?.user as AuthUser | undefined)?.onboardingStep;
+
+  // JWT tokenを直接取得（auth()ラッパー不使用 — Edge Runtimeで安定）
+  const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '';
+  let token: { onboardingStep?: string | null; sub?: string } | null = null;
+  try {
+    token = await getToken({ req, secret }) as typeof token;
+  } catch {
+    // getToken失敗時は未認証として扱う
+  }
+  const isLoggedIn = !!token;
+  const onboardingStep = token?.onboardingStep;
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
   const isApiAuth = pathname.startsWith('/api/auth');
   const isHealthCheck = pathname === '/api/health';
   const isOnboardingPath = pathname.startsWith('/onboarding');
-  // /c/[slug] はServer Componentで認証・リダイレクト処理を行うため通過
   const isDeeplinkPath = pathname.startsWith('/c/');
   const isApiPath = pathname.startsWith('/api/');
   const isNextPath = pathname.startsWith('/_next');
-  // 未認証でもアクセス可能な公開ページ
+
   const isPublicPage =
     pathname === '/' ||
     pathname === '/about' ||
@@ -43,26 +44,26 @@ export default auth((req) => {
     pathname === '/pricing' ||
     pathname === '/moments' ||
     pathname === '/offline' ||
-    pathname === '/discover' ||  // Phase 3: 気配の空間（未ログインOK）
+    pathname === '/discover' ||
     pathname.startsWith('/user/');  // 公開プロフィールページ
+
   const isPublicApi =
     pathname.startsWith('/api/users/') ||  // 公開プロフィールAPI
     pathname.startsWith('/api/characters') ||
     pathname.startsWith('/api/moments') ||
     pathname.startsWith('/api/push/subscribe') ||
-    pathname.startsWith('/api/push/character-notify') ||  // cron push-dm が内部呼び出し (x-cron-secret で自己認証)
+    pathname.startsWith('/api/push/character-notify') ||
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/cron') ||
-    pathname.startsWith('/api/onboarding/guest-chat') ||  // 邂逅フロー ゲストチャット
-    pathname === '/api/coins/packages' ||  // 料金ページ（未ログインでも表示）
-    pathname.startsWith('/api/geoip') ||   // ロケール検出（未ログインOK）
-    pathname.startsWith('/api/og') ||      // OGP動的生成（SNSクローラーOK）
-    pathname.startsWith('/api/events');    // イベント情報（未ログインでも表示OK）
+    pathname.startsWith('/api/onboarding/guest-chat') ||
+    pathname === '/api/coins/packages' ||
+    pathname.startsWith('/api/geoip') ||
+    pathname.startsWith('/api/og') ||
+    pathname.startsWith('/api/events');
+
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
-  // /api/auth/login は NextAuth の有効なアクションではない（有効なのは signin, signout, callback 等）
-  // ボット・クローラー等が直接アクセスしてくると NextAuth が UnknownAction エラーを吐くため、
-  // ここで /login へリダイレクトして NextAuth に到達させない
+  // /api/auth/login は NextAuth の有効なアクションではない
   if (pathname === '/api/auth/login' || pathname === '/api/auth/register') {
     return NextResponse.redirect(new URL('/login', req.url));
   }
@@ -77,7 +78,7 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Admin paths: require auth (admin email check is done at page/API level)
+  // Admin paths
   if (isAdminPath) {
     if (!isLoggedIn) {
       if (pathname.startsWith('/api/admin')) {
@@ -88,8 +89,7 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Demo mode: block signup unless invite code is provided
-  // PromiseSeal経由（from=promise）は招待コード不要（/c/[slug]のゲストチャット後のサインアップ）
+  // Demo mode: block signup unless invite code
   const INVITE_CODE = process.env.INVITE_CODE;
   if (INVITE_CODE && pathname.startsWith('/signup')) {
     const code = req.nextUrl.searchParams.get('code');
@@ -102,12 +102,10 @@ export default auth((req) => {
   // 認証ページ（login/signup）
   if (isAuthPage) {
     if (isLoggedIn) {
-      // callbackUrlがあればそこへ（/c/slugからの認証フロー対応）
       const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
       if (callbackUrl && (callbackUrl.startsWith('/c/') || callbackUrl.startsWith('/explore'))) {
         return NextResponse.redirect(new URL(callbackUrl, req.url));
       }
-      // オンボーディング未完了の場合は/onboardingへ
       if (onboardingStep !== 'completed') {
         return NextResponse.redirect(new URL('/onboarding', req.url));
       }
@@ -128,31 +126,26 @@ export default auth((req) => {
   }
 
   // === 認証済みユーザーのオンボーディングロジック ===
-
-  // /onboarding パス
   if (isOnboardingPath) {
-    // 完了済みなら/exploreへ
     if (onboardingStep === 'completed') {
       return NextResponse.redirect(new URL('/explore', req.url));
     }
     return NextResponse.next();
   }
 
-  // APIパスは通過
   if (isApiPath) {
     return NextResponse.next();
   }
 
-  // オンボーディング未完了チェック
-  // 注意: JWTのonboardingStepはstaleな場合がある（update()後にcookieが反映される前にリダイレクトされるケース）
-  // そのため、DB完了済みでもJWTがnullのままループする問題が起きていた
-  // 対策: /explore と /chat はJWTが未完了でも通過させ、ページ側でセッション更新→リダイレクト制御
   if (onboardingStep !== 'completed') {
     if (isPublicPage) {
       return NextResponse.next();
     }
-    // /explore, /chat はstale JWT対策で通過許可（ページ側でonboardingチェック）
-    const isProtectedButAllowed = pathname.startsWith('/explore') || pathname.startsWith('/chat') || pathname.startsWith('/timeline') || pathname.startsWith('/mypage');
+    const isProtectedButAllowed =
+      pathname.startsWith('/explore') ||
+      pathname.startsWith('/chat') ||
+      pathname.startsWith('/timeline') ||
+      pathname.startsWith('/mypage');
     if (isProtectedButAllowed) {
       return NextResponse.next();
     }
@@ -160,7 +153,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|public|robots.txt|sitemap.xml|sw.js|manifest.json|icons|uploads|characters).*)'],
