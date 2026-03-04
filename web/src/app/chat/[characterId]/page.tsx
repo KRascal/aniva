@@ -14,6 +14,9 @@ import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 import { getCharacterTheme } from '@/lib/character-themes';
 import { WelcomeBackModal } from '@/components/chat/WelcomeBackModal';
+import { ChatHeader } from '@/components/chat/ChatHeader';
+import { ChatMenu } from '@/components/chat/ChatMenu';
+import { ChatInput } from '@/components/chat/ChatInput';
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `

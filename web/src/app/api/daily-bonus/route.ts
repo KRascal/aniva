@@ -47,107 +47,112 @@ function getMultiplier(streak: number): number {
 }
 
 export async function POST() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const userId = (session.user as { id: string }).id;
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+    const userId = (session.user as { id: string }).id;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-  // 今日既にボーナス受け取り済みかチェック
-  const todayBonus = await prisma.coinTransaction.findFirst({
-    where: {
-      userId,
-      type: 'BONUS',
-      description: { startsWith: 'daily_login' },
-      createdAt: { gte: todayStart },
-    },
-  });
-
-  if (todayBonus) {
-    return NextResponse.json({
-      alreadyClaimed: true,
-      message: '今日のボーナスはもう受け取ったぞ！',
-    });
-  }
-
-  // 連続ログイン日数を計算
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-
-  const yesterdayBonus = await prisma.coinTransaction.findFirst({
-    where: {
-      userId,
-      type: 'BONUS',
-      description: { startsWith: 'daily_login' },
-      createdAt: { gte: yesterdayStart, lt: todayStart },
-    },
-  });
-
-  // ストリークカウント: 直近のBONUSトランザクションから逆算
-  let streak = 1; // 今日で1日目
-  if (yesterdayBonus) {
-    // 昨日もログインしていた → ストリーク継続
-    const recentBonuses = await prisma.coinTransaction.findMany({
+    // 今日既にボーナス受け取り済みかチェック
+    const todayBonus = await prisma.coinTransaction.findFirst({
       where: {
         userId,
         type: 'BONUS',
         description: { startsWith: 'daily_login' },
+        createdAt: { gte: todayStart },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 60, // 最大60日分
     });
 
-    // 連続日数を計算
-    streak = 1;
-    for (let i = 0; i < recentBonuses.length; i++) {
-      const bonusDate = new Date(recentBonuses[i].createdAt);
-      bonusDate.setHours(0, 0, 0, 0);
-      const expectedDate = new Date(todayStart);
-      expectedDate.setDate(expectedDate.getDate() - (i + 1));
-      expectedDate.setHours(0, 0, 0, 0);
+    if (todayBonus) {
+      return NextResponse.json({
+        alreadyClaimed: true,
+        message: '今日のボーナスはもう受け取ったぞ！',
+      });
+    }
 
-      if (bonusDate.getTime() === expectedDate.getTime()) {
-        streak++;
-      } else {
-        break;
+    // 連続ログイン日数を計算
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    const yesterdayBonus = await prisma.coinTransaction.findFirst({
+      where: {
+        userId,
+        type: 'BONUS',
+        description: { startsWith: 'daily_login' },
+        createdAt: { gte: yesterdayStart, lt: todayStart },
+      },
+    });
+
+    // ストリークカウント: 直近のBONUSトランザクションから逆算
+    let streak = 1; // 今日で1日目
+    if (yesterdayBonus) {
+      // 昨日もログインしていた → ストリーク継続
+      const recentBonuses = await prisma.coinTransaction.findMany({
+        where: {
+          userId,
+          type: 'BONUS',
+          description: { startsWith: 'daily_login' },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 60, // 最大60日分
+      });
+
+      // 連続日数を計算
+      streak = 1;
+      for (let i = 0; i < recentBonuses.length; i++) {
+        const bonusDate = new Date(recentBonuses[i].createdAt);
+        bonusDate.setHours(0, 0, 0, 0);
+        const expectedDate = new Date(todayStart);
+        expectedDate.setDate(expectedDate.getDate() - (i + 1));
+        expectedDate.setHours(0, 0, 0, 0);
+
+        if (bonusDate.getTime() === expectedDate.getTime()) {
+          streak++;
+        } else {
+          break;
+        }
       }
     }
+
+    const multiplier = getMultiplier(streak);
+    const coins = Math.round(BASE_COINS * multiplier);
+
+    // コイン付与（トランザクション）
+    const balance = await prisma.coinBalance.upsert({
+      where: { userId },
+      create: { userId, balance: coins },
+      update: { balance: { increment: coins } },
+    });
+
+    await prisma.coinTransaction.create({
+      data: {
+        userId,
+        type: 'BONUS',
+        amount: coins,
+        balanceAfter: balance.balance,
+        description: `daily_login_streak_${streak}`,
+      },
+    });
+
+    // メッセージ選択
+    const streakMessage = STREAK_MESSAGES[streak];
+    const greeting = streakMessage || CHARACTER_GREETINGS[Math.floor(Math.random() * CHARACTER_GREETINGS.length)];
+
+    return NextResponse.json({
+      alreadyClaimed: false,
+      coins,
+      streak,
+      multiplier,
+      totalBalance: balance.balance,
+      message: greeting,
+      isStreakMilestone: !!streakMessage,
+    });
+  } catch (error) {
+    console.error('[daily-bonus] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  const multiplier = getMultiplier(streak);
-  const coins = Math.round(BASE_COINS * multiplier);
-
-  // コイン付与（トランザクション）
-  const balance = await prisma.coinBalance.upsert({
-    where: { userId },
-    create: { userId, balance: coins },
-    update: { balance: { increment: coins } },
-  });
-
-  await prisma.coinTransaction.create({
-    data: {
-      userId,
-      type: 'BONUS',
-      amount: coins,
-      balanceAfter: balance.balance,
-      description: `daily_login_streak_${streak}`,
-    },
-  });
-
-  // メッセージ選択
-  const streakMessage = STREAK_MESSAGES[streak];
-  const greeting = streakMessage || CHARACTER_GREETINGS[Math.floor(Math.random() * CHARACTER_GREETINGS.length)];
-
-  return NextResponse.json({
-    alreadyClaimed: false,
-    coins,
-    streak,
-    multiplier,
-    totalBalance: balance.balance,
-    message: greeting,
-    isStreakMilestone: !!streakMessage,
-  });
 }

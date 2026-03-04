@@ -10,48 +10,53 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> }
 ) {
-  const session = await auth();
-  const userId = (session?.user as any)?.id as string | undefined;
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const { characterId } = await params;
+    const { characterId } = await params;
 
-  // キャラクター存在確認
-  const character = await prisma.character.findUnique({ where: { id: characterId } });
-  if (!character) {
-    return NextResponse.json({ error: 'Character not found' }, { status: 404 });
-  }
+    // キャラクター存在確認
+    const character = await prisma.character.findUnique({ where: { id: characterId } });
+    if (!character) {
+      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+    }
 
-  // Relationship を upsert してフォロー状態をトグル
-  const existing = await prisma.relationship.findUnique({
-    where: { userId_characterId: { userId, characterId } },
-  });
+    // Relationship を upsert してフォロー状態をトグル
+    const existing = await prisma.relationship.findUnique({
+      where: { userId_characterId: { userId, characterId } },
+    });
 
-  const newFollowing = !(existing?.isFollowing ?? false);
+    const newFollowing = !(existing?.isFollowing ?? false);
 
-  const relationship = await prisma.relationship.upsert({
-    where: { userId_characterId: { userId, characterId } },
-    create: {
-      userId,
+    const relationship = await prisma.relationship.upsert({
+      where: { userId_characterId: { userId, characterId } },
+      create: {
+        userId,
+        characterId,
+        isFollowing: true,
+      },
+      update: {
+        isFollowing: newFollowing,
+      },
+    });
+
+    const followerCount = await prisma.relationship.count({
+      where: { characterId, isFollowing: true },
+    });
+
+    return NextResponse.json({
+      isFollowing: relationship.isFollowing,
       characterId,
-      isFollowing: true,
-    },
-    update: {
-      isFollowing: newFollowing,
-    },
-  });
-
-  const followerCount = await prisma.relationship.count({
-    where: { characterId, isFollowing: true },
-  });
-
-  return NextResponse.json({
-    isFollowing: relationship.isFollowing,
-    characterId,
-    followerCount,
-  });
+      followerCount,
+    });
+  } catch (error) {
+    console.error('[relationship/follow POST] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 /**
@@ -62,26 +67,31 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> }
 ) {
-  const session = await auth();
-  const userId = (session?.user as any)?.id as string | undefined;
-  if (!userId) {
-    return NextResponse.json({ isFollowing: false, isFanclub: false });
+  try {
+    const session = await auth();
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
+      return NextResponse.json({ isFollowing: false, isFanclub: false });
+    }
+
+    const { characterId } = await params;
+
+    const relationship = await prisma.relationship.findUnique({
+      where: { userId_characterId: { userId, characterId } },
+      select: { isFollowing: true, isFanclub: true },
+    });
+
+    const followerCount = await prisma.relationship.count({
+      where: { characterId, isFollowing: true },
+    });
+
+    return NextResponse.json({
+      isFollowing: relationship?.isFollowing ?? false,
+      isFanclub: relationship?.isFanclub ?? false,
+      followerCount,
+    });
+  } catch (error) {
+    console.error('[relationship/follow GET] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  const { characterId } = await params;
-
-  const relationship = await prisma.relationship.findUnique({
-    where: { userId_characterId: { userId, characterId } },
-    select: { isFollowing: true, isFanclub: true },
-  });
-
-  const followerCount = await prisma.relationship.count({
-    where: { characterId, isFollowing: true },
-  });
-
-  return NextResponse.json({
-    isFollowing: relationship?.isFollowing ?? false,
-    isFanclub: relationship?.isFanclub ?? false,
-    followerCount,
-  });
 }

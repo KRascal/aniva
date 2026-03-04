@@ -22,49 +22,54 @@ function getTimeSlot(): TimeSlot {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  const userId = (session?.user as { id?: string })?.id;
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const session = await auth();
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  const { relationshipId } = body as { relationshipId: string };
-  if (!relationshipId) {
-    return NextResponse.json({ error: 'relationshipId required' }, { status: 400 });
+    const body = await req.json();
+    const { relationshipId } = body as { relationshipId: string };
+    if (!relationshipId) {
+      return NextResponse.json({ error: 'relationshipId required' }, { status: 400 });
+    }
+
+    const relationship = await prisma.relationship.findUnique({
+      where: { id: relationshipId },
+      include: { character: { select: { slug: true } } },
+    });
+    if (!relationship) {
+      return NextResponse.json({ error: 'Relationship not found' }, { status: 404 });
+    }
+
+    // 最後のメッセージから5分以内かチェック
+    const conversation = await prisma.conversation.findFirst({
+      where: { relationshipId },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const lastActivity = conversation?.updatedAt ?? relationship.lastMessageAt;
+    const shouldSend = lastActivity ? lastActivity >= fiveMinutesAgo : false;
+
+    if (!shouldSend) {
+      return NextResponse.json({ message: '', shouldSend: false });
+    }
+
+    const streak = await getStreak(relationshipId);
+    const characterSlug = relationship.character?.slug ?? 'luffy';
+    const mood: Mood = relationship.level >= 5 ? 'high' : relationship.level >= 3 ? 'normal' : 'low';
+
+    const message = generateFarewell({
+      characterSlug,
+      timeSlot: getTimeSlot(),
+      mood,
+      streakDays: streak.streakDays,
+      level: relationship.level,
+    });
+
+    return NextResponse.json({ message, shouldSend: true });
+  } catch (error) {
+    console.error('[chat/farewell] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  const relationship = await prisma.relationship.findUnique({
-    where: { id: relationshipId },
-    include: { character: { select: { slug: true } } },
-  });
-  if (!relationship) {
-    return NextResponse.json({ error: 'Relationship not found' }, { status: 404 });
-  }
-
-  // 最後のメッセージから5分以内かチェック
-  const conversation = await prisma.conversation.findFirst({
-    where: { relationshipId },
-    orderBy: { updatedAt: 'desc' },
-  });
-
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  const lastActivity = conversation?.updatedAt ?? relationship.lastMessageAt;
-  const shouldSend = lastActivity ? lastActivity >= fiveMinutesAgo : false;
-
-  if (!shouldSend) {
-    return NextResponse.json({ message: '', shouldSend: false });
-  }
-
-  const streak = await getStreak(relationshipId);
-  const characterSlug = relationship.character?.slug ?? 'luffy';
-  const mood: Mood = relationship.level >= 5 ? 'high' : relationship.level >= 3 ? 'normal' : 'low';
-
-  const message = generateFarewell({
-    characterSlug,
-    timeSlot: getTimeSlot(),
-    mood,
-    streakDays: streak.streakDays,
-    level: relationship.level,
-  });
-
-  return NextResponse.json({ message, shouldSend: true });
 }
