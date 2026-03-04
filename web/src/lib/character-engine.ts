@@ -626,7 +626,7 @@ export class CharacterEngine {
   private buildMemoryContext(relationship: RelationshipRecord): MemoryContext {
     const memo = (relationship.memorySummary ?? {}) as MemorySummaryData;
     return {
-      userName: memo.userName || relationship.user?.displayName || 'お前',
+      userName: memo.userName || relationship.user?.nickname || relationship.user?.displayName || 'お前',
       level: relationship.level,
       preferences: (memo.preferences as Record<string, string>) || {},
       importantFacts: memo.importantFacts || [],
