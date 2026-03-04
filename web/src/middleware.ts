@@ -20,8 +20,12 @@ export default async function proxy(req: NextRequest) {
   // JWT tokenを直接取得（auth()ラッパー不使用 — Edge Runtimeで安定）
   // NextAuth v5はcookie名が変わった: "authjs.session-token" (dev) / "__Secure-authjs.session-token" (prod)
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '';
-  const useSecureCookies = req.nextUrl.protocol === 'https:';
-  const cookieName = useSecureCookies
+  // NextAuth sets cookie name based on NEXTAUTH_URL (https → __Secure- prefix)
+  // Behind reverse proxy (Nginx SSL termination), req.nextUrl.protocol is 'http:'
+  // but the actual cookie uses __Secure- prefix because NEXTAUTH_URL is https
+  // → Try both cookie names to handle reverse proxy setups
+  const hasSecureCookie = req.cookies.has('__Secure-authjs.session-token');
+  const cookieName = hasSecureCookie
     ? '__Secure-authjs.session-token'
     : 'authjs.session-token';
   let token: { onboardingStep?: string | null; sub?: string } | null = null;
