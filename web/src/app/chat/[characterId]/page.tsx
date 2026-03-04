@@ -1466,6 +1466,8 @@ export default function ChatCharacterPage() {
             <Live2DViewer
               emotion={currentEmotion}
               isSpeaking={isSending}
+              avatarUrl={character?.avatarUrl ?? undefined}
+              characterName={character?.name ?? undefined}
               width={200}
               height={240}
             />
