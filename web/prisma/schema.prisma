@@ -129,6 +129,9 @@ model Character {
   // localeConfig: { "en": { voiceModelId, systemPrompt, catchphrases[], toneNotes }, "ko": {...} }
   localeConfig            Json?                   @default("{}")   // 言語別の声優/口調/プロンプト設定
   birthday                String?                                  // "MM-DD" format e.g. "05-05" for May 5th
+  presenceStatus          String?                                  // 手動上書きステータス（nullなら自動）
+  presenceEmoji           String?                                  // 手動上書き絵文字
+  presenceManualMode      Boolean                 @default(false)  // trueなら手動モード
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]
@@ -139,6 +142,21 @@ model Character {
   gachaCards              GachaCard[]
   storyChapters           StoryChapter[]
   userStoryProgress       UserStoryProgress[]
+  secretContents          SecretContent[]
+}
+
+model SecretContent {
+  id             String    @id @default(uuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  unlockLevel    Int       @default(3)
+  type           String    @default("conversation_topic")
+  title          String
+  content        String
+  promptAddition String?
+  order          Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Relationship {

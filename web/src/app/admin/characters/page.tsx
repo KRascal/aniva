@@ -438,7 +438,20 @@ export default function CharactersPage() {
   const [error, setError] = useState('');
   const [presence, setPresence] = useState<{ statusEmoji?: string; status?: string } | null>(null);
   const [mood, setMood] = useState<{ moodLabel?: string; moodEmoji?: string } | null>(null);
-  const [secrets, setSecrets] = useState<{ unlockLevel: number; title: string; type: string }[]>([]);
+  const [secrets, setSecrets] = useState<{ id?: string; unlockLevel: number; title: string; type: string; content: string; promptAddition?: string | null; order?: number }[]>([]);
+
+  // Presence edit state
+  const [presenceManualMode, setPresenceManualMode] = useState(false);
+  const [presenceEditStatus, setPresenceEditStatus] = useState('');
+  const [presenceEditEmoji, setPresenceEditEmoji] = useState('');
+  const [savingPresence, setSavingPresence] = useState(false);
+  const [presenceSaveMsg, setPresenceSaveMsg] = useState('');
+
+  // Secret content edit state
+  const [editingSecretIdx, setEditingSecretIdx] = useState<number | null>(null);
+  const [secretDraft, setSecretDraft] = useState<{ unlockLevel: number; type: string; title: string; content: string; promptAddition: string }>({ unlockLevel: 3, type: 'conversation_topic', title: '', content: '', promptAddition: '' });
+  const [generatingSecrets, setGeneratingSecrets] = useState(false);
+  const [secretsError, setSecretsError] = useState('');
 
   // Wizard state (new character only)
   const [wizardStep, setWizardStep] = useState(1);
@@ -510,20 +523,48 @@ export default function CharactersPage() {
     setEditingId(c.id);
     setShowForm(true);
     setError('');
+    setPresenceSaveMsg('');
+    setSecretsError('');
+    setEditingSecretIdx(null);
     // Fetch presence
     fetch(`/api/characters/${c.id}/presence`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
-          setPresence({ statusEmoji: data.statusEmoji, status: data.status });
-          setMood({ moodLabel: data.moodLabel, moodEmoji: data.moodEmoji });
+          setPresence({ statusEmoji: data.presence?.statusEmoji, status: data.presence?.status });
+          setMood({ moodLabel: data.mood?.moodLabel, moodEmoji: data.mood?.moodEmoji });
         } else {
           setPresence(null); setMood(null);
         }
       })
       .catch(() => { setPresence(null); setMood(null); });
-    // Load secrets from CHARACTER_SECRETS via slug
-    fetch(`/api/admin/characters/secrets?slug=${c.slug}`)
+    // Load character presence settings
+    fetch(`/api/admin/characters?id=${c.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        // The API returns an array, find our char
+        const chars = Array.isArray(data) ? data : (data ? [data] : []);
+        // Use what we already have from the `c` object
+      })
+      .catch(() => {});
+    // Initialize presence edit from character data (will be overridden by actual API data)
+    setPresenceManualMode(false);
+    setPresenceEditStatus('');
+    setPresenceEditEmoji('');
+    // Load character presence manual settings directly
+    fetch(`/api/admin/characters`)
+      .then(r => r.ok ? r.json() : [])
+      .then((chars: Array<{ id: string; presenceManualMode?: boolean; presenceStatus?: string; presenceEmoji?: string }>) => {
+        const found = Array.isArray(chars) ? chars.find((ch) => ch.id === c.id) : null;
+        if (found) {
+          setPresenceManualMode(found.presenceManualMode ?? false);
+          setPresenceEditStatus(found.presenceStatus ?? '');
+          setPresenceEditEmoji(found.presenceEmoji ?? '');
+        }
+      })
+      .catch(() => {});
+    // Load secrets from DB (with characterId), fallback to slug
+    fetch(`/api/admin/characters/secrets?characterId=${c.id}&slug=${c.slug}`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setSecrets(Array.isArray(data) ? data : []))
       .catch(() => setSecrets([]));
@@ -703,6 +744,113 @@ export default function CharactersPage() {
 
   const f = (key: keyof typeof EMPTY_FORM, val: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: val }));
+
+  // ---- Presence save ----
+  const handleSavePresence = async () => {
+    if (!editingId) return;
+    setSavingPresence(true);
+    setPresenceSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/characters/presence', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: editingId,
+          status: presenceEditStatus,
+          emoji: presenceEditEmoji,
+          manualMode: presenceManualMode,
+        }),
+      });
+      if (res.ok) {
+        setPresenceSaveMsg('保存しました');
+        setTimeout(() => setPresenceSaveMsg(''), 3000);
+      } else {
+        setPresenceSaveMsg('保存失敗');
+      }
+    } catch {
+      setPresenceSaveMsg('保存失敗');
+    }
+    setSavingPresence(false);
+  };
+
+  // ---- Secret CRUD ----
+  const handleAddSecret = async () => {
+    if (!editingId) return;
+    setSecretsError('');
+    try {
+      const res = await fetch('/api/admin/characters/secrets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: editingId,
+          ...secretDraft,
+          order: secrets.length,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setSecretsError(data.error || '追加失敗'); return; }
+      setSecrets(prev => [...prev, data]);
+      setEditingSecretIdx(null);
+      setSecretDraft({ unlockLevel: 3, type: 'conversation_topic', title: '', content: '', promptAddition: '' });
+    } catch {
+      setSecretsError('追加失敗');
+    }
+  };
+
+  const handleUpdateSecret = async (idx: number) => {
+    const s = secrets[idx];
+    if (!s?.id) return;
+    setSecretsError('');
+    try {
+      const res = await fetch('/api/admin/characters/secrets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: s.id, ...secretDraft }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setSecretsError(data.error || '更新失敗'); return; }
+      setSecrets(prev => prev.map((item, i) => i === idx ? data : item));
+      setEditingSecretIdx(null);
+    } catch {
+      setSecretsError('更新失敗');
+    }
+  };
+
+  const handleDeleteSecret = async (idx: number) => {
+    const s = secrets[idx];
+    if (!s?.id) {
+      // No DB id, just remove from local state
+      setSecrets(prev => prev.filter((_, i) => i !== idx));
+      return;
+    }
+    setSecretsError('');
+    try {
+      const res = await fetch(`/api/admin/characters/secrets?id=${s.id}`, { method: 'DELETE' });
+      if (!res.ok) { setSecretsError('削除失敗'); return; }
+      setSecrets(prev => prev.filter((_, i) => i !== idx));
+    } catch {
+      setSecretsError('削除失敗');
+    }
+  };
+
+  const handleGenerateSecrets = async () => {
+    if (!editingId) return;
+    setGeneratingSecrets(true);
+    setSecretsError('');
+    try {
+      const res = await fetch('/api/admin/characters/generate-secrets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId: editingId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setSecretsError(data.error || 'AI生成失敗'); return; }
+      setSecrets(prev => [...prev, ...data]);
+    } catch {
+      setSecretsError('AI生成失敗');
+    }
+    setGeneratingSecrets(false);
+  };
 
   // ---- Wizard form for new characters ----
   const renderWizardStep = () => {
@@ -1640,40 +1788,168 @@ export default function CharactersPage() {
                   />
                 </div>
 
-                {/* プレゼンス状態 */}
+                {/* プレゼンス状態（編集可能） */}
                 {editingId && (
-                  <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                    <h4 className="text-sm text-gray-400 mb-2">現在のプレゼンス状態</h4>
-                    {presence ? (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <span>{presence.statusEmoji}</span>
-                          <span className="text-white text-sm">{presence.status}</span>
-                        </div>
-                        <p className="text-gray-500 text-xs mt-1">ムード: {mood?.moodLabel} {mood?.moodEmoji}</p>
-                      </>
-                    ) : (
-                      <p className="text-gray-500 text-xs">プレゼンスデータなし</p>
+                  <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">🟢 プレゼンス設定</h4>
+
+                    {/* 現在の自動状態 */}
+                    {presence && !presenceManualMode && (
+                      <div className="flex items-center gap-2 mb-3 text-sm text-gray-400">
+                        <span>現在: {presence.statusEmoji} {presence.status}</span>
+                        {mood && <span className="text-gray-600">/ ムード: {mood.moodLabel} {mood.moodEmoji}</span>}
+                      </div>
                     )}
+
+                    {/* 手動/自動トグル */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-gray-400 text-sm">モード:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPresenceManualMode(false)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${!presenceManualMode ? 'bg-blue-700 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                      >自動</button>
+                      <button
+                        type="button"
+                        onClick={() => setPresenceManualMode(true)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${presenceManualMode ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                      >手動上書き</button>
+                    </div>
+
+                    {/* 手動モード入力 */}
+                    {presenceManualMode && (
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="block text-gray-500 text-xs mb-1">ステータステキスト</label>
+                          <input
+                            type="text"
+                            value={presenceEditStatus}
+                            onChange={e => setPresenceEditStatus(e.target.value)}
+                            placeholder="例: 修行中"
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-500 text-xs mb-1">絵文字</label>
+                          <input
+                            type="text"
+                            value={presenceEditEmoji}
+                            onChange={e => setPresenceEditEmoji(e.target.value)}
+                            placeholder="例: ⚔️"
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleSavePresence}
+                        disabled={savingPresence}
+                        className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >{savingPresence ? '保存中...' : '保存'}</button>
+                      {presenceSaveMsg && (
+                        <span className={`text-xs ${presenceSaveMsg === '保存しました' ? 'text-green-400' : 'text-red-400'}`}>{presenceSaveMsg}</span>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* 秘密コンテンツ */}
+                {/* 秘密コンテンツ（編集可能） */}
                 {editingId && (
-                  <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                    <h4 className="text-sm text-gray-400 mb-2">秘密コンテンツ</h4>
+                  <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-gray-300">🔒 秘密コンテンツ</h4>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleGenerateSecrets}
+                          disabled={generatingSecrets}
+                          className="px-3 py-1 bg-blue-700 hover:bg-blue-600 disabled:bg-gray-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
+                        >
+                          {generatingSecrets ? (
+                            <><svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>AI生成中...</>
+                          ) : '🤖 AIで自動生成'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSecretDraft({ unlockLevel: 3, type: 'conversation_topic', title: '', content: '', promptAddition: '' });
+                            setEditingSecretIdx(-1); // -1 = new
+                          }}
+                          className="px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-colors"
+                        >＋ 追加</button>
+                      </div>
+                    </div>
+
+                    {secretsError && (
+                      <p className="text-red-400 text-xs mb-2">{secretsError}</p>
+                    )}
+
+                    {/* Add new form */}
+                    {editingSecretIdx === -1 && (
+                      <div className="mb-3 p-3 bg-gray-900/60 rounded-lg border border-green-700/40">
+                        <p className="text-green-400 text-xs font-semibold mb-2">新規追加</p>
+                        <SecretForm draft={secretDraft} onChange={setSecretDraft} />
+                        <div className="flex gap-2 mt-2">
+                          <button type="button" onClick={handleAddSecret} className="px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-xs font-medium">保存</button>
+                          <button type="button" onClick={() => setEditingSecretIdx(null)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-xs">キャンセル</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Secrets list */}
                     {secrets.length === 0 ? (
                       <p className="text-gray-500 text-xs">秘密コンテンツなし</p>
                     ) : (
-                      secrets.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs py-1">
-                          <span className={`px-1.5 py-0.5 rounded ${s.unlockLevel <= 3 ? 'bg-green-900 text-green-300' : 'bg-purple-900 text-purple-300'}`}>
-                            Lv.{s.unlockLevel}
-                          </span>
-                          <span className="text-white">{s.title}</span>
-                          <span className="text-gray-600">({s.type})</span>
-                        </div>
-                      ))
+                      <div className="space-y-2">
+                        {secrets.map((s, i) => (
+                          <div key={s.id ?? i} className="bg-gray-900/60 rounded-lg p-2">
+                            {editingSecretIdx === i ? (
+                              <div>
+                                <SecretForm draft={secretDraft} onChange={setSecretDraft} />
+                                <div className="flex gap-2 mt-2">
+                                  <button type="button" onClick={() => handleUpdateSecret(i)} className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded text-xs font-medium">更新</button>
+                                  <button type="button" onClick={() => setEditingSecretIdx(null)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-xs">キャンセル</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${s.unlockLevel <= 3 ? 'bg-green-900 text-green-300' : s.unlockLevel <= 5 ? 'bg-yellow-900 text-yellow-300' : 'bg-purple-900 text-purple-300'}`}>Lv.{s.unlockLevel}</span>
+                                    <span className="text-white text-xs font-medium truncate">{s.title}</span>
+                                    <span className="text-gray-600 text-xs shrink-0">({s.type})</span>
+                                  </div>
+                                  <p className="text-gray-500 text-xs mt-0.5 truncate">{s.content}</p>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSecretDraft({
+                                        unlockLevel: s.unlockLevel,
+                                        type: s.type,
+                                        title: s.title,
+                                        content: s.content,
+                                        promptAddition: s.promptAddition ?? '',
+                                      });
+                                      setEditingSecretIdx(i);
+                                    }}
+                                    className="text-purple-400 hover:text-purple-300 text-xs px-1.5 py-0.5 rounded hover:bg-purple-900/30"
+                                  >編集</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSecret(i)}
+                                    className="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded hover:bg-red-900/30"
+                                  >削除</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1694,6 +1970,75 @@ export default function CharactersPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Secret Content Form ----
+function SecretForm({
+  draft,
+  onChange,
+}: {
+  draft: { unlockLevel: number; type: string; title: string; content: string; promptAddition: string };
+  onChange: (d: typeof draft) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-gray-500 text-xs mb-1">アンロックレベル (1-10)</label>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={draft.unlockLevel}
+            onChange={e => onChange({ ...draft, unlockLevel: parseInt(e.target.value, 10) || 3 })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-500 text-xs mb-1">タイプ</label>
+          <select
+            value={draft.type}
+            onChange={e => onChange({ ...draft, type: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+          >
+            <option value="conversation_topic">conversation_topic</option>
+            <option value="backstory">backstory</option>
+            <option value="moment">moment</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-gray-500 text-xs mb-1">タイトル</label>
+        <input
+          type="text"
+          value={draft.title}
+          onChange={e => onChange({ ...draft, title: e.target.value })}
+          placeholder="例: エースの話"
+          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+        />
+      </div>
+      <div>
+        <label className="block text-gray-500 text-xs mb-1">内容</label>
+        <textarea
+          value={draft.content}
+          onChange={e => onChange({ ...draft, content: e.target.value })}
+          rows={2}
+          placeholder="秘密の内容..."
+          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+        />
+      </div>
+      <div>
+        <label className="block text-gray-500 text-xs mb-1">プロンプト追加文</label>
+        <textarea
+          value={draft.promptAddition}
+          onChange={e => onChange({ ...draft, promptAddition: e.target.value })}
+          rows={2}
+          placeholder="【秘密解放: Lv●】..."
+          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+        />
+      </div>
     </div>
   );
 }

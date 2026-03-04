@@ -10,13 +10,38 @@ export async function GET(
 
   const character = await prisma.character.findUnique({
     where: { id: slug },
-    select: { slug: true },
+    select: {
+      slug: true,
+      presenceManualMode: true,
+      presenceStatus: true,
+      presenceEmoji: true,
+    },
   });
 
   if (!character) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // If manual mode is set, use manual values
+  if (character.presenceManualMode && character.presenceStatus) {
+    const mood = getCharacterMood(character.slug);
+    return NextResponse.json({
+      presence: {
+        isAvailable: true,
+        status: character.presenceStatus,
+        statusEmoji: character.presenceEmoji ?? '🟢',
+        responseDelay: 0,
+        statusMessage: null,
+      },
+      mood: {
+        mood: mood.mood,
+        moodLabel: mood.moodLabel,
+        moodEmoji: mood.moodEmoji,
+      },
+    });
+  }
+
+  // Otherwise use auto-generated presence
   const presence = getCharacterPresence(character.slug);
   const mood = getCharacterMood(character.slug);
 
