@@ -55,6 +55,8 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [planFilter, setPlanFilter] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
+  const [coinGrantAmount, setCoinGrantAmount] = useState('');
+  const [coinGranting, setCoinGranting] = useState(false);
 
   const load = useCallback(async (p = 1, s = search, pf = planFilter) => {
     setLoading(true);
@@ -104,6 +106,31 @@ export default function UsersPage() {
       }
     }
     setPlanChanging(null);
+  };
+
+  const grantCoins = async (userId: string, amount: number) => {
+    if (!amount || coinGranting) return;
+    setCoinGranting(true);
+    try {
+      const r = await fetch(`/api/admin/users/${userId}/coins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, type: 'free', note: `管理者付与: ${amount > 0 ? '+' : ''}${amount}` }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        setSelectedUser((prev) => prev ? { ...prev, coinBalance: data.balance } : prev);
+        setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, coinBalance: data.balance } : u));
+        setCoinGrantAmount('');
+        alert(`コイン付与完了: 残高 ${data.balance.toLocaleString()}`);
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert('通信エラーが発生しました');
+    } finally {
+      setCoinGranting(false);
+    }
   };
 
   const planColor = (plan: string) => {
@@ -340,6 +367,27 @@ export default function UsersPage() {
                     <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-gray-700/50">
                       <div className="text-gray-400 text-xs mb-1">FC加入</div>
                       <div className="text-purple-400 font-bold">{selectedUser.fanclub.length}</div>
+                    </div>
+                  </div>
+
+                  {/* Coin grant */}
+                  <div>
+                    <label className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-2 block">🪙 コイン付与/減算</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={coinGrantAmount}
+                        onChange={(e) => setCoinGrantAmount(e.target.value)}
+                        placeholder="例: 100, -50"
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"
+                      />
+                      <button
+                        disabled={!coinGrantAmount || coinGranting}
+                        onClick={() => grantCoins(selectedUser.id, parseInt(coinGrantAmount))}
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        {coinGranting ? '処理中...' : '付与'}
+                      </button>
                     </div>
                   </div>
 
