@@ -391,6 +391,40 @@ function QuickVoiceTest({ character, onClose }: { character: Character; onClose:
   );
 }
 
+// ---- Wizard Step Indicator ----
+function WizardStepIndicator({ step, total }: { step: number; total: number }) {
+  const labels = ['基本情報', 'キャラ設定', 'SOUL生成', '料金設定', '確認・作成', 'Moments'];
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-2">
+        {Array.from({ length: total }, (_, i) => (
+          <React.Fragment key={i}>
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                  i + 1 === step
+                    ? 'bg-purple-600 border-purple-600 text-white'
+                    : i + 1 < step
+                    ? 'bg-purple-900/60 border-purple-500 text-purple-300'
+                    : 'bg-gray-800 border-gray-600 text-gray-500'
+                }`}
+              >
+                {i + 1 < step ? '✓' : i + 1}
+              </div>
+              <span className={`text-xs mt-1 ${i + 1 === step ? 'text-purple-300' : 'text-gray-600'}`}>
+                {labels[i]}
+              </span>
+            </div>
+            {i < total - 1 && (
+              <div className={`flex-1 h-0.5 mx-1 mb-4 ${i + 1 < step ? 'bg-purple-500' : 'bg-gray-700'}`} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Main Page ----
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -405,6 +439,18 @@ export default function CharactersPage() {
   const [presence, setPresence] = useState<{ statusEmoji?: string; status?: string } | null>(null);
   const [mood, setMood] = useState<{ moodLabel?: string; moodEmoji?: string } | null>(null);
   const [secrets, setSecrets] = useState<{ unlockLevel: number; title: string; type: string }[]>([]);
+
+  // Wizard state (new character only)
+  const [wizardStep, setWizardStep] = useState(1);
+  const [generatingSoul, setGeneratingSoul] = useState(false);
+  const [soulText, setSoulText] = useState('');
+  const [voiceText, setVoiceText] = useState('');
+  const [boundariesText, setBoundariesText] = useState('');
+  const [generatingMoments, setGeneratingMoments] = useState(false);
+  const [momentsGenerated, setMomentsGenerated] = useState(false);
+  const [createdCharacterId, setCreatedCharacterId] = useState<string | null>(null);
+  const [soulError, setSoulError] = useState('');
+  const [momentsError, setMomentsError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -421,6 +467,14 @@ export default function CharactersPage() {
     setEditingId(null);
     setShowForm(true);
     setError('');
+    setWizardStep(1);
+    setSoulText('');
+    setVoiceText('');
+    setBoundariesText('');
+    setMomentsGenerated(false);
+    setCreatedCharacterId(null);
+    setSoulError('');
+    setMomentsError('');
   };
 
   const openEdit = (c: Character) => {
@@ -542,8 +596,16 @@ export default function CharactersPage() {
         const d = await r.json();
         setError(d.error || '保存に失敗しました');
       } else {
-        setShowForm(false);
-        load();
+        const result = await r.json();
+        if (!editingId) {
+          // New character created: move to step 6
+          setCreatedCharacterId(result.id || result.character?.id || null);
+          setWizardStep(6);
+          load();
+        } else {
+          setShowForm(false);
+          load();
+        }
       }
     } catch {
       setError('保存に失敗しました');
@@ -559,8 +621,515 @@ export default function CharactersPage() {
     }
   };
 
+  const handleGenerateSoul = async () => {
+    setSoulError('');
+    setGeneratingSoul(true);
+    try {
+      const res = await fetch('/api/admin/characters/generate-soul', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          slug: form.slug,
+          franchise: form.franchise,
+          description: form.description,
+          systemPrompt: form.systemPrompt,
+          catchphrases: form.catchphrases,
+          voiceModelId: form.voiceModelId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSoulError(data.error || 'AI生成に失敗しました');
+      } else {
+        setSoulText(data.soul || '');
+        setVoiceText(data.voice || '');
+        setBoundariesText(data.boundaries || '');
+      }
+    } catch {
+      setSoulError('AI生成に失敗しました');
+    }
+    setGeneratingSoul(false);
+  };
+
+  const handleGenerateMoments = async () => {
+    if (!createdCharacterId) return;
+    setMomentsError('');
+    setGeneratingMoments(true);
+    try {
+      const res = await fetch('/api/admin/characters/generate-moments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId: createdCharacterId, slug: form.slug, count: 5 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMomentsError(data.error || 'Moments生成に失敗しました');
+      } else {
+        setMomentsGenerated(true);
+      }
+    } catch {
+      setMomentsError('Moments生成に失敗しました');
+    }
+    setGeneratingMoments(false);
+  };
+
   const f = (key: keyof typeof EMPTY_FORM, val: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: val }));
+
+  // ---- Wizard form for new characters ----
+  const renderWizardStep = () => {
+    switch (wizardStep) {
+      case 1:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 1: 基本情報</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
+              <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
+              <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
+              <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
+              <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
+            </div>
+            <div className="mt-4">
+              <label className="block text-gray-400 text-sm mb-1">説明</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => f('description', e.target.value)}
+                rows={2}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUploadField
+                label="アバター画像"
+                value={form.avatarUrl}
+                onChange={(v) => f('avatarUrl', v)}
+                slug={form.slug}
+              />
+              <ImageUploadField
+                label="カバー画像"
+                value={form.coverUrl}
+                onChange={(v) => f('coverUrl', v)}
+                slug={form.slug}
+              />
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 2: キャラクター設定</h3>
+            {/* ElevenLabs Voice Model ID */}
+            <div className="p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-purple-400 text-sm font-semibold">🎙 ElevenLabs ボイスID</span>
+                {form.voiceModelId ? (
+                  <span className="bg-green-900/40 text-green-400 text-xs px-2 py-0.5 rounded-full border border-green-800/40">設定済み</span>
+                ) : (
+                  <span className="bg-gray-700 text-gray-400 text-xs px-2 py-0.5 rounded-full">未設定</span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={form.voiceModelId}
+                onChange={(e) => f('voiceModelId', e.target.value)}
+                placeholder="ElevenLabs Voice ID を入力 (例: 21m00Tcm4TlvDq8ikWAM)"
+                className="w-full bg-gray-900 border border-purple-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 font-mono placeholder-gray-600"
+              />
+              <p className="text-gray-500 text-xs mt-1.5">ElevenLabs の Voice ID (Voices ページから確認できます)</p>
+              <VoiceTester voiceModelId={form.voiceModelId} />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-400 text-sm mb-1">システムプロンプト *</label>
+              <textarea
+                value={form.systemPrompt}
+                onChange={(e) => f('systemPrompt', e.target.value)}
+                rows={8}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-400 text-sm mb-1">キャッチフレーズ（カンマ区切り）</label>
+              <input
+                type="text"
+                value={form.catchphrases}
+                onChange={(e) => f('catchphrases', e.target.value)}
+                placeholder="俺は海賊王になる！, 一緒に冒険しよう"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-400 text-sm mb-1">パーソナリティトレイト（JSON配列）</label>
+              <textarea
+                value={form.personalityTraits}
+                onChange={(e) => f('personalityTraits', e.target.value)}
+                rows={3}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <label className="text-gray-400 text-sm">アクティブ</label>
+              <button
+                type="button"
+                onClick={() => f('isActive', !form.isActive)}
+                className={`w-12 h-6 rounded-full transition-colors ${form.isActive ? 'bg-purple-600' : 'bg-gray-700'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full mx-0.5 transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 3: SOUL / VOICE / BOUNDARIES 生成</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              AIがキャラクターの性格定義ファイルを自動生成します。生成後に編集することもできます。
+            </p>
+
+            <button
+              type="button"
+              onClick={handleGenerateSoul}
+              disabled={generatingSoul || !form.name || !form.slug}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mb-4"
+            >
+              {generatingSoul ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  AI生成中...
+                </>
+              ) : '✨ AIで自動生成'}
+            </button>
+
+            {soulError && (
+              <div className="mb-3 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{soulError}</div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-purple-400 text-sm font-semibold mb-1">🌟 SOUL（性格の核・価値観）</label>
+                <textarea
+                  value={soulText}
+                  onChange={(e) => setSoulText(e.target.value)}
+                  rows={6}
+                  placeholder="AIで生成するか、直接入力してください..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-purple-400 text-sm font-semibold mb-1">🎭 VOICE（台詞サンプル）</label>
+                <textarea
+                  value={voiceText}
+                  onChange={(e) => setVoiceText(e.target.value)}
+                  rows={5}
+                  placeholder="AIで生成するか、直接入力してください..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-purple-400 text-sm font-semibold mb-1">🚫 BOUNDARIES（禁止事項）</label>
+                <textarea
+                  value={boundariesText}
+                  onChange={(e) => setBoundariesText(e.target.value)}
+                  rows={4}
+                  placeholder="AIで生成するか、直接入力してください..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+            {(soulText || voiceText || boundariesText) && (
+              <p className="text-green-400 text-xs mt-2">✓ 生成済み — エージェントフォルダに保存されます</p>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 4: 料金設定</h3>
+            <div className="p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
+              <h4 className="text-white font-semibold text-sm mb-4">💰 料金設定</h4>
+
+              {/* FCメンバーシップ */}
+              <div className="mb-4">
+                <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
+                <div className="mb-3">
+                  <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
+                  <input
+                    type="number"
+                    value={form.fcMonthlyCoins}
+                    onChange={(e) => f('fcMonthlyCoins', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    min={100}
+                    max={10000}
+                  />
+                  <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
+                  <input
+                    type="number"
+                    value={form.chatCoinPerMessage}
+                    onChange={(e) => f('chatCoinPerMessage', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    min={1}
+                    max={100}
+                  />
+                  <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC月額</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="3480"
+                        value={form.fcMonthlyPriceJpy}
+                        onChange={(e) => f('fcMonthlyPriceJpy', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">円</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.fcIncludedCallMin}
+                        onChange={(e) => f('fcIncludedCallMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">分/月</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="100"
+                        value={form.fcOverageCallCoinPerMin}
+                        onChange={(e) => f('fcOverageCallCoinPerMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 100コイン</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 無料枠 */}
+              <div className="mb-4 pt-4 border-t border-gray-700/60">
+                <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.freeMessageLimit}
+                        onChange={(e) => f('freeMessageLimit', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">通</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.freeCallMinutes}
+                        onChange={(e) => f('freeCallMinutes', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* コイン課金（非FC） */}
+              <div className="pt-4 border-t border-gray-700/60">
+                <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="200"
+                        value={form.callCoinPerMin}
+                        onChange={(e) => f('callCoinPerMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                  </div>
+                </div>
+              </div>
+
+              <GrossMarginPreview
+                fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
+                freeMessageLimit={form.freeMessageLimit}
+                fcIncludedCallMin={form.fcIncludedCallMin}
+              />
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 5: 確認・作成</h3>
+            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3 text-sm mb-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-gray-500">名前</span>
+                  <p className="text-white">{form.name || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">スラッグ</span>
+                  <p className="text-white font-mono">{form.slug || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">フランチャイズ</span>
+                  <p className="text-white">{form.franchise || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">ボイスID</span>
+                  <p className="text-white font-mono text-xs truncate">{form.voiceModelId || '未設定'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">FC月額</span>
+                  <p className="text-yellow-400 font-bold">¥{parseInt(form.fcMonthlyPriceJpy, 10).toLocaleString()}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">状態</span>
+                  <p className={form.isActive ? 'text-green-400' : 'text-gray-500'}>
+                    {form.isActive ? '● アクティブ' : '○ 停止中'}
+                  </p>
+                </div>
+              </div>
+              {form.description && (
+                <div>
+                  <span className="text-gray-500">説明</span>
+                  <p className="text-gray-300 text-xs mt-1">{form.description}</p>
+                </div>
+              )}
+              {(soulText || voiceText || boundariesText) && (
+                <div className="pt-2 border-t border-gray-700/60">
+                  <span className="text-purple-400 text-xs">✓ SOUL/VOICE/BOUNDARIES 生成済み</span>
+                </div>
+              )}
+            </div>
+
+            {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>}
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={saving || !form.name || !form.slug || !form.franchise}
+              className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  作成中...
+                </>
+              ) : '🚀 キャラクターを作成'}
+            </button>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 6: 初期Moments生成</h3>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-900/40 border border-green-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-3xl">✓</span>
+              </div>
+              <p className="text-green-400 font-semibold">キャラクター「{form.name}」を作成しました！</p>
+              <p className="text-gray-400 text-sm mt-1">次に初期Momentsを生成してキャラを賑やかにしましょう。</p>
+            </div>
+
+            {!momentsGenerated ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGenerateMoments}
+                  disabled={generatingMoments}
+                  className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 mb-3"
+                >
+                  {generatingMoments ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Moments生成中...
+                    </>
+                  ) : '✨ AIで初期Moments生成（5件）'}
+                </button>
+                {momentsError && (
+                  <div className="mb-3 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{momentsError}</div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors"
+                >
+                  スキップして閉じる
+                </button>
+              </>
+            ) : (
+              <div className="text-center space-y-3">
+                <p className="text-green-400 font-semibold">🎉 5件のMomentsを生成しました！</p>
+                <a
+                  href="/explore"
+                  className="inline-block px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  完了！ /explore で確認する →
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="block w-full mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors"
+                >
+                  管理画面に戻る
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -733,299 +1302,352 @@ export default function CharactersPage() {
               {editingId ? 'キャラクター編集' : '新規キャラクター追加'}
             </h2>
 
-            {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>}
+            {/* ---- WIZARD MODE (new character only) ---- */}
+            {!editingId ? (
+              <>
+                <WizardStepIndicator step={wizardStep} total={6} />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
-              <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
-              <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
-              <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
-              <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
-            </div>
+                {renderWizardStep()}
 
-            {/* ElevenLabs Voice Model ID - prominent section */}
-            <div className="mt-4 p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-purple-400 text-sm font-semibold">🎙 ElevenLabs ボイスID</span>
-                {form.voiceModelId && (
-                  <span className="bg-green-900/40 text-green-400 text-xs px-2 py-0.5 rounded-full border border-green-800/40">設定済み</span>
+                {/* Navigation buttons (not on step 5 or 6 - those have their own buttons) */}
+                {wizardStep < 5 && (
+                  <div className="mt-6 flex gap-3">
+                    {wizardStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setWizardStep(s => s - 1)}
+                        className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+                      >← 戻る</button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(s => s + 1)}
+                      disabled={wizardStep === 1 && (!form.name || !form.slug || !form.franchise)}
+                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                    >次へ →</button>
+                  </div>
                 )}
-                {!form.voiceModelId && (
-                  <span className="bg-gray-700 text-gray-400 text-xs px-2 py-0.5 rounded-full">未設定</span>
+
+                {/* Back button on step 5 (before create) */}
+                {wizardStep === 5 && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(4)}
+                      className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+                    >← 戻る</button>
+                  </div>
                 )}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={form.voiceModelId}
-                  onChange={(e) => f('voiceModelId', e.target.value)}
-                  placeholder="ElevenLabs Voice ID を入力 (例: 21m00Tcm4TlvDq8ikWAM)"
-                  className="flex-1 bg-gray-900 border border-purple-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 font-mono placeholder-gray-600"
-                />
-              </div>
-              <p className="text-gray-500 text-xs mt-1.5">
-                ElevenLabs の Voice ID (Voices ページから確認できます)
-              </p>
-              <VoiceTester voiceModelId={form.voiceModelId} />
-            </div>
 
-            {/* Avatar & Cover image upload fields */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ImageUploadField
-                label="アバター画像"
-                value={form.avatarUrl}
-                onChange={(v) => f('avatarUrl', v)}
-                slug={form.slug}
-              />
-              <ImageUploadField
-                label="カバー画像"
-                value={form.coverUrl}
-                onChange={(v) => f('coverUrl', v)}
-                slug={form.slug}
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-gray-400 text-sm mb-1">説明</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => f('description', e.target.value)}
-                rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-gray-400 text-sm mb-1">システムプロンプト *</label>
-              <textarea
-                value={form.systemPrompt}
-                onChange={(e) => f('systemPrompt', e.target.value)}
-                rows={8}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-gray-400 text-sm mb-1">キャッチフレーズ（カンマ区切り）</label>
-              <input
-                type="text"
-                value={form.catchphrases}
-                onChange={(e) => f('catchphrases', e.target.value)}
-                placeholder="俺は海賊王になる！, 一緒に冒険しよう"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-gray-400 text-sm mb-1">パーソナリティトレイト（JSON配列）</label>
-              <textarea
-                value={form.personalityTraits}
-                onChange={(e) => f('personalityTraits', e.target.value)}
-                rows={3}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
-              />
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <label className="text-gray-400 text-sm">アクティブ</label>
-              <button
-                type="button"
-                onClick={() => f('isActive', !form.isActive)}
-                className={`w-12 h-6 rounded-full transition-colors ${form.isActive ? 'bg-purple-600' : 'bg-gray-700'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full mx-0.5 transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
-              </button>
-            </div>
-
-            {/* 料金設定セクション */}
-            <div className="mt-6 p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
-              <h3 className="text-white font-semibold text-sm mb-4">💰 料金設定</h3>
-
-              {/* FCメンバーシップ */}
-              <div className="mb-4">
-                <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
-                <div className="mb-3">
-                  <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
-                  <input
-                    type="number"
-                    value={form.fcMonthlyCoins}
-                    onChange={(e) => f('fcMonthlyCoins', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    min={100}
-                    max={10000}
-                  />
-                  <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
-                </div>
-                <div className="mb-3">
-                  <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
-                  <input
-                    type="number"
-                    value={form.chatCoinPerMessage}
-                    onChange={(e) => f('chatCoinPerMessage', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    min={1}
-                    max={100}
-                  />
-                  <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">FC月額</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="3480"
-                        value={form.fcMonthlyPriceJpy}
-                        onChange={(e) => f('fcMonthlyPriceJpy', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">円</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
+                {/* Cancel button (always visible except step 6) */}
+                {wizardStep < 6 && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowForm(false)}
+                      className="w-full px-4 py-2 text-gray-500 hover:text-gray-400 text-sm transition-colors"
+                    >キャンセル</button>
                   </div>
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.fcIncludedCallMin}
-                        onChange={(e) => f('fcIncludedCallMin', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">分/月</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="100"
-                        value={form.fcOverageCallCoinPerMin}
-                        onChange={(e) => f('fcOverageCallCoinPerMin', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">最低 100コイン</p>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
+            ) : (
+              /* ---- EDIT MODE (existing character, flat form) ---- */
+              <>
+                {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>}
 
-              {/* 無料枠 */}
-              <div className="mb-4 pt-4 border-t border-gray-700/60">
-                <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.freeMessageLimit}
-                        onChange={(e) => f('freeMessageLimit', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">通</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.freeCallMinutes}
-                        onChange={(e) => f('freeCallMinutes', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">分</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                  </div>
+                  <Field label="名前 *" value={form.name} onChange={(v) => f('name', v)} />
+                  <Field label="名前（英語）" value={form.nameEn} onChange={(v) => f('nameEn', v)} />
+                  <Field label="スラッグ *" value={form.slug} onChange={(v) => f('slug', v)} placeholder="e.g. luffy" />
+                  <Field label="フランチャイズ *" value={form.franchise} onChange={(v) => f('franchise', v)} />
+                  <Field label="フランチャイズ（英語）" value={form.franchiseEn} onChange={(v) => f('franchiseEn', v)} />
                 </div>
-              </div>
 
-              {/* コイン課金（非FC） */}
-              <div className="pt-4 border-t border-gray-700/60">
-                <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
-                    <div className="flex items-center gap-2">
+                {/* ElevenLabs Voice Model ID - prominent section */}
+                <div className="mt-4 p-4 bg-gray-800/60 border border-purple-700/40 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-purple-400 text-sm font-semibold">🎙 ElevenLabs ボイスID</span>
+                    {form.voiceModelId && (
+                      <span className="bg-green-900/40 text-green-400 text-xs px-2 py-0.5 rounded-full border border-green-800/40">設定済み</span>
+                    )}
+                    {!form.voiceModelId && (
+                      <span className="bg-gray-700 text-gray-400 text-xs px-2 py-0.5 rounded-full">未設定</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={form.voiceModelId}
+                      onChange={(e) => f('voiceModelId', e.target.value)}
+                      placeholder="ElevenLabs Voice ID を入力 (例: 21m00Tcm4TlvDq8ikWAM)"
+                      className="flex-1 bg-gray-900 border border-purple-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 font-mono placeholder-gray-600"
+                    />
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1.5">
+                    ElevenLabs の Voice ID (Voices ページから確認できます)
+                  </p>
+                  <VoiceTester voiceModelId={form.voiceModelId} />
+                </div>
+
+                {/* Avatar & Cover image upload fields */}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ImageUploadField
+                    label="アバター画像"
+                    value={form.avatarUrl}
+                    onChange={(v) => f('avatarUrl', v)}
+                    slug={form.slug}
+                  />
+                  <ImageUploadField
+                    label="カバー画像"
+                    value={form.coverUrl}
+                    onChange={(v) => f('coverUrl', v)}
+                    slug={form.slug}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-400 text-sm mb-1">説明</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => f('description', e.target.value)}
+                    rows={2}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-400 text-sm mb-1">システムプロンプト *</label>
+                  <textarea
+                    value={form.systemPrompt}
+                    onChange={(e) => f('systemPrompt', e.target.value)}
+                    rows={8}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-400 text-sm mb-1">キャッチフレーズ（カンマ区切り）</label>
+                  <input
+                    type="text"
+                    value={form.catchphrases}
+                    onChange={(e) => f('catchphrases', e.target.value)}
+                    placeholder="俺は海賊王になる！, 一緒に冒険しよう"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-400 text-sm mb-1">パーソナリティトレイト（JSON配列）</label>
+                  <textarea
+                    value={form.personalityTraits}
+                    onChange={(e) => f('personalityTraits', e.target.value)}
+                    rows={3}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <label className="text-gray-400 text-sm">アクティブ</label>
+                  <button
+                    type="button"
+                    onClick={() => f('isActive', !form.isActive)}
+                    className={`w-12 h-6 rounded-full transition-colors ${form.isActive ? 'bg-purple-600' : 'bg-gray-700'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full mx-0.5 transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* 料金設定セクション */}
+                <div className="mt-6 p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
+                  <h3 className="text-white font-semibold text-sm mb-4">💰 料金設定</h3>
+
+                  {/* FCメンバーシップ */}
+                  <div className="mb-4">
+                    <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
+                    <div className="mb-3">
+                      <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
                       <input
                         type="number"
-                        min="200"
-                        value={form.callCoinPerMin}
-                        onChange={(e) => f('callCoinPerMin', e.target.value)}
+                        value={form.fcMonthlyCoins}
+                        onChange={(e) => f('fcMonthlyCoins', e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        min={100}
+                        max={10000}
                       />
-                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                      <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
                     </div>
-                    <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                    <div className="mb-3">
+                      <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
+                      <input
+                        type="number"
+                        value={form.chatCoinPerMessage}
+                        onChange={(e) => f('chatCoinPerMessage', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        min={1}
+                        max={100}
+                      />
+                      <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">FC月額</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="3480"
+                            value={form.fcMonthlyPriceJpy}
+                            onChange={(e) => f('fcMonthlyPriceJpy', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">円</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.fcIncludedCallMin}
+                            onChange={(e) => f('fcIncludedCallMin', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">分/月</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="100"
+                            value={form.fcOverageCallCoinPerMin}
+                            onChange={(e) => f('fcOverageCallCoinPerMin', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">最低 100コイン</p>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* 無料枠 */}
+                  <div className="mb-4 pt-4 border-t border-gray-700/60">
+                    <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.freeMessageLimit}
+                            onChange={(e) => f('freeMessageLimit', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">通</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.freeCallMinutes}
+                            onChange={(e) => f('freeCallMinutes', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">分</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* コイン課金（非FC） */}
+                  <div className="pt-4 border-t border-gray-700/60">
+                    <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="200"
+                            value={form.callCoinPerMin}
+                            onChange={(e) => f('callCoinPerMin', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 粗利率プレビュー */}
+                  <GrossMarginPreview
+                    fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
+                    freeMessageLimit={form.freeMessageLimit}
+                    fcIncludedCallMin={form.fcIncludedCallMin}
+                  />
                 </div>
-              </div>
 
-              {/* 粗利率プレビュー */}
-              <GrossMarginPreview
-                fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
-                freeMessageLimit={form.freeMessageLimit}
-                fcIncludedCallMin={form.fcIncludedCallMin}
-              />
-            </div>
-
-            {/* プレゼンス状態 */}
-            {editingId && (
-              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                <h4 className="text-sm text-gray-400 mb-2">現在のプレゼンス状態</h4>
-                {presence ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <span>{presence.statusEmoji}</span>
-                      <span className="text-white text-sm">{presence.status}</span>
-                    </div>
-                    <p className="text-gray-500 text-xs mt-1">ムード: {mood?.moodLabel} {mood?.moodEmoji}</p>
-                  </>
-                ) : (
-                  <p className="text-gray-500 text-xs">プレゼンスデータなし</p>
+                {/* プレゼンス状態 */}
+                {editingId && (
+                  <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
+                    <h4 className="text-sm text-gray-400 mb-2">現在のプレゼンス状態</h4>
+                    {presence ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span>{presence.statusEmoji}</span>
+                          <span className="text-white text-sm">{presence.status}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs mt-1">ムード: {mood?.moodLabel} {mood?.moodEmoji}</p>
+                      </>
+                    ) : (
+                      <p className="text-gray-500 text-xs">プレゼンスデータなし</p>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* 秘密コンテンツ */}
-            {editingId && (
-              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                <h4 className="text-sm text-gray-400 mb-2">秘密コンテンツ</h4>
-                {secrets.length === 0 ? (
-                  <p className="text-gray-500 text-xs">秘密コンテンツなし</p>
-                ) : (
-                  secrets.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs py-1">
-                      <span className={`px-1.5 py-0.5 rounded ${s.unlockLevel <= 3 ? 'bg-green-900 text-green-300' : 'bg-purple-900 text-purple-300'}`}>
-                        Lv.{s.unlockLevel}
-                      </span>
-                      <span className="text-white">{s.title}</span>
-                      <span className="text-gray-600">({s.type})</span>
-                    </div>
-                  ))
+                {/* 秘密コンテンツ */}
+                {editingId && (
+                  <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
+                    <h4 className="text-sm text-gray-400 mb-2">秘密コンテンツ</h4>
+                    {secrets.length === 0 ? (
+                      <p className="text-gray-500 text-xs">秘密コンテンツなし</p>
+                    ) : (
+                      secrets.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs py-1">
+                          <span className={`px-1.5 py-0.5 rounded ${s.unlockLevel <= 3 ? 'bg-green-900 text-green-300' : 'bg-purple-900 text-purple-300'}`}>
+                            Lv.{s.unlockLevel}
+                          </span>
+                          <span className="text-white">{s.title}</span>
+                          <span className="text-gray-600">({s.type})</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >{saving ? '保存中...' : '保存'}</button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
-              >キャンセル</button>
-            </div>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >{saving ? '保存中...' : '保存'}</button>
+                  <button
+                    onClick={() => setShowForm(false)}
+                    className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+                  >キャンセル</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
