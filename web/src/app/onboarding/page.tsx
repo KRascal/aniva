@@ -129,8 +129,10 @@ function OnboardingInner() {
             if (phase && phase !== 'welcome') {
               const validPhases: OnboardingPhase[] = ['welcome', 'character_select', 'nickname', 'approval', 'first_chat', 'hook'];
               if (validPhases.includes(phase as OnboardingPhase)) {
-                // キャラ選択済みならcharacter_selectをスキップ
-                const resumePhase = (phase === 'character_select' && savedCharacter) ? 'nickname' : phase;
+                // キャラ選択済みならcharacter_selectをスキップ、nickname既入力ならnicknameもスキップ
+                let resumePhase = phase;
+                if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
+                if (resumePhase === 'nickname' && savedNickname) resumePhase = 'approval';
                 stateRestored = true;
                 setState((prev) => ({
                   ...prev,
@@ -201,11 +203,52 @@ function OnboardingInner() {
         }
       }
 
+      // ゲスト体験でニックネーム入力済みならスキップ
+      try {
+        const guestNickname = sessionStorage.getItem('aniva_guest_nickname');
+        if (guestNickname) {
+          setState((prev) => {
+            // ニックネームをセットし、nicknameフェーズなら次へスキップ
+            const updated = { ...prev, nickname: guestNickname };
+            if (prev.phase === 'nickname') {
+              updated.phase = 'approval';
+            } else if (prev.phase === 'welcome' && prev.selectedCharacter) {
+              // welcomeでキャラ選択済み（ディープリンク等）ならnickname & character_selectスキップ
+              updated.phase = 'approval';
+            }
+            return updated;
+          });
+          // DB にもニックネームを保存
+          fetch('/api/onboarding/nickname', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nickname: guestNickname }),
+          }).catch(() => {});
+          sessionStorage.removeItem('aniva_guest_nickname');
+        }
+      } catch {}
+
       setInitialized(true);
     };
 
     init();
   }, [session, status, searchParams, initialized, router]);
+
+  // ── nicknameフェーズ自動スキップ（既にnickname/nameがある場合） ──────
+  // ゲスト体験で名前入力済みのユーザーがsignup後にオンボーディングに来た場合、
+  // session.user.name または state.nickname が存在すればnicknameフェーズを自動スキップする
+  useEffect(() => {
+    if (!initialized || state.phase !== 'nickname') return;
+    const sessionName = (session?.user as { name?: string | null })?.name;
+    const existingNickname = state.nickname || sessionName;
+    if (existingNickname) {
+      setState(prev => ({
+        ...prev,
+        nickname: prev.nickname || existingNickname,
+        phase: 'approval',
+      }));
+    }
+  }, [initialized, state.phase, state.nickname, session?.user]);
 
   // ── Phase遷移ハンドラー ─────────────────────
 
