@@ -20,6 +20,7 @@ export function getGuestSessionId(): string {
 export type OnboardingStep =
   | 'summoning'
   | 'encounter'
+  | 'nickname'
   | 'chat'
   | 'promise'
   | 'complete';

@@ -7,6 +7,7 @@ import { GuestMessage } from '@/lib/onboarding-session';
 interface OnboardingChatProps {
   character: CharacterData;
   guestSessionId: string;
+  nickname?: string;
   onComplete: (chatHistory: GuestMessage[]) => void;
 }
 
@@ -19,6 +20,7 @@ interface ChatMessage {
 export default function OnboardingChat({
   character,
   guestSessionId,
+  nickname,
   onComplete,
 }: OnboardingChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -50,6 +52,7 @@ export default function OnboardingChat({
         body: JSON.stringify({
           characterSlug: character.slug,
           guestSessionId,
+          nickname: nickname || '',
           userMessage: '',
           turnNumber: 0, // initial greeting
         }),
@@ -95,6 +98,7 @@ export default function OnboardingChat({
         body: JSON.stringify({
           characterSlug: character.slug,
           guestSessionId,
+          nickname: nickname || '',
           userMessage: text,
           turnNumber,
         }),

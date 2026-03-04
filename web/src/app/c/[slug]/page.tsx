@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import SummoningEffect from '@/components/onboarding/SummoningEffect';
 import CharacterReveal, { CharacterData } from '@/components/onboarding/CharacterReveal';
+import PhaseNickname from '@/components/onboarding/PhaseNickname';
 import OnboardingChat from '@/components/onboarding/OnboardingChat';
 import PromiseSeal from '@/components/onboarding/PromiseSeal';
 import { getGuestSessionId, GuestMessage, OnboardingStep } from '@/lib/onboarding-session';
@@ -50,6 +51,7 @@ export default function EncounterPage() {
   const [step, setStep] = useState<OnboardingStep>('summoning');
   const [character, setCharacter] = useState<CharacterData | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [nickname, setNickname] = useState<string>('');
   const [guestHistory, setGuestHistory] = useState<GuestMessage[]>([]);
   const [meetDate] = useState<Date>(() => new Date());
   const [guestSessionId, setGuestSessionId] = useState<string>('');
@@ -77,6 +79,13 @@ export default function EncounterPage() {
   }, []);
 
   const handleEncounterComplete = useCallback(() => {
+    setStep('nickname');
+  }, []);
+
+  const handleNicknameComplete = useCallback((name: string) => {
+    setNickname(name);
+    // ゲストセッションにニックネーム保存
+    try { sessionStorage.setItem('aniva_guest_nickname', name); } catch {}
     setStep('chat');
   }, []);
 
@@ -87,9 +96,10 @@ export default function EncounterPage() {
 
   const handlePromiseComplete = useCallback(() => {
     if (character) {
-      window.location.href = `/chat/${character.id}`;
+      // ログインページへ。ログイン後にそのままチャットに飛ぶ
+      window.location.href = `/signup?redirect=${encodeURIComponent(`/chat/${character.id}`)}`;
     } else {
-      window.location.href = '/explore';
+      window.location.href = '/signup';
     }
   }, [character]);
 
@@ -111,6 +121,13 @@ export default function EncounterPage() {
         <CharacterReveal
           character={character}
           onComplete={handleEncounterComplete}
+        />
+      )}
+
+      {step === 'nickname' && (
+        <PhaseNickname
+          character={character as any}
+          onComplete={handleNicknameComplete}
         />
       )}
 
