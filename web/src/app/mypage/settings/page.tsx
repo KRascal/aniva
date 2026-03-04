@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import Link from 'next/link';
 
 type ThemeOption = 'light' | 'dark' | 'system';
-type LangOption = 'ja' | 'en';
+type LangOption = 'ja' | 'en' | 'ko' | 'zh';
 
 interface SettingsData {
   theme: ThemeOption;
@@ -36,6 +36,8 @@ const THEME_OPTIONS: { value: ThemeOption; label: string; icon: string }[] = [
 const LANG_OPTIONS: { value: LangOption; label: string; flag: string }[] = [
   { value: 'ja', label: '日本語', flag: '🇯🇵' },
   { value: 'en', label: 'English', flag: '🇺🇸' },
+  { value: 'ko', label: '한국어', flag: '🇰🇷' },
+  { value: 'zh', label: '中文', flag: '🇨🇳' },
 ];
 
 export default function SettingsPage() {
@@ -97,6 +99,11 @@ export default function SettingsPage() {
       setTheme(updates.theme);
     }
 
+    // Apply locale immediately via NEXT_LOCALE cookie
+    if (updates.language) {
+      document.cookie = `NEXT_LOCALE=${updates.language}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+
     try {
       const res = await fetch('/api/users/settings', {
         method: 'PUT',
@@ -107,6 +114,10 @@ export default function SettingsPage() {
       if (res.ok) {
         setSaveMessage('保存しました ✓');
         setTimeout(() => setSaveMessage(null), 2000);
+        // Reload page to apply locale change
+        if (updates.language) {
+          setTimeout(() => window.location.reload(), 500);
+        }
       }
     } catch {
       setSaveMessage('保存に失敗しました');
