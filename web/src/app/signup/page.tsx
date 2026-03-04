@@ -9,7 +9,7 @@ import { Suspense } from 'react';
 function SignupForm() {
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get('code') || '';
-  const redirectTo = searchParams.get('redirect') ?? '/explore';
+  const redirectTo = searchParams.get('redirect') ?? '/onboarding';
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');

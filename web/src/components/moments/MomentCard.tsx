@@ -575,7 +575,10 @@ export function MomentCard({
               placeholder={`${moment.character.name}の投稿にコメント...`}
               className="flex-1 bg-gray-800/60 border border-white/10 rounded-full px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') submitComment();
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  submitComment();
+                }
               }}
             />
             <button

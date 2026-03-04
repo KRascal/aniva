@@ -1,0 +1,7 @@
+{
+  "task": "aniva-free-gacha-staging-deploy",
+  "status": "success",
+  "summary": "ステージングデプロイ完了 - ビルド成功、PM2起動確認、HTTP 200応答",
+  "http_status": 200,
+  "commit": "aecf814"
+}
