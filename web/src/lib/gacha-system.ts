@@ -15,8 +15,12 @@ export interface PullResult {
     name: string;
     description: string | null;
     imageUrl: string | null;
+    cardImageUrl?: string | null;
+    illustrationUrl?: string | null;
+    frameType?: string | null;
     rarity: GachaRarity;
     characterId: string;
+    franchise?: string | null;
   };
   isNew: boolean;
   rarity: GachaRarity;
@@ -75,7 +79,13 @@ export async function pullGacha(
     }
   }
 
-  const cardWhere = banner.characterId ? { characterId: banner.characterId } : {};
+  // フランチャイズでフィルタ（優先）、なければcharacterIdでフィルタ
+  const cardWhere: Record<string, unknown> = {};
+  if (banner.franchise) {
+    cardWhere.franchise = banner.franchise;
+  } else if (banner.characterId) {
+    cardWhere.characterId = banner.characterId;
+  }
   const allCards = await prisma.gachaCard.findMany({ where: cardWhere });
 
   if (allCards.length === 0) {
@@ -115,8 +125,12 @@ export async function pullGacha(
         name: card.name,
         description: card.description,
         imageUrl: card.imageUrl,
+        cardImageUrl: card.cardImageUrl,
+        illustrationUrl: card.illustrationUrl,
+        frameType: card.frameType,
         rarity: card.rarity as GachaRarity,
         characterId: card.characterId,
+        franchise: card.franchise,
       },
       isNew,
       rarity: card.rarity as GachaRarity,
