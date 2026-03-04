@@ -20,6 +20,7 @@ export interface PullResult {
     frameType?: string | null;
     rarity: GachaRarity;
     characterId: string;
+    characterSlug?: string | null;
     franchise?: string | null;
   };
   isNew: boolean;
@@ -86,7 +87,10 @@ export async function pullGacha(
   } else if (banner.characterId) {
     cardWhere.characterId = banner.characterId;
   }
-  const allCards = await prisma.gachaCard.findMany({ where: cardWhere });
+  const allCards = await prisma.gachaCard.findMany({
+    where: cardWhere,
+    include: { character: { select: { slug: true } } },
+  });
 
   if (allCards.length === 0) {
     throw new Error('No cards available in this banner');
@@ -130,6 +134,7 @@ export async function pullGacha(
         frameType: card.frameType,
         rarity: card.rarity as GachaRarity,
         characterId: card.characterId,
+        characterSlug: card.character?.slug ?? null,
         franchise: card.franchise,
       },
       isNew,

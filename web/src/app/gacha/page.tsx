@@ -35,6 +35,7 @@ interface CardResult {
     frameType: string | null;
     rarity: string;
     characterId: string;
+    characterSlug?: string | null;
     franchise: string | null;
   };
   isNew: boolean;
@@ -597,7 +598,11 @@ function FlipCard({
 }) {
   const style = RARITY_STYLES[result.rarity] ?? RARITY_STYLES.N;
   const isHighRarity = result.rarity === 'SSR' || result.rarity === 'UR';
-  const displayImageUrl = result.card.cardImageUrl ?? result.card.imageUrl;
+  const displayImageUrl =
+    result.card.cardImageUrl ??
+    result.card.imageUrl ??
+    (result.card.characterSlug ? `/characters/${result.card.characterSlug}/avatar.webp` : null) ??
+    (result.card.characterSlug ? `/characters/${result.card.characterSlug}/avatar.jpg` : null);
 
   // Frame border style
   const frameStyle: React.CSSProperties = (() => {
