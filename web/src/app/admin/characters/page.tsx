@@ -451,6 +451,9 @@ export default function CharactersPage() {
   const [createdCharacterId, setCreatedCharacterId] = useState<string | null>(null);
   const [soulError, setSoulError] = useState('');
   const [momentsError, setMomentsError] = useState('');
+  const [generatingStory, setGeneratingStory] = useState(false);
+  const [storyGenerated, setStoryGenerated] = useState(false);
+  const [storyError, setStoryError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -475,6 +478,8 @@ export default function CharactersPage() {
     setCreatedCharacterId(null);
     setSoulError('');
     setMomentsError('');
+    setStoryGenerated(false);
+    setStoryError('');
   };
 
   const openEdit = (c: Character) => {
@@ -672,6 +677,28 @@ export default function CharactersPage() {
       setMomentsError('Moments生成に失敗しました');
     }
     setGeneratingMoments(false);
+  };
+
+  const handleGenerateStory = async () => {
+    if (!createdCharacterId) return;
+    setStoryError('');
+    setGeneratingStory(true);
+    try {
+      const res = await fetch('/api/admin/characters/generate-story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId: createdCharacterId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStoryError(data.error || 'ストーリー生成に失敗しました');
+      } else {
+        setStoryGenerated(true);
+      }
+    } catch {
+      setStoryError('ストーリー生成に失敗しました');
+    }
+    setGeneratingStory(false);
   };
 
   const f = (key: keyof typeof EMPTY_FORM, val: string | boolean) =>
@@ -1108,11 +1135,77 @@ export default function CharactersPage() {
             ) : (
               <div className="text-center space-y-3">
                 <p className="text-green-400 font-semibold">🎉 5件のMomentsを生成しました！</p>
+                <button
+                  type="button"
+                  onClick={() => setWizardStep(7)}
+                  className="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold transition-colors"
+                >
+                  次へ: ストーリーチャプター生成 →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="block w-full mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors"
+                >
+                  スキップして閉じる
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
+      case 7:
+        return (
+          <div>
+            <h3 className="text-purple-300 font-semibold mb-4">Step 7: ストーリーチャプター生成</h3>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-purple-900/40 border border-purple-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-3xl">📖</span>
+              </div>
+              <p className="text-gray-300 font-semibold">ストーリーモード初期コンテンツを生成</p>
+              <p className="text-gray-500 text-sm mt-1">Chapter 1〜3（Ch.3はFC限定）をAIが自動作成します。</p>
+            </div>
+
+            {!storyGenerated ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGenerateStory}
+                  disabled={generatingStory}
+                  className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 mb-3"
+                >
+                  {generatingStory ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      ストーリー生成中...
+                    </>
+                  ) : '📖 AIでストーリーチャプター生成（3章）'}
+                </button>
+                {storyError && (
+                  <div className="mb-3 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">{storyError}</div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg text-sm transition-colors"
+                >
+                  スキップして閉じる
+                </button>
+              </>
+            ) : (
+              <div className="text-center space-y-3">
+                <div className="space-y-2">
+                  <p className="text-green-400 font-semibold">🎉 ストーリーチャプター3章を生成しました！</p>
+                  <p className="text-gray-500 text-xs">Chapter 1（無料）/ Chapter 2（Lv3解放）/ Chapter 3（FC限定）</p>
+                </div>
                 <a
-                  href="/explore"
+                  href="/story"
                   className="inline-block px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  完了！ /explore で確認する →
+                  🎊 完了！ /story で確認する →
                 </a>
                 <button
                   type="button"
@@ -1305,7 +1398,7 @@ export default function CharactersPage() {
             {/* ---- WIZARD MODE (new character only) ---- */}
             {!editingId ? (
               <>
-                <WizardStepIndicator step={wizardStep} total={6} />
+                <WizardStepIndicator step={wizardStep} total={7} />
 
                 {renderWizardStep()}
 
@@ -1340,7 +1433,7 @@ export default function CharactersPage() {
                 )}
 
                 {/* Cancel button (always visible except step 6) */}
-                {wizardStep < 6 && (
+                {wizardStep < 7 && (
                   <div className="mt-3">
                     <button
                       type="button"
