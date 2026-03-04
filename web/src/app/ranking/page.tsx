@@ -136,19 +136,20 @@ export default function RankingPage() {
         </div>
 
         {/* タイプタブ */}
-        <div className="max-w-lg mx-auto px-4 flex gap-1 pb-2">
+        <div className="max-w-lg mx-auto px-4 flex gap-2 pb-2">
           {TABS.map(t => (
             <button
               key={t.type}
               onClick={() => setTab(t.type)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-xs font-medium transition ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition border ${
                 tab === t.type
-                  ? 'bg-purple-600/30 border border-purple-500/40 text-purple-300'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-purple-600/30 border-purple-500/40 text-white'
+                  : 'border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/10'
               }`}
             >
-              <span className="text-base">{t.icon}</span>
-              <span>{t.label}</span>
+              <span className="text-lg">{t.icon}</span>
+              <span className="text-xs font-bold">{t.label}</span>
+              <span className={`text-[9px] leading-tight text-center ${tab === t.type ? 'text-purple-300' : 'text-gray-600'}`}>{t.desc}</span>
             </button>
           ))}
         </div>
@@ -174,22 +175,43 @@ export default function RankingPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4">
-        {/* キャラクターフィルター */}
+        {/* キャラクターフィルター（アバターチップ） */}
         <div className="mb-4">
-          <select
-            value={selectedChar}
-            onChange={e => setSelectedChar(e.target.value)}
-            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50"
-          >
-            <option value="">🌐 フォロー中の全キャラ</option>
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {/* 全キャラ */}
+            <button
+              onClick={() => setSelectedChar('')}
+              className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border text-xs transition ${
+                selectedChar === ''
+                  ? 'bg-purple-600/30 border-purple-500/40 text-purple-300'
+                  : 'bg-gray-900/50 border-white/10 text-gray-400 hover:border-white/20'
+              }`}
+            >
+              <span className="text-base">🌐</span>
+              <span className="whitespace-nowrap text-[9px]">全員</span>
+            </button>
             {characters.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <button
+                key={c.id}
+                onClick={() => setSelectedChar(c.id)}
+                className={`flex-shrink-0 flex flex-col items-center gap-1 px-2 py-2 rounded-xl border text-xs transition ${
+                  selectedChar === c.id
+                    ? 'bg-purple-600/30 border-purple-500/40 text-purple-300'
+                    : 'bg-gray-900/50 border-white/10 text-gray-400 hover:border-white/20'
+                }`}
+              >
+                {c.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.avatarUrl} alt={c.name} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <span className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold">
+                    {c.name.charAt(0)}
+                  </span>
+                )}
+                <span className="whitespace-nowrap max-w-[4rem] truncate">{c.name.split('・').pop() ?? c.name}</span>
+              </button>
             ))}
-          </select>
-          {/* タブ説明 */}
-          <p className="text-xs text-gray-500 mt-1.5 px-1">
-            {TABS.find(t => t.type === tab)?.desc}
-          </p>
+          </div>
         </div>
 
         {/* 煽りバナー */}

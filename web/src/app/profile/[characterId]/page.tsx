@@ -685,7 +685,7 @@ export default function ProfilePage() {
 
         {/* ══════════════ タブコンテンツ: 投稿 ══════════════ */}
         {activeTab === 'posts' && (
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 pb-24">
             {moments.filter(m => m.visibility !== 'PREMIUM' || isFanclub || !m.isLocked).length === 0 ? (
               <div className="text-center py-12">
                 <div className="flex justify-center mb-3">
@@ -735,7 +735,7 @@ export default function ProfilePage() {
 
         {/* ══════════════ タブコンテンツ: FC限定 ══════════════ */}
         {activeTab === 'fc' && (
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-2 pb-24">
             {character && (
               <FcMembershipSection
                 characterId={characterId}
@@ -782,7 +782,7 @@ export default function ProfilePage() {
 
         {/* ══════════════ タブコンテンツ: 限定DLコンテンツ ══════════════ */}
         {activeTab === 'dl' && (
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-2 pb-24">
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">
               📥 限定ダウンロードコンテンツ
             </p>
@@ -863,7 +863,7 @@ export default function ProfilePage() {
 
         {/* ══════════════ タブコンテンツ: プロフィール ══════════════ */}
         {activeTab === 'profile' && (
-        <div className="space-y-5 pt-2">
+        <div className="space-y-5 pt-2 pb-24">
 
         {/* ══════════════ 基本情報カード（全キャラ対応） ══════════════ */}
         {character && CHARACTER_PROFILES[character.slug] && (
