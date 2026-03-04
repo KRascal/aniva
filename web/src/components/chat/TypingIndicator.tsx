@@ -1,11 +1,32 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 interface TypingIndicatorProps {
   characterName?: string;
   avatarUrl?: string | null;
 }
 
+// キャラの口調に合わせたランダム入力中テキスト
+const TYPING_TEXTS = [
+  '{name}が考えてる…',
+  '{name}が言葉を探してる…',
+  '{name}がタイピング中…',
+  'ちょっと待ってな…',
+  'うーん、何て言おうかな…',
+  '{name}がメッセージ書いてる…',
+];
+
 export function TypingIndicator({ characterName, avatarUrl }: TypingIndicatorProps) {
+  const [textIdx, setTextIdx] = useState(0);
+
+  useEffect(() => {
+    const idx = Math.floor(Math.random() * TYPING_TEXTS.length);
+    setTextIdx(idx);
+  }, []);
+
+  const text = TYPING_TEXTS[textIdx].replace('{name}', characterName ?? 'キャラ');
+
   return (
     <>
       <style>{`
@@ -46,10 +67,8 @@ export function TypingIndicator({ characterName, avatarUrl }: TypingIndicatorPro
         }
       `}</style>
       <div className="flex flex-col gap-1.5">
-        {/* キャラ名 + 入力中テキスト（アバター付き） */}
         {characterName && (
           <div className="flex items-center gap-2 pl-1">
-            {/* アバターサムネイル */}
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -61,11 +80,10 @@ export function TypingIndicator({ characterName, avatarUrl }: TypingIndicatorPro
               <span className="thinking-icon text-sm flex-shrink-0">💭</span>
             )}
             <span className="thinking-text font-medium">
-              {characterName}が入力中...
+              {text}
             </span>
           </div>
         )}
-        {/* ドットアニメーション */}
         <div className="flex items-center gap-1.5 px-5 py-3.5 bg-gray-800/90 rounded-2xl rounded-tl-none backdrop-blur-sm border border-gray-700/50 w-fit">
           <span className="typing-dot" />
           <span className="typing-dot" />
