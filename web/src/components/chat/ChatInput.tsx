@@ -216,17 +216,18 @@ export function ChatInput({
                 animation: 'slideUpFade 0.18s ease-out',
               }}
             >
-              {/* 画像を送る */}
+              {/* 画像を送る（未実装 — 準備中表示） */}
               <button
-                onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-white text-sm text-left group"
+                onClick={() => { setShowPlusMenu(false); }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-white/40 text-sm text-left cursor-not-allowed"
+                disabled
               >
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-blue-400/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <span className="text-white/80">画像を送る</span>
+                <span className="text-white/40">画像を送る <span className="text-xs text-gray-600">（準備中）</span></span>
               </button>
               {/* ギフトを贈る */}
               <button

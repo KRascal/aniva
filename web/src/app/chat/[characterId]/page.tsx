@@ -599,16 +599,23 @@ export default function ChatCharacterPage() {
         if (stored) {
           try {
             const { message: farewellText, timestamp } = JSON.parse(stored);
-            // 5分以内のfarewellのみ表示
+            // 5分以内のfarewellのみ表示 + 重複チェック
             if (Date.now() - timestamp < 5 * 60 * 1000) {
-              const farewellMsg: Message = {
-                id: `farewell-${Date.now()}`,
-                role: 'CHARACTER',
-                content: farewellText,
-                createdAt: new Date().toISOString(),
-                metadata: { emotion: 'warm', isFarewell: true },
-              };
-              setMessages((prev) => [...prev, farewellMsg]);
+              setMessages((prev) => {
+                // 直近のキャラメッセージと同じ内容なら追加しない
+                const lastCharMsg = [...prev].reverse().find(m => m.role === 'CHARACTER');
+                if (lastCharMsg && lastCharMsg.content === farewellText) return prev;
+                // 既にfarewellが追加されている場合もスキップ
+                if (prev.some(m => m.id?.startsWith('farewell-'))) return prev;
+                const farewellMsg: Message = {
+                  id: `farewell-${Date.now()}`,
+                  role: 'CHARACTER',
+                  content: farewellText,
+                  createdAt: new Date().toISOString(),
+                  metadata: { emotion: 'warm', isFarewell: true },
+                };
+                return [...prev, farewellMsg];
+              });
             }
           } catch {}
           sessionStorage.removeItem(`farewell-${characterId}`);

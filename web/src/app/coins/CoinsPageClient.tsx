@@ -57,8 +57,22 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      {/* 戻るボタン */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            戻る
+          </button>
+        </div>
+      </div>
       {/* ヘッダー */}
-      <div className="bg-gradient-to-b from-purple-950/60 to-gray-950 pb-8 pt-12">
+      <div className="bg-gradient-to-b from-purple-950/60 to-gray-950 pb-8 pt-16">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 border border-yellow-500/30 flex items-center justify-center">
             <svg className="w-7 h-7 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
