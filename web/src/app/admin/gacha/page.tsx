@@ -32,6 +32,12 @@ interface GachaCard {
   cardImageUrl: string | null;
   illustrationUrl: string | null;
   frameType: string | null;
+  effect: {
+    effectColor?: string;
+    effectText?: string;
+    hasSpecialEffect?: boolean;
+    [key: string]: unknown;
+  } | null;
   character?: { name: string };
 }
 
@@ -85,6 +91,9 @@ const CARD_EMPTY = {
   cardImageUrl: '',
   illustrationUrl: '',
   frameType: 'standard',
+  effectColor: '#a855f7',
+  effectText: '',
+  hasSpecialEffect: false,
 };
 
 export default function AdminGachaPage() {
@@ -195,11 +204,20 @@ export default function AdminGachaPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...cardForm,
+        name: cardForm.name,
+        description: cardForm.description || null,
+        characterId: cardForm.characterId,
+        rarity: cardForm.rarity,
+        category: cardForm.category,
         franchise: cardForm.franchise || null,
         cardImageUrl: cardForm.cardImageUrl || null,
         illustrationUrl: cardForm.illustrationUrl || null,
         frameType: cardForm.frameType || 'standard',
+        effect: {
+          effectColor: cardForm.effectColor || '#a855f7',
+          effectText: cardForm.effectText || null,
+          hasSpecialEffect: cardForm.hasSpecialEffect,
+        },
       }),
     });
     setSaving(false);
@@ -658,6 +676,67 @@ export default function AdminGachaPage() {
                     onChange={(e) => setCardForm({ ...cardForm, illustrationUrl: e.target.value })}
                   />
                 </div>
+
+                {/* ---- 演出設定 ---- */}
+                <div className="col-span-2 mt-2 border-t border-gray-700 pt-3">
+                  <p className="text-gray-300 text-xs font-semibold mb-3 uppercase tracking-wider">✨ レアリティ演出設定</p>
+                </div>
+
+                {/* 演出カラー */}
+                <div>
+                  <label className="text-gray-400 block mb-1">演出カラー</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="w-10 h-9 rounded cursor-pointer bg-gray-700 border-0 p-0.5"
+                      value={cardForm.effectColor}
+                      onChange={(e) => setCardForm({ ...cardForm, effectColor: e.target.value })}
+                    />
+                    <input
+                      className="flex-1 bg-gray-700 rounded px-3 py-2 text-white text-sm font-mono"
+                      placeholder="#a855f7"
+                      value={cardForm.effectColor}
+                      onChange={(e) => setCardForm({ ...cardForm, effectColor: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* 特殊演出フラグ（画面割れ） */}
+                <div className="flex flex-col justify-center">
+                  <label className="text-gray-400 block mb-1">特殊演出（画面割れ）</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <div
+                      className={`relative w-10 h-6 rounded-full transition-colors ${cardForm.hasSpecialEffect ? 'bg-purple-600' : 'bg-gray-600'}`}
+                      onClick={() => setCardForm({ ...cardForm, hasSpecialEffect: !cardForm.hasSpecialEffect })}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${cardForm.hasSpecialEffect ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </div>
+                    <span className={`text-xs font-medium ${cardForm.hasSpecialEffect ? 'text-purple-300' : 'text-gray-500'}`}>
+                      {cardForm.hasSpecialEffect ? 'ON' : 'OFF'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* 演出テキスト */}
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">演出テキスト</label>
+                  <input
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    placeholder="例: ★★★ SUPER RARE ★★★"
+                    value={cardForm.effectText}
+                    onChange={(e) => setCardForm({ ...cardForm, effectText: e.target.value })}
+                  />
+                  <p className="text-gray-600 text-[10px] mt-1">ガチャ演出時に表示されるカスタムテキスト</p>
+                  {/* プレビュー */}
+                  {cardForm.effectText && (
+                    <div
+                      className="mt-2 text-center py-2 rounded-lg text-sm font-bold tracking-widest"
+                      style={{ color: cardForm.effectColor, textShadow: `0 0 12px ${cardForm.effectColor}` }}
+                    >
+                      {cardForm.effectText}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-2 mt-3">
@@ -710,6 +789,26 @@ export default function AdminGachaPage() {
                 {c.description && (
                   <p className="text-gray-500 text-xs mt-1 line-clamp-2">{c.description}</p>
                 )}
+                {/* 演出設定バッジ */}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {c.effect?.effectText && (
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded font-bold"
+                      style={{
+                        color: (c.effect?.effectColor as string) ?? '#a855f7',
+                        backgroundColor: `${(c.effect?.effectColor as string) ?? '#a855f7'}20`,
+                        border: `1px solid ${(c.effect?.effectColor as string) ?? '#a855f7'}40`,
+                      }}
+                    >
+                      {c.effect.effectText}
+                    </span>
+                  )}
+                  {c.effect?.hasSpecialEffect && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-300 border border-red-700/30 font-bold">
+                      💥 画面割れ
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

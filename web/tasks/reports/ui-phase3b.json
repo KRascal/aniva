@@ -1,0 +1,17 @@
+{
+  "task": "ui-phase3b",
+  "status": "in_progress",
+  "started_at": "2026-03-04T10:10:00+09:00",
+  "items": {
+    "ranking_page": {
+      "status": "pending",
+      "file": "src/app/ranking/page.tsx",
+      "api": "src/app/api/ranking/route.ts"
+    },
+    "gacha_admin_effects": {
+      "status": "pending",
+      "file": "src/app/admin/gacha/page.tsx"
+    }
+  },
+  "errors": []
+}

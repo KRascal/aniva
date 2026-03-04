@@ -1,88 +1,299 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+
+// ---- Types ----
+type RankingType = 'coins' | 'streak' | 'messages';
+
+interface RankEntry {
+  rank: number | null;
+  userId: string;
+  displayName?: string;
+  avatarUrl: string | null;
+  value: number;
+  valueLabel: string;
+  isMe: boolean;
+}
+
+interface RankingData {
+  type: RankingType;
+  ranking: RankEntry[];
+  myRank: RankEntry | null;
+}
 
 interface Character {
   id: string;
   name: string;
-  slug: string;
   avatarUrl: string | null;
-  franchise: string | null;
 }
 
-export default function RankingIndexPage() {
-  const router = useRouter();
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [loading, setLoading] = useState(true);
+// ---- Constants ----
+const TABS: { type: RankingType; label: string; icon: string; desc: string }[] = [
+  { type: 'coins', icon: '💰', label: 'コイン', desc: 'コイン消費ランキング' },
+  { type: 'streak', icon: '🔥', label: 'ストリーク', desc: '連続ログイン日数' },
+  { type: 'messages', icon: '💬', label: 'トーク量', desc: 'メッセージ数' },
+];
 
+const MEDAL_EMOJI = ['🥇', '🥈', '🥉'];
+const RANK_BG = [
+  'bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border-yellow-500/40',
+  'bg-gradient-to-r from-gray-300/20 to-gray-400/10 border-gray-400/30',
+  'bg-gradient-to-r from-orange-600/20 to-amber-700/10 border-orange-600/30',
+];
+
+// ---- Component ----
+export default function RankingPage() {
+  const router = useRouter();
+  const [tab, setTab] = useState<RankingType>('coins');
+  const [data, setData] = useState<RankingData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [selectedChar, setSelectedChar] = useState<string>('');
+  const myRowRef = useRef<HTMLDivElement>(null);
+
+  // キャラクター一覧を取得
   useEffect(() => {
     fetch('/api/characters')
       .then(r => r.json())
-      .then(data => {
-        const chars = Array.isArray(data) ? data : data.characters ?? [];
+      .then(d => {
+        const chars: Character[] = Array.isArray(d) ? d : d.characters ?? [];
         setCharacters(chars);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
+
+  // ランキングを取得
+  const fetchRanking = useCallback(async (type: RankingType, charId: string) => {
+    setLoading(true);
+    setData(null);
+    try {
+      const params = new URLSearchParams({ type, limit: '50' });
+      if (charId) params.set('characterId', charId);
+      const res = await fetch(`/api/ranking?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRanking(tab, selectedChar);
+  }, [tab, selectedChar, fetchRanking]);
+
+  const scrollToMe = () => {
+    myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white">
-      <div className="max-w-lg mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
+      {/* ヘッダー */}
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold">🏆 ランキング</h1>
+          <h1 className="text-lg font-bold flex-1">🏆 ランキング</h1>
+          {/* 自分にジャンプボタン */}
+          {data?.myRank && (
+            <button
+              onClick={scrollToMe}
+              className="text-xs bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/30 px-3 py-1.5 rounded-full text-purple-300 transition"
+            >
+              自分を見る
+            </button>
+          )}
         </div>
 
-        <p className="text-gray-400 text-sm mb-6">キャラクターを選んでファンランキングを確認しよう</p>
+        {/* タブ */}
+        <div className="max-w-lg mx-auto px-4 flex gap-1 pb-3">
+          {TABS.map(t => (
+            <button
+              key={t.type}
+              onClick={() => setTab(t.type)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-xs font-medium transition ${
+                tab === t.type
+                  ? 'bg-purple-600/30 border border-purple-500/40 text-purple-300'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <span className="text-base">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
+      <div className="max-w-lg mx-auto px-4 py-4">
+        {/* キャラクターフィルター */}
+        <div className="mb-4">
+          <select
+            value={selectedChar}
+            onChange={e => setSelectedChar(e.target.value)}
+            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50"
+          >
+            <option value="">🌐 全キャラクター</option>
+            {characters.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 自分の順位（固定バー） */}
+        {data?.myRank && (
+          <div className="mb-4 bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-black text-purple-300">
+                {data.myRank.rank != null ? `#${data.myRank.rank}` : '?位'}
+              </span>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">あなたの順位</p>
+                <p className="text-xs text-gray-400">{data.myRank.valueLabel}</p>
+              </div>
+              <button
+                onClick={scrollToMe}
+                className="text-xs text-purple-400 hover:text-purple-300 underline"
+              >
+                ↓ 見る
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ランキングリスト */}
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {characters.map(char => (
-              <button
-                key={char.id}
-                onClick={() => router.push(`/ranking/${char.id}`)}
-                className="flex flex-col items-center gap-3 p-4 bg-gray-900/60 hover:bg-gray-900/80 border border-white/5 hover:border-purple-500/30 rounded-2xl transition-all"
-              >
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10">
-                  {char.avatarUrl ? (
-                    <Image
-                      src={char.avatarUrl}
-                      alt={char.name}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-purple-700 flex items-center justify-center text-2xl">
-                      🏴‍☠️
-                    </div>
-                  )}
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium">{char.name}</p>
-                  {char.franchise && (
-                    <p className="text-xs text-gray-500 truncate max-w-[100px]">{char.franchise}</p>
-                  )}
-                </div>
-                <span className="text-xs text-purple-400 flex items-center gap-1">
-                  🏆 ランキングを見る
-                </span>
-              </button>
+          <div className="space-y-2">
+            {/* Top 3 - 大きく表示 */}
+            {data?.ranking.slice(0, 3).map(entry => (
+              <TopRankCard
+                key={entry.userId}
+                entry={entry}
+                ref={entry.isMe ? myRowRef : undefined}
+              />
             ))}
+
+            {/* 4位以下 */}
+            {data?.ranking.slice(3).map(entry => (
+              <div
+                key={entry.userId}
+                ref={entry.isMe ? myRowRef : undefined}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition ${
+                  entry.isMe
+                    ? 'bg-purple-900/30 border-purple-500/30'
+                    : 'bg-gray-900/40 border-white/5'
+                }`}
+              >
+                <span className="w-8 text-center text-gray-500 font-bold text-sm flex-shrink-0">
+                  #{entry.rank}
+                </span>
+                <Avatar url={entry.avatarUrl} name={entry.displayName ?? '?'} size={36} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate ${entry.isMe ? 'text-purple-300' : 'text-white'}`}>
+                    {entry.displayName}
+                    {entry.isMe && <span className="ml-1.5 text-[10px] bg-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded-full">YOU</span>}
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-gray-300 flex-shrink-0">{entry.valueLabel}</p>
+              </div>
+            ))}
+
+            {/* 空の場合 */}
+            {(!data || data.ranking.length === 0) && !loading && (
+              <div className="text-center py-20 text-gray-600">
+                <p className="text-4xl mb-3">🏆</p>
+                <p>ランキングデータがありません</p>
+              </div>
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---- Sub-components ----
+
+interface TopRankCardProps {
+  entry: RankEntry;
+  ref?: React.Ref<HTMLDivElement>;
+}
+
+function TopRankCard({ entry, ref }: TopRankCardProps & { ref?: React.Ref<HTMLDivElement> }) {
+  const rank = entry.rank ?? 99;
+  const bgClass = RANK_BG[rank - 1] ?? 'bg-gray-900/40 border-white/5';
+
+  return (
+    <div
+      ref={ref}
+      className={`rounded-2xl border px-4 py-4 ${bgClass} ${entry.isMe ? 'ring-2 ring-purple-500/40' : ''}`}
+    >
+      <div className="flex items-center gap-4">
+        {/* メダル */}
+        <div className="flex flex-col items-center flex-shrink-0">
+          <span className={`text-4xl ${rank === 1 ? 'drop-shadow-lg' : ''}`}>
+            {MEDAL_EMOJI[rank - 1]}
+          </span>
+        </div>
+
+        {/* アバター (1位は大きく) */}
+        <Avatar
+          url={entry.avatarUrl}
+          name={entry.displayName ?? '?'}
+          size={rank === 1 ? 56 : 44}
+        />
+
+        {/* 名前 + 値 */}
+        <div className="flex-1 min-w-0">
+          <p className={`font-bold truncate ${rank === 1 ? 'text-base' : 'text-sm'} ${entry.isMe ? 'text-purple-300' : 'text-white'}`}>
+            {entry.displayName}
+            {entry.isMe && (
+              <span className="ml-1.5 text-[10px] bg-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded-full">YOU</span>
+            )}
+          </p>
+          <p className={`font-bold mt-0.5 ${rank === 1 ? 'text-yellow-300 text-sm' : 'text-gray-300 text-xs'}`}>
+            {entry.valueLabel}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ url, name, size }: { url: string | null; name: string; size: number }) {
+  if (url) {
+    return (
+      <div
+        className="rounded-full overflow-hidden flex-shrink-0 border border-white/10"
+        style={{ width: size, height: size }}
+      >
+        <Image
+          src={url}
+          alt={name}
+          width={size}
+          height={size}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0 text-white font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {name.charAt(0)}
     </div>
   );
 }

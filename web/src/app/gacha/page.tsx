@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ---- Types ----
@@ -67,6 +67,132 @@ const UR_RAYS = Array.from({ length: 12 }, (_, i) => ({
   delay: `${i * 0.08}s`,
 }));
 
+// ---- Screen Crack SVG Overlay ----
+function ScreenCrack({ rarity }: { rarity: string }) {
+  const crackColor =
+    rarity === 'UR'
+      ? 'rgba(255,200,255,0.9)'
+      : rarity === 'SSR'
+      ? 'rgba(255,235,100,0.9)'
+      : 'rgba(200,160,255,0.9)';
+
+  return (
+    <div className="fixed inset-0 z-[60] pointer-events-none overflow-hidden">
+      <style>{`
+        @keyframes crackIn {
+          0%   { opacity: 0; clip-path: polygon(50% 50%, 50% 50%, 50% 50%); }
+          20%  { opacity: 1; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+          60%  { opacity: 1; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+          100% { opacity: 0; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+        }
+        @keyframes crackLine1 {
+          0%   { stroke-dashoffset: 300; opacity: 0; }
+          20%  { opacity: 1; }
+          70%  { stroke-dashoffset: 0; opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes crackLine2 {
+          0%,15%  { stroke-dashoffset: 250; opacity: 0; }
+          35%  { opacity: 1; }
+          75%  { stroke-dashoffset: 0; opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes crackLine3 {
+          0%,25%  { stroke-dashoffset: 200; opacity: 0; }
+          50%  { opacity: 1; }
+          85%  { stroke-dashoffset: 0; opacity: 1; }
+          100% { opacity: 0; }
+        }
+        .crack-svg { animation: crackIn 1.2s ease-out forwards; }
+        .crack-l1  { stroke-dasharray: 300; animation: crackLine1 1.2s ease-out forwards; }
+        .crack-l2  { stroke-dasharray: 250; animation: crackLine2 1.2s ease-out forwards; }
+        .crack-l3  { stroke-dasharray: 200; animation: crackLine3 1.2s ease-out forwards; }
+      `}</style>
+      <svg
+        className="crack-svg absolute inset-0 w-full h-full"
+        viewBox="0 0 400 800"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        {/* Main crack lines radiating from center */}
+        <polyline
+          className="crack-l1"
+          points="200,400 180,250 140,100 100,0"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="3"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l1"
+          points="200,400 230,320 300,200 380,80"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="2.5"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l2"
+          points="200,400 160,480 80,620 20,800"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="2.5"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l2"
+          points="200,400 260,450 350,560 400,700"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="2"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l3"
+          points="200,400 120,380 0,360"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="2"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l3"
+          points="200,400 320,390 400,400"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="1.5"
+          filter="url(#glow)"
+        />
+        {/* Sub-cracks */}
+        <polyline
+          className="crack-l3"
+          points="180,250 150,230 120,240"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="1.5"
+          filter="url(#glow)"
+        />
+        <polyline
+          className="crack-l3"
+          points="230,320 260,300 280,310"
+          fill="none"
+          stroke={crackColor}
+          strokeWidth="1.5"
+          filter="url(#glow)"
+        />
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
 // ---- Cinematic Overlay Component ----
 function CinematicOverlay({
   rarity,
@@ -78,25 +204,38 @@ function CinematicOverlay({
   onComplete: () => void;
 }) {
   const [phase, setPhase] = useState(0);
+  const [skipped, setSkipped] = useState(false);
+  const [showCrack, setShowCrack] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const handleSkip = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    setSkipped(true);
+    onComplete();
+  }, [onComplete]);
 
   useEffect(() => {
-    let timers: ReturnType<typeof setTimeout>[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timersRef.current = timers;
 
     if (rarity === 'SR') {
-      // 1.5s: purple pillar → card
+      // 1.8s total: pillar → crack → card
       timers.push(setTimeout(() => setPhase(1), 300));
-      timers.push(setTimeout(onComplete, 1500));
+      timers.push(setTimeout(() => setShowCrack(true), 700));
+      timers.push(setTimeout(onComplete, 1800));
     } else if (rarity === 'SSR') {
-      // 2.5s: gold particles fill screen → card
+      // 2.5s: gold particles → crack → card
       timers.push(setTimeout(() => setPhase(1), 400));
+      timers.push(setTimeout(() => setShowCrack(true), 900));
       timers.push(setTimeout(onComplete, 2500));
     } else if (rarity === 'UR') {
-      // 3.5s: flood → burst → rainbow → card
-      timers.push(setTimeout(() => setPhase(1), 800));   // flood complete
-      timers.push(setTimeout(() => setPhase(2), 1400));  // burst (white flash)
-      timers.push(setTimeout(() => setPhase(3), 2000));  // rainbow sweep
-      timers.push(setTimeout(() => setPhase(4), 3000));  // fade to card
-      timers.push(setTimeout(onComplete, 3500));
+      // 3s: flood → burst → rainbow → crack → card
+      timers.push(setTimeout(() => setPhase(1), 600));
+      timers.push(setTimeout(() => setPhase(2), 1100));
+      timers.push(setTimeout(() => setPhase(3), 1600));
+      timers.push(setTimeout(() => setShowCrack(true), 1800));
+      timers.push(setTimeout(() => setPhase(4), 2400));
+      timers.push(setTimeout(onComplete, 3000));
     } else {
       // N/R: quick flash 0.5s
       timers.push(setTimeout(onComplete, 500));
@@ -187,6 +326,17 @@ function CinematicOverlay({
             />
           </>
         )}
+        {/* Screen crack */}
+        {showCrack && <ScreenCrack rarity={rarity} />}
+        {/* Skip button */}
+        {!skipped && (
+          <button
+            onClick={handleSkip}
+            className="absolute bottom-8 right-6 z-[70] text-sm text-white/50 hover:text-white/90 transition-colors bg-black/30 px-3 py-1.5 rounded-lg border border-white/10"
+          >
+            スキップ →
+          </button>
+        )}
       </div>
     );
   }
@@ -266,6 +416,17 @@ function CinematicOverlay({
               ✦ ULTRA PULL ✦
             </div>
           </div>
+        )}
+        {/* Screen crack */}
+        {showCrack && <ScreenCrack rarity={rarity} />}
+        {/* Skip button */}
+        {!skipped && (
+          <button
+            onClick={handleSkip}
+            className="absolute bottom-8 right-6 z-[70] text-sm text-white/50 hover:text-white/90 transition-colors bg-black/30 px-3 py-1.5 rounded-lg border border-white/10"
+          >
+            スキップ →
+          </button>
         )}
       </div>
     );
@@ -402,6 +563,17 @@ function CinematicOverlay({
               ✦ ✦ ✦  LEGENDARY  ✦ ✦ ✦
             </div>
           </div>
+        )}
+        {/* Screen crack */}
+        {showCrack && <ScreenCrack rarity={rarity} />}
+        {/* Skip button */}
+        {!skipped && (
+          <button
+            onClick={handleSkip}
+            className="absolute bottom-8 right-6 z-[70] text-sm text-white/50 hover:text-white/90 transition-colors bg-black/30 px-3 py-1.5 rounded-lg border border-white/10"
+          >
+            スキップ →
+          </button>
         )}
       </div>
     );
