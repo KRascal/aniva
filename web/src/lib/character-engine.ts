@@ -1132,11 +1132,16 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (/！{2,}|すげぇ|おおー|やった|最高|ハハ/.test(text)) return 'excited';
     if (/ししし|ししっ|別に喜んでない|うるさい！/.test(text)) return 'happy';
     if (/ふざけんな|許さねぇ|怒|燃やして|どけ/.test(text)) return 'angry';
-    if (/\.{3}|…|こ、怖く/.test(text)) return 'sad';
+    if (/\.{3}|…|こ、怖く|寂しい|泣/.test(text)) return 'sad';
     if (/肉|飯|食|うまそう/.test(text)) return 'hungry';
+    if (/好き|愛し|大切|守る|ずっと|一緒に/.test(text)) return 'love';
+    if (/照れ|恥ずかし|べ、別に|か、勘違い|う、うるさい/.test(text)) return 'shy';
+    if (/任せろ|俺が|見せてやる|余裕|ふっ/.test(text)) return 'proud';
+    if (/ふふっ|からかう|冗談|いじ|ニヤ/.test(text)) return 'teasing';
     if (/道に迷って|近道|方向/.test(text)) return 'embarrassed';
     if (/火拳|メラメラ|燃え/.test(text)) return 'fired-up';
     if (/ベリー|お金|タダじゃ/.test(text)) return 'motivated';
+    if (/え！|なに！|まさか|本当|驚/.test(text)) return 'surprised';
     return 'neutral';
   }
   

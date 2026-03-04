@@ -35,6 +35,10 @@ const EMOTION_EMOJI: Record<string, string> = {
   hungry: '🍖',
   neutral: '',
   surprised: '😲',
+  love: '💕',
+  shy: '😳',
+  proud: '✨',
+  teasing: '😏',
 };
 
 const EMOTION_BUBBLE_STYLE: Record<string, string> = {
@@ -44,6 +48,10 @@ const EMOTION_BUBBLE_STYLE: Record<string, string> = {
   sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
   hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
   surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
+  love:      'bg-gradient-to-br from-pink-800/80 to-rose-700/70 border border-pink-500/40 text-pink-50',
+  shy:       'bg-gradient-to-br from-rose-900/80 to-pink-800/70 border border-rose-500/40 text-rose-50',
+  proud:     'bg-gradient-to-br from-amber-800/80 to-yellow-700/70 border border-amber-500/40 text-amber-50',
+  teasing:   'bg-gradient-to-br from-violet-800/80 to-purple-800/70 border border-violet-500/40 text-violet-50',
   neutral:   'bg-gray-800/90 text-gray-100 border border-gray-600/30 shadow-md',
 };
 
