@@ -40,13 +40,22 @@ function OnboardingInner() {
     addMessage,
   } = useOnboarding(deeplinkCharacter ?? undefined, deeplinkSlug);
 
-  // ── 認証チェック ──────────────────────────
+  // ── 認証チェック（セッション確立を待つ） ──────────────────────────
+  const [authRetries, setAuthRetries] = useState(0);
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) {
+      // JWT確立直後はsessionがnullの場合がある — 少し待ってリトライ
+      if (authRetries < 3) {
+        const t = setTimeout(() => {
+          setAuthRetries(r => r + 1);
+          update(); // セッション再取得
+        }, 800);
+        return () => clearTimeout(t);
+      }
       router.replace('/login');
     }
-  }, [session, status, router]);
+  }, [session, status, router, authRetries, update]);
 
   // ── ディープリンク初期化 ───────────────────
   useEffect(() => {

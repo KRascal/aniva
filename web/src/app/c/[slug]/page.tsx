@@ -135,6 +135,7 @@ export default function EncounterPage() {
         <OnboardingChat
           character={character}
           guestSessionId={guestSessionId}
+          nickname={nickname}
           onComplete={handleChatComplete}
         />
       )}

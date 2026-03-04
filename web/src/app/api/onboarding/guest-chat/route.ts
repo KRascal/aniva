@@ -127,7 +127,7 @@ function getFallbackResponse(characterSlug: string, turnNumber: number): string 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { characterSlug, guestSessionId, userMessage, turnNumber } = body;
+    const { characterSlug, guestSessionId, userMessage, turnNumber, nickname } = body;
 
     // Validate inputs
     if (!characterSlug || typeof characterSlug !== 'string') {
@@ -169,16 +169,20 @@ export async function POST(req: NextRequest) {
     }
 
     const isLastTurn = turnNumber === 3;
-    const systemPrompt = character.systemPrompt + ONBOARDING_SYSTEM_PROMPT_SUFFIX;
+    const nicknameContext = nickname ? `\n\n## ユーザー情報\nこのユーザーの名前は「${nickname}」です。会話中、自然に名前を呼んでください。\n` : '';
+    const systemPrompt = character.systemPrompt + ONBOARDING_SYSTEM_PROMPT_SUFFIX + nicknameContext;
 
     // Build message history for LLM
     const llmMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
     if (turnNumber === 0 || !userMessage) {
       // Initial greeting: character speaks first
+      const greetInstruction = nickname
+        ? `（${nickname}と初めて会った。「${nickname}」と名前を呼んで挨拶し、最初の質問をして）`
+        : '（初めて会った。挨拶と最初の質問をして）';
       llmMessages.push({
         role: 'user',
-        content: '（初めて会った。挨拶と最初の質問をして）',
+        content: greetInstruction,
       });
     } else {
       llmMessages.push({ role: 'user', content: userMessage });

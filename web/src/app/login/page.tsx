@@ -1,9 +1,9 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 
 /* ─── Floating particle element ─── */
@@ -60,8 +60,22 @@ function ParticleField() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const errorParam = searchParams.get('error');
   const callbackUrl = searchParams.get('callbackUrl') || '/explore';
+
+  // 既にログイン済みならリダイレクト
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const user = session.user as { onboardingStep?: string | null };
+      if (!user.onboardingStep || user.onboardingStep !== 'completed') {
+        router.replace('/onboarding');
+      } else {
+        router.replace(callbackUrl);
+      }
+    }
+  }, [session, status, router, callbackUrl]);
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');

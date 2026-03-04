@@ -11,6 +11,23 @@ interface PromiseSealProps {
   onComplete?: (userId?: string) => void;
 }
 
+const PROMISE_QUOTES: Record<string, string> = {
+  luffy: 'この日のこと、忘れんなよ！約束だぞ！',
+  zoro: '…この日のことは覚えておけ',
+  nami: '今日のこと、忘れないでね？',
+  chopper: 'ねえ、この日のこと覚えていてくれる？！',
+  sanji: 'この出会い…俺は忘れないぜ',
+  ace: 'この日を覚えていてくれよな！',
+  robin: 'ふふ…この出会いは、きっと運命ね',
+  brook: 'ヨホホ！この日を骨に刻みますよ！',
+  franky: 'SUPERな出会いだったぜ！忘れんなよ！',
+  usopp: 'この日のこと…俺は一生忘れないぞ！',
+  law: '…この日のことは、記録しておく',
+  hancock: 'この出会い…わらわの胸に刻むわ',
+  shanks: 'いい出会いだった。また会おう',
+  yamato: 'この日を覚えていて！絶対だよ！',
+};
+
 function formatMeetDate(date: Date): string {
   return date.toLocaleDateString('ja-JP', {
     year: 'numeric',
@@ -126,7 +143,7 @@ export default function PromiseSeal({
             transition: 'opacity 1s ease 0.3s',
           }}
         >
-          「この日を覚えていてくれる？」
+          {`「${PROMISE_QUOTES[character.slug] ?? 'この日を覚えていてくれる？'}」`}
         </p>
 
         {/* Decorative line */}
