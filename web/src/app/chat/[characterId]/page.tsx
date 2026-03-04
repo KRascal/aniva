@@ -410,7 +410,7 @@ export default function ChatCharacterPage() {
   /* ─────────── 既存ロジック（変更なし） ─────────── */
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/chat/${characterId}`)}`);
     }
   }, [status, router]);
 
@@ -495,7 +495,30 @@ export default function ChatCharacterPage() {
           }
         }
       }
-      if (!data.relationship || data.messages?.length === 0) setShowOnboarding(true);
+      if (!data.relationship) {
+        // 自動フォロー + オンボーディング完了: チャットページ到達 = このキャラと話したい意思表示
+        try {
+          const [followRes] = await Promise.all([
+            fetch(`/api/relationship/${characterId}/follow`, { method: 'POST' }),
+            fetch('/api/onboarding/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notificationPermission: null }),
+            }),
+          ]);
+          if (followRes.ok) {
+            const relRes2 = await fetch(`/api/relationship/${characterId}`);
+            const relData2 = await relRes2.json();
+            setRelationship(relData2);
+            if (relData2?.id) setRelationshipId(relData2.id);
+          }
+        } catch (e) {
+          console.error('Auto-follow failed:', e);
+        }
+        setShowOnboarding(true);
+      } else if (data.messages?.length === 0) {
+        setShowOnboarding(true);
+      }
 
       // デイリーイベント判定（変動報酬）
       try {

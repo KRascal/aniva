@@ -567,19 +567,19 @@ export function MomentCard({
               ))}
             </div>
           ) : null}
-          <div className="flex items-center gap-2 mt-3">
-            <input
-              type="text"
+          <div className="flex items-end gap-2 mt-3">
+            <textarea
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder={`${moment.character.name}の投稿にコメント...`}
-              className="flex-1 bg-gray-800/60 border border-white/10 rounded-full px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  submitComment();
-                }
+              onChange={(e) => {
+                setCommentText(e.target.value);
+                // auto-resize: 1行〜最大4行
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
               }}
+              placeholder={`${moment.character.name}の投稿にコメント...`}
+              rows={1}
+              style={{ fontSize: '16px', resize: 'none' }}
+              className="flex-1 bg-gray-800/60 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 transition-colors overflow-y-auto"
             />
             <button
               className="p-2 text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-30"
