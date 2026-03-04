@@ -1,15 +1,18 @@
 /**
  * 記念日イベント Cron API
  * POST /api/cron/anniversary
- * 
+ *
  * 1. 出会い記念日チェック: relationship.createdAt と今日が同じ月日 → DM送信
  * 2. キャラ誕生日チェック: character.birthday と今日が同じ月日 → 全フォロワーにDM
- * 
+ *
  * 毎日1回実行（cronで呼び出し）
+ * 音声メッセージ: ElevenLabs TTS API を使って音声生成（失敗時はテキストDMのみ）
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const ANNIVERSARY_MESSAGES = [
   '覚えてるか？今日は俺たちが出会った日だ！🎉',
@@ -24,6 +27,54 @@ const BIRTHDAY_MESSAGES = [
   '今日は特別な日だ！俺の誕生日、祝ってくれるか？ 🎁',
 ];
 
+const VOICE_MESSAGES_DIR = join(process.cwd(), 'public', 'uploads', 'voice-messages');
+
+/**
+ * ElevenLabs TTS API を呼び出して音声ファイルを生成・保存する
+ * 失敗してもエラーをスローせず null を返す（フォールバック用）
+ */
+async function generateVoiceMessage(
+  text: string,
+  voiceModelId: string | null | undefined,
+  filename: string
+): Promise<string | null> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) return null;
+
+  // キャラクターのvoiceModelIdをElevenLabsのvoice IDとして使う
+  // 未設定の場合はデフォルトボイスを使用
+  const voiceId = voiceModelId ?? process.env.ELEVENLABS_DEFAULT_VOICE_ID ?? 'EXAVITQu4vr4xnSDxMaL';
+
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn('[anniversary] ElevenLabs TTS failed:', res.status, await res.text());
+      return null;
+    }
+
+    mkdirSync(VOICE_MESSAGES_DIR, { recursive: true });
+    const buffer = Buffer.from(await res.arrayBuffer());
+    writeFileSync(join(VOICE_MESSAGES_DIR, filename), buffer);
+    return `/uploads/voice-messages/${filename}`;
+  } catch (err) {
+    console.warn('[anniversary] ElevenLabs TTS error:', err);
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   // Cron認証
   const cronSecret = req.headers.get('x-cron-secret');
@@ -34,7 +85,8 @@ export async function POST(req: NextRequest) {
   const today = new Date();
   const month = today.getMonth() + 1;
   const day = today.getDate();
-  const results = { anniversaryDMs: 0, birthdayDMs: 0 };
+  const dateStr = `${today.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const results = { anniversaryDMs: 0, birthdayDMs: 0, voicesGenerated: 0 };
 
   // 1. 出会い記念日チェック
   const relationships = await prisma.relationship.findMany({
@@ -45,7 +97,7 @@ export async function POST(req: NextRequest) {
       characterId: true,
       createdAt: true,
       user: { select: { id: true, displayName: true, nickname: true } },
-      character: { select: { id: true, name: true, slug: true } },
+      character: { select: { id: true, name: true, slug: true, voiceModelId: true } },
     },
   });
 
@@ -58,6 +110,15 @@ export async function POST(req: NextRequest) {
 
       const template = ANNIVERSARY_MESSAGES[Math.floor(Math.random() * ANNIVERSARY_MESSAGES.length)];
       const message = template.replace('{years}', String(years));
+
+      // 音声生成（フォールバック付き）
+      const voiceFilename = `${rel.id}-${dateStr}.mp3`;
+      const voiceUrl = await generateVoiceMessage(
+        message,
+        rel.character.voiceModelId,
+        voiceFilename
+      );
+      if (voiceUrl) results.voicesGenerated++;
 
       // DMとしてメッセージ保存（最新会話を取得 or 新規作成）
       let annivConv = await prisma.conversation.findFirst({
@@ -74,7 +135,8 @@ export async function POST(req: NextRequest) {
           conversationId: annivConv.id,
           role: 'CHARACTER',
           content: message,
-          metadata: { type: 'anniversary', emotion: 'happy', years },
+          audioUrl: voiceUrl ?? undefined,
+          metadata: { type: 'anniversary', emotion: 'happy', years, voiceUrl },
         },
       });
 
@@ -103,7 +165,7 @@ export async function POST(req: NextRequest) {
   const todayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const birthdayChars = await prisma.character.findMany({
     where: { isActive: true, birthday: todayStr },
-    select: { id: true, name: true, slug: true, birthday: true },
+    select: { id: true, name: true, slug: true, birthday: true, voiceModelId: true },
   });
 
   for (const char of birthdayChars) {
@@ -112,6 +174,18 @@ export async function POST(req: NextRequest) {
       where: { characterId: char.id, isFollowing: true },
       select: { id: true, userId: true, characterId: true },
     });
+
+    const msg = BIRTHDAY_MESSAGES[Math.floor(Math.random() * BIRTHDAY_MESSAGES.length)];
+
+    // キャラクターごとに1つの音声を生成（全フォロワー共有）
+    const sharedVoiceFilename = `birthday-${char.id}-${dateStr}.mp3`;
+    const sharedVoiceUrl = await generateVoiceMessage(
+      msg,
+      char.voiceModelId,
+      sharedVoiceFilename
+    );
+    if (sharedVoiceUrl) results.voicesGenerated++;
+
     for (const rel of followers) {
       // 最新会話を取得 or 新規作成
       let conversation = await prisma.conversation.findFirst({
@@ -123,13 +197,18 @@ export async function POST(req: NextRequest) {
           data: { relationshipId: rel.id },
         });
       }
-      const msg = BIRTHDAY_MESSAGES[Math.floor(Math.random() * BIRTHDAY_MESSAGES.length)];
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
           role: 'CHARACTER',
           content: msg,
-          metadata: { type: 'birthday', emotion: 'excited', character: char.slug },
+          audioUrl: sharedVoiceUrl ?? undefined,
+          metadata: {
+            type: 'birthday',
+            emotion: 'excited',
+            character: char.slug,
+            voiceUrl: sharedVoiceUrl,
+          },
         },
       });
       results.birthdayDMs++;

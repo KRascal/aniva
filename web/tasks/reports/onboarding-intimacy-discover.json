@@ -1,0 +1,10 @@
+{
+  "status": "in_progress",
+  "task": "ANIVA オンボーディングシルエット演出 + 関係性レベル口調変化 + DISCOVERバナー改善",
+  "started_at": "2026-03-04T11:25:00Z",
+  "files_changed": [
+    "src/components/onboarding/CharacterReveal.tsx",
+    "src/lib/character-engine.ts",
+    "src/app/discover/page.tsx"
+  ]
+}

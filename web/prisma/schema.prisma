@@ -46,6 +46,7 @@ model User {
   userCards              UserCard[]
   dailyEvents            UserDailyEvent[]
   userStoryProgress      UserStoryProgress[]
+  shopOrders             ShopOrder[]
 }
 
 model PushSubscription {
@@ -147,6 +148,8 @@ model Character {
   storyChapters           StoryChapter[]
   userStoryProgress       UserStoryProgress[]
   secretContents          SecretContent[]
+  downloadableContents    DownloadableContent[]
+  shopItems               ShopItem[]
 }
 
 model SecretContent {
@@ -544,6 +547,22 @@ model StoryChapter {
   @@index([characterId])
 }
 
+model DownloadableContent {
+  id            String    @id @default(cuid())
+  characterId   String
+  character     Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  type          String    // wallpaper, voice_clip, special_art, etc.
+  fileUrl       String    // /uploads/content/{id}.{ext}
+  thumbnailUrl  String?
+  fcOnly        Boolean   @default(true)
+  downloadCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([characterId])
+}
+
 model UserStoryProgress {
   id          String       @id @default(cuid())
   userId      String
@@ -559,4 +578,42 @@ model UserStoryProgress {
 
   @@unique([userId, chapterId])
   @@index([userId, characterId])
+}
+
+// ========== ショップ（EC） ==========
+model ShopItem {
+  id          String      @id @default(cuid())
+  characterId String
+  character   Character   @relation(fields: [characterId], references: [id])
+  name        String
+  description String?
+  type        String      // digital_wallpaper, digital_voice, physical_goods, etc.
+  priceCoins  Int         // コイン価格
+  priceJpy    Int?        // 円価格（物理グッズ用、Stripe経由）
+  imageUrl    String?
+  fileUrl     String?     // デジタル商品のDL URL
+  stock       Int?        // 物理グッズの在庫数（nullなら無限）
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  orders      ShopOrder[]
+
+  @@index([characterId])
+  @@index([isActive])
+}
+
+model ShopOrder {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  itemId          String
+  item            ShopItem @relation(fields: [itemId], references: [id])
+  quantity        Int      @default(1)
+  totalCoins      Int?
+  totalJpy        Int?
+  status          String   @default("completed") // completed, shipped, cancelled
+  shippingAddress String?  // 物理グッズ用
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([itemId])
 }

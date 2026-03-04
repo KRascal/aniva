@@ -559,6 +559,7 @@ export class CharacterEngine {
       jealousyContext,
       characterContext,
       dailyFanCount,
+      relationship.experiencePoints, // intimacyLevel = XP (0-99 Lv1, 100-299 Lv2, 300-599 Lv3, 600-999 Lv4, 1000+ Lv5)
     );
     
     // 6. LLM呼び出し
@@ -668,6 +669,25 @@ export class CharacterEngine {
     return dbFallback;
   }
 
+  /**
+   * 親密度レベル（intimacyLevel）に応じた口調指示を返す
+   * relationship が null の場合は Lv1 扱い
+   */
+  private getIntimacyToneInstruction(intimacyLevel: number | null | undefined): string {
+    const level = intimacyLevel ?? 0;
+    if (level >= 1000) {
+      return '## 【口調指示】親密度レベル5（本音モード）\n- 素の自分で話す。感情をストレートに出す。飾らない本音で語る。弱さも見せていい。';
+    } else if (level >= 600) {
+      return '## 【口調指示】親密度レベル4（親友レベル）\n- 親友として話す。秘密も共有する。悩み相談に真剣に向き合う。距離感は最も近い。';
+    } else if (level >= 300) {
+      return '## 【口調指示】親密度レベル3（友達感覚）\n- 友達感覚で話す。冗談も言う。たまにふざける。からかいも自然に入れてよい。';
+    } else if (level >= 100) {
+      return '## 【口調指示】親密度レベル2（少し打ち解けた）\n- 少しだけ打ち解けた話し方。敬語混じりのタメ口。まだ若干の距離感はある。';
+    } else {
+      return '## 【口調指示】親密度レベル1（初対面）\n- 丁寧語で話す。初対面の距離感。相手のことをまだよく知らない。';
+    }
+  }
+
   private buildSystemPrompt(
     character: CharacterRecord,
     memory: MemoryContext,
@@ -678,9 +698,11 @@ export class CharacterEngine {
     jealousyContext: string = '',
     characterContext?: { systemPrompt: string; voiceConfig: { toneNotes?: string }; personality: { name: string } } | null,
     dailyFanCount: number = 0,
+    intimacyLevel?: number | null,
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
+    const intimacyToneInstruction = this.getIntimacyToneInstruction(intimacyLevel);
     const timeContext = this.getTimeContext();
     const reunionContext = this.getReunionContext(memory);
     const emotionContext = this.getCharacterEmotionContext(memory);
@@ -705,6 +727,8 @@ export class CharacterEngine {
     );
     
     return `${soulContent}
+
+${intimacyToneInstruction}
 
 ## 現在の状況
 - 現在時刻: ${timeContext.timeStr}（${timeContext.period}）

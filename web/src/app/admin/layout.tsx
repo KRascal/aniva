@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/analytics', label: '分析', icon: '📈' },
   { href: '/admin/addiction', label: '中毒設計', icon: '🧪' },
   { href: '/admin/gacha', label: 'ガチャ管理', icon: '🎰' },
+  { href: '/admin/shop', label: 'ショップ管理', icon: '🛍' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

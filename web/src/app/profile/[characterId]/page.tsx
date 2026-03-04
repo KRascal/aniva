@@ -209,6 +209,18 @@ interface MomentItem {
   visibility?: string;
 }
 
+interface DlContent {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  thumbnailUrl: string | null;
+  fcOnly: boolean;
+  downloadCount: number;
+  createdAt: string;
+  locked: boolean;
+}
+
 /* ───────────────────────── サブコンポーネント ───────────────────────── */
 
 function SparkStar({ filled, delay }: { filled: boolean; delay: number }) {
@@ -315,7 +327,9 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'profile'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile'>('posts');
+  const [dlContents, setDlContents] = useState<DlContent[]>([]);
+  const [dlLoading, setDlLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -412,6 +426,19 @@ export default function ProfilePage() {
   const handleChat = () => {
     router.push(`/chat/${characterId}`);
   };
+
+  // 限定DLコンテンツ取得
+  useEffect(() => {
+    if (!characterId) return;
+    setDlLoading(true);
+    fetch(`/api/content?characterId=${characterId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.contents) setDlContents(data.contents as DlContent[]);
+      })
+      .catch(console.error)
+      .finally(() => setDlLoading(false));
+  }, [characterId]);
 
   // いいね機能（タイムラインと同じ楽観的更新+API）
   const handleLike = useCallback(async (momentId: string) => {
@@ -638,6 +665,7 @@ export default function ProfilePage() {
             {[
               { id: 'posts' as const, label: '投稿' },
               { id: 'fc' as const, label: 'FC限定' },
+              { id: 'dl' as const, label: '📥 DL' },
               { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
@@ -747,6 +775,87 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-white font-bold text-sm mb-1">FC限定コンテンツ</p>
                 <p className="text-white/40 text-xs">ファンクラブに加入するとここに限定投稿が表示されます</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ タブコンテンツ: 限定DLコンテンツ ══════════════ */}
+        {activeTab === 'dl' && (
+          <div className="space-y-4 pt-2">
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">
+              📥 限定ダウンロードコンテンツ
+            </p>
+            {dlLoading ? (
+              <div className="text-center py-10 text-white/30 text-sm">読み込み中...</div>
+            ) : dlContents.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-white/40 text-sm">ダウンロードコンテンツはまだありません</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {dlContents.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`relative rounded-2xl overflow-hidden border ${
+                      item.locked
+                        ? 'border-gray-700/50 bg-gray-900/60'
+                        : 'border-purple-500/30 bg-gray-900/80'
+                    }`}
+                  >
+                    {/* サムネイル */}
+                    {item.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.thumbnailUrl}
+                        alt={item.title}
+                        className={`w-full h-28 object-cover ${item.locked ? 'filter blur-sm opacity-50' : ''}`}
+                      />
+                    ) : (
+                      <div className={`w-full h-28 flex items-center justify-center text-3xl ${item.locked ? 'opacity-30' : 'bg-gray-800/50'}`}>
+                        {item.type === 'wallpaper' ? '🖼️' : item.type === 'voice_clip' ? '🎵' : item.type === 'special_art' ? '🎨' : '📦'}
+                      </div>
+                    )}
+
+                    {/* ロックオーバーレイ */}
+                    {item.locked && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                        <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                        <span className="text-gray-300 text-xs font-semibold text-center px-2">FC加入で解放</span>
+                      </div>
+                    )}
+
+                    {/* 情報 */}
+                    <div className="p-3">
+                      <p className={`text-xs font-semibold truncate ${item.locked ? 'text-gray-500' : 'text-white'}`}>
+                        {item.title}
+                      </p>
+                      {item.description && (
+                        <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{item.description}</p>
+                      )}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-gray-600 text-xs">{item.downloadCount.toLocaleString()}DL</span>
+                        {!item.locked ? (
+                          <a
+                            href={`/api/content/${item.id}/download`}
+                            className="inline-flex items-center gap-1 text-xs bg-purple-700/60 hover:bg-purple-700/80 text-purple-200 px-2.5 py-1 rounded-lg transition-colors border border-purple-600/30"
+                          >
+                            <span>↓</span>DL
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => setActiveTab('fc')}
+                            className="text-xs bg-gray-800/60 text-gray-500 px-2.5 py-1 rounded-lg border border-gray-700/30"
+                          >
+                            FC限定
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
