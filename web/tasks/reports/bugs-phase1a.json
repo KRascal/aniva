@@ -1,0 +1,9 @@
+{
+  "task": "bugs-phase1a",
+  "status": "in_progress",
+  "summary": "作業中",
+  "files_changed": ["src/components/BottomNav.tsx", "src/components/moments/MomentCard.tsx"],
+  "commit": "",
+  "risks": [],
+  "next_actions": []
+}

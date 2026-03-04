@@ -33,6 +33,7 @@ interface ChatMenuProps {
   characterId: string;
   isOpen: boolean;
   onClose: () => void;
+  onFcClick?: () => void;
 }
 
 export function ChatMenu({
@@ -41,6 +42,7 @@ export function ChatMenu({
   characterId,
   isOpen,
   onClose,
+  onFcClick,
 }: ChatMenuProps) {
   if (!isOpen) return null;
 
@@ -62,7 +64,7 @@ export function ChatMenu({
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          <a href={`/relationship/${characterId}/fanclub`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
+          <button onClick={() => { onFcClick?.(); onClose(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm text-left">
             <span className="text-xl">💜</span>
             <div>
               <div className="font-medium">ファンクラブ</div>
@@ -71,7 +73,7 @@ export function ChatMenu({
             <svg className="w-4 h-4 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </button>
           <a href={`/relationship/${characterId}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors text-white text-sm">
             <span className="text-xl">📊</span>
             <div>

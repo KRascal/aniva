@@ -17,7 +17,7 @@ export interface MomentComment {
   characterId?: string | null;
   userId?: string | null;
   character?: { name: string; slug: string; avatarUrl: string | null } | null;
-  user?: { id: string; name: string | null; email: string } | null;
+  user?: { id: string; name: string | null; email: string; displayName?: string | null; nickname?: string | null; image?: string | null } | null;
 }
 
 export interface Moment {
@@ -515,21 +515,29 @@ export function MomentCard({
                     )
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    c.user?.id ? (
-                      <a href={`/user/${c.user.id}`}>
-                        {c.user?.name ? (
-                          <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5 hover:ring-1 hover:ring-purple-500/40 transition-all">
-                            {c.user.name.charAt(0)}
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">U</div>
-                        )}
-                      </a>
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">
-                        {(c.user?.name ?? 'U').charAt(0)}
-                      </div>
-                    )
+                    (() => {
+                      const userName = c.user?.displayName || c.user?.nickname || c.user?.name;
+                      const userAvatar = c.user?.image;
+                      const displayLabel = userName || (c.user?.email ? c.user.email.split('@')[0] : null);
+                      return c.user?.id ? (
+                        <a href={`/user/${c.user.id}`}>
+                          {userAvatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={userAvatar} alt={displayLabel ?? ''} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5 hover:ring-1 hover:ring-purple-500/40 transition-all" />
+                          ) : displayLabel ? (
+                            <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5 hover:ring-1 hover:ring-purple-500/40 transition-all">
+                              {displayLabel.charAt(0).toUpperCase()}
+                            </div>
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">?</div>
+                          )}
+                        </a>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">
+                          {(displayLabel ?? '?').charAt(0).toUpperCase()}
+                        </div>
+                      );
+                    })()
                   )}
                   <div className="flex-1 min-w-0">
                     {c.characterId ? (
@@ -539,11 +547,11 @@ export function MomentCard({
                       </span>
                     ) : c.user?.id ? (
                       <a href={`/user/${c.user.id}`} className="text-xs font-semibold mr-1.5 text-white/60 hover:text-purple-300 transition-colors">
-                        {c.user?.name ?? 'ユーザー'}
+                        {c.user?.displayName || c.user?.nickname || c.user?.name || (c.user?.email ? c.user.email.split('@')[0] : 'ユーザー')}
                       </a>
                     ) : (
                       <span className="text-xs font-semibold mr-1.5 text-white/60">
-                        {c.user?.name ?? 'ユーザー'}
+                        {c.user?.displayName || c.user?.nickname || c.user?.name || (c.user?.email ? c.user.email.split('@')[0] : 'ユーザー')}
                       </span>
                     )}
                     <span className="text-gray-200 text-xs leading-relaxed">{c.content}</span>

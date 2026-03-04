@@ -81,6 +81,7 @@ export function BottomNav() {
   const isHome = pathname === '/explore' || pathname === '/explore/';
   const isTimeline = pathname === '/moments' || pathname.startsWith('/moments');
   const isChat = pathname.startsWith('/chat');
+  const isGacha = pathname.startsWith('/gacha');
   const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
@@ -132,21 +133,42 @@ export function BottomNav() {
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>
 
-          {/* Chat - center, prominent */}
+          {/* Gacha */}
+          <Link
+            href="/gacha"
+            className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
+              isGacha ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
+            }`}
+          >
+            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isGacha ? 'bg-purple-500/15' : ''}`}>
+              <svg className="w-6 h-6" fill={isGacha ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isGacha ? 0 : 1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.686 2 6 4.239 6 7v1H5a1 1 0 00-1 1v7c0 3.314 3.582 6 8 6s8-2.686 8-6V9a1 1 0 00-1-1h-1V7c0-2.761-2.686-5-6-5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12" />
+                <circle cx="12" cy="13" r="2.5" />
+              </svg>
+              {isGacha && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+            </div>
+            <span className={`text-[10px] font-semibold ${isGacha ? 'text-purple-400' : 'text-gray-500'}`}>ガチャ</span>
+          </Link>
+
+          {/* Chat */}
           <Link
             href="/chat"
-            className="flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1"
+            className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
+              isChat ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
+            }`}
           >
-            <div className={`relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all shadow-lg ${
+            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
               isChat
-                ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-purple-900/50 scale-105'
-                : 'bg-gradient-to-br from-purple-700/60 to-pink-700/60 shadow-purple-900/30 hover:from-purple-600 hover:to-pink-600'
+                ? 'bg-gradient-to-br from-purple-600 to-pink-600 scale-105'
+                : ''
             }`}>
-              <svg className="w-6 h-6 text-white" fill={isChat ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isChat ? 0 : 1.8}>
+              <svg className={`w-6 h-6 ${isChat ? 'text-white' : ''}`} fill={isChat ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isChat ? 0 : 1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
+              {isChat && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
             </div>
-            <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-400'}`}>{t('chat')}</span>
+            <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-500'}`}>{t('chat')}</span>
           </Link>
 
           {/* My Page */}
