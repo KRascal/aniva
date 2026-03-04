@@ -33,14 +33,37 @@ export function FcSubscribeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Modal */}
-      <div className="relative w-full max-w-md mx-4 mb-0 sm:mb-0 bg-gradient-to-b from-gray-900 via-gray-900 to-black border border-purple-500/30 rounded-t-3xl sm:rounded-3xl overflow-hidden animate-[slideUp_0.3s_ease-out]">
+      {/* Modal — max-h で高さ制限 + overflow-y-auto でスクロール可 */}
+      <div className="relative w-full max-w-md bg-gradient-to-b from-gray-900 via-gray-900 to-black border border-purple-500/30 rounded-t-3xl overflow-y-auto max-h-[92dvh] animate-[slideUp_0.3s_ease-out]">
+        {/* スワイプ閉じバー + 戻るボタン */}
+        <div className="sticky top-0 z-10 bg-gray-900/95 pt-3 pb-2 px-4 flex items-center justify-between border-b border-white/5">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors active:scale-95 py-1 px-2 -ml-2 rounded-xl"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm font-medium">戻る</span>
+          </button>
+          {/* スワイプインジケーター */}
+          <div className="w-10 h-1 bg-gray-600 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2" />
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
         {/* Header with gradient */}
-        <div className="relative h-32 bg-gradient-to-br from-purple-600/40 via-pink-600/30 to-purple-800/40 flex items-center justify-center overflow-hidden">
+        <div className="relative h-28 bg-gradient-to-br from-purple-600/40 via-pink-600/30 to-purple-800/40 flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(168,85,247,0.3),transparent_70%)]" />
           {characterAvatar && (
             <img
@@ -54,13 +77,6 @@ export function FcSubscribeModal({
               👑
             </div>
           )}
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 text-gray-400 hover:text-white transition-colors"
-          >
-            ✕
-          </button>
         </div>
 
         {/* Content */}
@@ -121,15 +137,17 @@ export function FcSubscribeModal({
             {loading ? '処理中...' : '👑 FC会員になる'}
           </button>
 
-          <p className="text-center text-gray-600 text-[10px] mt-3">
+          <p className="text-center text-gray-600 text-[10px] mt-3 pb-safe">
             いつでもキャンセル可能 • Stripeで安全に決済
           </p>
+          {/* iOS safe area spacing */}
+          <div className="h-6" />
         </div>
       </div>
 
       <style jsx>{`
         @keyframes slideUp {
-          from { opacity: 0; transform: translateY(100px); }
+          from { opacity: 0; transform: translateY(100%); }
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
