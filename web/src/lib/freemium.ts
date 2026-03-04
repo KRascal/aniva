@@ -267,19 +267,7 @@ export async function checkCallAccess(
     return { type: 'BLOCKED', isFanclub: true };
   }
 
-  // 2. 無料通話チェック
-  const { callMinutes } = await getMonthlyUsage(userId, characterId);
-
-  if (callMinutes < freeCallMinutes) {
-    return {
-      type: 'FREE',
-      freeMinutesUsed: callMinutes,
-      freeMinutesRemaining: freeCallMinutes - callMinutes,
-      isFanclub: false,
-    };
-  }
-
-  // 3. コイン残高チェック
+  // 2. コイン残高チェック（非FC: コインのみ）
   const coin = await prisma.coinBalance.findUnique({
     where: { userId },
     select: { balance: true },
@@ -295,6 +283,6 @@ export async function checkCallAccess(
     };
   }
 
-  // 4. ブロック
+  // 3. ブロック
   return { type: 'BLOCKED', isFanclub: false };
 }

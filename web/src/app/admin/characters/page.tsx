@@ -887,34 +887,48 @@ export default function CharactersPage() {
             <div className="p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
               <h4 className="text-white font-semibold text-sm mb-4">💰 料金設定</h4>
 
-              {/* FCメンバーシップ */}
+              {/* 通常（非FC） */}
               <div className="mb-4">
+                <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 通常（非FC会員）</p>
+                <p className="text-gray-500 text-xs mb-3">FC未加入ユーザーのコイン消費設定</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">チャット / 1通</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={form.chatCoinPerMessage}
+                        onChange={(e) => f('chatCoinPerMessage', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        min={1}
+                        max={100}
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">デフォルト: 10コイン</p>
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">通話 / 1分</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="200"
+                        value={form.callCoinPerMin}
+                        onChange={(e) => f('callCoinPerMin', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* FCメンバーシップ */}
+              <div className="pt-4 border-t border-gray-700/60">
                 <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
-                <div className="mb-3">
-                  <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
-                  <input
-                    type="number"
-                    value={form.fcMonthlyCoins}
-                    onChange={(e) => f('fcMonthlyCoins', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    min={100}
-                    max={10000}
-                  />
-                  <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
-                </div>
-                <div className="mb-3">
-                  <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
-                  <input
-                    type="number"
-                    value={form.chatCoinPerMessage}
-                    onChange={(e) => f('chatCoinPerMessage', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    min={1}
-                    max={100}
-                  />
-                  <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <p className="text-gray-500 text-xs mb-3">FC加入者はチャット無制限 + 通話時間インクルード</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-gray-400 text-sm mb-1">FC月額</label>
                     <div className="flex items-center gap-2">
@@ -930,7 +944,24 @@ export default function CharactersPage() {
                     <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
                   </div>
                   <div>
-                    <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
+                    <label className="block text-gray-400 text-sm mb-1">月額無料コイン付与</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={form.fcMonthlyCoins}
+                        onChange={(e) => f('fcMonthlyCoins', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                        min={0}
+                        max={10000}
+                      />
+                      <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">毎月FC加入者に付与（デフォルト: 500）</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">込み通話時間</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -943,7 +974,7 @@ export default function CharactersPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
+                    <label className="block text-gray-400 text-sm mb-1">超過通話料金</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -959,65 +990,9 @@ export default function CharactersPage() {
                 </div>
               </div>
 
-              {/* 無料枠 */}
-              <div className="mb-4 pt-4 border-t border-gray-700/60">
-                <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.freeMessageLimit}
-                        onChange={(e) => f('freeMessageLimit', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">通</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.freeCallMinutes}
-                        onChange={(e) => f('freeCallMinutes', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">分</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* コイン課金（非FC） */}
-              <div className="pt-4 border-t border-gray-700/60">
-                <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="200"
-                        value={form.callCoinPerMin}
-                        onChange={(e) => f('callCoinPerMin', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
-                    </div>
-                    <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
-                  </div>
-                </div>
-              </div>
-
               <GrossMarginPreview
                 fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
-                freeMessageLimit={form.freeMessageLimit}
+                freeMessageLimit={'0'}
                 fcIncludedCallMin={form.fcIncludedCallMin}
               />
             </div>
@@ -1554,34 +1529,48 @@ export default function CharactersPage() {
                 <div className="mt-6 p-4 bg-gray-800/60 border border-gray-700 rounded-xl">
                   <h3 className="text-white font-semibold text-sm mb-4">💰 料金設定</h3>
 
-                  {/* FCメンバーシップ */}
+                  {/* 通常（非FC） */}
                   <div className="mb-4">
+                    <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 通常（非FC会員）</p>
+                    <p className="text-gray-500 text-xs mb-3">FC未加入ユーザーのコイン消費設定</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">チャット / 1通</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={form.chatCoinPerMessage}
+                            onChange={(e) => f('chatCoinPerMessage', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                            min={1}
+                            max={100}
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">デフォルト: 10コイン</p>
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">通話 / 1分</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="200"
+                            value={form.callCoinPerMin}
+                            onChange={(e) => f('callCoinPerMin', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FCメンバーシップ */}
+                  <div className="pt-4 border-t border-gray-700/60">
                     <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-3">👑 FCメンバーシップ</p>
-                    <div className="mb-3">
-                      <label className="block text-gray-400 text-sm mb-1">FC月額コイン</label>
-                      <input
-                        type="number"
-                        value={form.fcMonthlyCoins}
-                        onChange={(e) => f('fcMonthlyCoins', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                        min={100}
-                        max={10000}
-                      />
-                      <p className="text-gray-600 text-xs mt-1">FCプランで毎月付与するコイン数 (デフォルト: 500)</p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="block text-gray-400 text-sm mb-1">チャット消費コイン</label>
-                      <input
-                        type="number"
-                        value={form.chatCoinPerMessage}
-                        onChange={(e) => f('chatCoinPerMessage', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                        min={1}
-                        max={100}
-                      />
-                      <p className="text-gray-600 text-xs mt-1">チャット1回あたりのコイン消費数 (デフォルト: 10)</p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <p className="text-gray-500 text-xs mb-3">FC加入者はチャット無制限 + 通話時間インクルード</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>
                         <label className="block text-gray-400 text-sm mb-1">FC月額</label>
                         <div className="flex items-center gap-2">
@@ -1597,7 +1586,24 @@ export default function CharactersPage() {
                         <p className="text-gray-600 text-xs mt-1">最低 ¥3,480</p>
                       </div>
                       <div>
-                        <label className="block text-gray-400 text-sm mb-1">FC込み通話時間</label>
+                        <label className="block text-gray-400 text-sm mb-1">月額無料コイン付与</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={form.fcMonthlyCoins}
+                            onChange={(e) => f('fcMonthlyCoins', e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                            min={0}
+                            max={10000}
+                          />
+                          <span className="text-gray-400 text-sm shrink-0">コイン</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">毎月FC加入者に付与（デフォルト: 500）</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-400 text-sm mb-1">込み通話時間</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
@@ -1610,7 +1616,7 @@ export default function CharactersPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-gray-400 text-sm mb-1">FC超過通話料金</label>
+                        <label className="block text-gray-400 text-sm mb-1">超過通話料金</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
@@ -1626,66 +1632,10 @@ export default function CharactersPage() {
                     </div>
                   </div>
 
-                  {/* 無料枠 */}
-                  <div className="mb-4 pt-4 border-t border-gray-700/60">
-                    <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">🎁 無料枠</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-400 text-sm mb-1">無料チャット上限</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={form.freeMessageLimit}
-                            onChange={(e) => f('freeMessageLimit', e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                          />
-                          <span className="text-gray-400 text-sm shrink-0">通</span>
-                        </div>
-                        <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                      </div>
-                      <div>
-                        <label className="block text-gray-400 text-sm mb-1">無料通話上限</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={form.freeCallMinutes}
-                            onChange={(e) => f('freeCallMinutes', e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                          />
-                          <span className="text-gray-400 text-sm shrink-0">分</span>
-                        </div>
-                        <p className="text-gray-600 text-xs mt-1">0 = 無制限</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* コイン課金（非FC） */}
-                  <div className="pt-4 border-t border-gray-700/60">
-                    <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">🪙 コイン課金（非FC）</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-400 text-sm mb-1">通話料金 / 分</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="200"
-                            value={form.callCoinPerMin}
-                            onChange={(e) => f('callCoinPerMin', e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                          />
-                          <span className="text-gray-400 text-sm shrink-0">コイン/分</span>
-                        </div>
-                        <p className="text-gray-600 text-xs mt-1">最低 200コイン</p>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* 粗利率プレビュー */}
                   <GrossMarginPreview
                     fcMonthlyPriceJpy={form.fcMonthlyPriceJpy}
-                    freeMessageLimit={form.freeMessageLimit}
+                    freeMessageLimit={'0'}
                     fcIncludedCallMin={form.fcIncludedCallMin}
                   />
                 </div>

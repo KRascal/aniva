@@ -121,11 +121,11 @@ export async function POST() {
     const multiplier = getMultiplier(streak);
     const coins = Math.round(BASE_COINS * multiplier);
 
-    // コイン付与（トランザクション）
+    // コイン付与（freeBalanceに加算 — 無料コイン扱い）
     const balance = await prisma.coinBalance.upsert({
       where: { userId },
-      create: { userId, balance: coins },
-      update: { balance: { increment: coins } },
+      create: { userId, balance: coins, freeBalance: coins, paidBalance: 0 },
+      update: { balance: { increment: coins }, freeBalance: { increment: coins } },
     });
 
     await prisma.coinTransaction.create({
@@ -135,6 +135,7 @@ export async function POST() {
         amount: coins,
         balanceAfter: balance.balance,
         description: `daily_login_streak_${streak}`,
+        metadata: { source: 'login_bonus', coinType: 'free' },
       },
     });
 
