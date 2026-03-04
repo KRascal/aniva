@@ -43,8 +43,10 @@ export default auth((req) => {
     pathname === '/pricing' ||
     pathname === '/moments' ||
     pathname === '/offline' ||
-    pathname === '/discover';   // Phase 3: 気配の空間（未ログインOK）
+    pathname === '/discover' ||  // Phase 3: 気配の空間（未ログインOK）
+    pathname.startsWith('/user/');  // 公開プロフィールページ
   const isPublicApi =
+    pathname.startsWith('/api/users/') ||  // 公開プロフィールAPI
     pathname.startsWith('/api/characters') ||
     pathname.startsWith('/api/moments') ||
     pathname.startsWith('/api/push/subscribe') ||
