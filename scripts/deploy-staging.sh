@@ -33,7 +33,7 @@ echo "🔨 Running prisma generate..."
 npx prisma generate
 
 echo "🗄️ Pushing schema to staging DB..."
-DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push --skip-generate
+DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push
 
 echo "🏗️ Building in staging..."
 pnpm build
