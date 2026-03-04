@@ -142,11 +142,27 @@ export function ChatInput({
     <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
       {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex flex-col gap-1.5 mb-2 px-1">
+          {/* コイン残高が少ない時の煽り */}
+          {coinBalance <= 5 && coinBalance > 0 && (
+            <a href="/coins" className="flex items-center gap-2 bg-red-900/40 border border-red-500/30 rounded-xl px-3 py-2 text-xs">
+              <span className="text-base">⚠️</span>
+              <span className="text-red-300 font-medium">残り{coinBalance}コイン…{character?.name ?? '推し'}との会話が途切れちゃう</span>
+              <span className="text-red-400 ml-auto">→ 補充</span>
+            </a>
+          )}
+          {coinBalance === 0 && (
+            <a href="/coins" className="flex items-center gap-2 bg-red-900/60 border border-red-500/40 rounded-xl px-3 py-2.5 text-xs animate-pulse">
+              <span className="text-base">💔</span>
+              <span className="text-red-200 font-bold">{character?.name ?? '推し'}が待ってるのに…コインがない</span>
+              <span className="text-red-300 ml-auto font-bold">→ 今すぐ補充</span>
+            </a>
+          )}
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <a href="/coins" className="flex items-center gap-1 text-xs bg-gray-800/80 rounded-full px-2.5 py-1 hover:bg-gray-700/80 transition-colors">
+            <a href="/coins" className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 transition-colors ${coinBalance <= 5 ? 'bg-red-900/40 hover:bg-red-800/50' : 'bg-gray-800/80 hover:bg-gray-700/80'}`}>
               <span className="text-amber-400 text-sm">🪙</span>
-              <span className="font-bold text-amber-300">{coinBalance}</span>
+              <span className={`font-bold ${coinBalance <= 5 ? 'text-red-300' : 'text-amber-300'}`}>{coinBalance}</span>
               <span className="text-gray-400">コイン</span>
             </a>
             <button
@@ -164,6 +180,7 @@ export function ChatInput({
             <span>⭐</span>
             <span>FC加入でチャット無制限</span>
           </button>
+          </div>
         </div>
       )}
       {/* ── クイック返信チップ（入力が空の時のみ表示） ── */}
