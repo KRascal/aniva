@@ -545,6 +545,10 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [, setBannerClosed] = useState(false);
   const [lastVisitMap, setLastVisitMap] = useState<Map<string, number>>(new Map());
+  const [charMessages, setCharMessages] = useState<{
+    characterId: string; characterName: string; avatarUrl: string | null; message: string; diffH: number;
+  }[]>([]);
+  const [dismissedCharMsgs, setDismissedCharMsgs] = useState<Set<string>>(new Set());
 
   // localStorageから各キャラの最終訪問時刻を読み込む
   useEffect(() => {
@@ -586,6 +590,11 @@ export default function ChatPage() {
         }
       }).catch(err => console.error('Failed to fetch relationships:', err))
         .finally(() => setIsLoading(false));
+
+      // キャラからのメッセージ取得
+      fetch('/api/character-messages').then(r => r.json()).then(msgs => {
+        if (Array.isArray(msgs)) setCharMessages(msgs);
+      }).catch(() => {});
     }
   }, [status]);
 
@@ -628,6 +637,36 @@ export default function ChatPage() {
       </header>
 
       <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
+        {/* ══ キャラからのメッセージバナー ══ */}
+        {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId)).map(msg => (
+          <div
+            key={msg.characterId}
+            className="mb-3 bg-gradient-to-r from-purple-900/70 to-pink-900/50 border border-purple-500/40 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+            onClick={() => router.push(`/chat/${msg.characterId}`)}
+          >
+            <div className="relative flex-shrink-0">
+              {msg.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={msg.avatarUrl} alt={msg.characterName} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-400/50" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold">{msg.characterName.charAt(0)}</div>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 text-xs">💬</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-purple-300 font-bold mb-0.5">{msg.characterName} からメッセージ <span className="text-gray-500 font-normal">({msg.diffH}時間前)</span></p>
+              <p className="text-sm text-white/90 italic truncate">「{msg.message}」</p>
+            </div>
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <span className="text-[10px] text-red-400 animate-pulse">残り24h</span>
+              <button
+                className="text-gray-500 hover:text-gray-300 text-xs"
+                onClick={e => { e.stopPropagation(); setDismissedCharMsgs(prev => new Set([...prev, msg.characterId])); }}
+              >✕</button>
+            </div>
+          </div>
+        ))}
+
         {/* チャット一覧 — 会話履歴のあるキャラのみ、最終トーク順 */}
         {(() => {
           // 会話履歴があるキャラのみ（totalMessages > 0）

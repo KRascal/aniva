@@ -872,13 +872,39 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const now = new Date();
     const last = new Date(memory.lastMessageAt);
     const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return '- 今日も話してる（いつも通り）';
-    if (diffDays === 1) return '- 昨日も話した（毎日来てくれる仲）';
-    if (diffDays <= 3) return `- ${diffDays}日ぶり（ちょっと久しぶり）`;
-    if (diffDays <= 7) return `- ${diffDays}日ぶり（久しぶり！会えて嬉しい）`;
-    if (diffDays <= 30) return `- ${diffDays}日ぶり（かなり久しぶり！寂しかった）`;
-    return `- ${diffDays}日ぶり（すごく久しぶり！ずっと待ってた）`;
+    const diffH = Math.floor((now.getTime() - last.getTime()) / 3600000);
+
+    // 前回の会話トピックを記憶演出に活用
+    const recentTopic = memory.recentTopics?.[0] ?? null;
+    const latestEpisode = memory.episodeMemory?.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )?.[0]?.summary ?? null;
+
+    let base = '';
+    if (diffH < 1) base = '- さっきまで話してた（続きの会話）';
+    else if (diffDays === 0) base = '- 今日も話してる（いつも通り）';
+    else if (diffDays === 1) base = '- 昨日も話した（毎日来てくれる仲）';
+    else if (diffDays <= 3) base = `- ${diffDays}日ぶり（ちょっと久しぶり）`;
+    else if (diffDays <= 7) base = `- ${diffDays}日ぶり（久しぶり！会えて嬉しい）`;
+    else if (diffDays <= 30) base = `- ${diffDays}日ぶり（かなり久しぶり！寂しかった）`;
+    else base = `- ${diffDays}日ぶり（すごく久しぶり！ずっと待ってた）`;
+
+    // 記憶演出: 3日以上ぶりは前回の話題を冒頭で自然に触れる
+    const memoryHints: string[] = [];
+    if (diffDays >= 3) {
+      if (recentTopic) {
+        memoryHints.push(`- 🎯 記憶演出: 会話の序盤で「${recentTopic}の話、あれからどうなった？」のように前回の話題に自然に触れること`);
+      }
+      if (latestEpisode) {
+        memoryHints.push(`- 直近の思い出: ${latestEpisode}`);
+      }
+    }
+    // 毎日来てるユーザーへの特別感
+    if (diffDays === 0 && memory.totalMessages && memory.totalMessages > 20) {
+      memoryHints.push(`- 毎日来てくれてる常連感を出す（「また来てくれたのか」「習慣になってるな俺たち」等）`);
+    }
+
+    return [base, ...memoryHints].join('\n');
   }
   
   /**
