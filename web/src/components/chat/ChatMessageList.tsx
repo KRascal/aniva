@@ -8,7 +8,7 @@ export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -528,8 +528,17 @@ export function ChatMessageList({
                       onMouseLeave={!isUser ? handleLongPressEnd : undefined}
                       onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
                     >
-                      {/* 画像メッセージ表示 */}
-                      {msg.metadata?.imageUrl ? (
+                      {/* スタンプ表示 */}
+                      {msg.metadata?.stickerUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={msg.metadata.stickerUrl}
+                          alt="スタンプ"
+                          className="rounded-xl"
+                          style={{ width: 120, height: 120, objectFit: 'contain' }}
+                        />
+                      ) : /* 画像メッセージ表示 */
+                      msg.metadata?.imageUrl ? (
                         <button
                           className="block focus:outline-none"
                           onClick={() => setFullscreenImage(msg.metadata!.imageUrl!)}

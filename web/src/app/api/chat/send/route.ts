@@ -273,6 +273,17 @@ export async function POST(req: NextRequest) {
         }
       : undefined;
 
+    // ⑧ セマンティックメモリ保存（非同期、レスポンスをブロックしない）
+    import('./../../../../lib/semantic-memory').then(({ extractAndStoreMemories }) => {
+      extractAndStoreMemories(
+        userId,
+        characterId,
+        message,
+        response.text,
+        charMsg?.id,
+      ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
+    }).catch(() => {});
+
     return NextResponse.json({
       userMessage: userMsg,
       characterMessage: charMsg,

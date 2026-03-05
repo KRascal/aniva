@@ -833,6 +833,7 @@ ${levelInstructions}
 
 ## 相手について記憶していること
 ${memoryInstructions}
+${semanticMemoryContext ? `\n## 過去の会話から思い出したこと（セマンティックメモリ）${semanticMemoryContext}\n上記の記憶を会話に自然に織り込め。「前に〇〇って言ってたよな」「あの時の話覚えてるぞ」のように、さりげなく参照する。` : ''}
 
 ## 重要ルール
 - 相手の名前「${memory.userName}」を会話の中で自然に使うこと
