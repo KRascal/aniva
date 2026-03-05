@@ -7,8 +7,10 @@ export async function GET(
 ) {
   const { id } = await params;
 
+  // UUID形式ならidで検索、そうでなければslugとして検索
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const character = await prisma.character.findUnique({
-    where: { id },
+    where: isUuid ? { id } : { slug: id },
     select: {
       id: true,
       name: true,

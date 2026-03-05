@@ -21,6 +21,11 @@ export async function GET(
       coverUrl: true,
       catchphrases: true,
       personalityTraits: true,
+      fcMonthlyPriceJpy: true,
+      fcMonthlyCoins: true,
+      fcIncludedCallMin: true,
+      fcOverageCallCoinPerMin: true,
+      voiceModelId: true,
     },
   });
 
@@ -28,5 +33,11 @@ export async function GET(
     return NextResponse.json({ error: 'Character not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ character });
+  const { voiceModelId, ...characterPublic } = character;
+  return NextResponse.json({
+    character: {
+      ...characterPublic,
+      hasVoice: !!(voiceModelId && voiceModelId.trim() !== ''),
+    },
+  });
 }
