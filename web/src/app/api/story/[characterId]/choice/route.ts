@@ -128,11 +128,18 @@ export async function POST(
         },
       });
 
-      // コイン付与
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          coinBalance: { increment: coinsEarned },
+      // コイン付与（CoinBalanceモデルへのupsert）
+      await prisma.coinBalance.upsert({
+        where: { userId },
+        create: {
+          userId,
+          balance: coinsEarned,
+          freeBalance: coinsEarned,
+          paidBalance: 0,
+        },
+        update: {
+          balance: { increment: coinsEarned },
+          freeBalance: { increment: coinsEarned },
         },
       });
     }
