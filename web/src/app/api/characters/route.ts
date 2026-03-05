@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         coverUrl: true,
         catchphrases: true,
         birthday: true,
+        voiceModelId: true,
         _count: {
           select: {
             relationships: {
