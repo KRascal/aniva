@@ -22,6 +22,21 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { FcSubscribeModal } from '@/components/chat/FcSubscribeModal';
 import { rollRandomEvent, type RandomEvent } from '@/lib/random-events';
 
+/* ─────────────── ユーティリティ ─────────────── */
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+type TextEmotion = 'excited' | 'angry' | 'shy' | 'sad' | 'neutral';
+
+function detectEmotionForDelay(text: string): { emotion: TextEmotion; delay: number; pauseEffect: boolean } {
+  if (/！！|すげぇ|最高/.test(text)) return { emotion: 'excited', delay: 300, pauseEffect: false };
+  if (/許さねぇ|ふざけんな/.test(text)) return { emotion: 'angry', delay: 200, pauseEffect: false };
+  if (/別に|うるせぇ/.test(text)) return { emotion: 'shy', delay: 1200, pauseEffect: true };
+  const ellipsisCount = (text.match(/…/g) ?? []).length;
+  if (ellipsisCount >= 2) return { emotion: 'sad', delay: 1500, pauseEffect: true };
+  const defaultDelay = Math.min(600 + text.length * 10, 2000);
+  return { emotion: 'neutral', delay: defaultDelay, pauseEffect: false };
+}
+
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
 const GLOBAL_STYLES = `
   @keyframes fadeInUp {
@@ -114,6 +129,66 @@ const GLOBAL_STYLES = `
     15%  { opacity: 1; transform: translateY(-6px) scale(1.05); }
     60%  { opacity: 0.9; transform: translateY(-18px) scale(1); }
     100% { opacity: 0; transform: translateY(-36px) scale(0.9); }
+  }
+  /* ---- 新規感情吹き出しアニメーション ---- */
+  /* 照れ: 左右に小さく揺れ */
+  @keyframes bubbleShyWiggle {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-3px); }
+    40%       { transform: translateX(3px); }
+    60%       { transform: translateX(-2px); }
+    80%       { transform: translateX(2px); }
+  }
+  /* 悲しみ: 全体がゆっくりフェードイン */
+  @keyframes bubbleSadFade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 0.88; transform: translateY(0); }
+  }
+  /* 寂しい: わずかに小さく出現 */
+  @keyframes bubbleLonelyIn {
+    from { opacity: 0; transform: scale(0.93); }
+    to   { opacity: 1; transform: scale(0.97); }
+  }
+  /* 興奮スパークル */
+  @keyframes sparkleFloat1 {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0) rotate(0deg); }
+    30%  { opacity: 1; transform: translate(-8px, -12px) scale(1.1) rotate(60deg); }
+    100% { opacity: 0; transform: translate(-4px, -26px) scale(0.5) rotate(140deg); }
+  }
+  @keyframes sparkleFloat2 {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0) rotate(0deg); }
+    40%  { opacity: 1; transform: translate(10px, -10px) scale(1.0) rotate(-45deg); }
+    100% { opacity: 0; transform: translate(6px, -24px) scale(0.5) rotate(-120deg); }
+  }
+  .bubble-shy {
+    animation: bubbleShyWiggle 0.7s ease-in-out;
+    box-shadow: 0 0 0 1px rgba(236,72,153,0.25), 0 4px 16px rgba(236,72,153,0.12) !important;
+  }
+  .bubble-sad {
+    animation: bubbleSadFade 0.8s ease-out forwards;
+  }
+  .bubble-lonely {
+    animation: bubbleLonelyIn 0.6s ease-out forwards;
+  }
+  .sparkle-1 {
+    position: absolute;
+    top: -4px; right: 4px;
+    font-size: 11px;
+    pointer-events: none;
+    animation: sparkleFloat1 1.1s ease-out forwards;
+    z-index: 10;
+    user-select: none;
+  }
+  .sparkle-2 {
+    position: absolute;
+    top: 2px; right: -8px;
+    font-size: 10px;
+    pointer-events: none;
+    animation: sparkleFloat2 1.1s ease-out forwards;
+    animation-delay: 0.2s;
+    opacity: 0;
+    z-index: 10;
+    user-select: none;
   }
 `;
 
@@ -281,6 +356,8 @@ export default function ChatCharacterPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** 送信フライト中フラグ（delay中のダブル送信防止） */
+  const inFlightRef = useRef(false);
 
   /* ─────────── 音声ミニプレーヤー制御 ─────────── */
   const handleAudioToggle = useCallback((messageId: string, audioUrl: string) => {
@@ -552,7 +629,8 @@ export default function ChatCharacterPage() {
   };
 
   const sendMessage = async () => {
-    if (!inputText.trim() || isSending || !userId) return;
+    if (!inputText.trim() || inFlightRef.current || !userId) return;
+    inFlightRef.current = true;
     const text = inputText.trim();
     setInputText('');
     setIsSending(true);
