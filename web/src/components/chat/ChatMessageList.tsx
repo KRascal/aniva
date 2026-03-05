@@ -8,7 +8,7 @@ export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -43,21 +43,50 @@ const EMOTION_EMOJI: Record<string, string> = {
   shy: '😳',
   proud: '✨',
   teasing: '😏',
+  lonely: '🌙',
+  anxious: '💦',
+  motivated: '🔥',
 };
 
 const EMOTION_BUBBLE_STYLE: Record<string, string> = {
-  excited:   'bg-gradient-to-br from-orange-800/80 to-red-800/70 border border-orange-600/40 text-orange-50',
-  happy:     'bg-gradient-to-br from-yellow-800/80 to-amber-800/70 border border-yellow-600/40 text-yellow-50',
-  angry:     'bg-gradient-to-br from-red-900/80 to-rose-800/70 border border-red-600/40 text-red-50',
-  sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-600/40 text-blue-50',
+  excited:   'bg-gradient-to-br from-orange-800/80 to-red-800/70 border border-orange-500/30 text-orange-50',
+  happy:     'bg-gradient-to-br from-yellow-800/80 to-amber-800/70 border border-yellow-500/20 text-yellow-50',
+  angry:     'bg-gradient-to-br from-red-900/80 to-rose-800/70 border border-red-500/30 text-red-50',
+  sad:       'bg-gradient-to-br from-blue-900/80 to-indigo-900/70 border border-blue-500/20 text-blue-50',
   hungry:    'bg-gradient-to-br from-orange-900/80 to-yellow-800/70 border border-orange-500/40 text-orange-50',
   surprised: 'bg-gradient-to-br from-cyan-900/80 to-teal-800/70 border border-cyan-600/40 text-cyan-50',
-  love:      'bg-gradient-to-br from-pink-800/80 to-rose-700/70 border border-pink-500/40 text-pink-50',
-  shy:       'bg-gradient-to-br from-rose-900/80 to-pink-800/70 border border-rose-500/40 text-rose-50',
+  love:      'bg-gradient-to-br from-pink-800/80 to-rose-700/70 border border-pink-500/30 text-pink-50',
+  shy:       'bg-gradient-to-br from-rose-900/80 to-pink-800/70 border border-pink-500/30 text-rose-50',
   proud:     'bg-gradient-to-br from-amber-800/80 to-yellow-700/70 border border-amber-500/40 text-amber-50',
   teasing:   'bg-gradient-to-br from-violet-800/80 to-purple-800/70 border border-violet-500/40 text-violet-50',
+  lonely:    'bg-gradient-to-br from-purple-900/80 to-indigo-800/70 border border-purple-500/30 text-purple-50',
+  anxious:   'bg-gradient-to-br from-gray-700/80 to-slate-700/70 border border-gray-500/30 text-gray-100',
+  motivated: 'bg-gradient-to-br from-orange-800/80 to-amber-700/70 border border-orange-500/30 text-orange-50',
   neutral:   'bg-gray-800/90 text-gray-100 border border-gray-600/30 shadow-md',
 };
+
+/* 感情ステータスバー設定 */
+const EMOTION_STATUS_BAR: Record<string, { emoji: string; text: string; gradient: string; textColor: string }> = {
+  angry:     { emoji: '🔥', text: '怒ってる…',      gradient: 'from-red-800/50 to-red-600/30',      textColor: 'text-red-300' },
+  shy:       { emoji: '💕', text: '照れてる…',       gradient: 'from-pink-800/50 to-pink-600/30',    textColor: 'text-pink-300' },
+  sad:       { emoji: '💧', text: '悲しんでる…',     gradient: 'from-blue-800/50 to-blue-600/30',    textColor: 'text-blue-300' },
+  excited:   { emoji: '⚡', text: 'テンション高い！', gradient: 'from-orange-800/50 to-orange-600/30', textColor: 'text-orange-300' },
+  happy:     { emoji: '✨', text: '嬉しそう！',       gradient: 'from-yellow-800/50 to-yellow-600/30', textColor: 'text-yellow-300' },
+  lonely:    { emoji: '🌙', text: '寂しそう…',       gradient: 'from-purple-800/50 to-purple-600/30', textColor: 'text-purple-300' },
+  anxious:   { emoji: '💦', text: '焦ってる…',       gradient: 'from-gray-700/50 to-gray-500/30',    textColor: 'text-gray-300' },
+  motivated: { emoji: '🔥', text: 'やる気満々！',    gradient: 'from-orange-800/50 to-amber-600/30', textColor: 'text-amber-300' },
+  love:      { emoji: '💕', text: 'ときめいてる…',   gradient: 'from-pink-800/50 to-rose-600/30',    textColor: 'text-pink-300' },
+  proud:     { emoji: '✨', text: '誇らしそう！',     gradient: 'from-amber-800/50 to-yellow-600/30', textColor: 'text-amber-300' },
+};
+
+/* 感情変化トランジションクラス */
+function getEmotionTransitionClass(prevEmotion: string | undefined, currEmotion: string | undefined): string {
+  if (!currEmotion || currEmotion === 'neutral' || prevEmotion === currEmotion) return '';
+  if (currEmotion === 'angry') return 'emotion-transition-angry';
+  if (currEmotion === 'shy' || currEmotion === 'love') return 'emotion-transition-shy';
+  if (currEmotion === 'sad' || currEmotion === 'lonely') return 'emotion-transition-sad';
+  return '';
+}
 
 function getCharacterBubbleStyle(emotion?: string): string {
   if (!emotion) return EMOTION_BUBBLE_STYLE.neutral;
@@ -172,6 +201,8 @@ export function ChatMessageList({
   const [reactions, setReactions] = useState<Record<string, ReactionEmoji>>({});
   const [paletteTarget, setPaletteTarget] = useState<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* ── 画像フルスクリーンモーダル state ── */
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   /* ── パレット外タップで閉じる ── */
   useEffect(() => {
@@ -229,7 +260,32 @@ export function ChatMessageList({
 
   return (
     <>
-      {/* リアクションパレットアニメーション */}
+      {/* 画像フルスクリーンモーダル */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={() => setFullscreenImage(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fullscreenImage}
+            alt="画像"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors"
+            onClick={() => setFullscreenImage(null)}
+            aria-label="閉じる"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* リアクション & 感情アニメーション */}
       <style>{`
         @keyframes reactionPaletteIn {
           from { opacity: 0; transform: translateY(8px) scale(0.88); }
@@ -239,6 +295,29 @@ export function ChatMessageList({
           from { opacity: 0; transform: scale(0.5); }
           to   { opacity: 1; transform: scale(1); }
         }
+        @keyframes emotionStatusIn {
+          from { opacity: 0; }
+          to   { opacity: 0.8; }
+        }
+        @keyframes emotionFlashRed {
+          0%   { box-shadow: 0 0 0 0px rgba(239,68,68,0.55); }
+          35%  { box-shadow: 0 0 0 5px rgba(239,68,68,0.25); }
+          100% { box-shadow: 0 0 0 0px rgba(239,68,68,0); }
+        }
+        @keyframes emotionRipplePink {
+          0%   { box-shadow: 0 0 0 0px rgba(236,72,153,0.45); }
+          50%  { box-shadow: 0 0 0 7px rgba(236,72,153,0.15); }
+          100% { box-shadow: 0 0 0 0px rgba(236,72,153,0); }
+        }
+        @keyframes emotionFadeSad {
+          0%   { box-shadow: 0 0 0 0px rgba(59,130,246,0.4); }
+          50%  { box-shadow: 0 0 0 5px rgba(59,130,246,0.15); }
+          100% { box-shadow: 0 0 0 0px rgba(59,130,246,0); }
+        }
+        .emotion-transition-angry { animation: emotionFlashRed  0.65s ease-out; }
+        .emotion-transition-shy   { animation: emotionRipplePink 0.7s ease-out; }
+        .emotion-transition-sad   { animation: emotionFadeSad   0.7s ease-out; }
+        .emotion-status-bar { animation: emotionStatusIn 0.3s ease-out forwards; }
       `}</style>
 
       {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
@@ -330,13 +409,17 @@ export function ChatMessageList({
 
           const isUser = msg.role === 'USER';
           const emotion = msg.metadata?.emotion;
+          const prevCharEmotion = !isUser ? messages.slice(0, idx).reverse().find(m => m.role === 'CHARACTER')?.metadata?.emotion : undefined;
           const emotionEmoji = getEmotionEmoji(emotion);
+          const emotionTransitionClass = !isUser ? getEmotionTransitionClass(prevCharEmotion, emotion) : '';
           // 記憶参照タグ検出・除去
           const hasMemoryRef = !isUser && msg.content.includes('【MEMORY_REF】');
           const displayContent = hasMemoryRef ? msg.content.replace(/【MEMORY_REF】/g, '').trim() : msg.content;
           // 連続メッセージの最後にだけアバター表示
           const nextMsg = messages[idx + 1];
           const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
+          // 感情ステータスバー（名前ラベル行に表示）
+          const statusBar = !isUser && emotion && emotion !== 'neutral' ? EMOTION_STATUS_BAR[emotion] : null;
 
           // リアクション情報
           const msgReaction = reactions[msg.id];
@@ -370,10 +453,19 @@ export function ChatMessageList({
                 )}
 
                 <div className={`max-w-[78%] flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
-                  {!isUser && showAvatar && (
-                    <span className="text-xs text-gray-500 px-1 ml-0.5">
-                      {character?.name ?? 'キャラクター'}
-                    </span>
+                  {!isUser && (showAvatar || statusBar) && (
+                    <div className="flex items-center gap-1.5 px-1 ml-0.5">
+                      {showAvatar && (
+                        <span className="text-xs text-gray-500">{character?.name ?? 'キャラクター'}</span>
+                      )}
+                      {statusBar && (
+                        <span
+                          className={`emotion-status-bar inline-flex items-center gap-0.5 text-[10px] ${statusBar.textColor} px-1.5 py-0.5 rounded-full bg-gradient-to-r ${statusBar.gradient}`}
+                        >
+                          {statusBar.emoji} {statusBar.text}
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   {/* 💭 記憶参照バッジ */}
@@ -438,7 +530,7 @@ export function ChatMessageList({
                           : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
                           msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
                           msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
-                        }`
+                        } ${emotionTransitionClass}`
                       } ${msgReaction ? 'mb-2' : ''}`}
                       style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
                       onTouchStart={!isUser ? () => handleLongPressStart(msg.id) : undefined}
@@ -449,7 +541,24 @@ export function ChatMessageList({
                       onMouseLeave={!isUser ? handleLongPressEnd : undefined}
                       onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
                     >
-                      <span className="whitespace-pre-wrap break-words">{displayContent}</span>
+                      {/* 画像メッセージ表示 */}
+                      {msg.metadata?.imageUrl ? (
+                        <button
+                          className="block focus:outline-none"
+                          onClick={() => setFullscreenImage(msg.metadata!.imageUrl!)}
+                          aria-label="画像を拡大表示"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={msg.metadata.imageUrl}
+                            alt="送信した画像"
+                            className="rounded-xl object-cover"
+                            style={{ maxWidth: 250, maxHeight: 300 }}
+                          />
+                        </button>
+                      ) : (
+                        <span className="whitespace-pre-wrap break-words">{displayContent}</span>
+                      )}
                       {emotionEmoji && (
                         <span className="ml-1.5 text-base">{emotionEmoji}</span>
                       )}
