@@ -150,7 +150,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
 
     const SpeechRecognitionCtor: (new () => SpeechRecognition) | undefined =
       (window as Window & { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition ||
-      (window as Window & { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+      (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
 
     const recognition = new SpeechRecognitionCtor();
