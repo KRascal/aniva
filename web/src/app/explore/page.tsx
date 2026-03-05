@@ -8,6 +8,78 @@ import { getTodayMainEvent } from '@/lib/today-events';
 import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
+// ── 投票バナーセクション ──
+function PollBannerSection() {
+  const router = useRouter();
+  const [activePollCount, setActivePollCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/polls/active')
+      .then((r) => r.json())
+      .then((data) => {
+        const count = (data.polls ?? []).length;
+        setActivePollCount(count > 0 ? count : 0);
+      })
+      .catch(() => setActivePollCount(0));
+  }, []);
+
+  if (activePollCount === null || activePollCount === 0) return null;
+
+  return (
+    <FadeSection delay={22}>
+      <div className="mb-5">
+        <button
+          onClick={() => router.push('/polls')}
+          className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.15))',
+            border: '1px solid rgba(139,92,246,0.35)',
+            boxShadow: '0 2px 16px rgba(139,92,246,0.15)',
+          }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0">🗳</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">
+                  ストーリー投票
+                </span>
+                <span
+                  className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                  style={{
+                    background: 'rgba(139,92,246,0.25)',
+                    color: 'rgba(196,181,254,0.9)',
+                    border: '1px solid rgba(139,92,246,0.3)',
+                  }}
+                >
+                  {activePollCount}件受付中
+                </span>
+              </div>
+              <p className="text-white font-bold text-sm leading-tight">
+                投票受付中！推しの未来を決めよう
+              </p>
+              <p className="text-white/50 text-xs mt-0.5">
+                あなたの一票がストーリーを動かす
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span
+                className="text-white text-xs font-bold px-3 py-1.5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                  boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
+                }}
+              >
+                投票する →
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </FadeSection>
+  );
+}
+
 // ── 期間限定シナリオ型 ──
 interface LimitedScenarioSummary {
   id: string;
@@ -1259,6 +1331,9 @@ export default function ExplorePage() {
 
               {/* 期間限定シナリオバナー */}
               <LimitedScenariosSection />
+
+              {/* ストーリー投票バナー */}
+              <PollBannerSection />
 
               {/* 今日のイベントバナー（hype高めのみ表示） */}
               {(() => {

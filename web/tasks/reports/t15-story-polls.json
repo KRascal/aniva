@@ -6,6 +6,8 @@
     "prisma/schema.prisma",
     "src/app/api/polls/active/route.ts",
     "src/app/api/polls/[id]/vote/route.ts",
-    "src/app/api/polls/[id]/route.ts"
+    "src/app/api/polls/[id]/route.ts",
+    "src/app/polls/page.tsx",
+    "src/app/explore/page.tsx"
   ]
 }
