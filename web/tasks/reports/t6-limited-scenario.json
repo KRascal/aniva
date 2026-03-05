@@ -1,12 +1,16 @@
 {
   "task": "T6: 期間限定絆シナリオ（FOMO演出）実装",
-  "status": "in_progress",
+  "status": "success",
   "started_at": "2026-03-05T10:46:00+09:00",
+  "completed_at": "2026-03-05T10:55:00+09:00",
+  "commit": "c09a626",
   "files_changed": [
     "prisma/schema.prisma",
     "src/app/api/scenarios/active/route.ts",
     "src/app/api/scenarios/[id]/route.ts",
     "src/app/api/scenarios/[id]/read/route.ts",
-    "src/app/explore/page.tsx"
-  ]
+    "src/app/explore/page.tsx",
+    "src/app/scenario/[id]/page.tsx"
+  ],
+  "notes": "T6 changes were committed as part of T10 commit (c09a626) and pushed to origin/main. TSエラー0件確認済み。"
 }
