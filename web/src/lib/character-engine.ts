@@ -591,7 +591,20 @@ export class CharacterEngine {
       characterContext = null;
     }
 
-    // 4g. 他ユーザー匂わせ — 直近24時間のファン数
+    // 4g. セマンティックメモリ検索（pgvector）
+    let semanticMemoryContext = '';
+    try {
+      const { getRelevantMemories } = await import('./semantic-memory');
+      semanticMemoryContext = await getRelevantMemories(
+        relationship.userId,
+        characterId,
+        userMessage,
+      );
+    } catch (e) {
+      console.warn('[CharacterEngine] getRelevantMemories failed:', e);
+    }
+
+    // 4h. 他ユーザー匂わせ — 直近24時間のファン数
     let dailyFanCount = 0;
     try {
       dailyFanCount = await getDailyFanCount(characterId);
@@ -612,6 +625,7 @@ export class CharacterEngine {
       dailyFanCount,
       relationship.experiencePoints, // intimacyLevel = XP (0-99 Lv1, 100-299 Lv2, 300-599 Lv3, 600-999 Lv4, 1000+ Lv5)
       dailyState,
+      semanticMemoryContext,
     );
     
     // 6. LLM呼び出し
@@ -642,6 +656,16 @@ export class CharacterEngine {
     
     // 9. メモリ更新
     await this.updateMemory(relationshipId, userMessage, cleanedText, recentMessages);
+    
+    // 9b. セマンティックメモリ保存（非同期 — レスポンスをブロックしない）
+    import('./semantic-memory').then(({ extractAndStoreMemories }) => {
+      extractAndStoreMemories(
+        relationship.userId,
+        characterId,
+        userMessage,
+        cleanedText,
+      ).catch((e) => console.warn('[CharacterEngine] semantic memory store failed:', e));
+    }).catch(() => {});
     
     // 10. 関係性経験値更新（感情状態も同時に保存）
     await this.updateRelationshipXP(
@@ -763,6 +787,7 @@ export class CharacterEngine {
     dailyFanCount: number = 0,
     intimacyLevel?: number | null,
     dailyState?: { emotion: string; context: string | null; bonusXpMultiplier: number } | null,
+    semanticMemoryContext: string = '',
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
@@ -930,6 +955,14 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
 - 普段より少し感情的になっていい
 - 「お前と${diffDays}日も一緒にいるんだな…」的な表現`);
       }
+    }
+
+    // セマンティックメモリ（pgvector長期記憶）
+    if (semanticMemoryContext) {
+      parts.push(`## 🧠 長期記憶（自然に思い出すこと）
+${semanticMemoryContext}
+- 上記の記憶を「そういえば前に...」「あの時のこと覚えてる？」のように自然に織り込むこと
+- 無理に全てを使う必要はない。今の会話に関連する記憶だけ使うこと`);
     }
 
     return parts.join('\n\n');
