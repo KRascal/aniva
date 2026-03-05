@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
+import { StickerPicker } from './StickerPicker';
 
 interface Character {
   id: string;
@@ -70,6 +71,7 @@ interface ChatInputProps {
   setInputText: (text: string) => void;
   onSend: () => void;
   onSendImage?: (file: File) => void;
+  onSendSticker?: (stickerUrl: string, label: string) => void;
   isSending: boolean;
   isGreeting: boolean;
   character: Character | null;
@@ -92,6 +94,7 @@ export function ChatInput({
   setInputText,
   onSend,
   onSendImage,
+  onSendSticker,
   isSending,
   isGreeting,
   character,
@@ -113,6 +116,7 @@ export function ChatInput({
   const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [soundMuted, setSoundMuted] = useState(() => isSoundMuted());
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   const handleToggleSound = useCallback(() => {
     const muted = toggleSoundMute();
@@ -155,7 +159,14 @@ export function ChatInput({
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-3">
+    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-3 relative">
+      {/* スタンプピッカー */}
+      <StickerPicker
+        characterSlug={character?.slug || ''}
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelect={(url, label) => onSendSticker?.(url, label)}
+      />
       {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (
         <div className="flex flex-col gap-1.5 mb-2 px-1">
@@ -300,6 +311,18 @@ export function ChatInput({
                 </div>
                 <span className="text-white/80">コインを購入</span>
               </a>
+              {/* スタンプ */}
+              {onSendSticker && (
+                <button
+                  onClick={() => { setShowPlusMenu(false); setShowStickerPicker(true); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-white text-sm text-left group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
+                    <span className="text-lg">😊</span>
+                  </div>
+                  <span className="text-white/80">スタンプ</span>
+                </button>
+              )}
             </div>
           )}
           <button

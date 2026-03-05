@@ -1,0 +1,10 @@
+{
+  "task": "ElevenLabs Voice Design キャラ別ボイス生成 + DB更新",
+  "status": "in_progress",
+  "started_at": "2026-03-05T19:49:00+09:00",
+  "completed_at": null,
+  "characters_processed": [],
+  "characters_failed": [],
+  "files_changed": [],
+  "notes": []
+}

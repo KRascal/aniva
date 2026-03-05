@@ -1,0 +1,27 @@
+{
+  "task": "ANIVAステージング再デプロイ",
+  "report_id": "staging-deploy-20260305c",
+  "status": "success",
+  "started_at": "2026-03-05T19:01:00+09:00",
+  "completed_at": "2026-03-05T19:05:00+09:00",
+  "steps": {
+    "git_pull": "success",
+    "deploy_script": "success",
+    "pm2_check": "success",
+    "health_check": "success"
+  },
+  "details": {
+    "git_pull_result": "Already up to date (deploy script pulled and got updates: 9 files changed)",
+    "pm2_status": "online (id: 92, pid: 234792)",
+    "health_check_http_status": 200,
+    "health_check_url": "http://localhost:3061/api/health",
+    "staging_url": "https://demo.aniva-project.com",
+    "notable_changes": [
+      "tasks/reports/gacha-integration.json (new)",
+      "web/src/app/api/image/generate/route.ts",
+      "web/src/app/gacha/page.tsx (major refactor)",
+      "web/src/lib/sound-effects.ts",
+      "web/src/lib/voice-engine.ts"
+    ]
+  }
+}
