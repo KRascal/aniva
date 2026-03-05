@@ -680,23 +680,7 @@ model CharacterDailyState {
   @@unique([characterId, date])
 }
 
-// ========== キャラ主導メッセージ（24h消滅） ==========
-model CharacterProactiveMessage {
-  id          String    @id @default(uuid())
-  userId      String
-  characterId String
-  message     String    @db.Text
-  isRead      Boolean   @default(false)
-  readAt      DateTime?
-  expiresAt   DateTime  // createdAt + 24h
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
-  @@index([userId, expiresAt])
-  @@index([userId, isRead])
-  @@index([characterId])
-}
 
 // ========== キャラ感情日記タイムライン ==========
 model CharacterDiary {
