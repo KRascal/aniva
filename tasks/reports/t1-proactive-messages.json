@@ -1,0 +1,12 @@
+{
+  "task": "T1: キャラ主導メッセージ（24h消滅）実装",
+  "status": "in_progress",
+  "started_at": "2026-03-05T01:35:00Z",
+  "files_changed": [
+    "prisma/schema.prisma",
+    "src/app/api/proactive-messages/route.ts",
+    "src/app/api/proactive-messages/[id]/read/route.ts",
+    "src/app/api/cron/generate-proactive-messages/route.ts",
+    "src/app/explore/page.tsx"
+  ]
+}

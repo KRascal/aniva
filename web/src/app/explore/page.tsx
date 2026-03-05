@@ -8,6 +8,189 @@ import { getTodayMainEvent } from '@/lib/today-events';
 import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
+// ── キャラ主導メッセージ型 ──
+interface ProactiveMessage {
+  id: string;
+  message: string;
+  isRead: boolean;
+  expiresAt: string;
+  createdAt: string;
+  character: {
+    id: string;
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    franchise: string;
+  };
+}
+
+// ── 残り時間フォーマット ──
+function useCountdown(expiresAt: string): string {
+  const [label, setLabel] = useState('');
+
+  useEffect(() => {
+    function update() {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setLabel('期限切れ');
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      if (h > 0) {
+        setLabel(`残り${h}時間${m}分`);
+      } else {
+        setLabel(`残り${m}分`);
+      }
+    }
+    update();
+    const id = setInterval(update, 30000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return label;
+}
+
+// ── 単一メッセージカードアイテム ──
+function ProactiveMessageItem({
+  msg,
+  onRead,
+}: {
+  msg: ProactiveMessage;
+  onRead: (id: string) => void;
+}) {
+  const router = useRouter();
+  const countdown = useCountdown(msg.expiresAt);
+  const isExpired = new Date(msg.expiresAt).getTime() < Date.now();
+
+  // 期限切れ（1時間以内）→ 「読めなかった…💔」表示
+  if (isExpired) {
+    const expiredAgo = Date.now() - new Date(msg.expiresAt).getTime();
+    if (expiredAgo > 60 * 60 * 1000) return null; // 1h超えたら非表示
+    return (
+      <div
+        className="flex-shrink-0 w-64 rounded-2xl p-3 flex items-center gap-3 opacity-50"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 text-base">
+          {msg.character.avatarUrl ? (
+            <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-full h-full rounded-full object-cover" />
+          ) : (
+            msg.character.name.charAt(0)
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-gray-400 text-xs font-medium truncate">{msg.character.name}</p>
+          <p className="text-gray-500 text-xs mt-0.5">読めなかった…💔</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleTap = async () => {
+    // 既読API
+    if (!msg.isRead) {
+      onRead(msg.id);
+      fetch(`/api/proactive-messages/${msg.id}/read`, { method: 'POST' }).catch(() => {});
+    }
+    router.push(`/chat/${msg.character.slug}`);
+  };
+
+  return (
+    <button
+      onClick={handleTap}
+      className="flex-shrink-0 w-64 rounded-2xl p-3 flex items-center gap-3 text-left cursor-pointer transition-all active:scale-95"
+      style={{
+        background: msg.isRead
+          ? 'rgba(255,255,255,0.04)'
+          : 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.12))',
+        border: msg.isRead
+          ? '1px solid rgba(255,255,255,0.08)'
+          : '1px solid rgba(139,92,246,0.35)',
+        boxShadow: msg.isRead ? 'none' : '0 2px 16px rgba(139,92,246,0.12)',
+      }}
+    >
+      {/* アバター + 未読ドット */}
+      <div className="relative flex-shrink-0">
+        {msg.character.avatarUrl ? (
+          <img
+            src={msg.character.avatarUrl}
+            alt={msg.character.name}
+            className="w-11 h-11 rounded-full object-cover"
+            style={{ boxShadow: '0 0 0 2px rgba(139,92,246,0.4)' }}
+          />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+            {msg.character.name.charAt(0)}
+          </div>
+        )}
+        {!msg.isRead && (
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-pink-500 rounded-full ring-2 ring-gray-950" />
+        )}
+      </div>
+
+      {/* メッセージ */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-xs font-bold truncate">{msg.character.name}</p>
+        <p className="text-gray-300 text-xs leading-relaxed line-clamp-2 mt-0.5">{msg.message}</p>
+        <p className="text-purple-400 text-[10px] mt-1">{countdown}</p>
+      </div>
+    </button>
+  );
+}
+
+// ── 新着メッセージセクション ──
+function ProactiveMessagesSection() {
+  const [messages, setMessages] = useState<ProactiveMessage[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/proactive-messages')
+      .then(r => r.json())
+      .then(data => {
+        setMessages(data.messages ?? []);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const handleRead = useCallback((id: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === id ? { ...m, isRead: true } : m))
+    );
+  }, []);
+
+  if (!loaded || messages.length === 0) return null;
+
+  return (
+    <FadeSection delay={20}>
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-white font-bold text-base">新着メッセージ</h3>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3))',
+              color: 'rgba(216,180,254,0.9)',
+              border: '1px solid rgba(139,92,246,0.3)',
+            }}
+          >
+            {messages.filter(m => !m.isRead).length}件未読
+          </span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          {messages.map(msg => (
+            <ProactiveMessageItem key={msg.id} msg={msg} onRead={handleRead} />
+          ))}
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
 interface Character {
   id: string;
   name: string;
@@ -715,6 +898,9 @@ export default function ExplorePage() {
           {/* HERO section — only on no search/filter */}
           {!searchQuery && selectedCategory === 'すべて' && (
             <div className="py-6">
+              {/* 新着メッセージ（キャラ主導） */}
+              <ProactiveMessagesSection />
+
               {/* Hero banner — dynamic character avatars */}
               <FadeSection>
                 {(() => {

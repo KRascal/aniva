@@ -48,6 +48,7 @@ model User {
   userStoryProgress      UserStoryProgress[]
   shopOrders             ShopOrder[]
   gachaPities            UserGachaPity[]
+  proactiveMessages      CharacterProactiveMessage[]
 }
 
 model PushSubscription {
@@ -152,6 +153,7 @@ model Character {
   downloadableContents    DownloadableContent[]
   shopItems               ShopItem[]
   dailyStates             CharacterDailyState[]
+  proactiveMessages       CharacterProactiveMessage[]
 }
 
 model SecretContent {
@@ -647,4 +649,22 @@ model CharacterDailyState {
   character         Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, date])
+}
+
+// ========== キャラ主導メッセージ（24h消滅） ==========
+model CharacterProactiveMessage {
+  id          String    @id @default(uuid())
+  userId      String
+  characterId String
+  message     String    @db.Text
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  expiresAt   DateTime  // createdAt + 24h
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([userId, isRead])
+  @@index([characterId])
 }
