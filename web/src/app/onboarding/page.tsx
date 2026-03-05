@@ -369,14 +369,12 @@ function OnboardingInner() {
           />
         )}
 
-        {phase === 'first_chat' && (
-          <PhaseFirstChat
-            key="first_chat"
-            character={effectiveCharacter}
-            nickname={nickname}
-            onComplete={handleFirstChatComplete}
-          />
-        )}
+        {/* first_chat フェーズは廃止済み: このstateになったら即hookへスキップ */}
+        {phase === 'first_chat' && (() => {
+          // レンダリングと同時にhookへ強制移行
+          setTimeout(() => goToPhase('hook'), 0);
+          return null;
+        })()}
 
         {phase === 'hook' && (
           <PhaseHook
