@@ -26,18 +26,25 @@ export async function GET(
     voiceModelId: true,
   } as const;
 
-  // findFirst を使用（findUnique は Prisma 7 で UUID形式バリデーションが発生する場合がある）
-  // まずIDで検索、次にslugで検索
-  let character = await prisma.character.findFirst({
-    where: { id },
-    select: selectFields,
-  });
+  // まずIDで検索（$queryRaw でPrismaのバリデーションをバイパス）
+  type RawChar = { id: string; name: string; nameEn: string | null; slug: string; franchise: string; franchiseEn: string | null; description: string | null; avatarUrl: string | null; coverUrl: string | null; catchphrases: string[]; personalityTraits: string[]; fcMonthlyPriceJpy: number | null; fcMonthlyCoins: number | null; fcIncludedCallMin: number | null; fcOverageCallCoinPerMin: number | null; voiceModelId: string | null };
+  const byIdRaw = await prisma.$queryRaw<RawChar[]>`
+    SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl",
+           catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins",
+           "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId"
+    FROM "Character" WHERE id = ${id} LIMIT 1
+  `;
+  let character: RawChar | null = byIdRaw[0] ?? null;
 
   if (!character) {
-    character = await prisma.character.findFirst({
-      where: { slug: id },
-      select: selectFields,
-    });
+    // slugで検索
+    const bySlugRaw = await prisma.$queryRaw<RawChar[]>`
+      SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl",
+             catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins",
+             "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId"
+      FROM "Character" WHERE slug = ${id} LIMIT 1
+    `;
+    character = bySlugRaw[0] ?? null;
   }
 
   if (!character) {
