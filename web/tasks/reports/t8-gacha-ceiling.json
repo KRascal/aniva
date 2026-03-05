@@ -1,7 +1,9 @@
 {
   "task": "T8: 天井+進捗可視化ガチャ実装",
-  "status": "in_progress",
+  "status": "success",
   "started_at": "2026-03-05T09:42:00+09:00",
+  "completed_at": "2026-03-05T09:55:00+09:00",
+  "commit": "550fedd",
   "files_changed": [
     "prisma/schema.prisma",
     "src/lib/gacha-system.ts",
@@ -9,9 +11,13 @@
     "src/app/gacha/page.tsx"
   ],
   "notes": [
-    "ceilingCount + UserGachaPity model + relations added to schema",
-    "gacha-system.ts: pity upsert/increment/ceiling reset, pityInfo in response, getPityInfo() export",
-    "pity API route created (GET /api/gacha/pity?bannerId=xxx)",
-    "page.tsx: PityInfo type, fetchPityInfo(), progress bar with imminent/ceiling effects"
+    "GachaBannerにceilingCount Int @default(100)追加",
+    "UserGachaPityモデル新規作成（userId+bannerIdのユニーク制約）",
+    "UserとGachaBannerにrelation追加",
+    "gacha-system.ts: pity upsert/increment/天井到達でURに強制+リセット、全結果にpityInfo添付",
+    "GET /api/gacha/pity?bannerId=xxx 新規エンドポイント",
+    "page.tsx: バナー選択時にpity取得、pull結果からpity更新、天井到達時の金色エフェクト+👑表示",
+    "TSエラー: 0件（prisma generate後）",
+    "prisma db push は実行せず（schema変更のみ）"
   ]
 }

@@ -643,6 +643,29 @@ model ShopOrder {
   @@index([itemId])
 }
 
+// ========== キャラ主導メッセージ ==========
+model CharacterProactiveMessage {
+  id          String    @id @default(cuid())
+  characterId String
+  userId      String
+  content     String    @db.Text
+  trigger     String    @default("scheduled")
+  expiresAt   DateTime
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  isExpired   Boolean   @default(false)
+  locale      String    @default("ja")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+
+  character   Character @relation(fields: [characterId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, isExpired])
+  @@index([characterId, userId])
+  @@index([expiresAt])
+}
+
 // ========== 感情状態システム ==========
 model CharacterDailyState {
   id                String    @id @default(uuid())
