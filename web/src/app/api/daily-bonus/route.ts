@@ -150,6 +150,37 @@ export async function POST() {
     });
     const isFirstLogin = bonusCount <= 1; // 今のが初回
 
+    // 初回登録ボーナス: 500コイン付与
+    let welcomeBonusAwarded = false;
+    let finalBalance = balance;
+    if (isFirstLogin) {
+      const WELCOME_BONUS = 500;
+      // 既にウェルカムボーナスを受け取っていないか確認
+      const alreadyWelcomed = await prisma.coinTransaction.findFirst({
+        where: { userId, type: 'BONUS', description: 'welcome_bonus' },
+      });
+      if (!alreadyWelcomed) {
+        finalBalance = await prisma.coinBalance.update({
+          where: { userId },
+          data: {
+            balance: { increment: WELCOME_BONUS },
+            freeBalance: { increment: WELCOME_BONUS },
+          },
+        });
+        await prisma.coinTransaction.create({
+          data: {
+            userId,
+            type: 'BONUS',
+            amount: WELCOME_BONUS,
+            balanceAfter: finalBalance.balance,
+            description: 'welcome_bonus',
+            metadata: { source: 'welcome_bonus', coinType: 'free' },
+          },
+        });
+        welcomeBonusAwarded = true;
+      }
+    }
+
     return NextResponse.json({
       alreadyClaimed: false,
       awarded: true,
@@ -159,9 +190,10 @@ export async function POST() {
       streakDays: streak,
       streakBroken: !yesterdayBonus && streak === 1 && !isFirstLogin,
       multiplier,
-      totalBalance: balance.freeBalance + balance.paidBalance,
+      totalBalance: (finalBalance ?? balance).freeBalance + (finalBalance ?? balance).paidBalance,
       isFirstLogin,
       welcomeAmount: 500,
+      welcomeBonusAwarded,
       message: greeting,
       isStreakMilestone: !!streakMessage,
     });
