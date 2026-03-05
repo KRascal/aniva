@@ -7,51 +7,36 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // まずIDで検索、見つからなければslugで検索（UUID以外のカスタムIDにも対応）
-  let character = await prisma.character.findUnique({
+  const selectFields = {
+    id: true,
+    name: true,
+    nameEn: true,
+    slug: true,
+    franchise: true,
+    franchiseEn: true,
+    description: true,
+    avatarUrl: true,
+    coverUrl: true,
+    catchphrases: true,
+    personalityTraits: true,
+    fcMonthlyPriceJpy: true,
+    fcMonthlyCoins: true,
+    fcIncludedCallMin: true,
+    fcOverageCallCoinPerMin: true,
+    voiceModelId: true,
+  } as const;
+
+  // findFirst を使用（findUnique は Prisma 7 で UUID形式バリデーションが発生する場合がある）
+  // まずIDで検索、次にslugで検索
+  let character = await prisma.character.findFirst({
     where: { id },
-    select: {
-      id: true,
-      name: true,
-      nameEn: true,
-      slug: true,
-      franchise: true,
-      franchiseEn: true,
-      description: true,
-      avatarUrl: true,
-      coverUrl: true,
-      catchphrases: true,
-      personalityTraits: true,
-      fcMonthlyPriceJpy: true,
-      fcMonthlyCoins: true,
-      fcIncludedCallMin: true,
-      fcOverageCallCoinPerMin: true,
-      voiceModelId: true,
-    },
+    select: selectFields,
   });
 
-  // IDで見つからなければslugとして検索
   if (!character) {
-    character = await prisma.character.findUnique({
+    character = await prisma.character.findFirst({
       where: { slug: id },
-      select: {
-        id: true,
-        name: true,
-        nameEn: true,
-        slug: true,
-        franchise: true,
-        franchiseEn: true,
-        description: true,
-        avatarUrl: true,
-        coverUrl: true,
-        catchphrases: true,
-        personalityTraits: true,
-        fcMonthlyPriceJpy: true,
-        fcMonthlyCoins: true,
-        fcIncludedCallMin: true,
-        fcOverageCallCoinPerMin: true,
-        voiceModelId: true,
-      },
+      select: selectFields,
     });
   }
 
