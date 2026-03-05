@@ -1,8 +1,38 @@
 /**
  * Sound Effects Engine
- * ブラウザ内で Web Audio API を使って効果音を生成
- * 外部音声ファイル不要 — 全てプログラム生成
+ * ハイブリッド方式: MP3ファイルがあればプロ品質SE、なければWeb Audio APIフォールバック
+ * MP3ファイル配置先: public/sounds/{sound-type}.mp3
  */
+
+// ─── MP3プリロード+再生レイヤー ──────────────────────────────
+const MP3_CACHE: Map<string, HTMLAudioElement> = new Map();
+const MP3_FAILED: Set<string> = new Set(); // 読み込み失敗したパスは再試行しない
+
+function tryPlayMP3(soundType: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = `/sounds/${soundType.replace(/_/g, '-')}.mp3`;
+  if (MP3_FAILED.has(path)) return false;
+
+  let audio = MP3_CACHE.get(path);
+  if (!audio) {
+    audio = new Audio(path);
+    audio.volume = 0.4;
+    audio.preload = 'auto';
+    audio.addEventListener('error', () => {
+      MP3_FAILED.add(path); // このパスは今後スキップ
+    }, { once: true });
+    MP3_CACHE.set(path, audio);
+  }
+
+  // 既に再生中なら複製して並行再生
+  const clone = audio.cloneNode(true) as HTMLAudioElement;
+  clone.volume = audio.volume;
+  clone.play().catch(() => {
+    MP3_FAILED.add(path);
+  });
+  return true;
+}
+// ─────────────────────────────────────────────────────────────
 
 type SoundType =
   | 'message_send'

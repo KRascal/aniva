@@ -1,6 +1,17 @@
 {
-  "status": "in_progress",
+  "status": "success",
   "task": "ガチャ演出統合 — CinematicOverlay → GachaRarityOverlay 差し替え",
   "started_at": "2026-03-05T18:57:00+09:00",
-  "files_changed": []
+  "completed_at": "2026-03-05T19:00:00+09:00",
+  "files_changed": [
+    "aniva/web/src/components/gacha/GachaRarityOverlay.tsx",
+    "aniva/web/src/app/gacha/page.tsx"
+  ],
+  "summary": [
+    "GachaRarityOverlay.tsxのthemeColor propをオプショナルに変更（デフォルト: #6d28d9）",
+    "page.tsxからSSR_PARTICLES定数・UR_RAYS定数・ScreenCrack関数・CinematicOverlay関数（行66-595）を削除",
+    "GachaRarityOverlayのimportを追加",
+    "animatingビューのCinematicOverlayをGachaRarityOverlayに差し替え"
+  ],
+  "typescript_errors_in_gacha": 0
 }
