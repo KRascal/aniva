@@ -111,9 +111,14 @@ class EmbeddingHandler(BaseHTTPRequestHandler):
         pass  # 静かに
 
 
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+    allow_reuse_port = True
+
+
 def main():
-    port = int(os.environ.get("EMBEDDING_PORT", "3070"))
-    server = HTTPServer(("127.0.0.1", port), EmbeddingHandler)
+    port = int(os.environ.get("EMBEDDING_PORT", "3075"))
+    server = ReusableHTTPServer(("127.0.0.1", port), EmbeddingHandler)
     
     def shutdown(sig, frame):
         print("\nShutting down...", flush=True)
