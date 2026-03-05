@@ -31,7 +31,7 @@ export async function GET(
   type RawChar = { id: string; name: string; nameEn: string | null; slug: string; franchise: string; franchiseEn: string | null; description: string | null; avatarUrl: string | null; coverUrl: string | null; catchphrases: string[]; personalityTraits: string[]; fcMonthlyPriceJpy: number | null; fcMonthlyCoins: number | null; fcIncludedCallMin: number | null; fcOverageCallCoinPerMin: number | null; voiceModelId: string | null };
 
   const sql = 'SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl", catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins", "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId" FROM "Character" WHERE id = $1 OR slug = $1 LIMIT 1';
-  const rows = await prisma.$queryRawUnsafe<RawChar[]>(sql, id);
+  const rows = await prisma.$queryRawUnsafe<RawChar[]>(sql, id).catch(() => [] as RawChar[]);
   let character: RawChar | null = rows[0] ?? null;
 
   if (!character) {
