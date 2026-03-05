@@ -430,17 +430,23 @@ function ProactiveMessagesSection() {
     <FadeSection delay={20}>
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-white font-bold text-base">新着メッセージ</h3>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-bold"
-            style={{
-              background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3))',
-              color: 'rgba(216,180,254,0.9)',
-              border: '1px solid rgba(139,92,246,0.3)',
-            }}
-          >
-            {messages.filter(m => !m.isRead).length}件未読
-          </span>
+          <h3 className="text-white font-bold text-base flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
+            推しからメッセージが届いてるよ
+          </h3>
+          {messages.filter(m => !m.isRead).length > 0 && (
+            <span
+              className="text-xs px-2.5 py-0.5 rounded-full font-bold animate-pulse"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236,72,153,0.4), rgba(139,92,246,0.4))',
+                color: '#fff',
+                border: '1px solid rgba(236,72,153,0.5)',
+                boxShadow: '0 0 12px rgba(236,72,153,0.3)',
+              }}
+            >
+              {messages.filter(m => !m.isRead).length}件
+            </span>
+          )}
         </div>
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
           {messages.map(msg => (

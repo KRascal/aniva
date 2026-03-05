@@ -23,21 +23,23 @@ export interface WeeklyMissionDef extends MissionDef {
 }
 
 // 7日サイクルで回るデイリーミッションセット（3ミッション/日）
+// ミッション定義: キャラのセリフでナラティブ化（Nir Eyal トリガー→行動→報酬ループ）
+// titleはキャラの口調、descは物語の文脈
 const ALL_MISSIONS: MissionDef[] = [
-  { id: 'chat_today',     title: '推しとチャット',         desc: 'キャラにメッセージを送る',          coins: 5,  icon: '💬' },
-  { id: 'moment_comment', title: 'Momentにコメント',       desc: 'Momentにコメントを投稿する',        coins: 8,  icon: '💜' },
-  { id: 'story_read',     title: 'ストーリーを読む',        desc: 'ストーリーを1章進める',             coins: 10, icon: '📖' },
-  { id: 'explore_visit',  title: 'キャラを探す',           desc: 'exploreページを訪れる',             coins: 5,  icon: '🔍' },
-  { id: 'letter_check',   title: 'レターをチェック',        desc: 'レターボックスを開く',              coins: 5,  icon: '✉️' },
-  { id: 'gacha_pull',     title: 'ガチャを引く',            desc: 'ガチャを1回引く',                  coins: 3,  icon: '🎰' },
-  { id: 'follow_char',    title: 'キャラをフォロー',        desc: '新しいキャラをフォローする',         coins: 5,  icon: '⭐' },
+  { id: 'chat_today',     title: '推しが待ってるよ！',       desc: '今日まだ話してないよ？推しが寂しがってる！',  coins: 5,  icon: '💬' },
+  { id: 'moment_comment', title: '推しの投稿に声を届けて',    desc: 'Momentにコメントして推しを喜ばせよう',       coins: 8,  icon: '💜' },
+  { id: 'story_read',     title: '物語の続きが気になる…',     desc: 'ストーリーの次の章を読もう',                coins: 10, icon: '📖' },
+  { id: 'explore_visit',  title: 'まだ見ぬ出会いがある',     desc: '新しいキャラを探しに行こう',                coins: 5,  icon: '🔍' },
+  { id: 'letter_check',   title: '手紙が届いてるかも…',      desc: 'レターボックスを確認しよう。推しからの便りがあるかも',  coins: 5,  icon: '✉️' },
+  { id: 'gacha_pull',     title: '運命のカードを引こう',     desc: 'ガチャで特別なメモリーカードをゲット',       coins: 3,  icon: '🎰' },
+  { id: 'follow_char',    title: '新しい絆を結ぼう',         desc: '気になるキャラをフォローして絆を始めよう',    coins: 5,  icon: '⭐' },
 ];
 
 // ウィークリーチャレンジ（毎週固定・難易度高め・報酬大）
 const WEEKLY_MISSION_DEFS: (Omit<WeeklyMissionDef, 'progress' | 'completed'>)[] = [
-  { id: 'weekly_chat_15',   title: '絆を深める週',      desc: '今週15回以上チャットする',     coins: 30, icon: '💌', target: 15 },
-  { id: 'weekly_comment_5', title: 'Momentを彩る',      desc: '今週Momentに5回コメントする',  coins: 25, icon: '✨', target: 5 },
-  { id: 'weekly_story_3',   title: 'ストーリーマスター', desc: '今週ストーリーを3章読む',      coins: 40, icon: '📚', target: 3 },
+  { id: 'weekly_chat_15',   title: '今週の約束',          desc: '推しとの約束 — 今週15回話そう。きっと喜ぶよ',     coins: 30, icon: '💌', target: 15 },
+  { id: 'weekly_comment_5', title: '声を届ける一週間',     desc: '推しのMomentに5回コメントして想いを伝えよう',     coins: 25, icon: '✨', target: 5 },
+  { id: 'weekly_story_3',   title: '物語に没入する',       desc: 'ストーリー3章分の冒険に出よう。新しい一面が見えるかも', coins: 40, icon: '📚', target: 3 },
 ];
 
 function getTodayMissions(): MissionDef[] {
