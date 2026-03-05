@@ -750,7 +750,35 @@ export default function ChatCharacterPage() {
 
       if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
         playSound('message_receive');
-        generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
+        // ⑦ ボイスメモ: voiceHint時は感情パラメータ付きで生成 + 自動再生
+        if (data.voiceHint) {
+          (async () => {
+            try {
+              const vRes = await fetch('/api/voice/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  messageId: data.characterMessage.id,
+                  text: data.characterMessage.content,
+                  characterId,
+                  emotion: data.voiceHint.emotion ?? 'excited',
+                }),
+              });
+              const vData = await vRes.json() as { audioUrl?: string };
+              if (vData.audioUrl) {
+                setMessages((prev) => prev.map((m) =>
+                  m.id === data.characterMessage.id ? { ...m, audioUrl: vData.audioUrl } : m
+                ));
+                // 自動再生（特別な瞬間のみ）
+                const audio = new Audio(vData.audioUrl);
+                audio.volume = 0.7;
+                audio.play().catch(() => {}); // autoplay制限時はsilent fail
+              }
+            } catch { /* silent */ }
+          })();
+        } else {
+          generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
+        }
       }
       // 本日送信数インクリメント（Free plan 表示・後方互換）
       setTodayMsgCount((prev) => {

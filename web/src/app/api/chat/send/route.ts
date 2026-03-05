@@ -256,12 +256,28 @@ export async function POST(req: NextRequest) {
     const latestBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const coinBalance = latestBalance ? latestBalance.freeBalance + latestBalance.paidBalance : undefined;
 
+    // ⑦ ボイスメモヒント: 特別な瞬間にキャラの声を自動再生するトリガー
+    // - レベルアップ時
+    // - ストリークマイルストーン（7日, 14日, 30日, 100日）
+    // - メッセージマイルストーン（100通, 500通）
+    const VOICE_STREAK_MILESTONES = [7, 14, 30, 100];
+    const VOICE_MSG_MILESTONES = [100, 500];
+    const voiceHint = leveledUp
+      || (streakResult?.milestone && VOICE_STREAK_MILESTONES.includes(streakResult.milestone))
+      || (totalMsgCount && VOICE_MSG_MILESTONES.includes(totalMsgCount))
+      ? {
+          trigger: leveledUp ? 'level_up' : streakResult?.milestone ? 'streak' : 'msg_milestone',
+          emotion: leveledUp ? 'excited' : 'happy',
+        }
+      : undefined;
+
     return NextResponse.json({
       userMessage: userMsg,
       characterMessage: charMsg,
       emotion: response.emotion,
       consumed,
       cliffhangerTease,
+      voiceHint,
       streak: streakResult ? {
         days: streakResult.streakDays,
         isNew: streakResult.isNew,
