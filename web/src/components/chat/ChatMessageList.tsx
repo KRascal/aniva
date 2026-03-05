@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 
 /* ─────────────── 型定義（page.tsxから移動・export） ─────────────── */
@@ -25,6 +25,10 @@ export interface Character {
   fcIncludedCallMin?: number;
   fcMonthlyCoins?: number;
 }
+
+/* ─────────────── リアクション設定 ─────────────── */
+const REACTION_EMOJIS = ['❤️', '😂', '😢', '🔥', '👏'] as const;
+type ReactionEmoji = typeof REACTION_EMOJIS[number];
 
 /* ─────────────── 感情ユーティリティ ─────────────── */
 const EMOTION_EMOJI: Record<string, string> = {
@@ -143,6 +147,8 @@ export interface ChatMessageListProps {
   onMsgLongPressEnd: () => void;
   onCtxMenu: (msgId: string, content: string) => void;
   onFcClick: () => void;
+  /** リアクション送信コールバック（キャラ反応生成のため） */
+  onReaction: (msgId: string, emoji: string, characterSlug: string) => void;
 }
 
 /* ─────────────── ChatMessageList コンポーネント ─────────────── */
@@ -156,13 +162,85 @@ export function ChatMessageList({
   showStars,
   messagesEndRef,
   onAudioToggle,
-  onMsgLongPressStart,
-  onMsgLongPressEnd,
+  onMsgLongPressStart: _onMsgLongPressStart,
+  onMsgLongPressEnd: _onMsgLongPressEnd,
   onCtxMenu,
   onFcClick,
+  onReaction,
 }: ChatMessageListProps) {
+  /* ── リアクション内部 state ── */
+  const [reactions, setReactions] = useState<Record<string, ReactionEmoji>>({});
+  const [paletteTarget, setPaletteTarget] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── パレット外タップで閉じる ── */
+  useEffect(() => {
+    if (!paletteTarget) return;
+    const handle = () => setPaletteTarget(null);
+    // delay adding listener so the opening touch doesn't immediately close it
+    const tid = setTimeout(() => {
+      document.addEventListener('click', handle, { once: true });
+      document.addEventListener('touchend', handle, { once: true });
+    }, 10);
+    return () => {
+      clearTimeout(tid);
+      document.removeEventListener('click', handle);
+      document.removeEventListener('touchend', handle);
+    };
+  }, [paletteTarget]);
+
+  /* ── 長押しハンドラ（内部） ── */
+  const handleLongPressStart = useCallback((msgId: string) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setPaletteTarget(msgId);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 500);
+  }, []);
+
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  /* ── 絵文字選択 ── */
+  const handleEmojiSelect = useCallback(
+    (msgId: string, emoji: ReactionEmoji, currentReactions: Record<string, ReactionEmoji>) => {
+      const isRemoving = currentReactions[msgId] === emoji;
+      setReactions((prev) => {
+        if (prev[msgId] === emoji) {
+          const next = { ...prev };
+          delete next[msgId];
+          return next;
+        }
+        return { ...prev, [msgId]: emoji };
+      });
+      // 追加の場合だけキャラ反応トリガー
+      if (!isRemoving) {
+        onReaction(msgId, emoji, character?.slug ?? '');
+      }
+      setPaletteTarget(null);
+    },
+    [onReaction, character?.slug],
+  );
+
   return (
     <>
+      {/* リアクションパレットアニメーション */}
+      <style>{`
+        @keyframes reactionPaletteIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.88); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes reactionBadgeIn {
+          from { opacity: 0; transform: scale(0.5); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+
       {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
       {hungryEmojis.map((e) => (
         <div
@@ -260,6 +338,10 @@ export function ChatMessageList({
           const nextMsg = messages[idx + 1];
           const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
 
+          // リアクション情報
+          const msgReaction = reactions[msg.id];
+          const showPalette = paletteTarget === msg.id;
+
           return (
             <div key={msg.id}>
               {showDateSeparator && (
@@ -309,50 +391,107 @@ export function ChatMessageList({
                     </span>
                   )}
 
-                  <div
-                    className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 select-none ${
-                      isUser
-                        ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
-                        : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
-                        msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
-                        msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
-                      }`
-                    }`}
-                    style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
-                    onTouchStart={!isUser ? () => onMsgLongPressStart(msg.id, displayContent) : undefined}
-                    onTouchEnd={!isUser ? onMsgLongPressEnd : undefined}
-                    onTouchMove={!isUser ? onMsgLongPressEnd : undefined}
-                    onMouseDown={!isUser ? () => onMsgLongPressStart(msg.id, displayContent) : undefined}
-                    onMouseUp={!isUser ? onMsgLongPressEnd : undefined}
-                    onMouseLeave={!isUser ? onMsgLongPressEnd : undefined}
-                    onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
-                  >
-                    <span className="whitespace-pre-wrap break-words">{displayContent}</span>
-                    {emotionEmoji && (
-                      <span className="ml-1.5 text-base">{emotionEmoji}</span>
+                  {/* ── 吹き出しラッパー (relative: パレット・バッジの基点) ── */}
+                  <div className="relative">
+                    {/* ✨ リアクションパレット（長押しで表示） */}
+                    {!isUser && showPalette && (
+                      <div
+                        className="absolute bottom-full mb-2 left-0 z-30"
+                        style={{ animation: 'reactionPaletteIn 0.2s ease-out' }}
+                        onClick={(e) => e.stopPropagation()}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          className="flex items-center gap-1 px-3 py-2"
+                          style={{
+                            background: 'rgba(0,0,0,0.85)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            borderRadius: 16,
+                            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                          }}
+                        >
+                          {REACTION_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleEmojiSelect(msg.id, emoji, reactions)}
+                              className="w-10 h-10 flex items-center justify-center text-2xl rounded-xl transition-transform active:scale-90 hover:scale-110"
+                              style={
+                                msgReaction === emoji
+                                  ? { background: 'rgba(255,255,255,0.18)', transform: 'scale(1.1)' }
+                                  : {}
+                              }
+                              aria-label={emoji}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
-                    {/* ミニ音声プレーヤー */}
-                    {!isUser && msg.audioUrl && (
-                      <MiniAudioPlayer
-                        audioUrl={msg.audioUrl}
-                        messageId={msg.id}
-                        playingId={playingAudioId}
-                        onToggle={onAudioToggle}
-                      />
-                    )}
+                    {/* 吹き出し本体 */}
+                    <div
+                      className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 select-none ${
+                        isUser
+                          ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
+                          : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${
+                          msg.id === lastEmotionMsgId && emotion === 'angry'   ? 'bubble-angry'   :
+                          msg.id === lastEmotionMsgId && emotion === 'excited' ? 'bubble-excited' : ''
+                        }`
+                      } ${msgReaction ? 'mb-2' : ''}`}
+                      style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
+                      onTouchStart={!isUser ? () => handleLongPressStart(msg.id) : undefined}
+                      onTouchEnd={!isUser ? handleLongPressEnd : undefined}
+                      onTouchMove={!isUser ? handleLongPressEnd : undefined}
+                      onMouseDown={!isUser ? () => handleLongPressStart(msg.id) : undefined}
+                      onMouseUp={!isUser ? handleLongPressEnd : undefined}
+                      onMouseLeave={!isUser ? handleLongPressEnd : undefined}
+                      onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
+                    >
+                      <span className="whitespace-pre-wrap break-words">{displayContent}</span>
+                      {emotionEmoji && (
+                        <span className="ml-1.5 text-base">{emotionEmoji}</span>
+                      )}
 
-                    {/* 音声生成中スピナー */}
-                    {!isUser && msg.audioUrl === undefined && (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
-                        <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
-                        <span>音声生成中...</span>
+                      {/* ミニ音声プレーヤー */}
+                      {!isUser && msg.audioUrl && (
+                        <MiniAudioPlayer
+                          audioUrl={msg.audioUrl}
+                          messageId={msg.id}
+                          playingId={playingAudioId}
+                          onToggle={onAudioToggle}
+                        />
+                      )}
+
+                      {/* 音声生成中スピナー */}
+                      {!isUser && msg.audioUrl === undefined && (
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                          <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
+                          <span>音声生成中...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 💜 リアクションバッジ（吹き出し下端に絵文字×1表示） */}
+                    {!isUser && msgReaction && (
+                      <div
+                        className="absolute -bottom-3 left-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full shadow-md"
+                        style={{
+                          background: 'rgba(30,30,42,0.92)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          animation: 'reactionBadgeIn 0.2s ease-out',
+                          zIndex: 10,
+                        }}
+                      >
+                        <span style={{ fontSize: 12, lineHeight: 1 }}>{msgReaction}</span>
+                        <span className="text-gray-400" style={{ fontSize: 10, lineHeight: 1 }}>×1</span>
                       </div>
                     )}
                   </div>
 
                   {/* タイムスタンプ + 既読 */}
-                  <span className="text-[10px] text-gray-600 px-1 flex items-center gap-1">
+                  <span className={`text-[10px] text-gray-600 px-1 flex items-center gap-1 ${msgReaction ? 'mt-1' : ''}`}>
                     {new Date(msg.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                     {isUser && idx === messages.length - 1 && (
                       (() => {

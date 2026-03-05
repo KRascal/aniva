@@ -1,10 +1,14 @@
 {
   "task": "ux-bond-calendar",
-  "status": "in_progress",
+  "status": "success",
   "started_at": "2026-03-05T07:52:00Z",
+  "completed_at": "2026-03-05T07:58:00Z",
+  "commit": "7ab514b",
   "files_changed": [
     "aniva/web/src/app/api/user/activity/route.ts",
     "aniva/web/src/components/BondCalendar.tsx",
-    "aniva/web/src/app/mypage/page.tsx"
-  ]
+    "aniva/web/src/app/mypage/page.tsx",
+    "aniva/tasks/reports/ux-bond-calendar.json"
+  ],
+  "notes": "TS errors 0件（新規ファイル）。generate-proactive-messagesの既存エラーは今回のタスク範囲外。"
 }
