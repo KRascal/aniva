@@ -26,26 +26,13 @@ export async function GET(
     voiceModelId: true,
   } as const;
 
-  // まずIDで検索（$queryRaw でPrismaのバリデーションをバイパス）
+  // IDまたはslugで検索（$queryRawUnsafe + パラメータバインドでPrismaバリデーション回避）
+  // Prisma 7 + PrismaPg adapter の findUnique/findFirst はカスタムID形式で検索失敗するため
   type RawChar = { id: string; name: string; nameEn: string | null; slug: string; franchise: string; franchiseEn: string | null; description: string | null; avatarUrl: string | null; coverUrl: string | null; catchphrases: string[]; personalityTraits: string[]; fcMonthlyPriceJpy: number | null; fcMonthlyCoins: number | null; fcIncludedCallMin: number | null; fcOverageCallCoinPerMin: number | null; voiceModelId: string | null };
-  const byIdRaw = await prisma.$queryRaw<RawChar[]>`
-    SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl",
-           catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins",
-           "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId"
-    FROM "Character" WHERE id = ${id} LIMIT 1
-  `;
-  let character: RawChar | null = byIdRaw[0] ?? null;
 
-  if (!character) {
-    // slugで検索
-    const bySlugRaw = await prisma.$queryRaw<RawChar[]>`
-      SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl",
-             catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins",
-             "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId"
-      FROM "Character" WHERE slug = ${id} LIMIT 1
-    `;
-    character = bySlugRaw[0] ?? null;
-  }
+  const sql = 'SELECT id, name, "nameEn", slug, franchise, "franchiseEn", description, "avatarUrl", "coverUrl", catchphrases, "personalityTraits", "fcMonthlyPriceJpy", "fcMonthlyCoins", "fcIncludedCallMin", "fcOverageCallCoinPerMin", "voiceModelId" FROM "Character" WHERE id = $1 OR slug = $1 LIMIT 1';
+  const rows = await prisma.$queryRawUnsafe<RawChar[]>(sql, id);
+  let character: RawChar | null = rows[0] ?? null;
 
   if (!character) {
     return NextResponse.json({ error: 'Character not found' }, { status: 404 });
