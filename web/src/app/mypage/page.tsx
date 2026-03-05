@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 // ThemeToggle: ダークモード固定のため非表示
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
 import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
+import BondCalendar from '@/components/BondCalendar';
 
 /* ── Achievement definitions ── */
 interface AchievementDef {
@@ -625,6 +626,9 @@ export default function MyPage() {
             )}
           </section>
         )}
+
+        {/* 絆カレンダー */}
+        <BondCalendar />
 
         {/* デイリーミッション */}
         <DailyMissionsCard />

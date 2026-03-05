@@ -2,5 +2,9 @@
   "task": "ux-bond-calendar",
   "status": "in_progress",
   "started_at": "2026-03-05T07:52:00Z",
-  "files_changed": []
+  "files_changed": [
+    "aniva/web/src/app/api/user/activity/route.ts",
+    "aniva/web/src/components/BondCalendar.tsx",
+    "aniva/web/src/app/mypage/page.tsx"
+  ]
 }
