@@ -691,13 +691,16 @@ export class CharacterEngine {
    */
   private loadSoulMd(slug: string, dbFallback: string): string {
     try {
-      // 独立ワークスペース（最優先）→ プロジェクト内agents（フォールバック）
+      // characters/ディレクトリ（最優先）→ 独立ワークスペース → プロジェクト内agents
+      const charactersPath = join(process.cwd(), 'characters', slug, 'SOUL.md');
       const independentPath = join('/home/openclaw/.openclaw/agents', slug, 'SOUL.md');
       const projectPath = join(process.cwd(), '..', 'agents', slug, 'SOUL.md');
-      const soulPath = existsSync(independentPath) ? independentPath : projectPath;
-      if (existsSync(soulPath)) {
-        const content = readFileSync(soulPath, 'utf-8');
-        if (content.trim()) return content;
+      
+      for (const soulPath of [charactersPath, independentPath, projectPath]) {
+        if (existsSync(soulPath)) {
+          const content = readFileSync(soulPath, 'utf-8');
+          if (content.trim()) return content;
+        }
       }
     } catch {
       // ファイル読み込み失敗はフォールバック
@@ -752,15 +755,10 @@ export class CharacterEngine {
     // 言語別設定の取得
     const localeOverride = (character.localeConfig as Record<string, LocaleOverride> | null)?.[locale];
     
-    // character-loader 経由の systemPrompt を優先
-    // フォールバック順: character-loader > locale設定 > DBのsystemPrompt > SOUL.mdファイル
-    let soulContent: string;
-    if (characterContext?.systemPrompt) {
-      soulContent = characterContext.systemPrompt;
-    } else {
-      const basePrompt = localeOverride?.systemPrompt || character.systemPrompt;
-      soulContent = this.loadSoulMd(character.slug, basePrompt);
-    }
+    // SOUL.mdファイルを最優先で使用
+    // フォールバック順: SOUL.md > character-loader > locale設定 > DBのsystemPrompt
+    const basePrompt = characterContext?.systemPrompt || localeOverride?.systemPrompt || character.systemPrompt;
+    const soulContent = this.loadSoulMd(character.slug, basePrompt);
 
     // 他ユーザー匂わせコンテキスト
     const otherFansContext = this.buildOtherFansContext(
