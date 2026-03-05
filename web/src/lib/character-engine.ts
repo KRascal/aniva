@@ -406,18 +406,38 @@ export const CHARACTER_DEFINITIONS: Record<string, CharacterDefinition> = {
 };
 
 // LLM provider abstraction - supports Anthropic, xAI (Grok), OpenAI
-async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assistant'; content: string }[]): Promise<string> {
-  // Try xAI (Grok) first, then Anthropic as fallback
+// isFcMember=true の場合、claude-sonnet-4-5 で高品質な会話を提供（FC課金価値）
+async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assistant'; content: string }[], options?: { isFcMember?: boolean }): Promise<string> {
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const isFc = options?.isFcMember ?? false;
 
+  // FC会員 → Anthropic claude-sonnet-4-5 を優先（高品質会話）
+  if (isFc && anthropicKey) {
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey: anthropicKey });
+      const response = await client.messages.create({
+        model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-5',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages,
+      });
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      if (text) return text;
+    } catch (e) {
+      console.error('[callLLM] Anthropic FC model failed, falling back to xAI:', e);
+    }
+  }
+
+  // 通常ユーザー → xAI (grok-4-1-fast)
   if (xaiKey) {
     try {
       const res = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: process.env.LLM_MODEL || 'grok-3-mini',
+          model: process.env.LLM_MODEL || 'grok-4-1-fast-non-reasoning',
           messages: [{ role: 'system', content: systemPrompt }, ...messages],
           max_tokens: 500,
           temperature: 0.85,
@@ -436,6 +456,7 @@ async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assista
     }
   }
 
+  // Fallback → Anthropic haiku
   if (anthropicKey) {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: anthropicKey });
@@ -488,6 +509,7 @@ export class CharacterEngine {
     relationshipId: string,
     userMessage: string,
     locale: string = 'ja',
+    options?: { isFcMember?: boolean },
   ): Promise<CharacterResponse> {
     // 1. キャラクター情報取得
     const character = await prisma.character.findUniqueOrThrow({
@@ -602,7 +624,7 @@ export class CharacterEngine {
     ];
     let text: string;
     try {
-      text = await callLLM(systemPrompt, llmMessages);
+      text = await callLLM(systemPrompt, llmMessages, { isFcMember: options?.isFcMember });
     } catch (llmError) {
       console.error('[CharacterEngine] LLM call failed:', llmError);
       // キャラクター固有のフォールバックフレーズを返す

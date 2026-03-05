@@ -313,6 +313,12 @@ export default function ChatCharacterPage() {
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
 
+  /* ── 深夜モード（23:00-6:00 JST） ── */
+  const [isNightMode] = useState(() => {
+    const h = new Date().getHours();
+    return h >= 23 || h < 6;
+  });
+
   /* ── 新規 UI state ── */
   const [showCall, setShowCall] = useState(false);
   const [showGift, setShowGift] = useState(false);
@@ -1169,11 +1175,20 @@ export default function ChatCharacterPage() {
 
   return (
     <div
-      className="flex flex-col h-[calc(100dvh-4rem)] max-w-lg mx-auto relative chat-bg"
-      style={{ background: charBgGradient ? `radial-gradient(ellipse at top, ${bgTheme}), ${charBgGradient}` : `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
+      className={`flex flex-col h-[calc(100dvh-4rem)] max-w-lg mx-auto relative chat-bg ${isNightMode ? 'night-mode' : ''}`}
+      style={{
+        background: charBgGradient ? `radial-gradient(ellipse at top, ${bgTheme}), ${charBgGradient}` : `radial-gradient(ellipse at top, ${bgTheme}), #111827`,
+        ...(isNightMode ? { filter: 'brightness(0.85) saturate(0.9)', transition: 'filter 0.5s ease' } : {}),
+      }}
     >
       {/* グローバルスタイル */}
       <style>{GLOBAL_STYLES}</style>
+      {/* 深夜モード: 月と星のオーバーレイ */}
+      {isNightMode && (
+        <div className="fixed top-4 right-4 z-50 text-[10px] text-purple-400/60 flex items-center gap-1 pointer-events-none select-none">
+          <span>🌙</span> <span>おやすみモード</span>
+        </div>
+      )}
 
 
 

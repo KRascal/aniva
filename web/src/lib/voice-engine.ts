@@ -45,6 +45,8 @@ function getVoiceSettings(emotion?: string): VoiceSettings {
       return { stability: 0.2, similarity_boost: 0.85, style: 0.95, use_speaker_boost: true, speed: 1.2 };
     case 'motivated':
       return { stability: 0.35, similarity_boost: 0.8, style: 0.75, use_speaker_boost: true, speed: 1.1 };
+    case 'whisper': // 深夜ささやきモード（23:00-6:00）
+      return { stability: 0.75, similarity_boost: 0.7, style: 0.2, use_speaker_boost: false, speed: 0.85 };
     default: // neutral
       return { stability: 0.5, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true, speed: 1.0 };
   }

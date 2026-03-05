@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
+  const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000); // +8h（FOMO強化: 24hは長すぎ）
 
   // 今日すでにメッセージが届いているユーザー×キャラペアを除外するため
   const todayStart = new Date(now);

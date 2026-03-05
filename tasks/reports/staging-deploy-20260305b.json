@@ -1,0 +1,33 @@
+{
+  "task": "ANIVAステージング再デプロイ",
+  "timestamp": "2026-03-05T17:29:00+09:00",
+  "status": "success",
+  "steps": {
+    "git_pull": {
+      "status": "success",
+      "note": "リモートから新しいコミット取得済み (d2c4fc7..197de41) — image-sharing機能追加"
+    },
+    "deploy_script": {
+      "status": "success",
+      "script": "scripts/deploy-staging.sh",
+      "build_time_seconds": 63,
+      "pages_generated": 135
+    },
+    "pm2_status": {
+      "status": "online",
+      "process_name": "aniva-staging",
+      "id": 91,
+      "pid": 223276
+    },
+    "health_check": {
+      "url": "http://localhost:3061/api/health",
+      "http_status": 200,
+      "status": "success"
+    }
+  },
+  "completion_conditions": {
+    "pm2_online": true,
+    "health_200": true
+  },
+  "notes": "新規コミット (197de41) を取得。image-sharing機能 (send-image API, ChatInput更新, ChatMessageList更新) が含まれる。ビルド・デプロイ・起動すべて正常完了。"
+}

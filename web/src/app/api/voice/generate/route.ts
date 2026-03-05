@@ -63,11 +63,16 @@ export async function POST(request: NextRequest) {
 
     const voiceModelId = character.voiceModelId;
 
+    // 深夜帯（23:00-6:00 JST）はささやきモードに自動切替
+    const jstHour = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCHours();
+    const isNightMode = jstHour >= 23 || jstHour < 6;
+    const effectiveEmotion = isNightMode ? 'whisper' : emotion;
+
     // 音声生成（失敗時は null が返る — graceful fallback）
     const voiceResult = await voiceEngine.generateVoice({
       text,
       voiceModelId,
-      emotion,
+      emotion: effectiveEmotion,
     });
 
     if (!voiceResult) {

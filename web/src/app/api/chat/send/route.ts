@@ -174,12 +174,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Character Engine で応答生成
+    // 4. Character Engine で応答生成（FC会員は高品質モデル使用）
+    const isFcMember = consumed === 'FC_UNLIMITED';
     const response = await characterEngine.generateResponse(
       characterId,
       relationship.id,
       message,
       typeof locale === 'string' ? locale : 'ja',
+      { isFcMember },
     );
 
     // 5. キャラクター応答保存
