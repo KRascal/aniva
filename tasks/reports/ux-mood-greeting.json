@@ -1,0 +1,8 @@
+{
+  "task": "ux-mood-greeting",
+  "status": "in_progress",
+  "started_at": "2026-03-05T07:12:00Z",
+  "files_changed": [
+    "aniva/web/src/components/chat/ChatHeader.tsx"
+  ]
+}

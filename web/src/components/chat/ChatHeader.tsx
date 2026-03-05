@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Character {
   id: string;
@@ -55,6 +55,21 @@ const EMOTION_EMOJI: Record<string, string> = {
   tired: '😴',
   nostalgic: '🌸',
   playful: '😆',
+  sad: '😢',
+  angry: '😤',
+  normal: '✨',
+};
+
+const EMOTION_LABEL: Record<string, string> = {
+  happy: '機嫌がいい',
+  excited: '超テンション高め',
+  mysterious: '謎めいている',
+  tired: '疲れ気味',
+  nostalgic: 'ノスタルジックな気分',
+  playful: 'いたずらしたい気分',
+  sad: '少し落ち込んでいる',
+  angry: 'ちょっとイライラしている',
+  normal: 'いつも通り',
 };
 
 interface DailyState {
@@ -78,6 +93,8 @@ export function ChatHeader({
   onFcClick,
 }: ChatHeaderProps) {
   const [dailyState, setDailyState] = useState<DailyState | null>(null);
+  const [moodPopupOpen, setMoodPopupOpen] = useState(false);
+  const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const key = character?.slug || characterId;
@@ -90,8 +107,35 @@ export function ChatHeader({
       .catch((err) => console.warn('[ChatHeader] daily-state fetch failed:', err));
   }, [characterId, character?.slug]);
 
+  useEffect(() => {
+    return () => {
+      if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
+    };
+  }, []);
+
+  const handleMoodBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
+    setMoodPopupOpen(true);
+    moodTimerRef.current = setTimeout(() => setMoodPopupOpen(false), 3000);
+  };
+
   return (
     <div className="flex-shrink-0">
+      <style>{`
+        @keyframes moodBadgePulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.18); }
+        }
+        @keyframes moodPopupIn {
+          0% { opacity: 0; transform: translateY(-6px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes moodPopupBar {
+          0% { width: 100%; }
+          100% { width: 0%; }
+        }
+      `}</style>
       {/* ✨ ボーナスEXPバナー */}
       {dailyState?.isBonus && (
         <div className="bg-yellow-400 text-yellow-900 text-center text-xs font-bold py-1 px-3">
@@ -110,28 +154,76 @@ export function ChatHeader({
         </svg>
       </button>
 
-      {/* アバター */}
-      <button
-        onClick={onProfileClick}
-        className="flex-shrink-0"
-        aria-label="キャラクタープロフィール"
-      >
-        <div className="relative">
-          <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
-            {character?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
-                🏴‍☠️
-              </div>
+      {/* アバター + 気分バッジ */}
+      <div className="flex-shrink-0 relative">
+        <button
+          onClick={onProfileClick}
+          aria-label="キャラクタープロフィール"
+        >
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-900">
+              {character?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">
+                  🏴‍☠️
+                </div>
+              )}
+            </div>
+            {presence?.isAvailable && !dailyState && (
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse" />
             )}
           </div>
-          {presence?.isAvailable && (
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse" />
-          )}
-        </div>
-      </button>
+        </button>
+
+        {/* 気分バッジ */}
+        {dailyState && (
+          <button
+            onClick={handleMoodBadgeClick}
+            aria-label={`今日の気分: ${EMOTION_LABEL[dailyState.emotion] ?? dailyState.emotion}`}
+            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center text-[9px] leading-none z-10"
+            style={{ animation: 'moodBadgePulse 2.5s ease-in-out infinite' }}
+          >
+            {EMOTION_EMOJI[dailyState.emotion] ?? '✨'}
+          </button>
+        )}
+
+        {/* 気分ポップアップ */}
+        {moodPopupOpen && dailyState && (
+          <div
+            className="absolute left-0 top-full mt-2 z-30 rounded-xl px-3 py-2 shadow-2xl text-xs whitespace-nowrap"
+            style={{
+              background: 'rgba(17,24,39,0.96)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              animation: 'moodPopupIn 0.2s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          >
+            <p className="text-white font-bold mb-0.5">
+              今日の{character?.name ?? 'キャラ'}
+            </p>
+            <p className="text-gray-300 leading-relaxed">
+              {EMOTION_EMOJI[dailyState.emotion] ?? '✨'}{' '}
+              {EMOTION_LABEL[dailyState.emotion] ?? dailyState.emotion}
+              {dailyState.context && (
+                <span className="text-gray-400"> — {dailyState.context}</span>
+              )}
+            </p>
+            {/* 自動閉じプログレスバー */}
+            <div className="mt-1.5 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
+                  animation: 'moodPopupBar 3s linear forwards',
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 名前 + FC + プレゼンス */}
       <div className="flex-1 min-w-0">
@@ -139,14 +231,7 @@ export function ChatHeader({
           <h1 className="text-white font-semibold text-sm leading-tight break-words">
             {character?.name ?? 'キャラクター'}
           </h1>
-          {dailyState && (
-            <span
-              className="text-base leading-none flex-shrink-0"
-              title={`今日の気分: ${dailyState.emotion}${dailyState.context ? `（${dailyState.context}）` : ''}`}
-            >
-              {EMOTION_EMOJI[dailyState.emotion] ?? '😊'}
-            </span>
-          )}
+          {/* 気分バッジはアバター横に表示 */}
           {relationship?.isFanclub ? (
             <span className="text-base leading-none flex-shrink-0">💜</span>
           ) : (
