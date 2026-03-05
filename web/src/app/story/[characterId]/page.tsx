@@ -2,6 +2,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+
+// ユーザー名をストーリーテキストに挿入（{{userName}} → 実際の名前）
+function insertUserName(text: string, userName: string): string {
+  return text.replace(/\{\{userName\}\}/g, userName);
+}
 
 interface Choice {
   text: string;
@@ -40,6 +46,9 @@ interface ToastMsg {
 export default function StoryPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
+  const userName = (session?.user as { displayName?: string; name?: string } | undefined)?.displayName
+    || session?.user?.name || 'あなた';
   const characterId = params.characterId as string;
 
   const [storyData, setStoryData] = useState<StoryData | null>(null);
@@ -174,6 +183,7 @@ export default function StoryPage() {
         <ChapterModal
           chapter={selectedChapter}
           characterName={storyData.characterName}
+          userName={userName}
           submitting={submitting}
           onClose={() => setSelectedChapter(null)}
           onChoiceSubmit={(choiceIndex) => handleChoiceSubmit(selectedChapter, choiceIndex)}
@@ -261,12 +271,14 @@ function ChapterCard({
 function ChapterModal({
   chapter,
   characterName,
+  userName,
   submitting,
   onClose,
   onChoiceSubmit,
 }: {
   chapter: ChapterData;
   characterName: string;
+  userName: string;
   submitting: boolean;
   onClose: () => void;
   onChoiceSubmit: (choiceIndex: number) => void;
@@ -299,7 +311,7 @@ function ChapterModal({
 
         {/* あらすじ */}
         <div className="bg-gray-800/60 rounded-2xl p-4">
-          <p className="text-gray-300 text-sm leading-relaxed">{chapter.synopsis}</p>
+          <p className="text-gray-300 text-sm leading-relaxed">{insertUserName(chapter.synopsis, userName)}</p>
         </div>
 
         {/* 選択肢 or 完了済み */}
