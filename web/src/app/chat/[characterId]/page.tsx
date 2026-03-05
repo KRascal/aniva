@@ -108,6 +108,13 @@ const GLOBAL_STYLES = `
   .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
   /* テーマカラー背景の滑らかなトランジション */
   .chat-bg { transition: background 1.2s ease; }
+  /* 絆XPフロートアニメーション */
+  @keyframes xpFloatUp {
+    0%   { opacity: 0; transform: translateY(0px) scale(0.8); }
+    15%  { opacity: 1; transform: translateY(-6px) scale(1.05); }
+    60%  { opacity: 0.9; transform: translateY(-18px) scale(1); }
+    100% { opacity: 0; transform: translateY(-36px) scale(0.9); }
+  }
 `;
 
 /* ─────────────── 型定義 ─────────────── */
@@ -199,6 +206,9 @@ export default function ChatCharacterPage() {
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
   const [todayMsgCount, setTodayMsgCount] = useState(0);
   const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
+  // 絆XPフロートアニメーション（チャット送信後に+XP表示）
+  const [xpFloat, setXpFloat] = useState<{ amount: number; id: number } | null>(null);
+  const prevXpRef = useRef<number>(0);
   // コイン残高（チャット送信後に更新）
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
@@ -379,6 +389,7 @@ export default function ChatCharacterPage() {
         const relRes = await fetch(`/api/relationship/${characterId}`);
         const relData = await relRes.json();
         setRelationship(relData);
+        prevXpRef.current = relData?.xp ?? 0;
         // 復帰時演出チェック
         if (relData.lastMessageAt) {
           const lastDate = new Date(relData.lastMessageAt);
@@ -746,11 +757,18 @@ export default function ChatCharacterPage() {
       }
 
       if (data.relationship) {
+        const xpGained = data.relationship.xp - prevXpRef.current;
+        prevXpRef.current = data.relationship.xp;
         setRelationship((prev) => ({
           ...(prev || { levelName: '', xp: 0, nextLevelXp: null, totalMessages: 0 }),
           level: data.relationship.level,
           xp: data.relationship.xp,
         }));
+        // 絆XPフロートアニメーション（レベルアップ時はLevelUpModalで演出するので非表示）
+        if (xpGained > 0 && !data.relationship.leveledUp) {
+          setXpFloat({ amount: xpGained, id: Date.now() });
+          setTimeout(() => setXpFloat(null), 1800);
+        }
         if (data.relationship.leveledUp && data.relationship.newLevel) {
           const milestone = LUFFY_MILESTONES.find((m) => m.level === data.relationship.newLevel);
           setLevelUpData({ newLevel: data.relationship.newLevel, milestone });
@@ -1494,6 +1512,23 @@ export default function ChatCharacterPage() {
               <span>閉じる</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* 絆XPフロートアニメーション */}
+      {xpFloat && (
+        <div
+          key={xpFloat.id}
+          className="fixed z-50 pointer-events-none select-none"
+          style={{
+            bottom: '120px',
+            right: '24px',
+            animation: 'xpFloatUp 1.8s ease-out forwards',
+          }}
+        >
+          <span className="text-sm font-bold text-purple-300/90 drop-shadow-sm">
+            💫 +{xpFloat.amount} XP
+          </span>
         </div>
       )}
 
