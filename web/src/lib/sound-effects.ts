@@ -212,7 +212,11 @@ export function playSound(sound: SoundType): void {
   if (typeof window === 'undefined') return;
   if (isSoundMuted()) return;
   try {
-    SOUNDS[sound]();
+    // MP3ファイルがあればプロ品質SEを優先再生
+    if (!tryPlayMP3(sound)) {
+      // フォールバック: Web Audio API合成音
+      SOUNDS[sound]();
+    }
   } catch {
     // AudioContext not available
   }
