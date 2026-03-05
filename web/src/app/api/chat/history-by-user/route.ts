@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * GET /api/chat/history-by-user?characterId=...&limit=50
@@ -16,13 +17,16 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url);
-    const characterId = url.searchParams.get('characterId');
+    const rawCharacterId = url.searchParams.get('characterId');
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const before = url.searchParams.get('before');
 
-    if (!characterId) {
+    if (!rawCharacterId) {
       return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
     }
+
+    // slug/カスタムID両対応
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     const relationship = await prisma.relationship.findUnique({
       where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },

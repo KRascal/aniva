@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LUFFY_MILESTONES } from '@/lib/milestones';
 import { auth } from '@/lib/auth';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function GET(
   req: NextRequest,
@@ -14,7 +15,8 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { characterId } = await params;
+  const { characterId: rawCharacterId } = await params;
+  const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
   const relationship = await prisma.relationship.findUnique({
     where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },

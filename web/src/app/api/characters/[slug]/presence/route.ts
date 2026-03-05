@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getCharacterPresence, getCharacterMood } from '@/lib/presence-system';
 import { prisma } from '@/lib/prisma';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  const resolvedId = await resolveCharacterId(slug);
 
   const character = await prisma.character.findUnique({
-    where: { id: slug },
+    where: { id: resolvedId ?? slug },
     select: {
       slug: true,
       presenceManualMode: true,

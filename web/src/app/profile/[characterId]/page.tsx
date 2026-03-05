@@ -197,6 +197,18 @@ interface Character {
   fcOverageCallCoinPerMin: number;
 }
 
+interface DiaryItem {
+  id: string;
+  characterId: string;
+  date: string;
+  content: string;
+  mood: string;
+  imageUrl: string | null;
+  likes: number;
+  createdAt: string;
+  isLiked: boolean;
+}
+
 interface MomentItem {
   id: string;
   type: string;
@@ -327,9 +339,13 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile' | 'diary'>('posts');
   const [dlContents, setDlContents] = useState<DlContent[]>([]);
   const [dlLoading, setDlLoading] = useState(false);
+  const [diaries, setDiaries] = useState<DiaryItem[]>([]);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diaryPage, setDiaryPage] = useState(1);
+  const [diaryTotalPages, setDiaryTotalPages] = useState(1);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -439,6 +455,52 @@ export default function ProfilePage() {
       .catch(console.error)
       .finally(() => setDlLoading(false));
   }, [characterId]);
+
+  // 日記フェッチ
+  useEffect(() => {
+    if (!characterId) return;
+    setDiaryLoading(true);
+    fetch(`/api/diary/${characterId}?page=${diaryPage}&limit=10`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.diaries) {
+          setDiaries((prev) => (diaryPage === 1 ? data.diaries : [...prev, ...data.diaries]));
+        }
+        if (data.pagination) {
+          setDiaryTotalPages(data.pagination.totalPages);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setDiaryLoading(false));
+  }, [characterId, diaryPage]);
+
+  // 日記いいね
+  const handleDiaryLike = useCallback(async (diaryId: string) => {
+    if (!session?.user) return;
+    setDiaries((prev) =>
+      prev.map((d) => {
+        if (d.id !== diaryId) return d;
+        const liked = !d.isLiked;
+        return { ...d, isLiked: liked, likes: liked ? d.likes + 1 : Math.max(0, d.likes - 1) };
+      })
+    );
+    try {
+      const res = await fetch(`/api/diary/${characterId}/${diaryId}/like`, { method: 'POST' });
+      if (res.ok) {
+        const { liked, likes } = await res.json();
+        setDiaries((prev) => prev.map((d) => (d.id === diaryId ? { ...d, isLiked: liked, likes } : d)));
+      }
+    } catch {
+      // revert
+      setDiaries((prev) =>
+        prev.map((d) => {
+          if (d.id !== diaryId) return d;
+          const liked = !d.isLiked;
+          return { ...d, isLiked: liked, likes: liked ? d.likes + 1 : Math.max(0, d.likes - 1) };
+        })
+      );
+    }
+  }, [characterId, session]);
 
   // いいね機能（タイムラインと同じ楽観的更新+API）
   const handleLike = useCallback(async (momentId: string) => {
@@ -613,6 +675,15 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════ アクションボタン ══════════════ */}
+        {/* 思い出ブックボタン */}
+        <button
+          onClick={() => router.push(`/memory-book/${characterId}`)}
+          className="w-full py-2.5 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 bg-amber-900/40 border border-amber-700/40 text-amber-300 hover:bg-amber-900/60 mb-3"
+        >
+          <span>📖</span>
+          思い出ブック
+        </button>
+
         <div className="flex gap-3">
           {/* フォローボタン */}
           <button
@@ -664,8 +735,9 @@ export default function ProfilePage() {
           <div className="flex">
             {[
               { id: 'posts' as const, label: '投稿' },
+              { id: 'diary' as const, label: '📔 日記' },
               { id: 'fc' as const, label: 'FC限定' },
-              { id: 'dl' as const, label: '📥 DL' },
+              { id: 'dl' as const, label: 'DL' },
               { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
@@ -729,6 +801,81 @@ export default function ProfilePage() {
                   話しかける
                 </a>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ タブコンテンツ: 日記 ══════════════ */}
+        {activeTab === 'diary' && (
+          <div className="space-y-3 pt-2 pb-24">
+            {diaryLoading && diaries.length === 0 ? (
+              <div className="text-center py-12 text-white/30 text-sm">読み込み中...</div>
+            ) : diaries.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">📔</div>
+                <p className="text-white/40 text-sm">まだ日記がありません</p>
+              </div>
+            ) : (
+              <>
+                {diaries.map((diary) => {
+                  const moodConfig: Record<string, { emoji: string; gradient: string; badge: string }> = {
+                    happy:      { emoji: '😊', gradient: 'from-yellow-900/40 to-orange-900/30', badge: 'bg-yellow-500/20 text-yellow-300' },
+                    sad:        { emoji: '😢', gradient: 'from-blue-900/40 to-indigo-900/30', badge: 'bg-blue-500/20 text-blue-300' },
+                    excited:    { emoji: '🤩', gradient: 'from-pink-900/40 to-red-900/30', badge: 'bg-pink-500/20 text-pink-300' },
+                    tired:      { emoji: '😴', gradient: 'from-gray-800/60 to-gray-900/40', badge: 'bg-gray-500/20 text-gray-400' },
+                    neutral:    { emoji: '😐', gradient: 'from-gray-800/50 to-gray-900/40', badge: 'bg-gray-500/20 text-gray-400' },
+                    nostalgic:  { emoji: '🌙', gradient: 'from-purple-900/40 to-violet-900/30', badge: 'bg-purple-500/20 text-purple-300' },
+                    mysterious: { emoji: '🔮', gradient: 'from-indigo-900/40 to-purple-900/30', badge: 'bg-indigo-500/20 text-indigo-300' },
+                    playful:    { emoji: '😜', gradient: 'from-green-900/40 to-teal-900/30', badge: 'bg-green-500/20 text-green-300' },
+                  };
+                  const cfg = moodConfig[diary.mood] ?? moodConfig['neutral'];
+                  return (
+                    <div
+                      key={diary.id}
+                      className={`rounded-2xl p-4 bg-gradient-to-br ${cfg.gradient} border border-white/10`}
+                    >
+                      {/* ヘッダー */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{cfg.emoji}</span>
+                        <div className="flex-1">
+                          <span className="text-white/50 text-xs">{diary.date}</span>
+                          <div className="mt-0.5">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${cfg.badge}`}>
+                              {diary.mood}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* 本文 */}
+                      <p className="text-white/90 text-sm leading-relaxed">{diary.content}</p>
+                      {/* いいねボタン */}
+                      <div className="flex items-center gap-1 mt-3">
+                        <button
+                          onClick={() => handleDiaryLike(diary.id)}
+                          className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-all border ${
+                            diary.isLiked
+                              ? 'bg-pink-600/30 border-pink-500/50 text-pink-300'
+                              : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
+                          }`}
+                        >
+                          <span>{diary.isLiked ? '❤️' : '🤍'}</span>
+                          <span>{diary.likes}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* もっと見るボタン */}
+                {diaryPage < diaryTotalPages && (
+                  <button
+                    onClick={() => setDiaryPage((p) => p + 1)}
+                    disabled={diaryLoading}
+                    className="w-full py-3 text-sm text-white/50 hover:text-white/80 border border-white/10 rounded-2xl transition-colors"
+                  >
+                    {diaryLoading ? '読み込み中...' : 'もっと見る'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -946,40 +1093,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ══════════════ ギャラリー ══════════════ */}
-        {(() => {
-          const imageMoments = moments.filter(m => m.type === 'IMAGE' && m.mediaUrl);
-          if (imageMoments.length === 0) return null;
-          return (
-            <div>
-              <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-                <span>🖼️</span> ギャラリー
-              </p>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-                {imageMoments.map((m) => (
-                  <div key={m.id} className="flex-shrink-0 w-36 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.mediaUrl!} alt="Gallery" className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ══════════════ 最新Moments ══════════════ */}
-        {moments.length > 0 && (
-          <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-              <span>📸</span> 最新Moments
-            </p>
-            <div className="space-y-3">
-              {moments.map((moment) => (
-                <SharedMomentCard key={moment.id} moment={moment as SharedMoment} onLike={() => {}} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ギャラリー・最新Moments: 投稿タブに統合済みのため関係値タブからは除去 */}
 
         {/* ══════════════ レベル & 星 ══════════════ */}
         <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/5 shadow-lg">

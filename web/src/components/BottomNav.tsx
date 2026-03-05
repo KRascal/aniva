@@ -75,7 +75,6 @@ export function BottomNav() {
   }, []);
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
-  if (pathname.startsWith('/chat/')) return null;
   if (pathname.startsWith('/c/')) return null;
 
   const isHome = pathname === '/explore' || pathname === '/explore/';

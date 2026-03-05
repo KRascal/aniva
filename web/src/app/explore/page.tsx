@@ -8,6 +8,450 @@ import { getTodayMainEvent } from '@/lib/today-events';
 import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 
+// ── 投票バナーセクション ──
+function PollBannerSection() {
+  const router = useRouter();
+  const [activePollCount, setActivePollCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/polls/active')
+      .then((r) => r.json())
+      .then((data) => {
+        const count = (data.polls ?? []).length;
+        setActivePollCount(count > 0 ? count : 0);
+      })
+      .catch(() => setActivePollCount(0));
+  }, []);
+
+  if (activePollCount === null || activePollCount === 0) return null;
+
+  return (
+    <FadeSection delay={22}>
+      <div className="mb-5">
+        <button
+          onClick={() => router.push('/polls')}
+          className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.15))',
+            border: '1px solid rgba(139,92,246,0.35)',
+            boxShadow: '0 2px 16px rgba(139,92,246,0.15)',
+          }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0">🗳</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">
+                  ストーリー投票
+                </span>
+                <span
+                  className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                  style={{
+                    background: 'rgba(139,92,246,0.25)',
+                    color: 'rgba(196,181,254,0.9)',
+                    border: '1px solid rgba(139,92,246,0.3)',
+                  }}
+                >
+                  {activePollCount}件受付中
+                </span>
+              </div>
+              <p className="text-white font-bold text-sm leading-tight">
+                投票受付中！推しの未来を決めよう
+              </p>
+              <p className="text-white/50 text-xs mt-0.5">
+                あなたの一票がストーリーを動かす
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span
+                className="text-white text-xs font-bold px-3 py-1.5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                  boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
+                }}
+              >
+                投票する →
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </FadeSection>
+  );
+}
+
+// ── 期間限定シナリオ型 ──
+interface LimitedScenarioSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  endsAt: string;
+  isExpired: boolean;
+  isRead: boolean;
+  remainingHours: number;
+  character: {
+    id: string;
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    franchise: string;
+  };
+}
+
+// ── 期間限定シナリオ残り時間カウントダウン ──
+function useScenarioCountdown(endsAt: string): string {
+  const [label, setLabel] = useState('');
+
+  useEffect(() => {
+    function update() {
+      const diff = new Date(endsAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setLabel('終了');
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      if (h >= 24) {
+        const d = Math.floor(h / 24);
+        setLabel(`残り${d}日${h % 24}時間`);
+      } else if (h > 0) {
+        setLabel(`残り${h}時間${m}分`);
+      } else {
+        setLabel(`残り${m}分！`);
+      }
+    }
+    update();
+    const id = setInterval(update, 10000);
+    return () => clearInterval(id);
+  }, [endsAt]);
+
+  return label;
+}
+
+// ── 期間限定シナリオバナーカード ──
+function LimitedScenarioBannerCard({ scenario }: { scenario: LimitedScenarioSummary }) {
+  const router = useRouter();
+  const countdown = useScenarioCountdown(scenario.endsAt);
+  const isUrgent = scenario.remainingHours <= 6;
+
+  return (
+    <button
+      onClick={() => router.push(`/scenario/${scenario.id}`)}
+      className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+      style={{
+        background: isUrgent
+          ? 'linear-gradient(135deg, rgba(239,68,68,0.22), rgba(220,38,38,0.18), rgba(154,52,18,0.15))'
+          : 'linear-gradient(135deg, rgba(239,68,68,0.18), rgba(251,113,133,0.15), rgba(139,92,246,0.12))',
+        border: isUrgent
+          ? '1px solid rgba(239,68,68,0.5)'
+          : '1px solid rgba(239,68,68,0.35)',
+        boxShadow: isUrgent
+          ? '0 4px 24px rgba(239,68,68,0.25), 0 0 0 1px rgba(239,68,68,0.15)'
+          : '0 2px 16px rgba(239,68,68,0.12)',
+      }}
+    >
+      <div className="px-4 py-3 flex items-center gap-3">
+        {/* キャラアバター */}
+        <div className="flex-shrink-0 relative">
+          {scenario.character.avatarUrl ? (
+            <img
+              src={scenario.character.avatarUrl}
+              alt={scenario.character.name}
+              className="w-12 h-12 rounded-full object-cover"
+              style={{
+                boxShadow: '0 0 0 2px rgba(239,68,68,0.5), 0 4px 12px rgba(0,0,0,0.4)',
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-pink-600 flex items-center justify-center text-white font-bold text-base">
+              {scenario.character.name.charAt(0)}
+            </div>
+          )}
+          {/* 未読ドット */}
+          {!scenario.isRead && (
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full ring-2 ring-gray-950 animate-pulse" />
+          )}
+        </div>
+
+        {/* コンテンツ */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-red-400 text-[10px] font-black tracking-widest uppercase">期間限定</span>
+            {isUrgent && (
+              <span className="text-red-300 text-[9px] font-bold bg-red-500/20 px-1.5 py-0.5 rounded-full border border-red-500/30">
+                🔥 まもなく終了
+              </span>
+            )}
+          </div>
+          <p className="text-white font-bold text-sm leading-tight truncate">{scenario.title}</p>
+          {scenario.description && (
+            <p className="text-white/55 text-xs mt-0.5 truncate">{scenario.description}</p>
+          )}
+          <p className={`text-xs font-semibold mt-1 ${isUrgent ? 'text-red-300' : 'text-red-400/80'}`}>
+            ⏰ {countdown}
+          </p>
+        </div>
+
+        {/* CTAラベル */}
+        <div className="flex-shrink-0">
+          <span
+            className="text-white text-xs font-bold px-3 py-1.5 rounded-full"
+            style={{
+              background: isUrgent
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, rgba(239,68,68,0.8), rgba(220,38,38,0.8))',
+              boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
+            }}
+          >
+            読む →
+          </span>
+        </div>
+      </div>
+
+      {/* FOOMOメッセージ帯 */}
+      <div
+        className="px-4 py-1.5 text-center text-[10px] font-bold tracking-wide"
+        style={{
+          background: isUrgent
+            ? 'rgba(239,68,68,0.15)'
+            : 'rgba(239,68,68,0.08)',
+          borderTop: '1px solid rgba(239,68,68,0.15)',
+          color: 'rgba(252,165,165,0.85)',
+        }}
+      >
+        ⚠️ 見逃すと二度と読めない
+      </div>
+    </button>
+  );
+}
+
+// ── 期間限定シナリオセクション ──
+function LimitedScenariosSection() {
+  const [scenarios, setScenarios] = useState<LimitedScenarioSummary[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/scenarios/active')
+      .then(r => r.json())
+      .then(data => {
+        const active = (data.scenarios ?? []).filter((s: LimitedScenarioSummary) => !s.isExpired);
+        setScenarios(active);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  if (!loaded || scenarios.length === 0) return null;
+
+  return (
+    <FadeSection delay={25}>
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-white font-bold text-base">期間限定シナリオ</h3>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.3), rgba(220,38,38,0.3))',
+              color: 'rgba(252,165,165,0.9)',
+              border: '1px solid rgba(239,68,68,0.3)',
+            }}
+          >
+            {scenarios.length}件
+          </span>
+        </div>
+        <div className="space-y-3">
+          {scenarios.map(s => (
+            <LimitedScenarioBannerCard key={s.id} scenario={s} />
+          ))}
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
+// ── キャラ主導メッセージ型 ──
+interface ProactiveMessage {
+  id: string;
+  message: string;
+  isRead: boolean;
+  expiresAt: string;
+  createdAt: string;
+  character: {
+    id: string;
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    franchise: string;
+  };
+}
+
+// ── 残り時間フォーマット ──
+function useCountdown(expiresAt: string): string {
+  const [label, setLabel] = useState('');
+
+  useEffect(() => {
+    function update() {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setLabel('期限切れ');
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      if (h > 0) {
+        setLabel(`残り${h}時間${m}分`);
+      } else {
+        setLabel(`残り${m}分`);
+      }
+    }
+    update();
+    const id = setInterval(update, 30000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return label;
+}
+
+// ── 単一メッセージカードアイテム ──
+function ProactiveMessageItem({
+  msg,
+  onRead,
+}: {
+  msg: ProactiveMessage;
+  onRead: (id: string) => void;
+}) {
+  const router = useRouter();
+  const countdown = useCountdown(msg.expiresAt);
+  const isExpired = new Date(msg.expiresAt).getTime() < Date.now();
+
+  // 期限切れ（1時間以内）→ 「読めなかった…💔」表示
+  if (isExpired) {
+    const expiredAgo = Date.now() - new Date(msg.expiresAt).getTime();
+    if (expiredAgo > 60 * 60 * 1000) return null; // 1h超えたら非表示
+    return (
+      <div
+        className="flex-shrink-0 w-64 rounded-2xl p-3 flex items-center gap-3 opacity-50"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 text-base">
+          {msg.character.avatarUrl ? (
+            <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-full h-full rounded-full object-cover" />
+          ) : (
+            msg.character.name.charAt(0)
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-gray-400 text-xs font-medium truncate">{msg.character.name}</p>
+          <p className="text-gray-500 text-xs mt-0.5">読めなかった…💔</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleTap = async () => {
+    // 既読API
+    if (!msg.isRead) {
+      onRead(msg.id);
+      fetch(`/api/proactive-messages/${msg.id}/read`, { method: 'POST' }).catch(() => {});
+    }
+    router.push(`/chat/${msg.character.slug}`);
+  };
+
+  return (
+    <button
+      onClick={handleTap}
+      className="flex-shrink-0 w-64 rounded-2xl p-3 flex items-center gap-3 text-left cursor-pointer transition-all active:scale-95"
+      style={{
+        background: msg.isRead
+          ? 'rgba(255,255,255,0.04)'
+          : 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.12))',
+        border: msg.isRead
+          ? '1px solid rgba(255,255,255,0.08)'
+          : '1px solid rgba(139,92,246,0.35)',
+        boxShadow: msg.isRead ? 'none' : '0 2px 16px rgba(139,92,246,0.12)',
+      }}
+    >
+      {/* アバター + 未読ドット */}
+      <div className="relative flex-shrink-0">
+        {msg.character.avatarUrl ? (
+          <img
+            src={msg.character.avatarUrl}
+            alt={msg.character.name}
+            className="w-11 h-11 rounded-full object-cover"
+            style={{ boxShadow: '0 0 0 2px rgba(139,92,246,0.4)' }}
+          />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+            {msg.character.name.charAt(0)}
+          </div>
+        )}
+        {!msg.isRead && (
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-pink-500 rounded-full ring-2 ring-gray-950" />
+        )}
+      </div>
+
+      {/* メッセージ */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-xs font-bold truncate">{msg.character.name}</p>
+        <p className="text-gray-300 text-xs leading-relaxed line-clamp-2 mt-0.5">{msg.message}</p>
+        <p className="text-purple-400 text-[10px] mt-1">{countdown}</p>
+      </div>
+    </button>
+  );
+}
+
+// ── 新着メッセージセクション ──
+function ProactiveMessagesSection() {
+  const [messages, setMessages] = useState<ProactiveMessage[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/proactive-messages')
+      .then(r => r.json())
+      .then(data => {
+        setMessages(data.messages ?? []);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const handleRead = useCallback((id: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === id ? { ...m, isRead: true } : m))
+    );
+  }, []);
+
+  if (!loaded || messages.length === 0) return null;
+
+  return (
+    <FadeSection delay={20}>
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-white font-bold text-base">新着メッセージ</h3>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3))',
+              color: 'rgba(216,180,254,0.9)',
+              border: '1px solid rgba(139,92,246,0.3)',
+            }}
+          >
+            {messages.filter(m => !m.isRead).length}件未読
+          </span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          {messages.map(msg => (
+            <ProactiveMessageItem key={msg.id} msg={msg} onRead={handleRead} />
+          ))}
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
 interface Character {
   id: string;
   name: string;
@@ -715,6 +1159,9 @@ export default function ExplorePage() {
           {/* HERO section — only on no search/filter */}
           {!searchQuery && selectedCategory === 'すべて' && (
             <div className="py-6">
+              {/* 新着メッセージ（キャラ主導） */}
+              <ProactiveMessagesSection />
+
               {/* Hero banner — dynamic character avatars */}
               <FadeSection>
                 {(() => {
@@ -881,6 +1328,12 @@ export default function ExplorePage() {
                   );
                 })()}
               </FadeSection>
+
+              {/* 期間限定シナリオバナー */}
+              <LimitedScenariosSection />
+
+              {/* ストーリー投票バナー */}
+              <PollBannerSection />
 
               {/* 今日のイベントバナー（hype高めのみ表示） */}
               {(() => {

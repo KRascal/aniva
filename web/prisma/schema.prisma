@@ -43,11 +43,15 @@ model User {
   momentComments         MomentComment[]
   commentLikes           CommentLike[]
   letters                Letter[]
+  diaryLikes             CharacterDiaryLike[]
   userCards              UserCard[]
   dailyEvents            UserDailyEvent[]
   userStoryProgress      UserStoryProgress[]
   shopOrders             ShopOrder[]
   gachaPities            UserGachaPity[]
+  proactiveMessages      CharacterProactiveMessage[]
+  limitedScenarioReads   LimitedScenarioRead[]
+  storyPollVotes         StoryPollVote[]
 }
 
 model PushSubscription {
@@ -152,6 +156,10 @@ model Character {
   downloadableContents    DownloadableContent[]
   shopItems               ShopItem[]
   dailyStates             CharacterDailyState[]
+  proactiveMessages       CharacterProactiveMessage[]
+  diaries                 CharacterDiary[]
+  limitedScenarios        LimitedScenario[]
+  storyPolls              StoryPoll[]
 }
 
 model SecretContent {
@@ -647,4 +655,111 @@ model CharacterDailyState {
   character         Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, date])
+}
+
+// ========== キャラ主導メッセージ（24h消滅） ==========
+model CharacterProactiveMessage {
+  id          String    @id @default(uuid())
+  userId      String
+  characterId String
+  message     String    @db.Text
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  expiresAt   DateTime  // createdAt + 24h
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([userId, isRead])
+  @@index([characterId])
+}
+
+// ========== キャラ感情日記タイムライン ==========
+model CharacterDiary {
+  id          String   @id @default(uuid())
+  characterId String
+  date        String   // "YYYY-MM-DD"
+  content     String   @db.Text
+  mood        String   // happy, sad, excited, tired, neutral 等
+  imageUrl    String?
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+  character   Character @relation(fields: [characterId], references: [id])
+  diaryLikes  CharacterDiaryLike[]
+
+  @@unique([characterId, date])
+  @@index([characterId])
+}
+
+model CharacterDiaryLike {
+  id        String   @id @default(uuid())
+  userId    String
+  diaryId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diary     CharacterDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, diaryId])
+  @@index([diaryId])
+}
+
+// ========== 期間限定絆シナリオ（FOMO演出） ==========
+model LimitedScenario {
+  id          String    @id @default(uuid())
+  characterId String
+  title       String
+  description String?
+  content     String    @db.Text
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  character   Character @relation(fields: [characterId], references: [id])
+  readers     LimitedScenarioRead[]
+
+  @@index([characterId])
+  @@index([startsAt, endsAt])
+}
+
+model LimitedScenarioRead {
+  id         String          @id @default(uuid())
+  userId     String
+  scenarioId String
+  readAt     DateTime        @default(now())
+  user       User            @relation(fields: [userId], references: [id])
+  scenario   LimitedScenario @relation(fields: [scenarioId], references: [id])
+
+  @@unique([userId, scenarioId])
+}
+
+// ========== ユーザー投票型ストーリー ==========
+model StoryPoll {
+  id             String         @id @default(uuid())
+  characterId    String
+  title          String
+  description    String?        @db.Text
+  choices        Json           // [{id: "a", text: "冒険に出る"}, {id: "b", text: "町で修行する"}]
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean        @default(true)
+  resultChoiceId String?        // 投票結果の選択肢ID
+  createdAt      DateTime       @default(now())
+  character      Character      @relation(fields: [characterId], references: [id])
+  votes          StoryPollVote[]
+
+  @@index([characterId])
+  @@index([startsAt, endsAt])
+}
+
+model StoryPollVote {
+  id       String    @id @default(uuid())
+  userId   String
+  pollId   String
+  choiceId String
+  votedAt  DateTime  @default(now())
+  user     User      @relation(fields: [userId], references: [id])
+  poll     StoryPoll @relation(fields: [pollId], references: [id])
+
+  @@unique([userId, pollId])
 }

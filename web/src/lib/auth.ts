@@ -11,8 +11,8 @@ async function grantWelcomeCoins(userId: string) {
     await prisma.$transaction(async (tx) => {
       const balance = await tx.coinBalance.upsert({
         where: { userId },
-        create: { userId, balance: WELCOME_COINS },
-        update: { balance: { increment: WELCOME_COINS } },
+        create: { userId, balance: WELCOME_COINS, freeBalance: WELCOME_COINS, paidBalance: 0 },
+        update: { balance: { increment: WELCOME_COINS }, freeBalance: { increment: WELCOME_COINS } },
       });
       await tx.coinTransaction.create({
         data: {

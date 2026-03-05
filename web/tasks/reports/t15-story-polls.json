@@ -1,0 +1,16 @@
+{
+  "task": "T15: ユーザー投票型ストーリー実装",
+  "status": "success",
+  "started_at": "2026-03-05T02:00:00Z",
+  "completed_at": "2026-03-05T02:10:00Z",
+  "commit": "c48f4b9",
+  "files_changed": [
+    "prisma/schema.prisma",
+    "src/app/api/polls/active/route.ts",
+    "src/app/api/polls/[id]/vote/route.ts",
+    "src/app/api/polls/[id]/route.ts",
+    "src/app/polls/page.tsx",
+    "src/app/explore/page.tsx"
+  ],
+  "notes": "schema + API routes were already committed in HEAD (from T13/T14 partial work). Added polls page and explore banner. TSエラー0件確認済み。"
+}

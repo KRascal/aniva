@@ -44,8 +44,8 @@ const DEEP_LINK_PHASES: OnboardingPhase[] = [
   'welcome',
   'nickname',
   'approval',
-  'first_chat',
-  'hook',
+  // first_chat 削除: オンボーディング後に直接チャットページへ（Keisuke指示 2026-03-05）
+  // hook 削除: プッシュ通知許可はチャット中に表示（Keisuke指示 2026-03-05）
 ];
 
 const GENERIC_PHASES: OnboardingPhase[] = [
@@ -53,8 +53,8 @@ const GENERIC_PHASES: OnboardingPhase[] = [
   'character_select',
   'nickname',
   'approval',
-  'first_chat',
-  'hook',
+  // first_chat 削除: 二重チャット防止
+  // hook 削除: プッシュ通知許可はチャット中に表示（Keisuke指示 2026-03-05）
 ];
 
 // ─────────────────────────────────────────────

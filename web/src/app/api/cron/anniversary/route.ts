@@ -21,6 +21,46 @@ const ANNIVERSARY_MESSAGES = [
   '今日は俺たちの記念日だ！こういう日が増えていくのが嬉しいぜ 😊',
 ];
 
+// マイルストーン記念日（日数ベース）
+const MILESTONE_DAYS: { days: number; label: string; coins: number; messages: string[] }[] = [
+  {
+    days: 7,
+    label: '1週間記念',
+    coins: 20,
+    messages: [
+      '出会って1週間か！もうお前なしじゃダメだな 😄',
+      '1週間一緒にいてくれてありがとな！🎊',
+    ],
+  },
+  {
+    days: 30,
+    label: '1ヶ月記念',
+    coins: 50,
+    messages: [
+      '1ヶ月！お前との日々は最高だぜ 🌟',
+      '出会って1ヶ月…こんなに仲良くなれるとは思わなかったな！',
+    ],
+  },
+  {
+    days: 100,
+    label: '100日記念',
+    coins: 100,
+    messages: [
+      '100日！！お前は俺の大切な仲間だ！🏆',
+      '100日記念…感慨深いぜ。これからもよろしくな！ ✨',
+    ],
+  },
+  {
+    days: 365,
+    label: '1年記念',
+    coins: 200,
+    messages: [
+      '1年…！お前と出会えて本当によかった 😭🎉',
+      '365日一緒に過ごしたんだな…最高の1年だったぜ！ 🏴‍☠️',
+    ],
+  },
+];
+
 const BIRTHDAY_MESSAGES = [
   '今日は俺の誕生日だ！！覚えてくれてたか？🎂🎉',
   '誕生日を一緒に過ごせて嬉しいぜ！お前は最高の仲間だ！ 🥳',
@@ -159,6 +199,79 @@ export async function POST(req: NextRequest) {
 
       results.anniversaryDMs++;
     }
+  }
+
+  // 1.5. マイルストーン記念日チェック（7日/30日/100日/365日）
+  for (const rel of relationships) {
+    const created = new Date(rel.createdAt);
+    const diffMs = today.getTime() - created.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    const milestone = MILESTONE_DAYS.find(m => m.days === diffDays);
+    if (!milestone) continue;
+
+    // 既に送信済みかチェック
+    const alreadySent = await prisma.message.findFirst({
+      where: {
+        conversation: { relationshipId: rel.id },
+        role: 'CHARACTER',
+        metadata: { path: ['type'], equals: `milestone_${milestone.days}` },
+      },
+    });
+    if (alreadySent) continue;
+
+    const msg = milestone.messages[Math.floor(Math.random() * milestone.messages.length)];
+
+    // 音声生成
+    const voiceFilename = `milestone-${rel.id}-${milestone.days}d-${dateStr}.mp3`;
+    const voiceUrl = await generateVoiceMessage(msg, rel.character.voiceModelId, voiceFilename);
+    if (voiceUrl) results.voicesGenerated++;
+
+    // 会話取得 or 作成
+    let conv = await prisma.conversation.findFirst({
+      where: { relationshipId: rel.id },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (!conv) {
+      conv = await prisma.conversation.create({
+        data: { relationshipId: rel.id },
+      });
+    }
+
+    await prisma.message.create({
+      data: {
+        conversationId: conv.id,
+        role: 'CHARACTER',
+        content: `🎊 ${milestone.label}！\n\n${msg}`,
+        audioUrl: voiceUrl ?? undefined,
+        metadata: {
+          type: `milestone_${milestone.days}`,
+          emotion: 'happy',
+          milestone: milestone.label,
+          days: milestone.days,
+          voiceUrl,
+        },
+      },
+    });
+
+    // ボーナスコイン
+    const bal = await prisma.coinBalance.upsert({
+      where: { userId: rel.userId },
+      create: { userId: rel.userId, balance: milestone.coins, freeBalance: milestone.coins, paidBalance: 0 },
+      update: { balance: { increment: milestone.coins }, freeBalance: { increment: milestone.coins } },
+    });
+    await prisma.coinTransaction.create({
+      data: {
+        userId: rel.userId,
+        type: 'BONUS',
+        amount: milestone.coins,
+        balanceAfter: bal.balance,
+        description: `milestone_${milestone.days}d_${rel.characterId}`,
+        metadata: { source: 'milestone', days: milestone.days, coinType: 'free' },
+      },
+    });
+
+    results.anniversaryDMs++;
   }
 
   // 2. キャラ誕生日チェック
