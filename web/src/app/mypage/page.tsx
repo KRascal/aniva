@@ -631,7 +631,9 @@ export default function MyPage() {
         <BondCalendar />
 
         {/* デイリーミッション */}
-        <DailyMissionsCard />
+        <div id="daily-missions">
+          <DailyMissionsCard />
+        </div>
 
         {/* ブックマーク */}
         {bookmarks.length > 0 && (

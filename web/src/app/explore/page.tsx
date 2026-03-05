@@ -1814,8 +1814,7 @@ export default function ExplorePage() {
                         : '1px solid rgba(168,85,247,0.2)',
                     }}
                     onClick={() => {
-                      const el = document.getElementById('daily-missions');
-                      el?.scrollIntoView({ behavior: 'smooth' });
+                      window.location.href = '/mypage#daily-missions';
                     }}
                   >
                     <span className="text-2xl flex-shrink-0">{incompleteMissions <= 2 ? '⚡' : '📋'}</span>
