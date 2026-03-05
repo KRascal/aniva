@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { startProceduralBGM, type ProceduralBGM } from '@/lib/bgm-generator';
 
 const BGM_FILES: Record<string, string> = {
   daily: '/bgm/daily.mp3',
@@ -22,6 +23,7 @@ export function useBGM(bgmType: string | null) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentTypeRef = useRef<string | null>(null);
+  const proceduralBgmRef = useRef<ProceduralBGM | null>(null);
 
   // iOS Autoplay 対策: ユーザー操作で AudioContext を resume
   useEffect(() => {
@@ -58,8 +60,14 @@ export function useBGM(bgmType: string | null) {
     newAudio.loop = true;
     newAudio.volume = 0;
 
-    // ファイルが存在しない場合はエラーを無視
-    newAudio.addEventListener('error', () => {/* file not found - ignore */});
+    // ファイルが存在しない場合はプロシージャルBGMにフォールバック
+    newAudio.addEventListener('error', () => {
+      if (bgmType && (bgmType === 'daily' || bgmType === 'tension' || bgmType === 'emotion')) {
+        const proceduralRef = proceduralBgmRef.current;
+        if (proceduralRef) proceduralRef.stop();
+        proceduralBgmRef.current = startProceduralBGM(bgmType);
+      }
+    });
 
     newAudio.play().catch(() => {/* autoplay blocked - will resume on interaction */});
 
@@ -96,6 +104,9 @@ export function useBGM(bgmType: string | null) {
       }
       if (fadeIntervalRef.current) {
         clearInterval(fadeIntervalRef.current);
+      }
+      if (proceduralBgmRef.current) {
+        proceduralBgmRef.current.stop();
       }
     };
   }, []);
