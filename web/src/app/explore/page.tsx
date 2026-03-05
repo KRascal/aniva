@@ -1307,12 +1307,32 @@ export default function ExplorePage() {
                       {/* Character name ticker marquee */}
                       {characters.length > 0 && (
                         <div
-                          className="relative z-10 overflow-hidden border-t py-2"
-                          style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(4px)' }}
+                          className="relative z-10 overflow-x-auto border-t py-2 no-scrollbar ticker-container"
+                          style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(4px)', WebkitOverflowScrolling: 'touch' }}
+                          onTouchStart={(e) => {
+                            const el = e.currentTarget.querySelector('.ticker-track') as HTMLElement;
+                            if (el) el.style.animationPlayState = 'paused';
+                          }}
+                          onTouchEnd={(e) => {
+                            const el = e.currentTarget.querySelector('.ticker-track') as HTMLElement;
+                            if (el) setTimeout(() => { el.style.animationPlayState = 'running'; }, 3000);
+                          }}
+                          onMouseDown={(e) => {
+                            const el = e.currentTarget.querySelector('.ticker-track') as HTMLElement;
+                            if (el) el.style.animationPlayState = 'paused';
+                          }}
+                          onMouseUp={(e) => {
+                            const el = e.currentTarget.querySelector('.ticker-track') as HTMLElement;
+                            if (el) setTimeout(() => { el.style.animationPlayState = 'running'; }, 3000);
+                          }}
+                          onMouseLeave={(e) => {
+                            const el = e.currentTarget.querySelector('.ticker-track') as HTMLElement;
+                            if (el) setTimeout(() => { el.style.animationPlayState = 'running'; }, 1000);
+                          }}
                         >
                           <div
-                            className="flex gap-6 whitespace-nowrap text-white/60 text-xs font-medium"
-                            style={{ animation: 'heroTicker 20s linear infinite' }}
+                            className="ticker-track flex gap-6 whitespace-nowrap text-white/60 text-xs font-medium"
+                            style={{ animation: 'heroTicker 20s linear infinite', width: 'max-content' }}
                           >
                             {/* Duplicate for seamless loop */}
                             {[...characters, ...characters].map((c, i) => (
