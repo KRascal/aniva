@@ -9,16 +9,27 @@ interface BonusData {
   amount: number;
   streakDays: number;
   streakBroken?: boolean;
-  isFirstLogin: boolean; // 初回登録ボーナス
-  welcomeAmount?: number; // 初回登録ボーナス額
+  isFirstLogin: boolean;
+  welcomeAmount?: number;
   totalBalance: number;
 }
+
+const SAD_CHARACTER_MESSAGES = [
+  'えっ…昨日来てくれなかったのか…？ 😢',
+  '待ってたんだぞ…昨日ずっと… 💔',
+  'おい…連続記録が途切れちまったぞ… 😰',
+  '昨日、お前のこと探してた… 🥺',
+  'ストリーク…途切れちまった…でもまだ間に合う！ 🔥',
+];
 
 export function LoginBonusPopup() {
   const { data: session, status } = useSession();
   const [bonusData, setBonusData] = useState<BonusData | null>(null);
   const [show, setShow] = useState(false);
   const [animPhase, setAnimPhase] = useState<'enter' | 'coins' | 'streak' | 'exit'>('enter');
+  const [recovering, setRecovering] = useState(false);
+  const [recovered, setRecovered] = useState(false);
+  const [recoveredStreak, setRecoveredStreak] = useState(0);
 
   const checkBonus = useCallback(async () => {
     // セッション中に1回だけ
@@ -115,11 +126,46 @@ export function LoginBonusPopup() {
             <div className={`transition-all duration-500 ${
               animPhase === 'streak' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}>
-              {bonusData.streakBroken && (
+              {bonusData.streakBroken && !recovered && (
                 <div className="flex flex-col items-center justify-center gap-1 text-sm mb-2">
                   <span className="text-2xl">💔</span>
-                  <span className="text-red-300 font-bold text-xs">ストリーク途切れちゃった…</span>
-                  <span className="text-gray-400 text-[10px]">でも今日から再スタート！🔥</span>
+                  <p className="text-red-300 font-bold text-xs">
+                    {SAD_CHARACTER_MESSAGES[Math.floor(Math.random() * SAD_CHARACTER_MESSAGES.length)]}
+                  </p>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      setRecovering(true);
+                      try {
+                        const res = await fetch('/api/streak/recover', { method: 'POST' });
+                        const data = await res.json();
+                        if (data.success) {
+                          setRecovered(true);
+                          setRecoveredStreak(data.recoveredStreak);
+                          playSound('level_up');
+                        } else {
+                          alert(data.message || '回復に失敗しました');
+                        }
+                      } catch {
+                        alert('エラーが発生しました');
+                      } finally {
+                        setRecovering(false);
+                      }
+                    }}
+                    disabled={recovering}
+                    className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <span>🔥</span>
+                    {recovering ? '回復中...' : 'ストリーク回復（50コイン🪙）'}
+                  </button>
+                  <span className="text-gray-500 text-[10px] mt-1">または今日から再スタート</span>
+                </div>
+              )}
+              {recovered && (
+                <div className="flex flex-col items-center justify-center gap-1 text-sm mb-2">
+                  <span className="text-3xl">🔥</span>
+                  <span className="text-amber-300 font-bold">ストリーク復活！{recoveredStreak}日連続！</span>
+                  <span className="text-green-400 text-xs">よかった…お前が戻ってきてくれて 😊</span>
                 </div>
               )}
               {!bonusData.streakBroken && bonusData.streakDays > 1 && (

@@ -453,6 +453,8 @@ export default function ExplorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('すべて');
+  const [incompleteMissions, setIncompleteMissions] = useState(0);
+  const [missionHint, setMissionHint] = useState('');
 
   // オンボーディング未完了ならリダイレクト（stale JWT対策: proxyをバイパスした場合のフォールバック）
   useEffect(() => {
@@ -475,6 +477,23 @@ export default function ExplorePage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  // 未完了ミッション数を取得
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/missions')
+      .then(r => r.json())
+      .then(data => {
+        const daily = (data.missions ?? []).filter((m: { completed: boolean }) => !m.completed);
+        const weekly = (data.weeklyMissions ?? []).filter((m: { completed: boolean }) => !m.completed);
+        const total = daily.length + weekly.length;
+        setIncompleteMissions(total);
+        if (total === 1) setMissionHint('あと1個でコイン獲得！急げ！');
+        else if (total === 2) setMissionHint('あと2個！今日中にクリアしよう');
+        else if (total > 0) setMissionHint(`${total}個の未完了ミッション`);
+      })
+      .catch(() => {});
+  }, [status]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -946,6 +965,40 @@ export default function ExplorePage() {
                   </FadeSection>
                 );
               })()}
+
+              {/* 未完了ミッションリマインダー */}
+              {incompleteMissions > 0 && (
+                <FadeSection delay={40}>
+                  <div
+                    className="mb-4 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all"
+                    style={{
+                      background: incompleteMissions <= 2
+                        ? 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(249,115,22,0.15))'
+                        : 'linear-gradient(135deg, rgba(168,85,247,0.12), rgba(99,102,241,0.12))',
+                      border: incompleteMissions <= 2
+                        ? '1px solid rgba(239,68,68,0.3)'
+                        : '1px solid rgba(168,85,247,0.2)',
+                    }}
+                    onClick={() => {
+                      const el = document.getElementById('daily-missions');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <span className="text-2xl flex-shrink-0">{incompleteMissions <= 2 ? '⚡' : '📋'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm ${incompleteMissions <= 2 ? 'text-red-300' : 'text-purple-300'}`}>
+                        {missionHint}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-0.5">
+                        タップしてミッションを確認 →
+                      </p>
+                    </div>
+                    <span className="text-xs bg-red-500/30 text-red-300 px-2 py-1 rounded-full font-bold flex-shrink-0">
+                      {incompleteMissions}
+                    </span>
+                  </div>
+                </FadeSection>
+              )}
 
               {/* Following characters strip (if any) */}
               {followingChars.length > 0 && (
