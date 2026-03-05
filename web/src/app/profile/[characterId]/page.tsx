@@ -675,6 +675,15 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════ アクションボタン ══════════════ */}
+        {/* 思い出ブックボタン */}
+        <button
+          onClick={() => router.push(`/memory-book/${characterId}`)}
+          className="w-full py-2.5 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 bg-amber-900/40 border border-amber-700/40 text-amber-300 hover:bg-amber-900/60 mb-3"
+        >
+          <span>📖</span>
+          思い出ブック
+        </button>
+
         <div className="flex gap-3">
           {/* フォローボタン */}
           <button
