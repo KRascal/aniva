@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     const data = toCreate.map(r => ({
       userId: r.userId,
       characterId: r.characterId,
-      message: pickTemplate(r.characterId, r.userId),
+      content: pickTemplate(r.characterId, r.userId),
       isRead: false,
       expiresAt,
     }));

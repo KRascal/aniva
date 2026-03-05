@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/admin/gacha', label: 'ガチャ', icon: '🎰' },
   { href: '/admin/shop', label: 'ショップ', icon: '🛍' },
   { href: '/admin/users', label: 'ユーザー', icon: '👥' },
+  { href: '/admin/scenarios', label: '限定シナリオ', icon: '📖' },
   { href: '/admin/downloadable-content', label: '限定DL', icon: '📦' },
   { href: '/admin/addiction', label: '中毒設計', icon: '🧪' },
   { href: '/admin/analytics', label: '分析', icon: '📈' },
