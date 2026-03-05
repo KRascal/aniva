@@ -553,20 +553,24 @@ model UserDailyEvent {
 
 // ========== ストーリーモード ==========
 model StoryChapter {
-  id            String              @id @default(cuid())
-  characterId   String
-  character     Character           @relation(fields: [characterId], references: [id])
-  chapterNumber Int
-  locale        String              @default("ja")
-  title         String
-  synopsis      String              @db.Text
-  unlockLevel   Int                 @default(1)
-  isFcOnly      Boolean             @default(false)
-  triggerPrompt String              @db.Text
-  choices       Json? // [{ text, consequence, nextTease }]
-  isActive      Boolean             @default(true)
-  createdAt     DateTime            @default(now())
-  userProgress  UserStoryProgress[]
+  id              String              @id @default(cuid())
+  characterId     String
+  character       Character           @relation(fields: [characterId], references: [id])
+  chapterNumber   Int
+  locale          String              @default("ja")
+  title           String
+  synopsis        String              @db.Text
+  unlockLevel     Int                 @default(1)
+  isFcOnly        Boolean             @default(false)
+  triggerPrompt   String              @db.Text
+  choices         Json? // [{ text, consequence, nextTease, xpReward? }]
+  isActive        Boolean             @default(true)
+  backgroundUrl   String?             // シーン背景画像URL
+  bgmType         String?             // 'daily' | 'tension' | 'emotion' | null
+  coinReward      Int                 @default(5) // チャプター完了時のコイン報酬
+  characterPose   String?             // キャラ立ち絵ポーズ ('normal'|'happy'|'angry'|'sad')
+  createdAt       DateTime            @default(now())
+  userProgress    UserStoryProgress[]
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])

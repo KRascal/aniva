@@ -108,10 +108,40 @@ export async function POST(
       });
     }
 
+    // XP付与（選択肢ごとに5-20XP、二重付与防止）
+    const isFirstCompletion = !existingProgress?.isCompleted;
+    let xpEarned = 0;
+    let coinsEarned = 0;
+
+    if (isFirstCompletion && relationship) {
+      // 選択肢のXP（チャプター難易度 = chapterNumber * 3 + base 10）
+      xpEarned = Math.min(10 + chapter.chapterNumber * 3, 30);
+
+      // チャプター完了コイン報酬（基本5コイン + チャプター番号ボーナス）
+      coinsEarned = 5 + Math.floor(chapter.chapterNumber / 3) * 5;
+
+      // XP付与
+      await prisma.relationship.update({
+        where: { id: relationship.id },
+        data: {
+          experiencePoints: { increment: xpEarned },
+        },
+      });
+
+      // コイン付与
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          coinBalance: { increment: coinsEarned },
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       consequence,
       nextTease: selectedChoice.nextTease ?? null,
+      rewards: isFirstCompletion ? { xpEarned, coinsEarned } : null,
     });
   } catch (error) {
     console.error('Story choice POST error:', error);
