@@ -504,6 +504,99 @@ export class CharacterEngine {
   /**
    * キャラクターの応答を生成
    */
+  /**
+   * プロンプトコンテキスト構築（ストリーミングAPI用に公開）
+   * systemPrompt と llmMessages を返す
+   */
+  async buildPromptContext(
+    characterId: string,
+    relationshipId: string,
+    userMessage: string,
+    locale: string = 'ja',
+    options?: { isFcMember?: boolean },
+  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[] }> {
+    return this._buildPromptContextInternal(characterId, relationshipId, userMessage, locale, options);
+  }
+
+  private async _buildPromptContextInternal(
+    characterId: string,
+    relationshipId: string,
+    userMessage: string,
+    locale: string = 'ja',
+    options?: { isFcMember?: boolean },
+  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[] }> {
+    // 1. キャラクター情報取得
+    const character = await prisma.character.findUniqueOrThrow({ where: { id: characterId } });
+
+    // 2. 関係性情報取得
+    const relationship = await prisma.relationship.findUniqueOrThrow({ where: { id: relationshipId } });
+
+    // 3. 最近の会話履歴取得
+    const conversation = await prisma.conversation.findFirst({
+      where: { relationshipId },
+      orderBy: { updatedAt: 'desc' },
+    });
+    const recentMessages = conversation
+      ? await prisma.message.findMany({
+          where: { conversationId: conversation.id },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: { role: true, content: true },
+        }).then(msgs => msgs.reverse())
+      : [];
+
+    // 4. メモリコンテキスト構築（generateResponseと同じロジック）
+    const memory = this.buildMemoryContext(relationship);
+
+    // 4a-4h. コンテキスト取得（簡略化 — エラーは吸収）
+    let cliffhangerFollowUp: string | null = null;
+    let dailyEventType: string | null = null;
+    let hiddenCommandContext: string | null = null;
+    let jealousyContext: string | null = null;
+    let semanticMemoryContext = '';
+    let dailyFanCount = 0;
+    let dailyState: { emotion: string; context: string | null; bonusXpMultiplier: number } | null = null;
+
+    try { cliffhangerFollowUp = await consumeCliffhanger(relationshipId); } catch { /* */ }
+    try {
+      const dailyEvent = await getUserDailyEvent(relationship.userId);
+      dailyEventType = dailyEvent.eventType as string;
+    } catch { /* */ }
+    try { hiddenCommandContext = this.detectHiddenCommand(userMessage, character.slug); } catch { /* */ }
+    try { jealousyContext = await this.buildJealousyContext(characterId, relationship.level, memory.userName); } catch { /* */ }
+    try {
+      const { getRelevantMemories } = await import('./semantic-memory');
+      semanticMemoryContext = await getRelevantMemories(relationship.userId, characterId, userMessage);
+    } catch { /* */ }
+    try { dailyFanCount = await getDailyFanCount(characterId); } catch { /* */ }
+    try {
+      const ds = await prisma.characterDailyState.findUnique({
+        where: { characterId_date: { characterId, date: new Date(new Date().toISOString().split('T')[0]) } },
+      });
+      if (ds) dailyState = { emotion: ds.emotion, context: ds.context ?? null, bonusXpMultiplier: ds.bonusXpMultiplier };
+    } catch { /* */ }
+
+    let characterContext;
+    try { characterContext = await loadCharacterContext(character.slug, locale); } catch { characterContext = null; }
+
+    const systemPrompt = this.buildSystemPrompt(
+      character as unknown as CharacterRecord,
+      memory, locale, cliffhangerFollowUp, (dailyEventType as import('./daily-event-system').DailyEventType) ?? 'normal',
+      hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
+      dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
+    );
+
+    const llmMessages = [
+      ...recentMessages.map((msg: { role: string; content: string }) => ({
+        role: msg.role === 'USER' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+      })),
+      { role: 'user' as const, content: userMessage },
+    ];
+
+    return { systemPrompt, llmMessages };
+  }
+
   async generateResponse(
     characterId: string,
     relationshipId: string,
@@ -1348,6 +1441,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   /**
    * 簡易感情検出
    */
+  /**
+   * 感情検出（公開メソッド — ストリーミングAPIから利用）
+   */
+  public extractEmotion(text: string): string {
+    return this.detectEmotion(text);
+  }
+
   private detectEmotion(text: string): string {
     if (/！{2,}|すげぇ|おおー|やった|最高|ハハ/.test(text)) return 'excited';
     if (/ししし|ししっ|別に喜んでない|うるさい！/.test(text)) return 'happy';

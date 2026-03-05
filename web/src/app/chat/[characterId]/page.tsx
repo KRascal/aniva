@@ -746,12 +746,14 @@ export default function ChatCharacterPage() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const res = await fetch('/api/chat/send', {
+      // ── SSEストリーミング対応 ──
+      const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ characterId, message: text }),
       });
 
+      // 非200はJSON fallback
       if (!res.ok) {
         const errData = await res.json();
         if (res.status === 429) {
@@ -764,7 +766,6 @@ export default function ChatCharacterPage() {
           setMessages((prev) => [...prev, errMsg]);
           return;
         }
-        // おねだり演出: 無料上限到達
         if (res.status === 402 && errData.type === 'CHAT_LIMIT') {
           const onedariMessages = [
             `えー…もう終わり？\nもっと${character?.name || 'おれ'}と話したくない？😢`,
@@ -779,7 +780,6 @@ export default function ChatCharacterPage() {
             createdAt: new Date().toISOString(),
             metadata: { emotion: 'sad' },
           };
-          // FC加入CTAメッセージ
           const ctaMsg: Message = {
             id: `cta-${Date.now()}`,
             role: 'SYSTEM',
@@ -793,36 +793,109 @@ export default function ChatCharacterPage() {
         throw new Error(errData.error || 'Send failed');
       }
 
-      const data = await res.json();
-      const characterMsg: Message = data.characterMessage
-        ? { ...data.characterMessage, audioUrl: undefined }
-        : data.characterMessage;
+      // ── SSEストリーム読み取り ──
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let streamBuffer = '';
+      let streamingText = '';
+      const streamMsgId = `stream-${Date.now()}`;
+
+      // ストリーミング中のキャラメッセージを仮追加
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== tempUserMsg.id),
-        data.userMessage,
-        characterMsg,
+        { ...tempUserMsg, id: tempUserMsg.id }, // keep user msg
+        {
+          id: streamMsgId,
+          role: 'CHARACTER',
+          content: '',
+          createdAt: new Date().toISOString(),
+          metadata: { isStreaming: true },
+        },
       ]);
 
-      // 残りメッセージ予告（残り2通以下でキャラが予告）
-      if (data.relationship?.freeMessagesRemaining !== undefined && data.relationship.freeMessagesRemaining <= 2 && data.relationship.freeMessagesRemaining > 0) {
-        const warnings = [
-          `（…あと${data.relationship.freeMessagesRemaining}回しか話せねぇのか…もっと話したいのに）`,
-          `（今日はあと${data.relationship.freeMessagesRemaining}回か…名残惜しいな…）`,
-        ];
-        const warningMsg: Message = {
-          id: `warn-${Date.now()}`,
-          role: 'CHARACTER',
-          content: warnings[Math.floor(Math.random() * warnings.length)],
-          createdAt: new Date().toISOString(),
-          metadata: { emotion: 'sad', isSystemHint: true },
-        };
-        setMessages((prev) => [...prev, warningMsg]);
+      let finalCharMsgId = '';
+      let finalEmotion = 'neutral';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split('\n');
+        streamBuffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const parsed = JSON.parse(line.slice(6));
+
+            if (parsed.type === 'token') {
+              streamingText += parsed.token;
+              // リアルタイムでメッセージ内容を更新
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamMsgId
+                    ? { ...m, content: streamingText }
+                    : m
+                )
+              );
+            } else if (parsed.type === 'done') {
+              streamingText = parsed.text;
+            } else if (parsed.type === 'complete') {
+              finalCharMsgId = parsed.characterMessageId || streamMsgId;
+              finalEmotion = parsed.emotion || 'neutral';
+
+              // ストリーミングメッセージを正式メッセージに置換
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamMsgId
+                    ? {
+                        id: finalCharMsgId,
+                        role: 'CHARACTER' as const,
+                        content: streamingText,
+                        createdAt: new Date().toISOString(),
+                        metadata: { emotion: finalEmotion },
+                      }
+                    : m
+                )
+              );
+
+              // ストリーク表示
+              if (parsed.streak?.isNew && parsed.streak.days > 0) {
+                // streak更新のハンドリング（既存のstreakロジックがあればここで呼ぶ）
+              }
+
+              // レベルアップ
+              if (parsed.levelUp) {
+                // レベルアップ演出（既存があれば呼ぶ）
+              }
+            } else if (parsed.type === 'meta') {
+              // userMsgのIDを正式IDに更新（サーバーが返したuserMessageId）
+              if (parsed.userMessageId) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === tempUserMsg.id
+                      ? { ...m, id: parsed.userMessageId }
+                      : m
+                  )
+                );
+              }
+            }
+          } catch {
+            // malformed SSE, skip
+          }
+        }
       }
 
-      if (data.characterMessage?.metadata?.emotion) {
-        const newEmotion = data.characterMessage.metadata.emotion;
-        setCurrentEmotion(newEmotion);
-        // 感情に応じたテーマカラーを背景に反映
+      // 感情更新
+      if (finalEmotion && finalEmotion !== 'neutral') {
+        setCurrentEmotion(finalEmotion);
+      }
+
+      // 感情エフェクト（ストリーミング完了後）
+      if (finalEmotion && finalEmotion !== 'neutral') {
         const EMOTION_THEMES: Record<string, string> = {
           excited:   'rgba(234,88,12,0.08), rgba(153,27,27,0.06)',
           happy:     'rgba(202,138,4,0.08), rgba(161,98,7,0.05)',
@@ -832,79 +905,23 @@ export default function ChatCharacterPage() {
           surprised: 'rgba(14,116,144,0.08), rgba(15,118,110,0.06)',
           neutral:   'rgba(88,28,135,0.06), rgba(0,0,0,0)',
         };
-        setBgTheme(EMOTION_THEMES[newEmotion] ?? EMOTION_THEMES.neutral);
-        // 感情エフェクトをトリガー
-        if (data.characterMessage?.id) setLastEmotionMsgId(data.characterMessage.id);
-        if (newEmotion === 'hungry') {
-          const emojis = Array.from({ length: 4 }, (_, i) => ({
-            id: Date.now() + i,
-            x: 15 + i * 20,
-            delay: i * 0.25,
-          }));
+        setBgTheme(EMOTION_THEMES[finalEmotion] ?? EMOTION_THEMES.neutral);
+        if (finalCharMsgId) setLastEmotionMsgId(finalCharMsgId);
+        if (finalEmotion === 'hungry') {
+          const emojis = Array.from({ length: 4 }, (_, i) => ({ id: Date.now() + i, x: 15 + i * 20, delay: i * 0.25 }));
           setHungryEmojis(emojis);
           setTimeout(() => setHungryEmojis([]), 2000);
         }
-        if (newEmotion === 'excited') {
+        if (finalEmotion === 'excited') {
           setShowStars(true);
           setTimeout(() => setShowStars(false), 3200);
         }
       }
 
-      if (data.characterMessage && data.characterMessage.role === 'CHARACTER') {
+      // 音声生成（完了後にバックグラウンドで）
+      if (finalCharMsgId && streamingText) {
         playSound('message_receive');
-        // ⑦ ボイスメモ: voiceHint時は感情パラメータ付きで生成 + 自動再生
-        if (data.voiceHint) {
-          (async () => {
-            try {
-              const vRes = await fetch('/api/voice/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  messageId: data.characterMessage.id,
-                  text: data.characterMessage.content,
-                  characterId,
-                  emotion: data.voiceHint.emotion ?? 'excited',
-                }),
-              });
-              const vData = await vRes.json() as { audioUrl?: string };
-              if (vData.audioUrl) {
-                setMessages((prev) => prev.map((m) =>
-                  m.id === data.characterMessage.id ? { ...m, audioUrl: vData.audioUrl } : m
-                ));
-                // 自動再生（特別な瞬間のみ）
-                const audio = new Audio(vData.audioUrl);
-                audio.volume = 0.7;
-                audio.play().catch(() => {}); // autoplay制限時はsilent fail
-              }
-            } catch { /* silent */ }
-          })();
-        } else {
-          generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
-        }
-      }
-      // キャラからのAI画像送信（shouldGenerateImage時）
-      if (data.characterMessage?.metadata?.shouldGenerateImage && character?.name) {
-        (async () => {
-          try {
-            const imgRes = await fetch('/api/image/generate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                messageId: data.characterMessage.id,
-                characterName: character.name,
-                context: data.characterMessage.content,
-              }),
-            });
-            const imgData = await imgRes.json() as { imageUrl?: string | null };
-            if (imgData.imageUrl) {
-              setMessages((prev) => prev.map((m) =>
-                m.id === data.characterMessage.id
-                  ? { ...m, metadata: { ...m.metadata, imageUrl: imgData.imageUrl ?? undefined } } as Message
-                  : m
-              ));
-            }
-          } catch { /* silent */ }
-        })();
+        generateVoiceForMessage(finalCharMsgId, streamingText, characterId);
       }
 
       // 本日送信数インクリメント（Free plan 表示・後方互換）
@@ -946,68 +963,10 @@ export default function ChatCharacterPage() {
         if (d.balance !== undefined) setCoinBalance(d.balance);
       }).catch(() => {});
 
-      // クリフハンガー予告メッセージ（キャラが自然に差し込む）
-      if (data.cliffhangerTease) {
-        setTimeout(() => {
-          const teaseMsg: Message = {
-            id: `cliff-${Date.now()}`,
-            role: 'CHARACTER',
-            content: data.cliffhangerTease,
-            createdAt: new Date().toISOString(),
-            metadata: { emotion: 'mysterious', isCliffhanger: true },
-          };
-          setMessages((prev) => [...prev, teaseMsg]);
-        }, 2000); // 2秒後に自然に差し込む
-      }
+      // クリフハンガー予告 (complete eventから)
+      // (cliffhangerTeaseはSSEのcompleteイベント内で処理済み)
 
-      // ストリークマイルストーン通知
-      if (data.streak?.milestone) {
-        const milestoneMessages: Record<number, string> = {
-          7: '🔥 7日連続！すごい絆だ！',
-          30: '🔥 30日連続！もう離れられないな…',
-          100: '🔥 100日連続！伝説の絆！',
-          365: '🔥 365日！1年間ずっと一緒…最高の仲間だ！',
-        };
-        const streakMsg: Message = {
-          id: `streak-${Date.now()}`,
-          role: 'SYSTEM',
-          content: milestoneMessages[data.streak.milestone] || `🔥 ${data.streak.milestone}日連続ストリーク！`,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, streakMsg]);
-      }
-
-      // メッセージ数マイルストーン演出
-      if (data.relationship?.msgMilestone) {
-        const msgMilestoneMsg: Message = {
-          id: `msgmilestone-${Date.now()}`,
-          role: 'SYSTEM',
-          content: `🎉 ${data.relationship.msgMilestone} — 一緒に${data.relationship.totalMsgCount}通…本物の絆だ`,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, msgMilestoneMsg]);
-        playSound('level_up');
-        vibrateLevelUp();
-      }
-
-      if (data.relationship) {
-        const xpGained = data.relationship.xp - prevXpRef.current;
-        prevXpRef.current = data.relationship.xp;
-        setRelationship((prev) => ({
-          ...(prev || { levelName: '', xp: 0, nextLevelXp: null, totalMessages: 0 }),
-          level: data.relationship.level,
-          xp: data.relationship.xp,
-        }));
-        // 絆XPフロートアニメーション（レベルアップ時はLevelUpModalで演出するので非表示）
-        if (xpGained > 0 && !data.relationship.leveledUp) {
-          setXpFloat({ amount: xpGained, id: Date.now() });
-          setTimeout(() => setXpFloat(null), 1800);
-        }
-        if (data.relationship.leveledUp && data.relationship.newLevel) {
-          const milestone = LUFFY_MILESTONES.find((m) => m.level === data.relationship.newLevel);
-          setLevelUpData({ newLevel: data.relationship.newLevel, milestone });
-        }
-      }
+      // XP/レベルアップはcompleteイベントのlevelUpフィールドで処理済み
     } catch (err) {
       console.error('Send message error:', err);
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));

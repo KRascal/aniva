@@ -265,3 +265,12 @@ html {
   background: linear-gradient(135deg, #8b5cf6, #ec4899, #f97316);
   z-index: -1;
 }
+
+/* ===== 音声入力パルス ===== */
+@keyframes voicePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+}
+.voice-pulse {
+  animation: voicePulse 1.5s ease-in-out infinite;
+}

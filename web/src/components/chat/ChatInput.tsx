@@ -3,6 +3,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
 import { StickerPicker } from './StickerPicker';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 interface Character {
   id: string;
@@ -113,6 +114,17 @@ export function ChatInput({
 }: ChatInputProps) {
   const hasInput = inputText.length > 0;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 🎤 音声入力
+  const { isListening, isSupported: isVoiceSupported, interimText, toggleListening } = useVoiceInput({
+    language: 'ja-JP',
+    onResult: (text) => {
+      setInputText(inputText + text);
+    },
+    onInterim: () => {
+      // リアルタイムプレビュー（interimTextで表示）
+    },
+  });
   const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [soundMuted, setSoundMuted] = useState(() => isSoundMuted());
@@ -359,7 +371,7 @@ export function ChatInput({
             e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
           }}
           onKeyDown={handleKeyDown}
-          placeholder={BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
+          placeholder={isListening && interimText ? `🎤 ${interimText}` : isListening ? '🎤 聴いてるよ…' : BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
           maxLength={2000}
           rows={1}
           disabled={isSending || isGreeting}
@@ -371,28 +383,58 @@ export function ChatInput({
           }`}
         />
 
-        {/* 送信ボタン */}
-        <button
-          onClick={onSend}
-          disabled={isSending || isGreeting || (!hasInput && !imagePreviewUrl)}
-          className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
-            isSendBouncing ? 'send-bounce' : ''
-          } ${(hasInput || imagePreviewUrl) ? 'send-glow' : ''}`}
-          style={{
-            background: (hasInput || imagePreviewUrl)
-              ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)'
-              : 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
-          }}
-          aria-label="送信"
-        >
-          {/* 光るハイライト */}
-          {(hasInput || imagePreviewUrl) && (
+        {/* 送信 or マイクボタン */}
+        {(hasInput || imagePreviewUrl) ? (
+          <button
+            onClick={onSend}
+            disabled={isSending || isGreeting}
+            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
+              isSendBouncing ? 'send-bounce' : ''
+            } send-glow`}
+            style={{
+              background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)',
+            }}
+            aria-label="送信"
+          >
             <span className="absolute inset-0 bg-white/10 rounded-full" />
-          )}
-          <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-        </button>
+            <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        ) : isVoiceSupported ? (
+          <button
+            onClick={toggleListening}
+            disabled={isSending || isGreeting}
+            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all touch-manipulation relative overflow-hidden ${
+              isListening ? 'voice-pulse' : ''
+            }`}
+            style={{
+              background: isListening
+                ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)'
+                : 'linear-gradient(135deg, #4b5563 0%, #374151 100%)',
+            }}
+            aria-label={isListening ? '音声入力停止' : '音声入力'}
+          >
+            {isListening && (
+              <span className="absolute inset-0 rounded-full animate-ping bg-red-500/30" />
+            )}
+            <svg className="w-5 h-5 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            onClick={onSend}
+            disabled={true}
+            className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all opacity-40 cursor-not-allowed touch-manipulation"
+            style={{ background: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)' }}
+            aria-label="送信"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* 文字数カウンター */}
