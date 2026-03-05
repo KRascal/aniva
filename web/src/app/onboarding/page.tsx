@@ -131,6 +131,8 @@ function OnboardingInner() {
               if (validPhases.includes(phase as OnboardingPhase)) {
                 // キャラ選択済みならcharacter_selectをスキップ、nickname既入力ならnicknameもスキップ
                 let resumePhase = phase;
+                // first_chat は廃止済み → hook にスキップ
+                if (resumePhase === 'first_chat') resumePhase = 'hook';
                 if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
                 if (resumePhase === 'nickname' && savedNickname) resumePhase = 'approval';
                 stateRestored = true;

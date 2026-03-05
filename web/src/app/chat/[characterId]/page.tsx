@@ -921,7 +921,7 @@ export default function ChatCharacterPage() {
 
   return (
     <div
-      className="flex flex-col h-[100dvh] max-w-lg mx-auto relative chat-bg"
+      className="flex flex-col h-[calc(100dvh-4rem)] max-w-lg mx-auto relative chat-bg"
       style={{ background: charBgGradient ? `radial-gradient(ellipse at top, ${bgTheme}), ${charBgGradient}` : `radial-gradient(ellipse at top, ${bgTheme}), #111827` }}
     >
       {/* グローバルスタイル */}

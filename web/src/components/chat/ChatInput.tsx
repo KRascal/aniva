@@ -139,7 +139,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-[env(safe-area-inset-bottom)]">
+    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-3">
       {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (
         <div className="flex flex-col gap-1.5 mb-2 px-1">

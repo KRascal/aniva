@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     await prisma.user.update({
       where: { id: effectiveUserId },
       data: {
-        onboardingStep: 'first_chat',
+        onboardingStep: 'approval',
         onboardingCharacterId: characterId,
       },
     });
