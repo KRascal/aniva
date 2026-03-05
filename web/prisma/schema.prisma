@@ -51,6 +51,7 @@ model User {
   gachaPities            UserGachaPity[]
   proactiveMessages      CharacterProactiveMessage[]
   limitedScenarioReads   LimitedScenarioRead[]
+  storyPollVotes         StoryPollVote[]
 }
 
 model PushSubscription {
@@ -158,6 +159,7 @@ model Character {
   proactiveMessages       CharacterProactiveMessage[]
   diaries                 CharacterDiary[]
   limitedScenarios        LimitedScenario[]
+  storyPolls              StoryPoll[]
 }
 
 model SecretContent {
@@ -729,4 +731,35 @@ model LimitedScenarioRead {
   scenario   LimitedScenario @relation(fields: [scenarioId], references: [id])
 
   @@unique([userId, scenarioId])
+}
+
+// ========== ユーザー投票型ストーリー ==========
+model StoryPoll {
+  id             String         @id @default(uuid())
+  characterId    String
+  title          String
+  description    String?        @db.Text
+  choices        Json           // [{id: "a", text: "冒険に出る"}, {id: "b", text: "町で修行する"}]
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean        @default(true)
+  resultChoiceId String?        // 投票結果の選択肢ID
+  createdAt      DateTime       @default(now())
+  character      Character      @relation(fields: [characterId], references: [id])
+  votes          StoryPollVote[]
+
+  @@index([characterId])
+  @@index([startsAt, endsAt])
+}
+
+model StoryPollVote {
+  id       String    @id @default(uuid())
+  userId   String
+  pollId   String
+  choiceId String
+  votedAt  DateTime  @default(now())
+  user     User      @relation(fields: [userId], references: [id])
+  poll     StoryPoll @relation(fields: [pollId], references: [id])
+
+  @@unique([userId, pollId])
 }

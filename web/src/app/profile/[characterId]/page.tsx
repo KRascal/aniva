@@ -728,7 +728,7 @@ export default function ProfilePage() {
               { id: 'posts' as const, label: '投稿' },
               { id: 'diary' as const, label: '📔 日記' },
               { id: 'fc' as const, label: 'FC限定' },
-              { id: 'dl' as const, label: '📥 DL' },
+              { id: 'dl' as const, label: 'DL' },
               { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
@@ -1084,40 +1084,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ══════════════ ギャラリー ══════════════ */}
-        {(() => {
-          const imageMoments = moments.filter(m => m.type === 'IMAGE' && m.mediaUrl);
-          if (imageMoments.length === 0) return null;
-          return (
-            <div>
-              <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-                <span>🖼️</span> ギャラリー
-              </p>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-                {imageMoments.map((m) => (
-                  <div key={m.id} className="flex-shrink-0 w-36 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.mediaUrl!} alt="Gallery" className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ══════════════ 最新Moments ══════════════ */}
-        {moments.length > 0 && (
-          <div>
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2 px-1">
-              <span>📸</span> 最新Moments
-            </p>
-            <div className="space-y-3">
-              {moments.map((moment) => (
-                <SharedMomentCard key={moment.id} moment={moment as SharedMoment} onLike={() => {}} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ギャラリー・最新Moments: 投稿タブに統合済みのため関係値タブからは除去 */}
 
         {/* ══════════════ レベル & 星 ══════════════ */}
         <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/5 shadow-lg">
