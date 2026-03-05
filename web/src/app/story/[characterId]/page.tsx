@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useBGM } from '@/hooks/useBGM';
 
 // ユーザー名をストーリーテキストに挿入（{{userName}} → 実際の名前）
 function insertUserName(text: string, userName: string): string {
@@ -29,6 +30,9 @@ interface ChapterData {
   choicesMade: { choiceIndex: number; consequence: string; selectedAt: string }[];
   startedAt: string | null;
   completedAt: string | null;
+  backgroundUrl?: string | null;
+  characterImageUrl?: string | null;
+  bgmType?: string | null;
 }
 
 interface StoryData {
@@ -41,6 +45,11 @@ interface StoryData {
 interface ToastMsg {
   message: string;
   visible: boolean;
+}
+
+interface RewardState {
+  xpEarned: number;
+  coinsEarned: number;
 }
 
 export default function StoryPage() {
@@ -56,6 +65,7 @@ export default function StoryPage() {
   const [selectedChapter, setSelectedChapter] = useState<ChapterData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastMsg>({ message: '', visible: false });
+  const [reward, setReward] = useState<RewardState | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast({ message, visible: true });
@@ -91,8 +101,17 @@ export default function StoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chapterId: chapter.id, choiceIndex }),
       });
-      const data = await res.json() as { consequence?: string; nextTease?: string };
+      const data = await res.json() as {
+        consequence?: string;
+        nextTease?: string;
+        rewards?: { xpEarned: number; coinsEarned: number } | null;
+      };
       if (res.ok) {
+        // 報酬があれば演出を表示
+        if (data.rewards && (data.rewards.xpEarned > 0 || data.rewards.coinsEarned > 0)) {
+          setReward(data.rewards);
+          setTimeout(() => setReward(null), 2000);
+        }
         const choiceText = chapter.choices?.[choiceIndex]?.consequence ?? '';
         showToast(`${choiceText} — この選択は${storyData?.characterName ?? 'キャラ'}に影響します`);
         setSelectedChapter(null);
@@ -178,7 +197,7 @@ export default function StoryPage() {
         ))}
       </main>
 
-      {/* チャプター詳細モーダル */}
+      {/* チャプター詳細モーダル（VNスタイル） */}
       {selectedChapter && (
         <ChapterModal
           chapter={selectedChapter}
@@ -190,6 +209,9 @@ export default function StoryPage() {
         />
       )}
 
+      {/* 報酬演出 */}
+      {reward && <RewardAnimation xpEarned={reward.xpEarned} coinsEarned={reward.coinsEarned} />}
+
       {/* Toast */}
       {toast.visible && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-gray-600 text-white rounded-xl px-5 py-3 shadow-2xl max-w-sm text-center text-sm animate-fade-in">
@@ -197,6 +219,65 @@ export default function StoryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── RewardAnimation ───────────────────────────────────────────
+function RewardAnimation({
+  xpEarned,
+  coinsEarned,
+}: {
+  xpEarned: number;
+  coinsEarned: number;
+}) {
+  return (
+    <>
+      {/* 光のフラッシュ */}
+      <div
+        className="fixed inset-0 z-[60] pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(255,255,200,0.18) 0%, transparent 70%)',
+          animation: 'reward-flash 1.5s ease-out forwards',
+        }}
+      />
+      {/* 報酬バッジ */}
+      <div className="fixed inset-0 z-[61] pointer-events-none flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          {coinsEarned > 0 && (
+            <div
+              className="text-2xl font-bold text-yellow-400 drop-shadow-lg"
+              style={{ animation: 'reward-float 1.5s ease-out forwards' }}
+            >
+              +{coinsEarned}🪙
+            </div>
+          )}
+          {xpEarned > 0 && (
+            <div
+              className="text-2xl font-bold text-purple-400 drop-shadow-lg"
+              style={{
+                animation: 'reward-float 1.5s ease-out 0.15s forwards',
+                opacity: 0,
+              }}
+            >
+              +{xpEarned} XP ✨
+            </div>
+          )}
+        </div>
+      </div>
+      <style>{`
+        @keyframes reward-float {
+          0%   { opacity: 0; transform: translateY(0px); }
+          20%  { opacity: 1; }
+          80%  { opacity: 1; transform: translateY(-60px); }
+          100% { opacity: 0; transform: translateY(-80px); }
+        }
+        @keyframes reward-flash {
+          0%   { opacity: 0; }
+          15%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -267,7 +348,38 @@ function ChapterCard({
   );
 }
 
-// ─── ChapterModal ──────────────────────────────────────────────
+// ─── useTypewriter ─────────────────────────────────────────────
+function useTypewriter(text: string, speed = 30) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    setDisplayed('');
+    setDone(false);
+    indexRef.current = 0;
+
+    if (!text) {
+      setDone(true);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      indexRef.current += 1;
+      setDisplayed(text.slice(0, indexRef.current));
+      if (indexRef.current >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return { displayed, done };
+}
+
+// ─── ChapterModal (VN全画面スタイル) ──────────────────────────
 function ChapterModal({
   chapter,
   characterName,
@@ -283,71 +395,138 @@ function ChapterModal({
   onClose: () => void;
   onChoiceSubmit: (choiceIndex: number) => void;
 }) {
+  const fullText = insertUserName(chapter.synopsis ?? '', userName);
+  const { displayed, done } = useTypewriter(fullText, 28);
+
+  // タップでテキストを即座に全表示させるフラグ
+  const [skipTypewriter, setSkipTypewriter] = useState(false);
+  const shownText = skipTypewriter ? fullText : displayed;
+
+  // BGMフック（bgmTypeがある場合に再生）
+  useBGM(chapter.bgmType ?? null);
+
+  const handleTextAreaClick = () => {
+    if (!done && !skipTypewriter) {
+      setSkipTypewriter(true);
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
+      className="fixed inset-0 z-40 flex flex-col"
+      style={{ touchAction: 'none' }}
     >
-      {/* オーバーレイ */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-      {/* モーダル本体 */}
-      <div
-        className="relative z-50 bg-gray-900 border border-gray-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* タイトル */}
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 flex-shrink-0 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 font-bold text-sm">
-            Ch{chapter.chapterNumber}
-          </div>
-          <div>
-            <h2 className="text-white font-bold text-lg">{chapter.title}</h2>
-            <p className="text-gray-500 text-xs">
-              {characterName}のストーリー · 第{chapter.chapterNumber}章
-            </p>
-          </div>
-        </div>
-
-        {/* あらすじ */}
-        <div className="bg-gray-800/60 rounded-2xl p-4">
-          <p className="text-gray-300 text-sm leading-relaxed">{insertUserName(chapter.synopsis, userName)}</p>
-        </div>
-
-        {/* 選択肢 or 完了済み */}
-        {chapter.isCompleted ? (
-          <div className="text-center py-3">
-            <div className="text-2xl mb-2">✅</div>
-            <p className="text-green-400 text-sm font-medium">この章は完了済みです</p>
-            <p className="text-gray-500 text-xs mt-1">
-              あなたの選択は{characterName}に刻まれた
-            </p>
-          </div>
+      {/* ── 上半分: 背景 + キャラ立ち絵 ────────────── */}
+      <div className="relative flex-1 overflow-hidden">
+        {/* 背景画像 or 暗いグラデ */}
+        {chapter.backgroundUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={chapter.backgroundUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            draggable={false}
+          />
         ) : (
-          <div className="space-y-3">
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">
-              あなたはどうする？
-            </p>
-            {(chapter.choices ?? []).map((choice, idx) => (
-              <button
-                key={idx}
-                onClick={() => onChoiceSubmit(idx)}
-                disabled={submitting}
-                className="w-full text-left p-4 rounded-xl bg-gray-800 hover:bg-red-900/30 border border-gray-700 hover:border-red-500/50 text-white text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
-              >
-                {choice.text}
-              </button>
-            ))}
-          </div>
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(160deg, #0f0f1a 0%, #1a0a1a 40%, #0a0a14 100%)',
+            }}
+          />
         )}
+        {/* 下向きグラデーションオーバーレイ（テキストエリアとの接続） */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.85))',
+          }}
+        />
 
-        {/* 閉じるボタン */}
+        {/* 閉じるボタン（右上） */}
         <button
           onClick={onClose}
-          className="w-full py-2 text-gray-500 hover:text-gray-300 text-sm transition-colors"
+          className="absolute top-4 right-4 z-10 text-white/60 hover:text-white bg-black/30 rounded-full w-8 h-8 flex items-center justify-center text-lg transition-colors"
+          aria-label="閉じる"
         >
-          閉じる
+          ×
         </button>
+
+        {/* キャラ立ち絵 */}
+        {chapter.characterImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={chapter.characterImageUrl}
+            alt={characterName}
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full max-h-[90%] object-contain object-bottom pointer-events-none select-none"
+            draggable={false}
+          />
+        )}
+      </div>
+
+      {/* ── 下半分: テキストエリア ──────────────────── */}
+      <div
+        className="flex-none bg-black/80 backdrop-blur-sm border-t border-white/10 px-5 pt-4 pb-6 space-y-4"
+        style={{ minHeight: '42%', maxHeight: '55%', overflowY: 'auto' }}
+      >
+        {/* タイトル */}
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🌙</span>
+          <h2 className="text-white font-bold text-base leading-tight">
+            第{chapter.chapterNumber}章「{chapter.title}」
+          </h2>
+          {chapter.isFcOnly && (
+            <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+              FC限定
+            </span>
+          )}
+        </div>
+
+        {/* あらすじ（タイプライター） */}
+        <div
+          className="cursor-pointer select-none"
+          onClick={handleTextAreaClick}
+          title={done ? undefined : 'タップでスキップ'}
+        >
+          <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
+            {shownText}
+            {!done && !skipTypewriter && (
+              <span className="inline-block w-0.5 h-4 bg-white/80 ml-0.5 animate-pulse align-text-bottom" />
+            )}
+          </p>
+        </div>
+
+        {/* 選択肢 or 完了済み（テキスト表示完了後に表示） */}
+        {(done || skipTypewriter) && (
+          <>
+            {chapter.isCompleted ? (
+              <div className="text-center py-2">
+                <div className="text-2xl mb-1">✅</div>
+                <p className="text-green-400 text-sm font-medium">この章は完了済みです</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  あなたの選択は{characterName}に刻まれた
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 pt-1">
+                <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">
+                  あなたはどうする？
+                </p>
+                {(chapter.choices ?? []).map((choice, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onChoiceSubmit(idx)}
+                    disabled={submitting}
+                    className="w-full text-left p-3 rounded-xl bg-white/10 hover:bg-red-900/40 border border-white/20 hover:border-red-500/60 text-white text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                  >
+                    {choice.text}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

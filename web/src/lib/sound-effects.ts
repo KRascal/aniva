@@ -201,3 +201,36 @@ export function playGachaRevealSound(rarity: string): void {
   };
   playSound(map[rarity] ?? 'gacha_reveal_n');
 }
+
+// ─── ハプティクス（振動フィードバック） ──────────────────────────────
+function vibrate(pattern: number | number[]): void {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+}
+
+/** ガチャ演出: レアリティ別振動パターン */
+export function vibrateGacha(rarity: string): void {
+  switch (rarity) {
+    case 'R':   vibrate([50]); break;
+    case 'SR':  vibrate([80, 50, 80]); break;
+    case 'SSR': vibrate([100, 50, 100, 50, 200]); break;
+    case 'UR':  vibrate([200, 100, 200, 100, 300, 100, 500]); break;
+    default:    break; // N = 振動なし
+  }
+}
+
+/** レベルアップ時の振動 */
+export function vibrateLevelUp(): void {
+  vibrate([100, 50, 100, 50, 150]);
+}
+
+/** リアクション時の軽い振動 */
+export function vibrateReaction(): void {
+  vibrate([30]);
+}
+
+/** ストーリー報酬時の振動 */
+export function vibrateReward(): void {
+  vibrate([80, 40, 80]);
+}

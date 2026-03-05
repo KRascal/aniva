@@ -9,7 +9,7 @@ import type { Message, Character } from '@/components/chat/ChatMessageList';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
 import { CallModal } from '@/components/chat/CallModal';
 import { GiftPanel } from '@/components/chat/GiftPanel';
-import { playSound } from '@/lib/sound-effects';
+import { playSound, vibrateLevelUp, vibrateReaction } from '@/lib/sound-effects';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -435,6 +435,7 @@ export default function ChatCharacterPage() {
 
   /* ── リアクション → キャラ反応ハンドラ ── */
   const handleReaction = useCallback((msgId: string, emoji: string, characterSlug: string) => {
+    vibrateReaction(); // 軽い振動フィードバック
     // 1〜2秒後にキャラがリアクションに反応するメッセージを追加
     const delay = 1000 + Math.random() * 1000;
     setTimeout(() => {
@@ -960,6 +961,7 @@ export default function ChatCharacterPage() {
         };
         setMessages((prev) => [...prev, msgMilestoneMsg]);
         playSound('level_up');
+        vibrateLevelUp();
       }
 
       if (data.relationship) {

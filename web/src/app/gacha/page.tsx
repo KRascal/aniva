@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { playSound, playGachaRevealSound } from '@/lib/sound-effects';
+import { playSound, playGachaRevealSound, vibrateGacha } from '@/lib/sound-effects';
 
 // ---- Types ----
 interface Banner {
@@ -899,14 +899,20 @@ export default function GachaPage() {
 
   const handleReveal = useCallback((index: number) => {
     setRevealedSet((prev) => new Set([...prev, index]));
-    if (results[index]) playGachaRevealSound(results[index].rarity);
+    if (results[index]) {
+      playGachaRevealSound(results[index].rarity);
+      vibrateGacha(results[index].rarity);
+    }
   }, [results]);
 
   const handleRevealAll = useCallback(async () => {
     for (let i = 0; i < results.length; i++) {
       await new Promise<void>((r) => setTimeout(r, 120));
       setRevealedSet((prev) => new Set([...prev, i]));
-      if (results[i]) playGachaRevealSound(results[i].rarity);
+      if (results[i]) {
+        playGachaRevealSound(results[i].rarity);
+        vibrateGacha(results[i].rarity);
+      }
     }
   }, [results]);
 
