@@ -21,6 +21,7 @@ import { ChatMenu } from '@/components/chat/ChatMenu';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { FcSubscribeModal } from '@/components/chat/FcSubscribeModal';
 import { rollRandomEvent, type RandomEvent } from '@/lib/random-events';
+import { PushNotificationSetup } from '@/components/push/PushNotificationSetup';
 
 /* ─────────────── ユーティリティ ─────────────── */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -1045,6 +1046,48 @@ export default function ChatCharacterPage() {
     sendMessage();
   };
 
+  const handleSendSticker = useCallback(async (stickerUrl: string, label: string) => {
+    if (isSending || !userId) return;
+    // スタンプをユーザーメッセージとしてUIに追加
+    const tempId = `sticker-${Date.now()}`;
+    const stickerMsg: Message = {
+      id: tempId,
+      role: 'USER',
+      content: `[スタンプ: ${label}]`,
+      metadata: { stickerUrl },
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev: Message[]) => [...prev, stickerMsg]);
+    setIsSending(true);
+
+    try {
+      // スタンプ送信 (テキストメッセージとして送信)
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId,
+          message: `[スタンプを送った: ${label}]`,
+          userId,
+          metadata: { stickerUrl },
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev: Message[]) =>
+          prev.map((m: Message) => m.id === tempId ? { ...m, id: data.userMessageId || tempId } : m)
+        );
+        if (data.characterMessage) {
+          setMessages((prev: Message[]) => [...prev, data.characterMessage]);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsSending(false);
+    }
+  }, [isSending, userId, characterId]);
+
   const handleSendImage = async (file: File) => {
     if (isSending || !userId) return;
     setIsSending(true);
@@ -1736,11 +1779,21 @@ export default function ChatCharacterPage() {
       />
 
       {/* ══════════════ 入力エリア ══════════════ */}
+      {/* プッシュ通知バナー — チャット開始後15秒で表示 */}
+      {character && (
+        <PushNotificationSetup
+          characterName={character.name}
+          characterSlug={character.slug}
+          variant="banner"
+        />
+      )}
+
       <ChatInput
         inputText={inputText}
         setInputText={setInputText}
         onSend={handleSendClick}
         onSendImage={handleSendImage}
+        onSendSticker={handleSendSticker}
         isSending={isSending}
         isGreeting={isGreeting}
         character={character}
