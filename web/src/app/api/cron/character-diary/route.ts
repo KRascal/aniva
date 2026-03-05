@@ -126,13 +126,12 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // 今日の感情状態を取得
-      const todayDate = new Date(today + 'T00:00:00.000Z');
+      // 最新の感情状態を取得（タイムゾーン差異を回避するため最新レコードを使用）
       const dailyState = await prisma.characterDailyState.findFirst({
         where: {
           characterId: character.id,
-          date: todayDate,
         },
+        orderBy: { date: 'desc' },
       });
 
       const emotion = dailyState?.emotion ?? 'neutral';
