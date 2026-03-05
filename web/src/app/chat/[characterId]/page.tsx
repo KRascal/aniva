@@ -1012,6 +1012,54 @@ export default function ChatCharacterPage() {
     sendMessage();
   };
 
+  const handleSendImage = async (file: File) => {
+    if (isSending || !userId) return;
+    setIsSending(true);
+
+    // 楽観的UIアップデート（プレビューURLで仮表示）
+    const previewUrl = URL.createObjectURL(file);
+    const tempMsg: Message = {
+      id: `temp-img-${Date.now()}`,
+      role: 'USER',
+      content: '[画像]',
+      metadata: { imageUrl: previewUrl },
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('characterId', characterId);
+      const res = await fetch('/api/chat/send-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
+        console.error('画像送信エラー:', err);
+      } else {
+        const data = await res.json();
+        // 楽観的メッセージを実際のメッセージに差し替え
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempMsg.id
+              ? { ...data.message, metadata: { imageUrl: data.imageUrl } }
+              : m,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error('画像送信失敗:', e);
+      setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setIsSending(false);
+    }
+  };
+
   // Enter = 改行のみ。送信はボタンのみ（スマホUX優先）
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1650,6 +1698,7 @@ export default function ChatCharacterPage() {
         inputText={inputText}
         setInputText={setInputText}
         onSend={handleSendClick}
+        onSendImage={handleSendImage}
         isSending={isSending}
         isGreeting={isGreeting}
         character={character}

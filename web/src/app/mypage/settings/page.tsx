@@ -310,7 +310,7 @@ export default function SettingsPage() {
               ))}
             </div>
             <p className="text-xs text-[var(--color-muted)] mt-3 text-center">
-              ※ i18n対応は準備中です
+              ※ 一部のUIテキストが翻訳されます
             </p>
           </div>
         </section>
@@ -372,23 +372,16 @@ export default function SettingsPage() {
             </svg>
           </div>
 
-          {/* プラン */}
-          <div className="flex items-center justify-between px-4 py-3">
+          {/* コイン・FC */}
+          <a href="/pricing" className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors">
             <div>
-              <p className="text-xs text-[var(--color-muted)]">プラン</p>
+              <p className="text-xs text-[var(--color-muted)]">コイン・ファンクラブ</p>
               <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">
-                {planInfo.emoji} {planInfo.label}
+                🪙 コインを購入・FCに加入
               </p>
             </div>
-            {account?.plan === 'FREE' && (
-              <a
-                href="/pricing"
-                className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors hover:underline"
-              >
-                アップグレード →
-              </a>
-            )}
-          </div>
+            <span className="text-xs text-purple-400 font-medium">詳細 →</span>
+          </a>
         </section>
 
         {/* リンク */}

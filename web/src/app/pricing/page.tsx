@@ -88,8 +88,8 @@ export default function PricingPage() {
       {/* ── ファンクラブ案内セクション ── */}
       <div className="max-w-md mx-auto mb-12">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">プランと購入</h1>
-          <p className="text-gray-400 text-sm">ファンクラブ加入またはコインでキャラと繋がろう</p>
+          <h1 className="text-3xl font-bold text-white mb-2">コイン購入</h1>
+          <p className="text-gray-400 text-sm">コインでチャット・ファンクラブ・投げ銭を楽しもう</p>
         </div>
 
         {/* ファンクラブカード */}

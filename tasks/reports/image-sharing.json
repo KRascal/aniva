@@ -1,0 +1,11 @@
+{
+  "task": "image-sharing",
+  "status": "in_progress",
+  "started_at": "2026-03-05T17:20:00+09:00",
+  "files_changed": [
+    "aniva/web/src/app/api/chat/send-image/route.ts",
+    "aniva/web/src/components/chat/ChatMessageList.tsx",
+    "aniva/web/src/components/chat/ChatInput.tsx",
+    "aniva/web/src/app/chat/[characterId]/page.tsx"
+  ]
+}
