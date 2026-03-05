@@ -55,6 +55,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const [unreadLetters, setUnreadLetters] = useState(0);
+  const [proactiveCount, setProactiveCount] = useState(0);
 
   useEffect(() => {
     // 未読レター数を取得（30秒ごとにポーリング）
@@ -71,6 +72,25 @@ export function BottomNav() {
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    // キャラ主導メッセージ数を取得（60秒ごとにポーリング）
+    const fetchProactive = async () => {
+      try {
+        const res = await fetch('/api/proactive-messages');
+        if (res.ok) {
+          const data = await res.json();
+          const unread = (data.messages ?? []).filter((m: { isRead: boolean }) => !m.isRead).length;
+          setProactiveCount(unread);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchProactive();
+    const interval = setInterval(fetchProactive, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -164,6 +184,11 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               {isChat && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+              {proactiveCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none">
+                  {proactiveCount > 9 ? '9+' : proactiveCount}
+                </span>
+              )}
             </div>
             <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-500'}`}>{t('chat')}</span>
           </Link>

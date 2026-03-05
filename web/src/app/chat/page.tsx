@@ -18,6 +18,22 @@ interface Character {
   catchphrases: string[];
 }
 
+interface ProactiveMessage {
+  id: string;
+  message: string;
+  triggerType: string;
+  isRead: boolean;
+  createdAt: string;
+  expiresAt: string;
+  character: {
+    id: string;
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    franchise: string;
+  };
+}
+
 interface RelationshipInfo {
   characterId: string;
   level: number;
@@ -561,6 +577,8 @@ export default function ChatPage() {
     characterId: string; characterName: string; avatarUrl: string | null; message: string; diffH: number;
   }[]>([]);
   const [dismissedCharMsgs, setDismissedCharMsgs] = useState<Set<string>>(new Set());
+  const [proactiveMessages, setProactiveMessages] = useState<ProactiveMessage[]>([]);
+  const [dismissedProactive, setDismissedProactive] = useState<Set<string>>(new Set());
 
   // localStorageから各キャラの最終訪問時刻を読み込む
   useEffect(() => {
@@ -606,6 +624,11 @@ export default function ChatPage() {
       // キャラからのメッセージ取得
       fetch('/api/character-messages').then(r => r.json()).then(msgs => {
         if (Array.isArray(msgs)) setCharMessages(msgs);
+      }).catch(() => {});
+
+      // キャラ主導メッセージ取得
+      fetch('/api/proactive-messages').then(r => r.json()).then(data => {
+        if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
       }).catch(() => {});
     }
   }, [status]);
@@ -678,6 +701,50 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
+
+        {/* ══ キャラ主導メッセージ（Proactive Messages）バナー ══ */}
+        {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).map(msg => {
+          const diffMs = Date.now() - new Date(msg.createdAt).getTime();
+          const diffH = Math.floor(diffMs / 3600000);
+          const handleClick = async () => {
+            // 既読にする
+            fetch(`/api/proactive-messages/${msg.id}/read`, { method: 'POST' }).catch(() => {});
+            setDismissedProactive(prev => new Set([...prev, msg.id]));
+            router.push(`/chat/${msg.character.id}`);
+          };
+          return (
+            <div
+              key={msg.id}
+              className="mb-3 bg-gradient-to-r from-indigo-900/70 to-purple-900/50 border border-indigo-500/40 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+              onClick={handleClick}
+            >
+              <div className="relative flex-shrink-0">
+                {msg.character.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-400/50" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character.name.charAt(0)}</div>
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 text-xs">✨</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-indigo-300 font-bold mb-0.5">{msg.character.name} が呼んでいる <span className="text-gray-500 font-normal">({diffH > 0 ? `${diffH}時間前` : 'たった今'})</span></p>
+                <p className="text-sm text-white/90 italic truncate">「{msg.message}」</p>
+              </div>
+              <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+                <span className="text-[10px] text-pink-400 animate-pulse">NEW</span>
+                <button
+                  className="text-gray-500 hover:text-gray-300 text-xs"
+                  onClick={e => {
+                    e.stopPropagation();
+                    fetch(`/api/proactive-messages/${msg.id}/read`, { method: 'POST' }).catch(() => {});
+                    setDismissedProactive(prev => new Set([...prev, msg.id]));
+                  }}
+                >✕</button>
+              </div>
+            </div>
+          );
+        })}
 
         {/* チャット一覧 — 会話履歴のあるキャラのみ、最終トーク順 */}
         {(() => {
