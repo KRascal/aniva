@@ -8,6 +8,7 @@ import { updateStreak } from '@/lib/streak-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { extractAndStoreMemories } from '@/lib/semantic-memory';
 
 export async function POST(req: NextRequest) {
   try {
@@ -274,15 +275,13 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     // ⑧ セマンティックメモリ保存（非同期、レスポンスをブロックしない）
-    import('./../../../../lib/semantic-memory').then(({ extractAndStoreMemories }) => {
-      extractAndStoreMemories(
-        userId,
-        characterId,
-        message,
-        response.text,
-        charMsg?.id,
-      ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
-    }).catch(() => {});
+    extractAndStoreMemories(
+      userId,
+      characterId,
+      message,
+      response.text,
+      charMsg?.id,
+    ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
 
     return NextResponse.json({
       userMessage: userMsg,
