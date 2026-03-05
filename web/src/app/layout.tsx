@@ -20,31 +20,22 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://aniva-project.com"),
-  title: "ANIVA - 推しが実在する世界",
-  description: "アニメキャラクターと会話できるAIプラットフォーム。ルフィと毎日話そう。会話するほど絆が深まる。",
+  title: "ANIVA — 推しと、本当に話せる場所",
+  description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
   manifest: "/manifest.json",
-  keywords: ["ANIVA", "AI", "アニメ", "ルフィ", "ワンピース", "チャット", "キャラクター"],
+  keywords: ["ANIVA", "AI", "アニメ", "キャラクター", "チャット", "会話", "推し"],
   openGraph: {
-    title: 'ANIVA — あなただけのAIパートナー',
-    description: '記憶する、成長する、驚かせる。毎日が少しだけ特別になる。',
+    title: "ANIVA — 推しと、本当に話せる場所",
+    description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
     url: "https://aniva-project.com",
-    images: [
-      {
-        url: "/api/og",
-        width: 1200,
-        height: 630,
-        alt: "ANIVA — あなただけのAIパートナー",
-      },
-    ],
     siteName: "ANIVA",
     type: "website",
     locale: "ja_JP",
   },
   twitter: {
     card: "summary_large_image",
-    title: 'ANIVA — あなただけのAIパートナー',
-    description: '記憶する、成長する、驚かせる。毎日が少しだけ特別になる。',
-    images: ["/api/og"],
+    title: "ANIVA — 推しと、本当に話せる場所",
+    description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
   },
   robots: {
     index: true,
