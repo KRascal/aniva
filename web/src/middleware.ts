@@ -17,6 +17,17 @@ function detectLocale(req: NextRequest): string {
 export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
+  // ── Server Action 不正リクエスト防御 ──
+  // ボット/スキャナーが "x" 等の無効なAction IDを送信 → 500エラー抑止
+  const nextAction = req.headers.get('next-action');
+  if (nextAction) {
+    // 正規のServer Action IDは8文字以上の16進数ハッシュ
+    const isValidActionId = /^[0-9a-f]{8,}$/i.test(nextAction);
+    if (!isValidActionId) {
+      return new NextResponse('Invalid request', { status: 400 });
+    }
+  }
+
   // JWT tokenを直接取得（auth()ラッパー不使用 — Edge Runtimeで安定）
   // NextAuth v5はcookie名が変わった: "authjs.session-token" (dev) / "__Secure-authjs.session-token" (prod)
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '';

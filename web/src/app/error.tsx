@@ -1,5 +1,19 @@
 'use client';
+
+import { useEffect } from 'react';
+
 export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => {
+    // Server Actionの不一致エラー → 自動リロードでキャッシュ更新
+    if (
+      error.message?.includes('Failed to find Server Action') ||
+      error.message?.includes('older or newer deployment')
+    ) {
+      window.location.reload();
+      return;
+    }
+  }, [error]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
       <div className="text-center">
