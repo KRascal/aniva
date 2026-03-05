@@ -468,20 +468,7 @@ export function ChatMessageList({
                     </div>
                   )}
 
-                  {/* 💭 記憶参照バッジ */}
-                  {hasMemoryRef && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-0.5 ml-0.5 select-none"
-                      style={{
-                        background: 'rgba(168,85,247,0.18)',
-                        color: '#d8b4fe',
-                        border: '1px solid rgba(168,85,247,0.35)',
-                        boxShadow: '0 0 8px 2px rgba(168,85,247,0.25)',
-                      }}
-                    >
-                      ✨ 覚えてるよ
-                    </span>
-                  )}
+                  {/* 記憶参照: バッジは不要（Keisuke指示: ちゃんと覚えてることが大事。演出より実質）。MEMORY_REFタグはcontentから除去済み */}
 
                   {/* ── 吹き出しラッパー (relative: パレット・バッジの基点) ── */}
                   <div className="relative">

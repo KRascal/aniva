@@ -71,7 +71,12 @@ export class VoiceEngine {
       return null;
     }
 
-    const voiceSettings = getVoiceSettings(emotion);
+    // 短セリフ/長セリフで音声パラメータを調整
+    const baseSettings = getVoiceSettings(emotion);
+    const isShortUtterance = text.length <= 15; // 15文字以下 = 短セリフ（「おう」「なるほど」等）
+    const voiceSettings = isShortUtterance
+      ? { ...baseSettings, stability: Math.min(baseSettings.stability + 0.15, 0.9), speed: Math.min(baseSettings.speed * 1.05, 1.3) }
+      : baseSettings;
     const startTime = Date.now();
 
     try {
