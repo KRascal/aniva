@@ -1,0 +1,17 @@
+{
+  "task": "T8: 天井+進捗可視化ガチャ実装",
+  "status": "in_progress",
+  "started_at": "2026-03-05T09:42:00+09:00",
+  "files_changed": [
+    "prisma/schema.prisma",
+    "src/lib/gacha-system.ts",
+    "src/app/api/gacha/pity/route.ts",
+    "src/app/gacha/page.tsx"
+  ],
+  "notes": [
+    "ceilingCount + UserGachaPity model + relations added to schema",
+    "gacha-system.ts: pity upsert/increment/ceiling reset, pityInfo in response, getPityInfo() export",
+    "pity API route created (GET /api/gacha/pity?bannerId=xxx)",
+    "page.tsx: PityInfo type, fetchPityInfo(), progress bar with imminent/ceiling effects"
+  ]
+}

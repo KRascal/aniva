@@ -47,6 +47,7 @@ model User {
   dailyEvents            UserDailyEvent[]
   userStoryProgress      UserStoryProgress[]
   shopOrders             ShopOrder[]
+  gachaPities            UserGachaPity[]
 }
 
 model PushSubscription {
@@ -493,14 +494,15 @@ model UserCard {
 }
 
 model GachaBanner {
-  id             String   @id @default(uuid())
+  id             String           @id @default(uuid())
   name           String
   description    String?
   characterId    String? // null = 全キャラ混合
-  rateUp         Json     @default("{}") // { cardId: multiplier }
-  costCoins      Int      @default(100)
+  rateUp         Json             @default("{}") // { cardId: multiplier }
+  costCoins      Int              @default(100)
   cost10Coins    Int? // 10連コスト（省略時はcostCoins×10）
   guaranteedSrAt Int? // SR確定天井（省略時はnull=天井なし）
+  ceilingCount   Int              @default(100) // UR天井（この回数でUR確定）
   franchise      String? // アニメ名（ONE PIECE / 鬼滅の刃 / 呪術廻戦）
   bannerImageUrl String? // バナー画像URL
   themeColor     String? // テーマカラー (#f97316等)
@@ -508,10 +510,24 @@ model GachaBanner {
   preRollConfig  Json? // 事前演出設定
   startAt        DateTime
   endAt          DateTime
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  userPities     UserGachaPity[]
 
   @@index([isActive])
+}
+
+model UserGachaPity {
+  id        String      @id @default(uuid())
+  userId    String
+  bannerId  String
+  pullCount Int         @default(0)
+  user      User        @relation(fields: [userId], references: [id])
+  banner    GachaBanner @relation(fields: [bannerId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([userId, bannerId])
 }
 
 model UserDailyEvent {

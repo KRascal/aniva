@@ -14,6 +14,7 @@ interface Banner {
   costCoins: number;
   cost10Coins: number | null;
   guaranteedSrAt: number | null;
+  ceilingCount: number;
   startAt: string;
   endAt: string;
   isActive: boolean;
@@ -22,6 +23,12 @@ interface Banner {
   themeColor: string | null;
   animationType: string | null;
   preRollConfig: Record<string, unknown> | null;
+}
+
+interface PityInfo {
+  current: number;
+  ceiling: number;
+  remaining: number;
 }
 
 interface CardResult {
@@ -40,6 +47,7 @@ interface CardResult {
   };
   isNew: boolean;
   rarity: string;
+  pityInfo?: PityInfo;
 }
 
 type View = 'banners' | 'gacha' | 'animating' | 'results';
@@ -810,8 +818,8 @@ function BannerCard({
           <div>
             <div className="text-white/60 text-xs">1回: {banner.costCoins}コイン</div>
             <div className="text-white font-bold text-sm">10連: {cost10}コイン</div>
-            {banner.guaranteedSrAt && (
-              <div className="text-white/60 text-xs mt-0.5">SR天井: {banner.guaranteedSrAt}連</div>
+            {banner.ceilingCount && (
+              <div className="text-white/60 text-xs mt-0.5">★★★天井: {banner.ceilingCount}連</div>
             )}
           </div>
           <button
@@ -835,7 +843,7 @@ export default function GachaPage() {
   const [myCardCount, setMyCardCount] = useState(0);
   const [coinBalance, setCoinBalance] = useState(0);
   const [freeGachaAvailable, setFreeGachaAvailable] = useState(false);
-  const [pityCount, setPityCount] = useState(0);
+  const [pityInfo, setPityInfo] = useState<PityInfo | null>(null);
   const [results, setResults] = useState<CardResult[]>([]);
   const [revealedSet, setRevealedSet] = useState<Set<number>>(new Set());
   const [isPulling, setIsPulling] = useState(false);
@@ -871,10 +879,22 @@ export default function GachaPage() {
     }
   }
 
+  async function fetchPityInfo(bannerId: string) {
+    try {
+      const res = await fetch(`/api/gacha/pity?bannerId=${bannerId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setPityInfo(data as PityInfo);
+    } catch {
+      // ignore
+    }
+  }
+
   function selectBanner(banner: Banner) {
     setSelectedBanner(banner);
     setView('gacha');
     setError(null);
+    fetchPityInfo(banner.id);
   }
 
   const handleReveal = useCallback((index: number) => {
@@ -923,9 +943,9 @@ export default function GachaPage() {
       setCoinBalance(data.coinBalance ?? 0);
       setRevealedSet(new Set());
 
-      // Update pity counter
-      const hasHighRarity = pullResults.some(r => r.rarity === 'SR' || r.rarity === 'SSR' || r.rarity === 'UR');
-      setPityCount(prev => hasHighRarity ? 0 : prev + count);
+      // Update pity info from last result
+      const lastPityInfo = pullResults[pullResults.length - 1]?.pityInfo;
+      if (lastPityInfo) setPityInfo(lastPityInfo);
 
       // Determine animation rarity
       const topRarity = getHighestRarity(pullResults);
@@ -972,6 +992,10 @@ export default function GachaPage() {
       setRevealedSet(new Set());
       setFreeGachaAvailable(false); // consumed
 
+      // Update pity info from last result
+      const lastPityInfo = pullResults[pullResults.length - 1]?.pityInfo;
+      if (lastPityInfo) setPityInfo(lastPityInfo);
+
       const topRarity = getHighestRarity(pullResults);
       setAnimRarity(topRarity);
       setView('animating');
@@ -1006,8 +1030,11 @@ export default function GachaPage() {
   const allRevealed = results.length > 0 && revealedSet.size >= results.length;
   const newCount = results.filter((r, i) => revealedSet.has(i) && r.isNew).length;
   const themeColor = selectedBanner?.themeColor ?? '#6d28d9';
-  const guaranteedSrAt = selectedBanner?.guaranteedSrAt ?? 100;
-  const remainingToCeiling = Math.max(0, guaranteedSrAt - pityCount);
+  const ceilingCount = selectedBanner?.ceilingCount ?? 100;
+  const currentPity = pityInfo?.current ?? 0;
+  const remainingToCeiling = pityInfo?.remaining ?? ceilingCount;
+  const isCeilingImminent = remainingToCeiling <= 10 && remainingToCeiling > 0;
+  const isCeilingReached = remainingToCeiling === 0;
 
   return (
     <>
@@ -1168,25 +1195,53 @@ export default function GachaPage() {
                   )}
                 </div>
 
-                {/* Pity counter */}
-                {selectedBanner.guaranteedSrAt && (
-                  <div className="mb-5 bg-gray-800/60 rounded-xl px-4 py-3 border border-gray-700/50">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">SR確定天井まで</span>
-                      <span className="font-bold text-purple-300">あと {remainingToCeiling} 回</span>
+                {/* Pity / Ceiling progress */}
+                <div
+                  className={`mb-5 rounded-xl px-4 py-3 border transition-all duration-300 ${
+                    isCeilingReached
+                      ? 'bg-yellow-900/40 border-yellow-400/60'
+                      : isCeilingImminent
+                      ? 'bg-orange-900/30 border-orange-500/50'
+                      : 'bg-gray-800/60 border-gray-700/50'
+                  }`}
+                >
+                  {isCeilingReached ? (
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <span className="text-2xl animate-bounce">👑</span>
+                      <span className="font-black text-yellow-300 text-base">
+                        ★★★ 天井到達！次のプルでUR確定！
+                      </span>
                     </div>
-                    <div className="mt-2 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${Math.min(100, (pityCount / guaranteedSrAt) * 100)}%`,
-                          background: `linear-gradient(to right, ${themeColor}, #a855f7)`,
-                        }}
-                      />
+                  ) : (
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span className={isCeilingImminent ? 'text-orange-300 font-semibold' : 'text-gray-400'}>
+                        {isCeilingImminent ? '⚡ もうすぐ天井！' : 'あと★★★確定まで'}
+                      </span>
+                      <span className={`font-bold ${isCeilingImminent ? 'text-orange-300' : 'text-purple-300'}`}>
+                        あと {remainingToCeiling} 回
+                      </span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{pityCount} / {guaranteedSrAt}</div>
+                  )}
+                  <div className="mt-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, (currentPity / ceilingCount) * 100)}%`,
+                        background: isCeilingReached
+                          ? 'linear-gradient(to right, #f59e0b, #fde68a, #f59e0b)'
+                          : isCeilingImminent
+                          ? 'linear-gradient(to right, #f97316, #ef4444)'
+                          : `linear-gradient(to right, ${themeColor}, #a855f7)`,
+                        boxShadow: isCeilingReached
+                          ? '0 0 8px rgba(245,158,11,0.8)'
+                          : isCeilingImminent
+                          ? '0 0 6px rgba(249,115,22,0.6)'
+                          : 'none',
+                      }}
+                    />
                   </div>
-                )}
+                  <div className="text-xs text-gray-500 mt-1.5">{currentPity} / {ceilingCount} 回</div>
+                </div>
 
                 {/* Error */}
                 {error && (

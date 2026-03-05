@@ -2,12 +2,19 @@
  * ガチャ引きロジック
  * レアリティ確率: N(50%) R(30%) SR(15%) SSR(4%) UR(1%)
  * pity: 50連でSR以上確定, 100連でSSR以上確定
+ * ceiling: banner.ceilingCount に達したらUR確定（天井）
  */
 
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 export type GachaRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
+
+export interface PityInfo {
+  current: number;
+  ceiling: number;
+  remaining: number;
+}
 
 export interface PullResult {
   card: {
@@ -25,6 +32,7 @@ export interface PullResult {
   };
   isNew: boolean;
   rarity: GachaRarity;
+  pityInfo?: PityInfo;
 }
 
 interface GachaSession {
@@ -102,12 +110,31 @@ export async function pullGacha(
   });
   const existingCardIds = new Set(userExistingCards.map((uc) => uc.cardId));
 
+  // ── 天井（pity）カウント取得 ──
+  const pityRecord = await prisma.userGachaPity.upsert({
+    where: { userId_bannerId: { userId, bannerId } },
+    create: { userId, bannerId, pullCount: 0 },
+    update: {},
+  });
+  let currentPullCount = pityRecord.pullCount;
+  const ceilingCount = banner.ceilingCount;
+
   const results: PullResult[] = [];
   const newCards: { userId: string; cardId: string; source: string }[] = [];
 
   for (let i = 0; i < count; i++) {
     gachaSession.gachaCount += 1;
-    const rarity = rollRarity(gachaSession);
+    currentPullCount += 1;
+
+    let rarity: GachaRarity;
+
+    // 天井到達チェック（UR確定）
+    if (currentPullCount >= ceilingCount) {
+      rarity = 'UR';
+      currentPullCount = 0; // 天井到達でリセット
+    } else {
+      rarity = rollRarity(gachaSession);
+    }
 
     if (rarity === 'SSR' || rarity === 'UR') {
       gachaSession.lastSSR = gachaSession.gachaCount;
@@ -122,6 +149,12 @@ export async function pullGacha(
       existingCardIds.add(card.id);
       newCards.push({ userId, cardId: card.id, source });
     }
+
+    const pityInfo: PityInfo = {
+      current: currentPullCount,
+      ceiling: ceilingCount,
+      remaining: Math.max(0, ceilingCount - currentPullCount),
+    };
 
     results.push({
       card: {
@@ -139,6 +172,7 @@ export async function pullGacha(
       },
       isNew,
       rarity: card.rarity as GachaRarity,
+      pityInfo,
     });
   }
 
@@ -148,6 +182,12 @@ export async function pullGacha(
       skipDuplicates: true,
     });
   }
+
+  // ── pityカウントを保存 ──
+  await prisma.userGachaPity.update({
+    where: { userId_bannerId: { userId, bannerId } },
+    data: { pullCount: currentPullCount },
+  });
 
   // GachaSessionをRelationship.milestonesに保存
   if (relationshipId) {
@@ -178,4 +218,22 @@ export async function getFreeGachaAvailable(userId: string): Promise<boolean> {
   });
 
   return !todayFreeGacha;
+}
+
+export async function getPityInfo(userId: string, bannerId: string): Promise<PityInfo> {
+  const banner = await prisma.gachaBanner.findUnique({ where: { id: bannerId } });
+  if (!banner) throw new Error('Banner not found');
+
+  const pityRecord = await prisma.userGachaPity.findUnique({
+    where: { userId_bannerId: { userId, bannerId } },
+  });
+
+  const current = pityRecord?.pullCount ?? 0;
+  const ceiling = banner.ceilingCount;
+
+  return {
+    current,
+    ceiling,
+    remaining: Math.max(0, ceiling - current),
+  };
 }
