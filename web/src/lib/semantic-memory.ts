@@ -8,64 +8,58 @@
 
 import { prisma } from './prisma';
 
-const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIM = 1536;
 const MAX_MEMORIES_PER_QUERY = 5;
 const MIN_SIMILARITY = 0.72; // cosine similarity threshold
+const LOCAL_EMBEDDING_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhost:3075/v1/embeddings';
 
 // ─── Embedding生成 ────────────────────────────────────────────
+// 優先順位: ローカルサーバー > OpenAI API
 async function getEmbedding(text: string): Promise<number[]> {
+  // ① ローカルembeddingサーバー（コストゼロ、レイテンシ最小）
+  try {
+    const res = await fetch(LOCAL_EMBEDDING_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: text, dimensions: EMBEDDING_DIM }),
+      signal: AbortSignal.timeout(3000), // 3秒タイムアウト
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const emb = data.data?.[0]?.embedding;
+      if (emb && emb.length > 0) return emb;
+    }
+  } catch {
+    // ローカルサーバーが起動していない場合はフォールバック
+  }
+
+  // ② OpenAI API（フォールバック）
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    // フォールバック: XAI embeddings
-    return getXaiEmbedding(text);
+  if (apiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-3-small',
+          input: text,
+          dimensions: EMBEDDING_DIM,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.data?.[0]?.embedding || [];
+      }
+    } catch {
+      // ignore
+    }
   }
 
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: EMBEDDING_MODEL,
-      input: text,
-      dimensions: EMBEDDING_DIM,
-    }),
-  });
-
-  if (!res.ok) {
-    console.error('Embedding API error:', res.status);
-    return [];
-  }
-
-  const data = await res.json();
-  return data.data?.[0]?.embedding || [];
-}
-
-async function getXaiEmbedding(text: string): Promise<number[]> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) return [];
-
-  const res = await fetch('https://api.x.ai/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'v3-embedding',
-      input: text,
-    }),
-  });
-
-  if (!res.ok) return [];
-  const data = await res.json();
-  const emb = data.data?.[0]?.embedding || [];
-  // xAIのembedding次元がOpenAIと異なる場合はパディング/切り詰め
-  if (emb.length > EMBEDDING_DIM) return emb.slice(0, EMBEDDING_DIM);
-  if (emb.length < EMBEDDING_DIM) return [...emb, ...new Array(EMBEDDING_DIM - emb.length).fill(0)];
-  return emb;
+  console.warn('[SemanticMemory] No embedding provider available');
+  return [];
 }
 
 // ─── 記憶の保存 ──────────────────────────────────────────────

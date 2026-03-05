@@ -2,7 +2,14 @@
   "task": "soul-md-batch",
   "status": "in_progress",
   "started_at": "2026-03-05T22:56:00+09:00",
-  "files_changed": [],
+  "files_changed": [
+    "aniva/web/characters/blackbeard/SOUL.md",
+    "aniva/web/characters/brook/SOUL.md",
+    "aniva/web/characters/crocodile/SOUL.md",
+    "aniva/web/characters/franky/SOUL.md",
+    "aniva/web/characters/hancock/SOUL.md",
+    "aniva/web/characters/jinbe/SOUL.md"
+  ],
   "total_target": 26,
-  "completed": 0
+  "completed": 6
 }
