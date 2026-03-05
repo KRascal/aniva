@@ -6,8 +6,8 @@ export type GachaRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
 
 export interface GachaRarityOverlayProps {
   rarity: GachaRarity;
-  /** バナーテーマカラー (hex) */
-  themeColor: string;
+  /** バナーテーマカラー (hex) — 省略時は '#6d28d9' */
+  themeColor?: string;
   /** アニメーション完了コールバック */
   onComplete: () => void;
 }
@@ -89,7 +89,7 @@ function CrackOverlay({ color }: { color: string }) {
 }
 
 // --- メインコンポーネント ---
-export function GachaRarityOverlay({ rarity, themeColor, onComplete }: GachaRarityOverlayProps) {
+export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete }: GachaRarityOverlayProps) {
   const [phase, setPhase] = useState<OverlayPhase>(0);
   const [showParticles, setShowParticles] = useState(false);
   const [showCrack, setShowCrack] = useState(false);

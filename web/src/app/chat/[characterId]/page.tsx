@@ -881,6 +881,31 @@ export default function ChatCharacterPage() {
           generateVoiceForMessage(data.characterMessage.id, data.characterMessage.content, characterId);
         }
       }
+      // キャラからのAI画像送信（shouldGenerateImage時）
+      if (data.characterMessage?.metadata?.shouldGenerateImage && character?.name) {
+        (async () => {
+          try {
+            const imgRes = await fetch('/api/image/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messageId: data.characterMessage.id,
+                characterName: character.name,
+                context: data.characterMessage.content,
+              }),
+            });
+            const imgData = await imgRes.json() as { imageUrl?: string | null };
+            if (imgData.imageUrl) {
+              setMessages((prev) => prev.map((m) =>
+                m.id === data.characterMessage.id
+                  ? { ...m, metadata: { ...m.metadata, imageUrl: imgData.imageUrl } }
+                  : m
+              ));
+            }
+          } catch { /* silent */ }
+        })();
+      }
+
       // 本日送信数インクリメント（Free plan 表示・後方互換）
       setTodayMsgCount((prev) => {
         const next = prev + 1;
