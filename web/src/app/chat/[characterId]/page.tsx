@@ -898,7 +898,7 @@ export default function ChatCharacterPage() {
             if (imgData.imageUrl) {
               setMessages((prev) => prev.map((m) =>
                 m.id === data.characterMessage.id
-                  ? { ...m, metadata: { ...m.metadata, imageUrl: imgData.imageUrl } }
+                  ? { ...m, metadata: { ...m.metadata, imageUrl: imgData.imageUrl ?? undefined } } as Message
                   : m
               ));
             }

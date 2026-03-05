@@ -1,6 +1,7 @@
 /**
- * GET /api/polls/[id]
- * 投票詳細（結果含む）
+ * GET /api/polls/[id]    投票詳細（結果含む）
+ * PATCH /api/polls/[id]  投票更新（admin）
+ * DELETE /api/polls/[id] 投票削除（admin）
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -99,6 +100,75 @@ export async function GET(
     });
   } catch (error) {
     console.error('[polls/[id]] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// ── PATCH: 投票更新（admin） ──────────────────────────────────────────────────
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // admin check: email or role
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
+  const isAdmin = user?.email?.endsWith('@nin-japan.com') || user?.email === 'keisuke.arai501@gmail.com';
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+
+  const updateData: Record<string, unknown> = {};
+  if (body.title !== undefined) updateData.title = body.title;
+  if (body.description !== undefined) updateData.description = body.description;
+  if (body.isActive !== undefined) updateData.isActive = body.isActive;
+  if (body.startsAt !== undefined) updateData.startsAt = new Date(body.startsAt);
+  if (body.endsAt !== undefined) updateData.endsAt = new Date(body.endsAt);
+  if (body.resultChoiceId !== undefined) updateData.resultChoiceId = body.resultChoiceId;
+  if (body.choices !== undefined) updateData.choices = body.choices;
+
+  try {
+    const updated = await prisma.storyPoll.update({ where: { id }, data: updateData });
+    return NextResponse.json({ poll: updated });
+  } catch (error) {
+    console.error('[polls/[id] PATCH] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// ── DELETE: 投票削除（admin） ─────────────────────────────────────────────────
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
+  const isAdmin = user?.email?.endsWith('@nin-japan.com') || user?.email === 'keisuke.arai501@gmail.com';
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  try {
+    // まず関連する votes を削除
+    await prisma.storyPollVote.deleteMany({ where: { pollId: id } });
+    await prisma.storyPoll.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[polls/[id] DELETE] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
