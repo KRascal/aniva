@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * POST /api/relationship/[characterId]/fanclub
@@ -18,7 +19,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     const character = await prisma.character.findUnique({ where: { id: characterId } });
     if (!character) {

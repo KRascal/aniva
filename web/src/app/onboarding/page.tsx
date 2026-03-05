@@ -131,8 +131,8 @@ function OnboardingInner() {
               if (validPhases.includes(phase as OnboardingPhase)) {
                 // キャラ選択済みならcharacter_selectをスキップ、nickname既入力ならnicknameもスキップ
                 let resumePhase = phase;
-                // first_chat は廃止済み → hook にスキップ
-                if (resumePhase === 'first_chat') resumePhase = 'hook';
+                // first_chat / hook は廃止済み → approval にフォールバック
+                if (resumePhase === 'first_chat' || resumePhase === 'hook') resumePhase = 'approval';
                 if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
                 if (resumePhase === 'nickname' && savedNickname) resumePhase = 'approval';
                 stateRestored = true;
@@ -276,8 +276,13 @@ function OnboardingInner() {
     }
   };
 
-  const handleApprovalComplete = () => {
-    advance();
+  const handleApprovalComplete = async () => {
+    // hook（プッシュ通知許可）フェーズ削除: approval完了後に直接オンボーディング完了
+    // プッシュ通知許可はチャット画面で別途表示する（Keisuke指示 2026-03-05）
+    const redirectTo = await completeOnboarding(null);
+    await update();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    window.location.href = redirectTo;
   };
 
   const handleFirstChatComplete = async (history: ChatMessage[]) => {

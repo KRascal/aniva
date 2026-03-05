@@ -7,10 +7,9 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // UUID形式ならidで検索、そうでなければslugとして検索
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  const character = await prisma.character.findUnique({
-    where: isUuid ? { id } : { slug: id },
+  // まずIDで検索、見つからなければslugで検索（UUID以外のカスタムIDにも対応）
+  let character = await prisma.character.findUnique({
+    where: { id },
     select: {
       id: true,
       name: true,
@@ -30,6 +29,31 @@ export async function GET(
       voiceModelId: true,
     },
   });
+
+  // IDで見つからなければslugとして検索
+  if (!character) {
+    character = await prisma.character.findUnique({
+      where: { slug: id },
+      select: {
+        id: true,
+        name: true,
+        nameEn: true,
+        slug: true,
+        franchise: true,
+        franchiseEn: true,
+        description: true,
+        avatarUrl: true,
+        coverUrl: true,
+        catchphrases: true,
+        personalityTraits: true,
+        fcMonthlyPriceJpy: true,
+        fcMonthlyCoins: true,
+        fcIncludedCallMin: true,
+        fcOverageCallCoinPerMin: true,
+        voiceModelId: true,
+      },
+    });
+  }
 
   if (!character) {
     return NextResponse.json({ error: 'Character not found' }, { status: 404 });

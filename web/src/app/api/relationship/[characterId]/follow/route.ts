@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * POST /api/relationship/[characterId]/follow
@@ -17,7 +18,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     // キャラクター存在確認
     const character = await prisma.character.findUnique({ where: { id: characterId } });
@@ -74,7 +76,8 @@ export async function GET(
       return NextResponse.json({ isFollowing: false, isFanclub: false });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     const relationship = await prisma.relationship.findUnique({
       where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },

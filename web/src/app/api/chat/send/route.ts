@@ -7,6 +7,7 @@ import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,11 +27,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { characterId, message, locale } = await req.json();
+    const { characterId: rawCharacterId, message, locale } = await req.json();
 
-    if (!characterId || !message) {
+    if (!rawCharacterId || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // slug/カスタムID両対応
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     // メッセージ長バリデーション
     if (message.length > 2000) {
