@@ -69,7 +69,7 @@ export function PushNotificationSetup({
       // Push購読
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as Uint8Array<ArrayBuffer>,
       });
 
       // バックエンドに購読情報を保存
@@ -132,10 +132,10 @@ export function PushNotificationSetup({
           <div className="flex gap-2 mt-3">
             <button
               onClick={subscribe}
-              disabled={state === 'requesting'}
+              disabled={false}
               className="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium py-2 rounded-xl transition-colors disabled:opacity-50"
             >
-              {state === 'requesting' ? '設定中...' : '受け取る'}
+              受け取る
             </button>
             <button
               onClick={dismiss}

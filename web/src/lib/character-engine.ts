@@ -958,14 +958,6 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       }
     }
 
-    // セマンティックメモリ（pgvector長期記憶）
-    if (semanticMemoryContext) {
-      parts.push(`## 🧠 長期記憶（自然に思い出すこと）
-${semanticMemoryContext}
-- 上記の記憶を「そういえば前に...」「あの時のこと覚えてる？」のように自然に織り込むこと
-- 無理に全てを使う必要はない。今の会話に関連する記憶だけ使うこと`);
-    }
-
     return parts.join('\n\n');
   }
 
