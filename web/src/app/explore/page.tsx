@@ -8,6 +8,8 @@ import { ProactiveMessagePanel } from '@/components/proactive/ProactiveMessagePa
 import { getTodayMainEvent } from '@/lib/today-events';
 import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
+import { useProactiveMessages } from '@/hooks/useProactiveMessages';
+import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 
 // ── 投票バナーセクション ──
 function PollBannerSection() {
@@ -810,12 +812,14 @@ function CharacterVerticalCard({
   relationship,
   onFollow,
   onClick,
+  proactiveMessage,
 }: {
   character: Character;
   index: number;
   relationship?: RelationshipInfo;
   onFollow: (id: string, following: boolean) => void;
   onClick: () => void;
+  proactiveMessage?: { content: string; expiresAt: string } | null;
 }) {
   const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
   const catchphrase = character.catchphrases?.[0] ?? null;
@@ -896,6 +900,23 @@ function CharacterVerticalCard({
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-sm shadow-green-400/50" />
           <span className="text-[8px] text-green-300/80 font-medium">ONLINE</span>
         </div>
+
+        {/* プロアクティブメッセージバッジ（新着あり） */}
+        {proactiveMessage && (
+          <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">
+            <div
+              className="flex items-center gap-1 rounded-full px-2 py-0.5"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236,72,153,0.95), rgba(139,92,246,0.95))',
+                boxShadow: '0 2px 8px rgba(236,72,153,0.5)',
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-[8px] text-white font-bold">NEW MSG</span>
+            </div>
+            <CountdownTimer expiresAt={proactiveMessage.expiresAt} className="text-[8px] text-pink-300/90 font-semibold px-1" />
+          </div>
+        )}
 
         {/* Glassmorphism overlay card at bottom */}
         <div
@@ -985,12 +1006,14 @@ function CharacterHorizontalCard({
   relationship,
   onFollow,
   onClick,
+  proactiveMessage,
 }: {
   character: Character;
   index: number;
   relationship?: RelationshipInfo;
   onFollow: (id: string, following: boolean) => void;
   onClick: () => void;
+  proactiveMessage?: { content: string; expiresAt: string } | null;
 }) {
   const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
   const catchphrase = character.catchphrases?.[0] ?? null;
@@ -1037,14 +1060,34 @@ function CharacterHorizontalCard({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white font-bold text-base leading-tight mb-0.5">{character.name}</p>
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-white font-bold text-base leading-tight">{character.name}</p>
+          {proactiveMessage && (
+            <span
+              className="flex-shrink-0 flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236,72,153,0.9), rgba(139,92,246,0.9))',
+                color: 'white',
+                boxShadow: '0 1px 6px rgba(236,72,153,0.5)',
+              }}
+            >
+              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
+              新着
+            </span>
+          )}
+        </div>
         <div className="mb-1">
           <FranchiseBadge franchise={character.franchise} />
         </div>
-        {catchphrase && (
+        {proactiveMessage ? (
+          <div>
+            <p className="text-pink-300/90 text-xs italic truncate">「{proactiveMessage.content}」</p>
+            <CountdownTimer expiresAt={proactiveMessage.expiresAt} className="text-[10px] text-pink-400/70 mt-0.5" />
+          </div>
+        ) : catchphrase ? (
           <p className="text-gray-400 text-xs italic truncate">&ldquo;{catchphrase}&rdquo;</p>
-        )}
-        {(character.followerCount ?? 0) > 0 && (
+        ) : null}
+        {(character.followerCount ?? 0) > 0 && !proactiveMessage && (
           <p className="text-gray-500 text-[10px] mt-0.5">
             {(character.followerCount ?? 0).toLocaleString()} フォロワー
           </p>
@@ -1077,6 +1120,14 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [incompleteMissions, setIncompleteMissions] = useState(0);
   const [missionHint, setMissionHint] = useState('');
+
+  // プロアクティブメッセージ（未読マップ: characterId → message）
+  const { messages: proactiveMsgs } = useProactiveMessages();
+  const proactiveUnreadMap = new Map<string, { content: string; expiresAt: string }>(
+    proactiveMsgs
+      .filter(m => !m.isRead)
+      .map(m => [m.characterId, { content: m.content, expiresAt: m.expiresAt }])
+  );
 
   // オンボーディング未完了ならリダイレクト（stale JWT対策: proxyをバイパスした場合のフォールバック）
   useEffect(() => {
@@ -1157,17 +1208,24 @@ export default function ExplorePage() {
     });
   }, []);
 
-  // Filter characters
-  const filteredCharacters = characters.filter(c => {
-    const matchesSearch = !searchQuery ||
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.nameEn?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      c.franchise.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter characters + sort by unread proactive messages first
+  const filteredCharacters = characters
+    .filter(c => {
+      const matchesSearch = !searchQuery ||
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.nameEn?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        c.franchise.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCategory = selectedCategory === 'すべて' || c.franchise === selectedCategory;
+      const matchesCategory = selectedCategory === 'すべて' || c.franchise === selectedCategory;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      // 未読プロアクティブメッセージがあるキャラを上位に
+      const aHasMsg = proactiveUnreadMap.has(a.id) ? 1 : 0;
+      const bHasMsg = proactiveUnreadMap.has(b.id) ? 1 : 0;
+      return bHasMsg - aHasMsg;
+    });
 
   const availableFranchises = new Set(characters.map(c => c.franchise));
   const visibleCategories = FRANCHISE_CATEGORIES.filter(
@@ -1675,6 +1733,7 @@ export default function ExplorePage() {
                           relationship={relationships.get(character.id)}
                           onFollow={handleFollow}
                           onClick={() => router.push(`/profile/${character.id}`)}
+                          proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
                         />
                       ))}
                     </div>
@@ -1705,6 +1764,7 @@ export default function ExplorePage() {
                           relationship={relationships.get(character.id)}
                           onFollow={handleFollow}
                           onClick={() => router.push(`/profile/${character.id}`)}
+                          proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
                         />
                       ))}
                     </div>
@@ -1730,6 +1790,7 @@ export default function ExplorePage() {
                           relationship={relationships.get(character.id)}
                           onFollow={handleFollow}
                           onClick={() => router.push(`/profile/${character.id}`)}
+                          proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
                         />
                       ))}
                     </div>
@@ -1753,6 +1814,7 @@ export default function ExplorePage() {
                           relationship={relationships.get(character.id)}
                           onFollow={handleFollow}
                           onClick={() => router.push(`/profile/${character.id}`)}
+                          proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
                         />
                       ))}
                     </div>
@@ -1783,6 +1845,7 @@ export default function ExplorePage() {
                         relationship={relationships.get(character.id)}
                         onFollow={handleFollow}
                         onClick={() => router.push(`/profile/${character.id}`)}
+                        proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
                       />
                     ))}
                   </div>

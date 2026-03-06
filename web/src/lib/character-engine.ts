@@ -555,7 +555,15 @@ export class CharacterEngine {
     let jealousyContext: string | null = null;
     let semanticMemoryContext = '';
     let dailyFanCount = 0;
-    let dailyState: { emotion: string; context: string | null; bonusXpMultiplier: number } | null = null;
+    let dailyState: {
+      emotion: string;
+      context: string | null;
+      bonusXpMultiplier: number;
+      moodScore?: number | null;
+      innerThoughts?: string | null;
+      dailyActivity?: string | null;
+      currentConcern?: string | null;
+    } | null = null;
 
     try { cliffhangerFollowUp = await consumeCliffhanger(relationshipId); } catch { /* */ }
     try {
@@ -573,7 +581,15 @@ export class CharacterEngine {
       const ds = await prisma.characterDailyState.findUnique({
         where: { characterId_date: { characterId, date: new Date(new Date().toISOString().split('T')[0]) } },
       });
-      if (ds) dailyState = { emotion: ds.emotion, context: ds.context ?? null, bonusXpMultiplier: ds.bonusXpMultiplier };
+      if (ds) dailyState = {
+        emotion: ds.emotion,
+        context: ds.context ?? null,
+        bonusXpMultiplier: ds.bonusXpMultiplier,
+        moodScore: ds.moodScore ?? null,
+        innerThoughts: ds.innerThoughts ?? null,
+        dailyActivity: ds.dailyActivity ?? null,
+        currentConcern: ds.currentConcern ?? null,
+      };
     } catch { /* */ }
 
     let characterContext;
@@ -621,11 +637,27 @@ export class CharacterEngine {
     // 3b. 今日のキャラのグローバル感情状態を取得（未生成なら即時生成）
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    let dailyState: { emotion: string; context: string | null; bonusXpMultiplier: number } | null = null;
+    let dailyState: {
+      emotion: string;
+      context: string | null;
+      bonusXpMultiplier: number;
+      moodScore?: number | null;
+      innerThoughts?: string | null;
+      dailyActivity?: string | null;
+      currentConcern?: string | null;
+    } | null = null;
     try {
       dailyState = await prisma.characterDailyState.findUnique({
         where: { characterId_date: { characterId, date: today } },
-        select: { emotion: true, context: true, bonusXpMultiplier: true },
+        select: {
+          emotion: true,
+          context: true,
+          bonusXpMultiplier: true,
+          moodScore: true,
+          innerThoughts: true,
+          dailyActivity: true,
+          currentConcern: true,
+        },
       });
       if (!dailyState) {
         const generated = generateDailyEmotionForEngine(new Date());
@@ -637,7 +669,15 @@ export class CharacterEngine {
             context: generated.context,
             bonusXpMultiplier: generated.bonusXpMultiplier,
           },
-          select: { emotion: true, context: true, bonusXpMultiplier: true },
+          select: {
+            emotion: true,
+            context: true,
+            bonusXpMultiplier: true,
+            moodScore: true,
+            innerThoughts: true,
+            dailyActivity: true,
+            currentConcern: true,
+          },
         });
       }
     } catch (e) {
@@ -879,7 +919,15 @@ export class CharacterEngine {
     characterContext?: { systemPrompt: string; voiceConfig: { toneNotes?: string }; personality: { name: string } } | null,
     dailyFanCount: number = 0,
     intimacyLevel?: number | null,
-    dailyState?: { emotion: string; context: string | null; bonusXpMultiplier: number } | null,
+    dailyState?: {
+      emotion: string;
+      context: string | null;
+      bonusXpMultiplier: number;
+      moodScore?: number | null;
+      innerThoughts?: string | null;
+      dailyActivity?: string | null;
+      currentConcern?: string | null;
+    } | null,
     semanticMemoryContext: string = '',
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
@@ -889,7 +937,32 @@ export class CharacterEngine {
     const reunionContext = this.getReunionContext(memory);
     const emotionContext = this.getCharacterEmotionContext(memory);
     const dailyConditionContext = dailyState
-      ? `\n## 今日のキャラのコンディション\n- 感情: ${dailyState.emotion}（${dailyState.context ?? '特に理由なし'}）\n- この感情に合わせた返答をすること${dailyState.bonusXpMultiplier > 1.0 ? `\n- 今日は絆EXP ${dailyState.bonusXpMultiplier}倍デー！テンション少し高め` : ''}`
+      ? (() => {
+          const moodScore = dailyState.moodScore ?? 5;
+          const timeCtx = this.getTimeContext();
+          // 時間帯に応じたキャラの状況文脈
+          const timeStateNote = (() => {
+            const h = parseInt(timeCtx.timeStr.split(':')[0], 10);
+            if (h >= 5 && h < 9) return '（起きたばかり、まだ眠い）';
+            if (h >= 9 && h < 12) return '（午前中、動き出してる）';
+            if (h >= 12 && h < 14) return '（昼時、少しリラックス）';
+            if (h >= 14 && h < 18) return '（午後、活動中）';
+            if (h >= 18 && h < 21) return '（夕方〜夜、一段落）';
+            if (h >= 21 && h < 24) return '（夜、リラックスモード）';
+            return '（深夜、静かな時間）';
+          })();
+
+          const innerStateBlock = (dailyState.innerThoughts || dailyState.dailyActivity || dailyState.currentConcern)
+            ? `\n【今のわたし】${timeStateNote}
+今日の気分: ${dailyState.emotion}（${dailyState.context ?? '特に理由なし'}）${moodScore ? ` ${moodScore}/10` : ''}${dailyState.dailyActivity ? `\n今日やっていたこと: ${dailyState.dailyActivity}` : ''}${dailyState.innerThoughts ? `\n今考えていること: ${dailyState.innerThoughts}` : ''}${dailyState.currentConcern ? `\n最近気になっていること: ${dailyState.currentConcern}` : ''}
+
+- 上記の内容をキャラクターとして自然に会話に織り込むこと
+- 「今日何してた？」「最近どう？」等の質問には積極的にこの内容から答える
+- ただし毎回押し付けるのではなく、話の流れで自然に`
+            : `\n## 今日のキャラのコンディション\n- 感情: ${dailyState.emotion}（${dailyState.context ?? '特に理由なし'}）\n- この感情に合わせた返答をすること`;
+
+          return innerStateBlock + (dailyState.bonusXpMultiplier > 1.0 ? `\n- 今日は絆EXP ${dailyState.bonusXpMultiplier}倍デー！テンション少し高め` : '');
+        })()
       : '';
     
     // 言語別設定の取得

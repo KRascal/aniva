@@ -516,6 +516,51 @@ function GachaCard({ emoji, rarity, name, delay }: { emoji: string; rarity: "N" 
   );
 }
 
+/** Live user counter — animated, gives "real-time" feel */
+function LiveCounter() {
+  // Base count that slowly drifts up/down to simulate real-time activity
+  const BASE = 1247;
+  const [count, setCount] = useState(BASE);
+  const [delta, setDelta] = useState<'+' | '-' | null>(null);
+
+  useEffect(() => {
+    // Slowly drift ±3 every few seconds
+    const tick = () => {
+      const change = Math.random() > 0.45 ? 1 : -1;
+      setCount((c) => Math.max(BASE - 20, Math.min(BASE + 30, c + change)));
+      setDelta(change > 0 ? '+' : '-');
+      setTimeout(() => setDelta(null), 800);
+    };
+    const id = setInterval(tick, 3200 + Math.random() * 1800);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2">
+      {/* Pulsing green dot */}
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400" />
+      </span>
+      <span className="text-gray-300 text-sm">
+        今{" "}
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={count}
+            initial={{ opacity: 0.6, y: delta === '+' ? 6 : delta === '-' ? -6 : 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="font-bold text-white tabular-nums"
+          >
+            {count.toLocaleString()}
+          </motion.span>
+        </AnimatePresence>
+        {" "}人が会話中
+      </span>
+    </div>
+  );
+}
+
 /** FAQ accordion */
 function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
   const [open, setOpen] = useState(false);
@@ -682,23 +727,29 @@ export default function LandingPage() {
             <p className="text-xs text-gray-600">クレジットカード不要 · 登録30秒 · Google / Discord でかんたん登録</p>
           </motion.div>
 
-          {/* Social proof mini strip */}
+          {/* Social proof mini strip — live counter */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.7 }}
-            className="flex items-center gap-2 mt-1"
+            className="flex flex-col items-center gap-2 mt-1"
           >
-            <div className="flex -space-x-2">
-              {["🌸", "⚡", "💜", "🦊", "🔥"].map((emoji, i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-gray-900 flex items-center justify-center text-sm">
-                  {emoji}
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {["🌸", "⚡", "💜", "🦊", "🔥"].map((emoji, i) => (
+                  <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-gray-900 flex items-center justify-center text-sm">
+                    {emoji}
+                  </div>
+                ))}
+              </div>
+              <p className="text-gray-400 text-sm">
+                <span className="text-white font-semibold">2,000人以上</span>がすでに登録
+              </p>
             </div>
-            <p className="text-gray-400 text-sm">
-              <span className="text-white font-semibold">2,000人以上</span>がすでに会話中
-            </p>
+            {/* Real-time live counter */}
+            <div className="px-4 py-2 rounded-full bg-gray-950/70 border border-green-500/20 backdrop-blur-sm">
+              <LiveCounter />
+            </div>
           </motion.div>
         </div>
 

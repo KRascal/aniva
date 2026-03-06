@@ -1,13 +1,156 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 const CRON_SECRET = process.env.CRON_SECRET;
+
+/**
+ * SOUL.mdをキャラのslugから読み込む
+ */
+function loadCharacterSoulMd(slug: string): string {
+  const paths = [
+    join(process.cwd(), 'characters', slug, 'SOUL.md'),
+    join('/home/openclaw/.openclaw/agents', slug, 'SOUL.md'),
+    join(process.cwd(), '..', 'agents', slug, 'SOUL.md'),
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) {
+      try {
+        const content = readFileSync(p, 'utf-8');
+        if (content.trim()) return content.trim();
+      } catch { /* skip */ }
+    }
+  }
+  return '';
+}
+
+/**
+ * キャラのinner stateをAI生成（innerThoughts / dailyActivity / currentConcern / moodScore）
+ */
+async function generateCharacterInnerState(
+  characterName: string,
+  characterSlug: string,
+  emotion: string,
+  context: string | null,
+): Promise<{
+  innerThoughts: string;
+  dailyActivity: string;
+  currentConcern: string;
+  moodScore: number;
+}> {
+  const soulMd = loadCharacterSoulMd(characterSlug);
+
+  const xaiKey = process.env.XAI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  const systemPrompt = `あなたは${characterName}です。
+${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
+今日の感情状態: ${emotion}（${context ?? '特に理由なし'}）
+
+キャラクターとして今日の内面状態を生成してください。必ずJSON形式のみで返してください：
+{
+  "innerThoughts": "今考えていること（1〜2文、キャラの口調で）",
+  "dailyActivity": "今日やっていたこと（1〜2文、キャラらしい活動）",
+  "currentConcern": "最近気になっていること（1〜2文）",
+  "moodScore": 今日の気分の強度（1〜10の整数）
+}
+
+ルール:
+- キャラクターの口調・世界観を完全に維持する
+- リアルな日常の一コマを想像する（例: ルフィ→「甲板で昼寝してたら面白い雲見つけた」）
+- AIっぽい表現は絶対禁止
+- 日本語で回答`;
+
+  const userMsg = '今日の内面状態をJSONで教えて';
+
+  // Try xAI first
+  if (xaiKey) {
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.LLM_MODEL || 'grok-4-1-fast-non-reasoning',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMsg },
+          ],
+          max_tokens: 300,
+          temperature: 0.9,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { choices: { message: { content: string } }[] };
+        const raw = data.choices?.[0]?.message?.content ?? '';
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]) as {
+            innerThoughts?: string;
+            dailyActivity?: string;
+            currentConcern?: string;
+            moodScore?: number;
+          };
+          return {
+            innerThoughts: parsed.innerThoughts ?? '',
+            dailyActivity: parsed.dailyActivity ?? '',
+            currentConcern: parsed.currentConcern ?? '',
+            moodScore: typeof parsed.moodScore === 'number' ? Math.min(10, Math.max(1, parsed.moodScore)) : 5,
+          };
+        }
+      }
+    } catch (e) {
+      console.error('[generateCharacterInnerState] xAI failed:', e);
+    }
+  }
+
+  // Fallback → Anthropic haiku
+  if (anthropicKey) {
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey: anthropicKey });
+      const response = await client.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 300,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMsg }],
+      });
+      const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as {
+          innerThoughts?: string;
+          dailyActivity?: string;
+          currentConcern?: string;
+          moodScore?: number;
+        };
+        return {
+          innerThoughts: parsed.innerThoughts ?? '',
+          dailyActivity: parsed.dailyActivity ?? '',
+          currentConcern: parsed.currentConcern ?? '',
+          moodScore: typeof parsed.moodScore === 'number' ? Math.min(10, Math.max(1, parsed.moodScore)) : 5,
+        };
+      }
+    } catch (e) {
+      console.error('[generateCharacterInnerState] Anthropic failed:', e);
+    }
+  }
+
+  // Static fallback
+  return {
+    innerThoughts: `${emotion === 'happy' ? 'なんか今日はいい感じだな' : emotion === 'tired' ? '少し疲れてるけど、お前と話すと元気出る' : '色々考えてる'}`,
+    dailyActivity: '今日もいつも通りに過ごしてた',
+    currentConcern: '仲間のことが気になってる',
+    moodScore: emotion === 'excited' ? 8 : emotion === 'tired' ? 4 : 6,
+  };
+}
 
 /**
  * キャラクターの感情状態を自動更新するcron
  * - 長時間会話がないユーザーへの感情を「寂しい」「心配」に変化
  * - 最近活発なユーザーへの感情を「嬉しい」「ワクワク」に
  * - 感情は徐々に中立に戻る（感情の自然減衰）
+ * - キャラごとのグローバル日次感情＋inner state（innerThoughts/dailyActivity/currentConcern）を生成
  */
 export async function GET(req: Request) {
   const authHeader = req.headers.get('x-cron-secret');
@@ -101,18 +244,26 @@ export async function GET(req: Request) {
     }
 
     // ============================================================
-    // キャラごとのグローバル日次感情を生成
+    // キャラごとのグローバル日次感情 + inner state を生成
     // ============================================================
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const activeCharacters = await prisma.character.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true },
     });
 
     let dailyStatesCreated = 0;
-    const dailyStateUpdates: Array<{ charName: string; emotion: string; bonusXpMultiplier: number }> = [];
+    let dailyStatesUpdated = 0;
+    const dailyStateUpdates: Array<{
+      charName: string;
+      emotion: string;
+      bonusXpMultiplier: number;
+      innerThoughts?: string;
+      dailyActivity?: string;
+      currentConcern?: string;
+    }> = [];
 
     for (const character of activeCharacters) {
       // 今日のCharacterDailyStateが既に存在するかチェック
@@ -121,7 +272,10 @@ export async function GET(req: Request) {
       });
 
       if (!existing) {
+        // 新規作成: emotion + inner state を同時生成
         const { emotion, context, bonusXpMultiplier } = generateDailyEmotion(now);
+        const innerState = await generateCharacterInnerState(character.name, character.slug, emotion, context ?? null);
+
         await prisma.characterDailyState.create({
           data: {
             characterId: character.id,
@@ -129,10 +283,47 @@ export async function GET(req: Request) {
             emotion,
             context,
             bonusXpMultiplier,
+            moodScore: innerState.moodScore,
+            innerThoughts: innerState.innerThoughts,
+            dailyActivity: innerState.dailyActivity,
+            currentConcern: innerState.currentConcern,
           },
         });
         dailyStatesCreated++;
-        dailyStateUpdates.push({ charName: character.name, emotion, bonusXpMultiplier });
+        dailyStateUpdates.push({
+          charName: character.name,
+          emotion,
+          bonusXpMultiplier,
+          innerThoughts: innerState.innerThoughts,
+          dailyActivity: innerState.dailyActivity,
+          currentConcern: innerState.currentConcern,
+        });
+      } else if (!existing.innerThoughts && !existing.dailyActivity) {
+        // 既存レコードがあるがinner stateがない場合は追加生成
+        const innerState = await generateCharacterInnerState(
+          character.name,
+          character.slug,
+          existing.emotion,
+          existing.context ?? null,
+        );
+        await prisma.characterDailyState.update({
+          where: { id: existing.id },
+          data: {
+            moodScore: innerState.moodScore,
+            innerThoughts: innerState.innerThoughts,
+            dailyActivity: innerState.dailyActivity,
+            currentConcern: innerState.currentConcern,
+          },
+        });
+        dailyStatesUpdated++;
+        dailyStateUpdates.push({
+          charName: character.name,
+          emotion: existing.emotion,
+          bonusXpMultiplier: existing.bonusXpMultiplier,
+          innerThoughts: innerState.innerThoughts,
+          dailyActivity: innerState.dailyActivity,
+          currentConcern: innerState.currentConcern,
+        });
       }
     }
 
@@ -142,6 +333,7 @@ export async function GET(req: Request) {
       updated,
       updates: updates.slice(0, 20), // 最大20件まで返す
       dailyStatesCreated,
+      dailyStatesUpdated,
       dailyStateUpdates,
       timestamp: now.toISOString(),
     });

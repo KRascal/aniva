@@ -677,8 +677,12 @@ model CharacterDailyState {
   characterId       String
   date              DateTime  @db.Date
   emotion           String    // happy / excited / mysterious / tired / nostalgic / playful
+  moodScore         Int?      // 1-10 mood intensity
   context           String?
   bonusXpMultiplier Float     @default(1.0)
+  innerThoughts     String?   // 今考えていること (AI generated)
+  dailyActivity     String?   // 今日やっていたこと (AI generated)
+  currentConcern    String?   // 最近気になっていること (AI generated)
   createdAt         DateTime  @default(now())
   character         Character @relation(fields: [characterId], references: [id])
 
