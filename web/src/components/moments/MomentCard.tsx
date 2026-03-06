@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Link from 'next/link';
+// Link removed — DM button deleted
 
 /* ────────────────────────────────── 型定義 ── */
 
@@ -543,16 +543,7 @@ export function MomentCard({
             <span className="text-xs">コメント{(moment.commentCount ?? 0) > 0 ? ` ${moment.commentCount}` : ''}</span>
           </button>
 
-          {/* DM */}
-          <Link
-            href={`/chat/${moment.characterId}`}
-            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span className="text-xs">DM</span>
-          </Link>
+          {/* DM — 削除済み（BottomNavチャットに集約） */}
         </div>
 
         {/* Share */}

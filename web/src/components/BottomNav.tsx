@@ -55,7 +55,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const [unreadLetters, setUnreadLetters] = useState(0);
-  const [proactiveCount, setProactiveCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   useEffect(() => {
     // 未読レター数を取得（30秒ごとにポーリング）
@@ -76,21 +76,20 @@ export function BottomNav() {
   }, []);
 
   useEffect(() => {
-    // キャラ主導メッセージ数を取得（60秒ごとにポーリング）
-    const fetchProactive = async () => {
+    // チャット未読合計数を取得（30秒ごとにポーリング）
+    const fetchChatUnread = async () => {
       try {
-        const res = await fetch('/api/proactive-messages');
+        const res = await fetch('/api/chat/unread-count');
         if (res.ok) {
           const data = await res.json();
-          const unread = (data.messages ?? []).filter((m: { isRead: boolean }) => !m.isRead).length;
-          setProactiveCount(unread);
+          setChatUnreadCount(data.count ?? 0);
         }
       } catch {
         // ignore
       }
     };
-    fetchProactive();
-    const interval = setInterval(fetchProactive, 60_000);
+    fetchChatUnread();
+    const interval = setInterval(fetchChatUnread, 30_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -166,9 +165,9 @@ export function BottomNav() {
               <svg className="w-6 h-6 text-white" fill={isChat ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isChat ? 0 : 1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              {proactiveCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none border-2 border-gray-950 animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 3 }}>
-                  {proactiveCount > 9 ? '9+' : proactiveCount}
+              {chatUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none border-2 border-gray-950">
+                  {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                 </span>
               )}
             </div>
