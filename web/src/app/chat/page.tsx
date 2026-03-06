@@ -601,37 +601,56 @@ export default function ChatPage() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetch('/api/characters').then(r => r.json()).then(charData => {
-        setCharacters(charData.characters || []);
-      }).catch(err => console.error('Failed to fetch characters:', err));
+  const loadChatList = useCallback(() => {
+    if (status !== 'authenticated') return;
 
-      fetch('/api/relationship/all').then(r => r.json()).then(relData => {
-        if (relData.relationships) {
-          const map = new Map<string, RelationshipInfo>();
-          let msgs = 0;
-          for (const rel of relData.relationships as RelationshipInfo[]) {
-            map.set(rel.characterId, rel);
-            msgs += rel.totalMessages;
-          }
-          setRelationships(map);
-          setTotalMessages(msgs);
+    fetch('/api/characters').then(r => r.json()).then(charData => {
+      setCharacters(charData.characters || []);
+    }).catch(err => console.error('Failed to fetch characters:', err));
+
+    fetch('/api/relationship/all').then(r => r.json()).then(relData => {
+      if (relData.relationships) {
+        const map = new Map<string, RelationshipInfo>();
+        let msgs = 0;
+        for (const rel of relData.relationships as RelationshipInfo[]) {
+          map.set(rel.characterId, rel);
+          msgs += rel.totalMessages;
         }
-      }).catch(err => console.error('Failed to fetch relationships:', err))
-        .finally(() => setIsLoading(false));
+        setRelationships(map);
+        setTotalMessages(msgs);
+      }
+    }).catch(err => console.error('Failed to fetch relationships:', err))
+      .finally(() => setIsLoading(false));
 
-      // キャラからのメッセージ取得
-      fetch('/api/character-messages').then(r => r.json()).then(msgs => {
-        if (Array.isArray(msgs)) setCharMessages(msgs);
-      }).catch(() => {});
+    fetch('/api/character-messages').then(r => r.json()).then(msgs => {
+      if (Array.isArray(msgs)) setCharMessages(msgs);
+    }).catch(() => {});
 
-      // キャラ主導メッセージ取得
-      fetch('/api/proactive-messages').then(r => r.json()).then(data => {
-        if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
-      }).catch(() => {});
-    }
+    fetch('/api/proactive-messages').then(r => r.json()).then(data => {
+      if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
+    }).catch(() => {});
   }, [status]);
+
+  // 初回ロード
+  useEffect(() => {
+    loadChatList();
+  }, [loadChatList]);
+
+  // ページに戻った時に再フェッチ（新しくチャットしたキャラを反映）
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadChatList();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    // ブラウザバック時にも再フェッチ
+    window.addEventListener('focus', loadChatList);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', loadChatList);
+    };
+  }, [loadChatList]);
 
   if (status === 'loading' || isLoading) {
     return (
