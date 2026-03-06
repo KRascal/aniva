@@ -594,7 +594,7 @@ export class CharacterEngine {
       { role: 'user' as const, content: userMessage },
     ];
 
-    return { systemPrompt, llmMessages };
+    return { systemPrompt, llmMessages, memoryRecalled: semanticMemoryContext.length > 0 };
   }
 
   async generateResponse(

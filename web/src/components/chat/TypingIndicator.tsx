@@ -15,6 +15,8 @@ const TYPING_TEXTS = [
   'ちょっと待ってな…',
   'うーん、何て言おうかな…',
   '{name}がメッセージ書いてる…',
+  '{name}が思い出してる… 🧠',
+  '{name}があなたのこと考えてる…',
 ];
 
 export function TypingIndicator({ characterName, avatarUrl }: TypingIndicatorProps) {

@@ -303,6 +303,7 @@ export default function ChatCharacterPage() {
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [memoryRecalledHint, setMemoryRecalledHint] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState('neutral');
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -881,6 +882,11 @@ export default function ChatCharacterPage() {
                       : m
                   )
                 );
+              }
+              // 記憶参照フラグ — TypingIndicatorに「思い出してる…」演出
+              if (parsed.memoryRecalled) {
+                setMemoryRecalledHint(true);
+                setTimeout(() => setMemoryRecalledHint(false), 4000);
               }
             }
           } catch {

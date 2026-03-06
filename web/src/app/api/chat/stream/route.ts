@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     // ── SystemPrompt構築 （character-engineの内部メソッドを公開して利用） ──
     const isFcMember = consumed === 'FC_UNLIMITED';
-    const { systemPrompt, llmMessages } = await characterEngine.buildPromptContext(
+    const { systemPrompt, llmMessages, memoryRecalled } = await characterEngine.buildPromptContext(
       characterId, relationship.id, message, typeof locale === 'string' ? locale : 'ja',
       { isFcMember },
     );
@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
             type: 'meta',
             userMessageId: userMsg.id,
             characterSlug: cachedCharacter.slug,
+            memoryRecalled: memoryRecalled ?? false,
           }));
 
           // LLMストリーミング
