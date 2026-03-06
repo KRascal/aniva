@@ -6,78 +6,208 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MomentCard, MOMENT_CARD_STYLES, type Moment, type MomentCharacter } from '@/components/moments/MomentCard';
 
-/* ── Stories Bar ── */
-function StoriesBar({
-  moments,
-  activeId,
-  onSelect,
-}: {
-  moments: Moment[];
-  activeId: string | null;
-  onSelect: (id: string | null) => void;
-}) {
-  const seen = new Set<string>();
-  const characters: { id: string; character: MomentCharacter }[] = [];
-  for (const m of moments) {
-    if (!seen.has(m.characterId)) {
-      seen.add(m.characterId);
-      characters.push({ id: m.characterId, character: m.character });
-    }
-  }
+/* ── Instagram風ストーリーズバー ── */
 
-  if (characters.length === 0) return null;
+interface StoryItem {
+  slug: string;
+  name: string;
+  avatarUrl: string;
+  coverUrl: string;
+  activity: string;
+  chatPrompt: string;
+  franchise: string;
+  timeAgo: string;
+}
+
+const INLINE_STORIES: Omit<StoryItem, 'avatarUrl' | 'coverUrl'>[] = [
+  { slug: 'luffy', name: 'ルフィ', franchise: 'ONE PIECE', activity: '海賊王になるって決めた日のこと、覚えてるか？', chatPrompt: '夢の話しようぜ！', timeAgo: '3分前' },
+  { slug: 'gojo', name: '五条悟', franchise: '呪術廻戦', activity: '僕は最強だから。でもそれって結構孤独なんだよね', chatPrompt: '僕のこと知りたい？', timeAgo: '1分前' },
+  { slug: 'zoro', name: 'ゾロ', franchise: 'ONE PIECE', activity: '二度と負けねぇと誓った、あの日の俺だ', chatPrompt: '…強さについて聞きたいか？', timeAgo: '8分前' },
+  { slug: 'tanjiro', name: '炭治郎', franchise: '鬼滅の刃', activity: '家族を守れなかった。だから今度こそ、禰豆子だけは', chatPrompt: '話を聞かせてください！', timeAgo: '9分前' },
+  { slug: 'nami', name: 'ナミ', franchise: 'ONE PIECE', activity: '助けてって言えた日。あれが全ての始まりだった', chatPrompt: '仲間って何だと思う？', timeAgo: '5分前' },
+  { slug: 'itadori', name: '虎杖悠仁', franchise: '呪術廻戦', activity: '正しい死を選べるように。じいちゃんとの約束だから', chatPrompt: '話しかけてくれたの！？嬉しい！', timeAgo: '6分前' },
+  { slug: 'ace', name: 'エース', franchise: 'ONE PIECE', activity: '生まれてきてよかった。それだけは伝えたかった', chatPrompt: '家族について話そうぜ', timeAgo: '20分前' },
+  { slug: 'nezuko', name: '禰豆子', franchise: '鬼滅の刃', activity: 'お兄ちゃんを守りたい。人間に戻れなくても…', chatPrompt: 'むー！（手を振って歓迎）', timeAgo: '11分前' },
+  { slug: 'sanji', name: 'サンジ', franchise: 'ONE PIECE', activity: 'オールブルーを見つける夢は捨てねぇ', chatPrompt: '料理と夢の話、聞いてくれるか？', timeAgo: '2分前' },
+  { slug: 'nobara', name: '野薔薇', franchise: '呪術廻戦', activity: '東京で最強にカッコいい私でいるって決めたの', chatPrompt: 'ちょっと、付き合いなさいよ！', timeAgo: '4分前' },
+  { slug: 'shanks', name: 'シャンクス', franchise: 'ONE PIECE', activity: '新しい時代に賭けてきた。この帽子みたいにな', chatPrompt: '一杯やりながら話そうか', timeAgo: '7分前' },
+  { slug: 'zenitsu', name: '善逸', franchise: '鬼滅の刃', activity: '怖いけど逃げない。じいちゃんが信じてくれたから', chatPrompt: 'うわぁ！話しかけてくれた！？', timeAgo: '3分前' },
+  { slug: 'robin', name: 'ロビン', franchise: 'ONE PIECE', activity: '生きたいと叫んだ。あの瞬間、私は自由になった', chatPrompt: '歴史の話、興味ある？', timeAgo: '15分前' },
+  { slug: 'chopper', name: 'チョッパー', franchise: 'ONE PIECE', activity: '万能薬になる。ヒルルクとの約束なんだ', chatPrompt: 'ね、僕の話聞いてくれる？', timeAgo: '12分前' },
+  { slug: 'hancock', name: 'ハンコック', franchise: 'ONE PIECE', activity: 'ルフィに出会って、わらわの世界は変わったのじゃ', chatPrompt: '恋の話…聞きたいのか？', timeAgo: '10分前' },
+  { slug: 'fushiguro', name: '伏黒恵', franchise: '呪術廻戦', activity: '善い人が平等に幸せになれる世界がいい。それだけだ', chatPrompt: '…何か聞きたいことがあるのか', timeAgo: '14分前' },
+  { slug: 'law', name: 'ロー', franchise: 'ONE PIECE', activity: 'コラさんの意志を継ぐ。それが俺の生きる理由だ', chatPrompt: '…聞きたいことがあるなら聞け', timeAgo: '18分前' },
+  { slug: 'inosuke', name: '伊之助', franchise: '鬼滅の刃', activity: '猪突猛進！山の王・伊之助様が最強だ！！', chatPrompt: '来たな！俺様に何か用か！', timeAgo: '7分前' },
+  { slug: 'yamato', name: 'ヤマト', franchise: 'ONE PIECE', activity: 'おでんの航海日誌。自由ってこういうことだ！', chatPrompt: '冒険の話しよう！！', timeAgo: '16分前' },
+  { slug: 'giyu', name: '義勇', franchise: '鬼滅の刃', activity: '錆兎の分まで生きる。それが俺にできること', chatPrompt: '…俺は嫌われていない', timeAgo: '22分前' },
+];
+
+function InstaStoriesBar({ onOpenStory }: { onOpenStory: (index: number) => void }) {
+  const [charMap, setCharMap] = useState<Record<string, { avatarUrl: string }>>({});
+  const [viewedSlugs, setViewedSlugs] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Load viewed state
+    try {
+      const v = JSON.parse(localStorage.getItem('aniva_stories_viewed') || '[]');
+      setViewedSlugs(new Set(v));
+    } catch { /* ignore */ }
+
+    fetch('/api/characters')
+      .then((r) => r.json())
+      .then((data) => {
+        const m: Record<string, { avatarUrl: string }> = {};
+        for (const c of data.characters ?? []) m[c.slug] = { avatarUrl: c.avatarUrl ?? '' };
+        setCharMap(m);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
-    <div className="sticky top-[57px] z-[15] bg-gray-950 border-b border-white/5 overflow-hidden max-w-lg mx-auto">
+    <div className="bg-gray-950 border-b border-white/5 overflow-hidden max-w-lg mx-auto">
       <div className="flex gap-3 overflow-x-auto py-3 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {/* 全員ボタン */}
-        <button
-          onClick={() => onSelect(null)}
-          className="flex flex-col items-center gap-1.5 flex-shrink-0"
-        >
-          <div className={`relative p-0.5 rounded-full ${activeId === null ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500' : 'bg-gray-700/50'} transition-all`}>
-            <div className="bg-gray-950 rounded-full p-0.5">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                <span className="text-xl">🌊</span>
-              </div>
-            </div>
-          </div>
-          <span className={`text-[10px] text-center w-14 truncate ${activeId === null ? 'text-white font-bold' : 'text-white/50'}`}>全員</span>
-        </button>
-
-        {characters.map((item) => {
-          const isActive = activeId === item.id;
+        {INLINE_STORIES.map((story, i) => {
+          const avatar = charMap[story.slug]?.avatarUrl;
+          const viewed = viewedSlugs.has(story.slug);
           return (
             <button
-              key={item.id}
-              onClick={() => onSelect(isActive ? null : item.id)}
+              key={story.slug}
+              onClick={() => {
+                onOpenStory(i);
+                // Mark as viewed
+                setViewedSlugs((prev) => {
+                  const next = new Set(prev);
+                  next.add(story.slug);
+                  try { localStorage.setItem('aniva_stories_viewed', JSON.stringify([...next])); } catch {}
+                  return next;
+                });
+              }}
               className="flex flex-col items-center gap-1.5 flex-shrink-0"
             >
-              <div className={`relative p-0.5 rounded-full transition-all ${isActive ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 scale-110' : 'bg-gray-700/50 hover:bg-gradient-to-br hover:from-purple-500/50 hover:via-pink-500/50 hover:to-rose-500/50'}`}>
-                <div className="bg-gray-950 rounded-full p-0.5">
-                  <div className="w-12 h-12 rounded-full overflow-hidden ring-0">
-                    {item.character.avatarUrl ? (
+              <div className={`relative p-[3px] rounded-full transition-all ${
+                viewed
+                  ? 'bg-gray-600/50'
+                  : 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500'
+              }`}>
+                <div className="bg-gray-950 rounded-full p-[2px]">
+                  <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-800">
+                    {avatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.character.avatarUrl} alt={item.character.name} className="w-full h-full object-cover" />
+                      <img src={avatar} alt={story.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                        {item.character.name.charAt(0)}
+                        {story.name[0]}
                       </div>
                     )}
                   </div>
                 </div>
-                {isActive && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-pink-500 rounded-full border-2 border-gray-950 flex items-center justify-center">
-                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </span>
-                )}
               </div>
-              <span className={`text-[10px] text-center w-14 truncate transition-all ${isActive ? 'text-white font-bold' : 'text-white/60'}`}>{item.character.name}</span>
+              <span className={`text-[10px] text-center w-16 truncate ${viewed ? 'text-white/40' : 'text-white/80'}`}>{story.name}</span>
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Full-screen Story Viewer (inline) ── */
+function StoryViewer({ stories, initialIndex, onClose, onChat }: {
+  stories: (StoryItem & { avatarUrl: string; coverUrl: string })[];
+  initialIndex: number;
+  onClose: () => void;
+  onChat: (slug: string, topic: string) => void;
+}) {
+  const [idx, setIdx] = useState(initialIndex);
+  const [progress, setProgress] = useState(0);
+  const touchX = useRef(0);
+  const touchY = useRef(0);
+  const paused = useRef(false);
+  const story = stories[idx];
+
+  const goNext = useCallback(() => {
+    if (idx < stories.length - 1) { setIdx(i => i + 1); setProgress(0); }
+    else onClose();
+  }, [idx, stories.length, onClose]);
+
+  const goPrev = useCallback(() => {
+    if (idx > 0) { setIdx(i => i - 1); setProgress(0); }
+  }, [idx]);
+
+  useEffect(() => {
+    setProgress(0);
+    const iv = setInterval(() => {
+      if (paused.current) return;
+      setProgress(p => { if (p >= 100) { goNext(); return 0; } return p + 1.67; });
+    }, 100);
+    return () => clearInterval(iv);
+  }, [idx, goNext]);
+
+  if (!story) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black select-none"
+      onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        if (y / rect.height > 0.65) return;
+        if (x / rect.width < 0.3) goPrev();
+        else if (x / rect.width > 0.7) goNext();
+      }}
+      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; touchY.current = e.touches[0].clientY; paused.current = true; }}
+      onTouchEnd={(e) => {
+        paused.current = false;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        const dy = e.changedTouches[0].clientY - touchY.current;
+        if (dy > 100 && Math.abs(dx) < 50) { onClose(); return; }
+        if (Math.abs(dx) > 60) { dx > 0 ? goPrev() : goNext(); }
+      }}
+    >
+      {/* Progress bars */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex gap-1 px-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}>
+        {stories.map((_, i) => (
+          <div key={i} className="flex-1 h-[3px] bg-white/20 rounded-full overflow-hidden">
+            <div className="h-full bg-white rounded-full transition-all duration-100" style={{ width: i < idx ? '100%' : i === idx ? `${progress}%` : '0%' }} />
+          </div>
+        ))}
+      </div>
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4" style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 16px), 24px)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/40 bg-gray-800">
+            {story.avatarUrl && <img src={story.avatarUrl} alt="" className="w-full h-full object-cover" />}
+          </div>
+          <div>
+            <p className="text-white text-sm font-bold drop-shadow-lg">{story.name}</p>
+            <p className="text-white/60 text-xs drop-shadow">{story.timeAgo} • {story.franchise}</p>
+          </div>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="w-8 h-8 flex items-center justify-center text-white/80 bg-black/30 rounded-full backdrop-blur-sm">✕</button>
+      </div>
+      {/* Content */}
+      <div className="absolute inset-0">
+        {story.coverUrl ? (
+          <img src={story.coverUrl} alt={story.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900 to-gray-900" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/50" />
+        <div className="absolute bottom-0 left-0 right-0 px-6 pb-8" style={{ paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 24px), 44px)' }}>
+          <p className="text-white text-xl font-bold leading-relaxed mb-6 drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{story.activity}</p>
+          <button
+            onClick={(e) => { e.stopPropagation(); onChat(story.slug, story.activity); }}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-xl shadow-purple-500/30 active:scale-[0.97] transition-transform"
+          >
+            <span className="text-2xl">💬</span>
+            <div className="text-left flex-1">
+              <p className="text-white font-bold text-base">{story.chatPrompt}</p>
+              <p className="text-white/70 text-xs">タップして会話を始める</p>
+            </div>
+            <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -195,6 +325,20 @@ export default function MomentsPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
   const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
+  const [storyViewerIndex, setStoryViewerIndex] = useState<number | null>(null);
+  const [storyCharMap, setStoryCharMap] = useState<Record<string, { avatarUrl: string; coverUrl: string }>>({});
+
+  // Fetch character data for story viewer covers
+  useEffect(() => {
+    fetch('/api/characters')
+      .then((r) => r.json())
+      .then((data) => {
+        const m: Record<string, { avatarUrl: string; coverUrl: string }> = {};
+        for (const c of data.characters ?? []) m[c.slug] = { avatarUrl: c.avatarUrl ?? '', coverUrl: c.coverUrl ?? '' };
+        setStoryCharMap(m);
+      })
+      .catch(() => {});
+  }, []);
 
   // スワイプ検知
   const touchStartX = useRef<number | null>(null);
@@ -498,12 +642,10 @@ export default function MomentsPage() {
           </div>
         </header>
 
-        {/* Stories bar — フォロー中タブのみ表示 */}
-        {activeTab === 'following' && !currentLoading && followingMoments.length > 0 && (
-          <div className="max-w-lg mx-auto">
-            <StoriesBar moments={followingMoments} activeId={activeCharacterId} onSelect={setActiveCharacterId} />
-          </div>
-        )}
+        {/* Instagram風ストーリーズバー — 常に表示 */}
+        <div className="max-w-lg mx-auto">
+          <InstaStoriesBar onOpenStory={(i) => setStoryViewerIndex(i)} />
+        </div>
 
         <main
           ref={mainRef}
@@ -638,6 +780,27 @@ export default function MomentsPage() {
 
         <div className="h-24" />
       </div>
+
+      {/* Full-screen Story Viewer */}
+      {storyViewerIndex !== null && (() => {
+        // Build enriched stories with avatar/cover
+        const enriched = INLINE_STORIES.map((s) => ({
+          ...s,
+          avatarUrl: storyCharMap[s.slug]?.avatarUrl ?? '',
+          coverUrl: storyCharMap[s.slug]?.coverUrl ?? '',
+        }));
+        return (
+          <StoryViewer
+            stories={enriched}
+            initialIndex={storyViewerIndex}
+            onClose={() => setStoryViewerIndex(null)}
+            onChat={(slug, topic) => {
+              setStoryViewerIndex(null);
+              router.push(`/chat/${slug}?topic=${encodeURIComponent(topic.slice(0, 100))}&fromStory=1`);
+            }}
+          />
+        );
+      })()}
     </>
   );
 }
