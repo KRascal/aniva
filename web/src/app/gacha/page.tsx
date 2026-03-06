@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, playGachaRevealSound, vibrateGacha } from '@/lib/sound-effects';
 import { GachaRarityOverlay } from '@/components/gacha/GachaRarityOverlay';
+import { GachaFlipCard } from '@/components/gacha/GachaFlipCard';
 
 // ---- Types ----
 interface Banner {
@@ -56,14 +57,8 @@ type View = 'banners' | 'gacha' | 'animating' | 'results';
 // ---- Constants ----
 const RARITY_ORDER: Record<string, number> = { N: 0, R: 1, SR: 2, SSR: 3, UR: 4 };
 
-const RARITY_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  N:   { bg: 'bg-gray-700',    border: 'border-gray-500',   text: 'text-gray-300',   label: 'NORMAL'     },
-  R:   { bg: 'bg-blue-900',    border: 'border-blue-500',   text: 'text-blue-300',   label: 'RARE'       },
-  SR:  { bg: 'bg-purple-900',  border: 'border-purple-400', text: 'text-purple-200', label: 'S·RARE'     },
-  SSR: { bg: 'bg-yellow-900',  border: 'border-yellow-400', text: 'text-yellow-200', label: 'S·S·RARE'   },
-  UR:  { bg: 'bg-gradient-to-br from-pink-900 via-purple-900 to-blue-900', border: 'border-pink-400', text: 'text-pink-200', label: 'ULTRA RARE' },
-};
-// ---- Flip Card Component ----
+
+// ---- Flip Card Wrapper (GachaFlipCard を使用) ----
 function FlipCard({
   result,
   index,
@@ -75,141 +70,28 @@ function FlipCard({
   isRevealed: boolean;
   onReveal: (index: number) => void;
 }) {
-  const style = RARITY_STYLES[result.rarity] ?? RARITY_STYLES.N;
-  const isHighRarity = result.rarity === 'SSR' || result.rarity === 'UR';
   const displayImageUrl =
     result.card.cardImageUrl ??
     result.card.imageUrl ??
     (result.card.characterSlug ? `/characters/${result.card.characterSlug}/avatar.webp` : null) ??
     (result.card.characterSlug ? `/characters/${result.card.characterSlug}/avatar.jpg` : null);
 
-  // Frame border style
-  const frameStyle: React.CSSProperties = (() => {
-    if (result.card.frameType === 'gold') return { borderColor: '#f59e0b', borderWidth: '3px' };
-    if (result.card.frameType === 'rainbow') return {
-      borderImage: 'linear-gradient(135deg, #ff0000, #ff7700, #ffff00, #00ff00, #0077ff, #8800ff) 1',
-      borderWidth: '3px',
-      borderStyle: 'solid',
-    };
-    return {};
-  })();
-
   return (
     <>
-      <style>{`
-        .card-scene { perspective: 800px; }
-        .card-inner {
-          position: relative; width: 100%; height: 100%;
-          transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
-          transform-style: preserve-3d;
-        }
-        .card-inner.flipped { transform: rotateY(180deg); }
-        .card-face {
-          position: absolute; width: 100%; height: 100%;
-          backface-visibility: hidden; -webkit-backface-visibility: hidden;
-          border-radius: 12px; overflow: hidden;
-        }
-        .card-back {
-          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
-          display: flex; align-items: center; justify-content: center;
-          border: 2px solid rgba(99,102,241,0.5); cursor: pointer;
-        }
-        .card-front { transform: rotateY(180deg); }
-        @keyframes cardGlowGold {
-          0%,100% { box-shadow: 0 0 20px rgba(250,204,21,0.5); }
-          50% { box-shadow: 0 0 50px rgba(250,204,21,0.9), 0 0 100px rgba(250,204,21,0.4); }
-        }
-        @keyframes cardGlowUR {
-          0%,100% { box-shadow: 0 0 30px rgba(244,114,182,0.6); }
-          33% { box-shadow: 0 0 60px rgba(168,85,247,0.9), 0 0 120px rgba(168,85,247,0.5); }
-          66% { box-shadow: 0 0 60px rgba(59,130,246,0.9), 0 0 120px rgba(59,130,246,0.5); }
-        }
-        .ssr-glow { animation: cardGlowGold 1.5s ease-in-out infinite; }
-        .ur-glow  { animation: cardGlowUR 2s ease-in-out infinite; }
-        @keyframes shimmerSwipe {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .shimmer-bg {
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
-          background-size: 200% 100%;
-          animation: shimmerSwipe 1.5s ease-in-out infinite;
-        }
-        @keyframes newSparkle {
-          0%,100% { transform: scale(1) rotate(0deg); }
-          25% { transform: scale(1.3) rotate(10deg); }
-          75% { transform: scale(0.9) rotate(-5deg); }
-        }
-        .new-badge { animation: newSparkle 1.2s ease-in-out infinite; }
-        @keyframes backShimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .back-shimmer {
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-          background-size: 200% 100%;
-          animation: backShimmer 2s ease-in-out infinite;
-        }
-      `}</style>
-      <div className="card-scene" style={{ height: '200px' }}>
-        <div className={`card-inner ${isRevealed ? 'flipped' : ''}`}>
-          {/* Back (unrevealed) */}
-          <div
-            className="card-face card-back"
-            onClick={() => !isRevealed && onReveal(index)}
-          >
-            <div className="relative flex flex-col items-center gap-2 select-none z-10">
-              <span className="text-4xl">🃏</span>
-              <span className="text-xs text-indigo-300 font-medium">タップでめくる</span>
-            </div>
-            <div className="back-shimmer absolute inset-0 rounded-xl pointer-events-none" />
-          </div>
-          {/* Front (revealed) */}
-          <div className="card-face card-front">
-            <div
-              className={`relative w-full h-full border-2 p-3 flex flex-col ${style.bg} ${style.border} ${
-                isRevealed && result.rarity === 'SSR' ? 'ssr-glow' : ''
-              } ${
-                isRevealed && result.rarity === 'UR' ? 'ur-glow' : ''
-              }`}
-              style={{ borderRadius: '12px', ...frameStyle }}
-            >
-              {result.isNew && (
-                <div className="new-badge absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold z-10">
-                  ✨ NEW
-                </div>
-              )}
-              {isHighRarity && isRevealed && (
-                <div className="shimmer-bg absolute inset-0 pointer-events-none rounded-xl z-0" />
-              )}
-              {displayImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={displayImageUrl}
-                  alt={result.card.name}
-                  className="w-full flex-1 object-cover rounded-lg mb-2 min-h-0 relative z-10"
-                />
-              ) : (
-                <div className="w-full flex-1 rounded-lg mb-2 flex items-center justify-center bg-black/30 text-4xl min-h-0 relative z-10">
-                  🃏
-                </div>
-              )}
-              <div className={`text-xs font-bold mb-0.5 relative z-10 ${style.text}`}>
-                {style.label}
-              </div>
-              <div className="text-sm font-semibold truncate text-white relative z-10">
-                {result.card.name}
-              </div>
-              {result.card.franchise && (
-                <div className="text-xs text-gray-300 truncate relative z-10">{result.card.franchise}</div>
-              )}
-              {!result.isNew && (
-                <div className="text-xs text-gray-400 mt-0.5 relative z-10">所持済み</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <GachaFlipCard
+        rarity={result.rarity as 'N' | 'R' | 'SR' | 'SSR' | 'UR'}
+        characterName={result.card.name}
+        characterAvatarUrl={displayImageUrl}
+        itemName={result.card.name}
+        isFlipped={isRevealed}
+        onFlip={() => onReveal(index)}
+        isNew={result.isNew}
+        frameType={result.card.frameType}
+        franchise={result.card.franchise}
+      />
+      {!result.isNew && isRevealed && (
+        <div className="text-xs text-gray-400 mt-0.5 text-center">所持済み</div>
+      )}
     </>
   );
 }
