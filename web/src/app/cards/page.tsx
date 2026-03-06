@@ -58,7 +58,7 @@ interface GachaBanner {
   franchise: string | null;
   bannerImageUrl: string | null;
   themeColor: string | null;
-  rateUp: number | null;
+  rateUp: number | Record<string, number> | null;
 }
 
 interface PullResultCard {
@@ -455,8 +455,18 @@ function GachaTab() {
           <h3 className="text-white font-bold text-lg mb-1">{selectedBanner.name}</h3>
           {selectedBanner.description && <p className="text-white/50 text-sm mb-3">{selectedBanner.description}</p>}
           {selectedBanner.rateUp && (
-            <div className="inline-block bg-pink-500/20 text-pink-400 text-xs font-bold px-2 py-1 rounded-lg mb-3">
-              ★ ピックアップ確率 {selectedBanner.rateUp}倍
+            <div className="space-y-1 mb-3">
+              {typeof selectedBanner.rateUp === 'object' ? (
+                Object.entries(selectedBanner.rateUp).map(([cardId, rate]) => (
+                  <div key={cardId} className="inline-block bg-pink-500/20 text-pink-400 text-xs font-bold px-2 py-1 rounded-lg mr-1">
+                    ★ {cardId.replace(/^gc-/, '').replace(/-\d+$/, '').replace(/-/g, ' ')} {rate}倍
+                  </div>
+                ))
+              ) : (
+                <div className="inline-block bg-pink-500/20 text-pink-400 text-xs font-bold px-2 py-1 rounded-lg">
+                  ★ ピックアップ確率 {selectedBanner.rateUp}倍
+                </div>
+              )}
             </div>
           )}
         </div>
