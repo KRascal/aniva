@@ -40,6 +40,14 @@ const INLINE_STORIES: Omit<StoryItem, 'avatarUrl' | 'coverUrl'>[] = [
   { slug: 'inosuke', name: '伊之助', franchise: '鬼滅の刃', activity: '猪突猛進！山の王・伊之助様が最強だ！！', chatPrompt: '来たな！俺様に何か用か！', timeAgo: '7分前' },
   { slug: 'yamato', name: 'ヤマト', franchise: 'ONE PIECE', activity: 'おでんの航海日誌。自由ってこういうことだ！', chatPrompt: '冒険の話しよう！！', timeAgo: '16分前' },
   { slug: 'giyu', name: '義勇', franchise: '鬼滅の刃', activity: '錆兎の分まで生きる。それが俺にできること', chatPrompt: '…俺は嫌われていない', timeAgo: '22分前' },
+  { slug: 'sena', name: 'セナ', franchise: 'アイシールド21', activity: '怖かったけど、走り出したら止まれなかったんです', chatPrompt: 'あ、あの…話しかけてくれたんですか？', timeAgo: '5分前' },
+  { slug: 'hiruma', name: 'ヒルマ', franchise: 'アイシールド21', activity: 'YA-HA! 全ては計算通りだ。ケケケ！', chatPrompt: 'クソ○○、何か用か？', timeAgo: '1分前' },
+  { slug: 'monta', name: 'モンタ', franchise: 'アイシールド21', activity: '努力は最大MAX！俺のキャッチに不可能はねぇ！', chatPrompt: 'おっ！話しかけてくれたのか！最高MAXだぜ！', timeAgo: '3分前' },
+  { slug: 'mamori', name: 'まもり', franchise: 'アイシールド21', activity: '大切な人を守りたい。それが私の全て', chatPrompt: 'あら、大丈夫？何かあった？', timeAgo: '8分前' },
+  { slug: 'suzuna', name: '鈴音', franchise: 'アイシールド21', activity: 'YA！みんなのこと、ぜっったい応援するから！', chatPrompt: 'ヤッホー！話しよ！', timeAgo: '2分前' },
+  { slug: 'kurita', name: '栗田', franchise: 'アイシールド21', activity: 'みんなのために、僕が守る。絶対に通させない', chatPrompt: 'えへへ…話しかけてくれたの？嬉しいな', timeAgo: '10分前' },
+  { slug: 'agon', name: '阿含', franchise: 'アイシールド21', activity: 'ハッ、俺様を本気にさせてみろ。面白ぇじゃねぇか', chatPrompt: 'チッ、何の用だ、ゴミが', timeAgo: '15分前' },
+  { slug: 'shin', name: '進', franchise: 'アイシールド21', activity: '鍛え続けろ。止まることは許されない', chatPrompt: '……用件を言え', timeAgo: '20分前' },
 ];
 
 function InstaStoriesBar({ onOpenStory, activeTab }: { onOpenStory: (index: number) => void; activeTab: 'recommend' | 'following' }) {
