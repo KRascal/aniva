@@ -67,6 +67,68 @@ export async function getStreak(relationshipId: string): Promise<{ streakDays: n
   return { streakDays: isActive ? rel.streakDays : 0, isActive };
 }
 
+/** ストリーク回復（コインで購入） — 損失回避+感情連動 */
+export async function recoverStreak(
+  relationshipId: string,
+  userId: string,
+  costCoins: number = 50,
+): Promise<{ success: boolean; newStreak: number; error?: string }> {
+  const rel = await prisma.relationship.findUnique({
+    where: { id: relationshipId },
+    select: { streakDays: true, streakLastDate: true, characterId: true },
+  });
+  if (!rel) return { success: false, newStreak: 0, error: 'relationship_not_found' };
+
+  // ストリークが途切れているか確認
+  const todayJST = getJSTDateString();
+  const yesterdayJST = getJSTDateString(new Date(Date.now() - 86400000));
+  const lastJST = rel.streakLastDate ? getJSTDateString(rel.streakLastDate) : null;
+  
+  if (lastJST === todayJST || lastJST === yesterdayJST) {
+    return { success: false, newStreak: rel.streakDays, error: 'streak_not_broken' };
+  }
+
+  // コイン残高確認
+  const balance = await prisma.coinBalance.findUnique({
+    where: { userId },
+    select: { freeBalance: true, paidBalance: true },
+  });
+  const totalCoins = (balance?.freeBalance ?? 0) + (balance?.paidBalance ?? 0);
+  if (totalCoins < costCoins) {
+    return { success: false, newStreak: 0, error: 'insufficient_coins' };
+  }
+
+  // コイン消費（freeBalance優先）
+  const freeDeduct = Math.min(balance?.freeBalance ?? 0, costCoins);
+  const paidDeduct = costCoins - freeDeduct;
+  
+  await prisma.$transaction([
+    prisma.coinBalance.update({
+      where: { userId },
+      data: {
+        freeBalance: { decrement: freeDeduct },
+        ...(paidDeduct > 0 ? { paidBalance: { decrement: paidDeduct } } : {}),
+      },
+    }),
+    prisma.coinTransaction.create({
+      data: {
+        userId,
+        amount: -costCoins,
+        type: 'SPEND',
+        description: 'ストリーク回復チケット',
+        metadata: { characterId: rel.characterId, recoveredStreak: rel.streakDays },
+      },
+    }),
+    // ストリークを復元（昨日の日付にセット）
+    prisma.relationship.update({
+      where: { id: relationshipId },
+      data: { streakLastDate: new Date(Date.now() - 86400000) },
+    }),
+  ]);
+
+  return { success: true, newStreak: rel.streakDays };
+}
+
 /** ストリーク途切れユーザーを取得（cron用） */
 export async function getBrokenStreaks(): Promise<Array<{ relationshipId: string; characterName: string; previousStreak: number }>> {
   const twoDaysAgo = new Date();

@@ -1,0 +1,8 @@
+{
+  "task": "aniva-staging-deploy-0306-0330",
+  "status": "success",
+  "summary": "commit 5db8489 (キャラ日記ページ + Keisuke voice input/stream API) をステージングへデプロイ完了。139ページビルド、PM2起動、HTTP 200確認済み。",
+  "build_pages": 139,
+  "http_status": "200",
+  "error_detail": null
+}

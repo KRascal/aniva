@@ -1,161 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 
-interface EpisodeEntry {
-  summary: string;
-  date: string;
-  emotion: string;
-  importance: number;
-}
-
-interface EmotionEntry {
-  topic: string;
-  userEmotion: string;
-  characterReaction: string;
-  date: string;
-}
-
-interface MemorySummaryData {
-  episodeMemory?: EpisodeEntry[];
-  emotionMemory?: EmotionEntry[];
-}
-
-const MILESTONE_DEFS = [
-  { type: 'first_meet', days: 0, label: '出会いの日' },
-  { type: '7days', days: 7, label: '1週間記念' },
-  { type: '30days', days: 30, label: '1ヶ月記念' },
-  { type: '50days', days: 50, label: '50日記念' },
-  { type: '100days', days: 100, label: '100日記念' },
-  { type: '200days', days: 200, label: '200日記念' },
-  { type: '365days', days: 365, label: '1周年記念' },
-];
-
-// 感情ラベルを標準化
-const EMOTION_LABELS: Record<string, string> = {
-  嬉しい: 'happy',
-  楽しい: 'excited',
-  excited: 'excited',
-  happy: 'happy',
-  sad: 'sad',
-  悲しい: 'sad',
-  mysterious: 'mysterious',
-  nostalgic: 'nostalgic',
-  nervous: 'nervous',
-  neutral: 'neutral',
-};
-
-function normalizeEmotion(e: string): string {
-  return EMOTION_LABELS[e] ?? 'neutral';
-}
-
+/**
+ * メモリーブックAPI — 二人の思い出アルバム
+ * エンドウメント効果: 「これが消えるのか」で退会を阻止
+ */
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ characterId: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ characterId: string }> },
 ) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { characterId } = await params;
-
-    // キャラ情報取得
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(characterId);
-    const character = await prisma.character.findUnique({
-      where: isUuid ? { id: characterId } : { slug: characterId },
-      select: { id: true, name: true, avatarUrl: true },
-    });
-
-    if (!character) {
-      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
-    }
-
-    // Relationship 取得
-    const relationship = await prisma.relationship.findUnique({
-      where: {
-        userId_characterId_locale: {
-          userId,
-          characterId: character.id,
-          locale: 'ja',
-        },
-      },
-    });
-
-    if (!relationship) {
-      return NextResponse.json({
-        characterName: character.name,
-        characterAvatar: character.avatarUrl,
-        firstMeetDate: null,
-        daysTogether: 0,
-        totalMessages: 0,
-        level: 1,
-        milestones: [],
-        highlights: [],
-        topEpisodes: [],
-      });
-    }
-
-    const memo = (relationship.memorySummary ?? {}) as MemorySummaryData;
-
-    // 出会い日・経過日数
-    const firstMeetDate = relationship.firstMessageAt ?? relationship.createdAt;
-    const now = new Date();
-    const daysTogether = Math.floor(
-      (now.getTime() - new Date(firstMeetDate).getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // マイルストーン計算
-    const milestones = MILESTONE_DEFS
-      .filter((m) => daysTogether >= m.days)
-      .map((m) => {
-        const milestoneDate = new Date(firstMeetDate);
-        milestoneDate.setDate(milestoneDate.getDate() + m.days);
-        return {
-          type: m.type,
-          date: milestoneDate.toISOString().split('T')[0],
-          label: m.label,
-        };
-      });
-
-    // topEpisodes: episodeMemoryから重要度高い順にtop10
-    const episodeMemory: EpisodeEntry[] = memo.episodeMemory ?? [];
-    const topEpisodes = [...episodeMemory]
-      .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
-      .slice(0, 10)
-      .map((ep) => ({
-        date: ep.date ? new Date(ep.date).toISOString().split('T')[0] : '',
-        summary: ep.summary,
-        importance: ep.importance ?? 1,
-      }));
-
-    // ハイライト: emotionMemoryから感情スコアの高い会話を抽出
-    const emotionMemory: EmotionEntry[] = memo.emotionMemory ?? [];
-    const positiveEmotions = new Set(['嬉しい', '楽しい', 'excited', 'happy', 'playful', '嬉しかった']);
-    const highlights = emotionMemory
-      .filter((e) => positiveEmotions.has(e.userEmotion))
-      .slice(0, 5)
-      .map((e) => ({
-        date: e.date ? new Date(e.date).toISOString().split('T')[0] : '',
-        summary: e.topic,
-        emotion: normalizeEmotion(e.userEmotion),
-      }));
-
-    return NextResponse.json({
-      characterName: character.name,
-      characterAvatar: character.avatarUrl,
-      firstMeetDate: new Date(firstMeetDate).toISOString().split('T')[0],
-      daysTogether,
-      totalMessages: relationship.totalMessages,
-      level: relationship.level,
-      milestones,
-      highlights,
-      topEpisodes,
-    });
-  } catch (error) {
-    console.error('[memory-book] error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  const token = await getToken({ req });
+  if (!token?.sub) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const { characterId } = await params;
+
+  // Relationship取得
+  const relationship = await prisma.relationship.findFirst({
+    where: { userId: token.sub, characterId },
+    select: {
+      id: true,
+      level: true,
+      totalMessages: true,
+      streakDays: true,
+      experiencePoints: true,
+      firstMessageAt: true,
+      lastMessageAt: true,
+      memorySummary: true,
+      character: { select: { name: true, slug: true } },
+    },
+  });
+
+  if (!relationship) {
+    return NextResponse.json({ error: 'No relationship found' }, { status: 404 });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const memo = (relationship.memorySummary ?? {}) as any;
+
+  // 思い出ハイライト（感情スコアが高いエピソード記憶）
+  const episodes = (memo.episodeMemory ?? []) as Array<{
+    summary: string;
+    date: string;
+    emotion: string;
+    importance: number;
+  }>;
+  const highlights = [...episodes]
+    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
+    .slice(0, 10);
+
+  // 事実記憶（キャラが知っていること）
+  const facts = (memo.factMemory ?? []) as Array<{
+    fact: string;
+    confidence: number;
+    updatedAt: string;
+  }>;
+  const topFacts = [...facts]
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+    .slice(0, 15);
+
+  // マイルストーン計算
+  const milestones: Array<{ type: string; label: string; date?: string; achieved: boolean }> = [];
+  if (relationship.firstMessageAt) {
+    milestones.push({ type: 'first_chat', label: '初めての会話', date: relationship.firstMessageAt.toISOString(), achieved: true });
+  }
+  if (relationship.totalMessages >= 10) {
+    milestones.push({ type: 'messages_10', label: '10回目の会話', achieved: true });
+  }
+  if (relationship.totalMessages >= 100) {
+    milestones.push({ type: 'messages_100', label: '100回目の会話 💯', achieved: true });
+  }
+  if (relationship.totalMessages >= 500) {
+    milestones.push({ type: 'messages_500', label: '500回目の会話 🌟', achieved: true });
+  }
+  if (relationship.totalMessages >= 1000) {
+    milestones.push({ type: 'messages_1000', label: '1000回目の会話 👑', achieved: true });
+  }
+  if (relationship.level >= 2) {
+    milestones.push({ type: 'level_2', label: '友達になった', achieved: true });
+  }
+  if (relationship.level >= 3) {
+    milestones.push({ type: 'level_3', label: '仲間になった', achieved: true });
+  }
+  if (relationship.level >= 4) {
+    milestones.push({ type: 'level_4', label: '親友になった ✨', achieved: true });
+  }
+  if (relationship.level >= 5) {
+    milestones.push({ type: 'level_5', label: '特別な存在 💕', achieved: true });
+  }
+  if (relationship.streakDays >= 7) {
+    milestones.push({ type: 'streak_7', label: '7日連続会話 🔥', achieved: true });
+  }
+  if (relationship.streakDays >= 30) {
+    milestones.push({ type: 'streak_30', label: '30日連続会話 🔥🔥', achieved: true });
+  }
+
+  // 出会いからの日数
+  const daysSinceFirst = relationship.firstMessageAt
+    ? Math.floor((Date.now() - relationship.firstMessageAt.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  return NextResponse.json({
+    characterName: relationship.character.name,
+    characterSlug: relationship.character.slug,
+    stats: {
+      level: relationship.level,
+      totalMessages: relationship.totalMessages,
+      streakDays: relationship.streakDays,
+      xp: relationship.experiencePoints,
+      daysTogether: daysSinceFirst,
+      firstChatDate: relationship.firstMessageAt?.toISOString() ?? null,
+    },
+    highlights,
+    facts: topFacts,
+    milestones,
+    emotionalSummary: memo.conversationSummary ?? null,
+    emotionalTrend: memo.emotionalTrend ?? null,
+  });
 }
