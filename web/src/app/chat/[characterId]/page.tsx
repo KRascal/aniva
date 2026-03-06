@@ -543,7 +543,27 @@ export default function ChatCharacterPage() {
     if (!topicParam || !character) return;
     const truncated = topicParam.slice(0, 100);
     setTopicText(truncated);
-    setInputText(`${character.name}のモーメントの「${truncated}」について話したいんだけど`);
+
+    // ストーリーから来た場合: キャラの名シーンに紐づく自然な会話スターター
+    const fromStory = searchParams.get('fromStory') === '1';
+    if (fromStory) {
+      setInputText(`「${truncated}」…その話、もっと聞かせて`);
+      // チュートリアルをスキップ（ストーリー経由は既にチャットへの導線が成立）
+      try {
+        const stored = localStorage.getItem('aniva_tutorial_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.step < 6) {
+            parsed.step = 6;
+            localStorage.setItem('aniva_tutorial_v1', JSON.stringify(parsed));
+          }
+        } else {
+          localStorage.setItem('aniva_tutorial_v1', JSON.stringify({ step: 6 }));
+        }
+      } catch { /* ignore */ }
+    } else {
+      setInputText(`${character.name}のモーメントの「${truncated}」について話したいんだけど`);
+    }
     setTopicCardVisible(true);
   // character変化のたびに再実行しないよう character.name のみ依存
   // eslint-disable-next-line react-hooks/exhaustive-deps
