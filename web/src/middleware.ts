@@ -81,7 +81,8 @@ export default async function proxy(req: NextRequest) {
     pathname === '/api/coins/packages' ||
     pathname.startsWith('/api/geoip') ||
     pathname.startsWith('/api/og') ||
-    pathname.startsWith('/api/events');
+    pathname.startsWith('/api/events') ||
+    pathname.startsWith('/api/stories');
 
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
