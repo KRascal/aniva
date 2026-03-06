@@ -1,9 +1,38 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Component, type ErrorInfo, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
+
+// Dynamic import to prevent SSR issues
+import dynamic from 'next/dynamic';
+const GachaFlipCard = dynamic(
+  () => import('@/components/gacha/GachaFlipCard').then(mod => mod.GachaFlipCard),
+  { ssr: false, loading: () => <div className="w-full aspect-[3/4] bg-gray-800 rounded-xl animate-pulse" /> }
+);
+type GachaRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
+
+// Error Boundary
+class TabErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean; error?: Error }> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[Cards] Tab error:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <p className="text-4xl mb-3">😵</p>
+          <p className="text-white/60 text-sm mb-2">読み込みエラーが発生しました</p>
+          <button onClick={() => this.setState({ hasError: false })} className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold">再試行</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -81,12 +110,12 @@ function CardCollectionTab() {
 
   useEffect(() => {
     fetch('/api/gacha/cards')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then(data => {
         setCards(data.cards ?? []);
         setTotalCards(data.totalCards ?? 0);
       })
-      .catch(() => {})
+      .catch(() => { setCards([]); setTotalCards(0); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -243,7 +272,6 @@ function CardCollectionTab() {
 // ═══════════════════════════════════════════════════════════════
 
 function GachaTab() {
-  const { data: session } = useSession();
   const [banners, setBanners] = useState<GachaBanner[]>([]);
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [coinBalance, setCoinBalance] = useState(0);
@@ -257,11 +285,14 @@ function GachaTab() {
 
   // Fetch banners + coins
   useEffect(() => {
-    Promise.all([
-      fetch('/api/gacha/banners').then(r => r.json()),
-      fetch('/api/coins/balance').then(r => r.json()),
-      fetch('/api/gacha/pity').then(r => r.json()),
-    ]).then(([bannerData, coinData, pityData]) => {
+    Promise.allSettled([
+      fetch('/api/gacha/banners').then(r => r.json()).catch(() => ({})),
+      fetch('/api/coins/balance').then(r => r.json()).catch(() => ({})),
+      fetch('/api/gacha/pity').then(r => r.json()).catch(() => ({})),
+    ]).then((results) => {
+      const bannerData = results[0].status === 'fulfilled' ? results[0].value : {};
+      const coinData = results[1].status === 'fulfilled' ? results[1].value : {};
+      const pityData = results[2].status === 'fulfilled' ? results[2].value : {};
       const b = bannerData.banners ?? [];
       setBanners(b);
       if (b.length > 0) setSelectedBanner(b[0]);
@@ -545,10 +576,10 @@ export default function CardsPage() {
           style={{ transform: activeTab === 'collection' ? 'translateX(0)' : 'translateX(-50%)', width: '200%' }}
         >
           <div className="w-1/2 min-h-[60vh]">
-            <CardCollectionTab />
+            <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
           </div>
           <div className="w-1/2 min-h-[60vh]">
-            <GachaTab />
+            <TabErrorBoundary><GachaTab /></TabErrorBoundary>
           </div>
         </div>
       </div>
