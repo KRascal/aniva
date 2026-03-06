@@ -1702,19 +1702,70 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }
 
   private detectEmotion(text: string): string {
-    if (/！{2,}|すげぇ|おおー|やった|最高|ハハ/.test(text)) return 'excited';
-    if (/ししし|ししっ|別に喜んでない|うるさい！/.test(text)) return 'happy';
-    if (/ふざけんな|許さねぇ|怒|燃やして|どけ/.test(text)) return 'angry';
-    if (/\.{3}|…|こ、怖く|寂しい|泣/.test(text)) return 'sad';
-    if (/肉|飯|食|うまそう/.test(text)) return 'hungry';
-    if (/好き|愛し|大切|守る|ずっと|一緒に/.test(text)) return 'love';
-    if (/照れ|恥ずかし|べ、別に|か、勘違い|う、うるさい/.test(text)) return 'shy';
-    if (/任せろ|俺が|見せてやる|余裕|ふっ/.test(text)) return 'proud';
-    if (/ふふっ|からかう|冗談|いじ|ニヤ/.test(text)) return 'teasing';
-    if (/道に迷って|近道|方向/.test(text)) return 'embarrassed';
-    if (/火拳|メラメラ|燃え/.test(text)) return 'fired-up';
-    if (/ベリー|お金|タダじゃ/.test(text)) return 'motivated';
-    if (/え！|なに！|まさか|本当|驚/.test(text)) return 'surprised';
+    // ── 感情検出（優先度順: 強い感情 → 弱い感情）──
+    // Note: '…' や '...' 単独ではsadにしない（キャラの通常会話に頻出するため）
+
+    // 1. 強い興奮・歓喜
+    if (/！{2,}|すげぇ|おおー|やった[！!]|最高[だ！!]|ハハ[！!ッ]|よっしゃ|テンション|楽しい[！!]|ワクワク|たまらね[ぇえ]/i.test(text)) return 'excited';
+
+    // 2. 怒り・闘志
+    if (/ふざけんな|許さ(?:ない|ねぇ)|ムカつく|怒り|怒って|殺す|ぶっ飛ばす|うるせぇ[！!]|てめぇ|黙れ|ざけんな/.test(text)) return 'angry';
+
+    // 3. 悲しみ・つらさ（明確な悲しみの表現のみ。…だけでは判定しない）
+    if (/悲し[いく]|つらい|辛い|泣[いきくけ]|涙[がをは]|寂し[いく]|苦し[いく]|胸が痛|失[いっ]た|別れ|もう会えない|死んだ|助けられなかった/.test(text)) return 'sad';
+
+    // 4. 愛情・親密
+    if (/(?:お前|あなた|君|きみ)(?:が|の(?:こと|事))好き|愛してる|大切(?:な|だ|にする)|守(?:る|りたい)|ずっと(?:一緒|そばに)|離れない|離さない/.test(text)) return 'love';
+
+    // 5. 喜び・嬉しさ（穏やかな喜び）
+    if (/嬉し[いく]|ありがと|よかった[なね]|楽しかった|幸せ|にっこり|微笑|笑顔|ししし|ししっ|へへ/.test(text)) return 'happy';
+
+    // 6. 照れ・恥ずかしさ
+    if (/照れ|恥ずかし|べ、別に|か、勘違い|う、うるさい[！!]|ば、バカ|そ、そんなこと|赤く(?:なっ|なり)|頬[がを]|ドキッ/.test(text)) return 'shy';
+
+    // 7. 自信・誇り
+    if (/任せろ|任せとけ|俺(?:が|に)|私(?:が|に)|見せてやる|余裕[だ！!]|当然だ|当たり前|最強|敵じゃない|簡単だ/.test(text)) return 'confident';
+
+    // 8. からかい・いたずら
+    if (/ふふっ|からかう|冗談|ニヤ[ッリ]|いじ[るっ]|面白い(?:なぁ|ね|反応)|可愛い反応|動揺(?:して|しすぎ)/.test(text)) return 'teasing';
+
+    // 9. 驚き
+    if (/え[！!？?]{1,}|なに[！!？?]|まさか|本当[か!?？！]|驚|嘘だろ|信じられない|マジ[か!?？！]/.test(text)) return 'surprised';
+
+    // 10. 感動・感慨
+    if (/感動|泣ける|胸(?:が|に)(?:熱|こみ)|グッと|ジーン|心(?:に|が)(?:響|染)|素敵|美しい|懐かしい/.test(text)) return 'moved';
+
+    // 11. 心配・気遣い
+    if (/大丈夫[？?]|心配|気をつけ|無理(?:する|しない|すんな)|体(?:大事|休)|ちゃんと(?:食|寝|休)|怪我(?:は|して)/.test(text)) return 'caring';
+
+    // 12. 困惑・戸惑い
+    if (/え[？?ぇ]|困った|どうしよう|わからない|迷[うっ]|うーん|む[ーう]|悩[むみ]/.test(text)) return 'confused';
+
+    // 13. リラックス・穏やか
+    if (/のんびり|ゆっくり|まったり|平和|静か[だな]|落ち着[いく]|癒[やさ]|ほっと|安心/.test(text)) return 'relaxed';
+
+    // 14. 好奇心・興味
+    if (/面白(?:い|そう)|気になる|知りたい|教えて|どうなの|どんな|もっと(?:聞|話|詳)|興味|へぇ[〜ー]/.test(text)) return 'curious';
+
+    // 15. 闘志・燃えている
+    if (/燃え(?:て|る|ろ)|火拳|メラメラ|全力|本気|勝負|戦[うえ]|挑[むみ]|やってやる|覚悟/.test(text)) return 'fired-up';
+
+    // 16. 食欲
+    if (/肉[！!]|飯|食[うべいっ]|うまそう|腹(?:減|へ)|美味[しい]/.test(text)) return 'hungry';
+
+    // 17. やる気・意気込み
+    if (/頑張|やるぞ|行くぞ|出発|冒険|進め|前に進|立ち上が|諦めない|負けない/.test(text)) return 'determined';
+
+    // 18. 恥ずかしさ・失敗
+    if (/道に迷[っい]|迷子|間違[えっ]|しまった|やらかし|失敗|ミス[っした]/.test(text)) return 'embarrassed';
+
+    // 19. 落ち着き・思慮
+    if (/なるほど|確かに|そうだな|考え[るて]|分析|推測|おそらく|つまり/.test(text)) return 'thoughtful';
+
+    // 20. 感謝
+    if (/ありがとう[！!]|感謝|恩[にを]|救われ|助かった|おかげ/.test(text)) return 'grateful';
+
+    // デフォルト: neutral（感情不明瞭な場合）
     return 'neutral';
   }
   
@@ -2190,20 +2241,35 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (!memory.characterEmotion || memory.characterEmotion === 'neutral') return '';
 
     const emotionLabels: Record<string, string> = {
-      'excited': '興奮している',
-      'happy': '嬉しい',
+      'excited': 'テンションが上がっている',
+      'happy': '嬉しい気持ち',
       'angry': '怒っている',
-      'sad': '悲しい',
+      'sad': '悲しい気持ち',
+      'love': '愛情を感じている',
+      'shy': '照れている',
+      'confident': '自信に満ちている',
+      'teasing': 'いたずらっぽい気分',
+      'surprised': '驚いている',
+      'moved': '感動している',
+      'caring': '相手を心配している',
+      'confused': '戸惑っている',
+      'relaxed': 'リラックスしている',
+      'curious': '興味津々',
+      'fired-up': '闘志が燃えている',
       'hungry': '腹が減っている',
-      'embarrassed': '照れている',
-      'fired-up': '燃えている',
-      'motivated': 'やる気に満ちている',
+      'determined': 'やる気に満ちている',
+      'embarrassed': '恥ずかしい',
+      'thoughtful': '考え込んでいる',
+      'grateful': '感謝の気持ち',
     };
 
     // 感情ごとの持続時間（時間）
     const persistenceHours: Record<string, number> = {
-      'angry': 48, 'sad': 48, 'excited': 24, 'happy': 24,
-      'fired-up': 24, 'hungry': 6, 'embarrassed': 12, 'motivated': 24,
+      'angry': 48, 'sad': 48, 'love': 48, 'excited': 24, 'happy': 24,
+      'fired-up': 24, 'determined': 24, 'confident': 24, 'moved': 24,
+      'grateful': 24, 'caring': 12, 'curious': 12, 'shy': 12,
+      'embarrassed': 12, 'teasing': 6, 'hungry': 6, 'surprised': 6,
+      'confused': 6, 'relaxed': 12, 'thoughtful': 12,
     };
 
     const maxHours = persistenceHours[memory.characterEmotion] ?? 12;

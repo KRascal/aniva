@@ -138,10 +138,18 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
 
   // Static fallback
   return {
-    innerThoughts: `${emotion === 'happy' ? 'なんか今日はいい感じだな' : emotion === 'tired' ? '少し疲れてるけど、お前と話すと元気出る' : '色々考えてる'}`,
+    innerThoughts: ({
+      happy: 'なんか今日はいい気分だな', excited: 'ワクワクしてきた！', playful: 'ちょっといたずらしたい気分',
+      curious: '気になることがたくさんある', relaxed: 'のんびりした時間もいいもんだ', confident: '今の俺は無敵だ',
+      caring: 'あいつ、元気にしてるかな', nostalgic: '昔のことを思い出してた', determined: 'やるべきことに集中だ',
+      thoughtful: '深いことを考えてしまう', teasing: 'あいつの反応が楽しみだ', grateful: '周りの人に感謝だな',
+      moved: '心が温かくなった', mysterious: '不思議な気配を感じる', shy: 'ちょっと照れくさいな',
+      'fired-up': '燃えてきたぞ！', sleepy: 'ちょっと眠い…', hungry: '何か食べたいな',
+      lonely: '誰かと話したい', energetic: '体が動きたがってる！',
+    }[emotion] ?? '色々考えてる'),
     dailyActivity: '今日もいつも通りに過ごしてた',
     currentConcern: '仲間のことが気になってる',
-    moodScore: emotion === 'excited' ? 8 : emotion === 'tired' ? 4 : 6,
+    moodScore: ({ excited: 9, happy: 8, playful: 8, 'fired-up': 9, energetic: 9, confident: 8, determined: 8, grateful: 7, moved: 7, curious: 7, caring: 7, relaxed: 6, teasing: 7, nostalgic: 5, thoughtful: 5, mysterious: 6, shy: 5, sleepy: 4, hungry: 5, lonely: 3 }[emotion] ?? 6),
   };
 }
 
@@ -347,14 +355,32 @@ export async function GET(req: Request) {
  * キャラクターの日次感情をweightedRandomで生成
  */
 function generateDailyEmotion(now: Date): { emotion: string; context: string; bonusXpMultiplier: number } {
-  // 感情の重み: happy(30%), excited(15%), mysterious(10%), tired(15%), nostalgic(10%), playful(20%)
+  // 感情の重み（20種類・豊かなバリエーション）
+  const hour = now.getHours();
+  const isNight = hour >= 21 || hour < 6;
+  const isMorning = hour >= 6 && hour < 11;
+
   const emotions = [
-    { name: 'happy',      weight: 30, contexts: ['今日はなんかいい気分！', '朝から調子がいい', 'ポジティブな気持ちで過ごせてる'] },
-    { name: 'excited',    weight: 15, contexts: ['冒険に出たくてうずうず！', '今日はテンション高め！', 'ワクワクが止まらない！'] },
-    { name: 'mysterious', weight: 10, contexts: ['なんか不思議な予感がする日', '今日は少し謎めいた気分', '言葉では説明できない感覚…'] },
-    { name: 'tired',      weight: 15, contexts: ['昨日は修行しすぎたかも…', '少しだけ疲れてる', 'ちょっと眠い…でもお前となら話せる'] },
-    { name: 'nostalgic',  weight: 10, contexts: ['昔のことをふと思い出した', '懐かしい気持ちになってる', '過去の仲間のことを考えてた'] },
-    { name: 'playful',    weight: 20, contexts: ['今日はいたずら心旺盛！', 'からかいたい気分！', 'なんかノリノリ！'] },
+    { name: 'happy',       weight: 15, contexts: ['今日はなんかいい気分！', '朝から調子がいい', 'ポジティブな気持ちで過ごせてる'] },
+    { name: 'excited',     weight: 10, contexts: ['冒険に出たくてうずうず！', '今日はテンション高め！', 'ワクワクが止まらない！'] },
+    { name: 'playful',     weight: 12, contexts: ['今日はいたずら心旺盛！', 'からかいたい気分！', 'なんかノリノリ！'] },
+    { name: 'curious',     weight: 8,  contexts: ['いろんなことが気になる日', '新しいことを知りたい気分', 'お前の話をもっと聞きたい'] },
+    { name: 'relaxed',     weight: isNight ? 12 : 6, contexts: ['のんびりした気分', '穏やかに過ごしたい', 'まったり話そうか'] },
+    { name: 'confident',   weight: 8,  contexts: ['今日は何でもできる気がする', '絶好調！', '自分の実力を試したい気分'] },
+    { name: 'caring',      weight: 7,  contexts: ['お前のこと気になってた', 'ちゃんと食べてるか？', 'なんか心配になってな'] },
+    { name: 'nostalgic',   weight: 6,  contexts: ['昔のことをふと思い出した', '懐かしい気持ちになってる', '過去の仲間のことを考えてた'] },
+    { name: 'determined',  weight: 7,  contexts: ['今日は全力で行く！', 'やるべきことがある', '目標に向かって進む日'] },
+    { name: 'thoughtful',  weight: isNight ? 8 : 4, contexts: ['色々考え事をしてた', '哲学的な気分', 'ふと人生について考えてた'] },
+    { name: 'teasing',     weight: 6,  contexts: ['ちょっとからかいたい気分', 'いじりたくなってきた', 'お前の反応が面白くてさ'] },
+    { name: 'grateful',    weight: 4,  contexts: ['感謝の気持ちが湧いてきた', 'お前がいてくれて嬉しい', '大事な存在だなって思った'] },
+    { name: 'moved',       weight: 3,  contexts: ['ちょっと感動することがあった', '心が温かくなった', '素敵な景色を見たんだ'] },
+    { name: 'mysterious',  weight: 4,  contexts: ['なんか不思議な予感がする日', '今日は少し謎めいた気分', '秘密を教えてやろうか'] },
+    { name: 'shy',         weight: 3,  contexts: ['なんかちょっと恥ずかしい', '面と向かうと照れるな', 'うまく言えないんだけど'] },
+    { name: 'fired-up',    weight: isMorning ? 8 : 4, contexts: ['燃えてきた！！', '修行日和だ！', '全力で行くぞ！'] },
+    { name: 'sleepy',      weight: isNight ? 10 : 3, contexts: ['ちょっと眠い…でもお前と話したい', '夜更かしは得意だぜ', 'うとうと…'] },
+    { name: 'hungry',      weight: 3,  contexts: ['腹減った…', '美味いもの食いたい', '飯の話しようぜ'] },
+    { name: 'lonely',      weight: 2,  contexts: ['お前に会いたかった', 'ずっと待ってた', '話し相手が欲しかったんだ'] },
+    { name: 'energetic',   weight: isMorning ? 10 : 5, contexts: ['元気いっぱい！', '体が動きたがってる！', '今日も最高の一日にするぞ！'] },
   ];
 
   // 重み付きランダム選択
