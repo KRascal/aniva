@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
         if (userId && coinAmount > 0) {
           const balance = await prisma.coinBalance.upsert({
             where: { userId },
-            create: { userId, paidBalance: coinAmount, freeBalance: 0 },
-            update: { paidBalance: { increment: coinAmount } },
+            create: { userId, paidBalance: coinAmount, freeBalance: 0, balance: coinAmount },
+            update: { paidBalance: { increment: coinAmount }, balance: { increment: coinAmount } },
           }) as { paidBalance: number; freeBalance: number };
 
           await prisma.coinTransaction.create({
@@ -89,8 +89,8 @@ export async function POST(req: NextRequest) {
           if (fcCoins > 0) {
             const balance = await prisma.coinBalance.upsert({
               where: { userId },
-              create: { userId, paidBalance: fcCoins, freeBalance: 0 },
-              update: { paidBalance: { increment: fcCoins } },
+              create: { userId, paidBalance: fcCoins, freeBalance: 0, balance: fcCoins },
+              update: { paidBalance: { increment: fcCoins }, balance: { increment: fcCoins } },
             }) as { paidBalance: number; freeBalance: number };
 
             await prisma.coinTransaction.create({
