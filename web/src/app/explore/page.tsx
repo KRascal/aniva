@@ -1865,8 +1865,9 @@ export default function ExplorePage() {
                   const bgSrc = characters.find(c => c.coverUrl)?.coverUrl
                     ?? heroChars[0]?.avatarUrl ?? null;
                   return (
-                    <div className="relative rounded-3xl overflow-hidden mb-6"
+                    <div className="relative rounded-3xl overflow-hidden mb-6 cursor-pointer active:scale-[0.98] transition-transform"
                       style={{ boxShadow: '0 8px 48px rgba(139,92,246,0.35), 0 0 0 1px rgba(255,255,255,0.06)', minHeight: 220 }}
+                      onClick={() => router.push('/discover')}
                     >
                       {/* Blurred background from character art */}
                       {bgSrc ? (
