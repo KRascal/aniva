@@ -393,6 +393,7 @@ enum CoinTxType {
   BONUS
   ADMIN_ADJUST
   LOGIN_BONUS
+  SPEND
 }
 
 model CharacterSubscription {

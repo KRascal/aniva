@@ -514,7 +514,7 @@ export class CharacterEngine {
     userMessage: string,
     locale: string = 'ja',
     options?: { isFcMember?: boolean },
-  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[] }> {
+  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[]; memoryRecalled?: boolean }> {
     return this._buildPromptContextInternal(characterId, relationshipId, userMessage, locale, options);
   }
 

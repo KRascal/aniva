@@ -50,11 +50,17 @@ export async function POST(req: NextRequest) {
     // Relationship情報（ユーザーとの関係性）
     const relationship = await prisma.relationship.findUnique({
       where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
-      select: { level: true, totalMessages: true, userName: true },
+      select: { level: true, totalMessages: true },
+    });
+
+    // ユーザー名取得
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
     });
 
     // System instructions構築
-    const userName = relationship?.userName || '友達';
+    const userName = user?.name || '友達';
     const level = relationship?.level ?? 1;
     const totalMsgs = relationship?.totalMessages ?? 0;
 
