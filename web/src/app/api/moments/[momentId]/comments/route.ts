@@ -85,6 +85,30 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       character: { select: { name: true, slug: true, avatarUrl: true } },
     },
   });
+  // キャラ返信トリガー（非同期・レスポンスはブロックしない）
+  const userDisplay = (session.user as { nickname?: string; displayName?: string; name?: string; email?: string }).nickname
+    || (session.user as { displayName?: string }).displayName
+    || session.user.name
+    || (session.user.email ?? '').split('@')[0]
+    || 'ユーザー';
+
+  const baseUrl = req.nextUrl.origin;
+  setTimeout(() => {
+    fetch(`${baseUrl}/api/chat/comment-reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.CRON_SECRET || '',
+      },
+      body: JSON.stringify({
+        momentId,
+        triggerCommentId: comment.id,
+        triggerContent: content,
+        triggerUserName: userDisplay,
+      }),
+    }).catch(() => {});
+  }, 0);
+
   return NextResponse.json({
     comment: { ...comment, parentCommentId: comment.parentCommentId ?? null, likeCount: 0, likedByMe: false },
   }, { status: 201 });

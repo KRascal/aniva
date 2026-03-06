@@ -692,9 +692,14 @@ export default function ChatCharacterPage() {
         } catch (e) {
           console.error('Auto-follow failed:', e);
         }
-        setShowOnboarding(true);
+        // ストーリーから来た場合はオンボーディングスキップ
+        if (!searchParams.get('fromStory')) {
+          setShowOnboarding(true);
+        }
       } else if (data.messages?.length === 0) {
-        setShowOnboarding(true);
+        if (!searchParams.get('fromStory')) {
+          setShowOnboarding(true);
+        }
       }
 
       // コイン残高取得

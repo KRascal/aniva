@@ -52,11 +52,13 @@ function ChatRow({
   character,
   relationship,
   hasUnread,
+  unreadCount = 0,
   onClick,
 }: {
   character: Character;
   relationship: RelationshipInfo;
   hasUnread: boolean;
+  unreadCount?: number;
   onClick: () => void;
 }) {
   const lastMsg = relationship.lastMessage;
@@ -150,8 +152,8 @@ function ChatRow({
       {/* 未読バッジ */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
         {hasUnread ? (
-          <span className="bg-pink-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-            ●
+          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 3 }}>
+            {unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : 'N'}
           </span>
         ) : (
           <svg className="w-4 h-4 text-gray-700 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -691,6 +693,36 @@ export default function ChatPage() {
       </header>
 
       <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
+        {/* ══ 新着チャット通知バナー ══ */}
+        {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).length > 0 && (
+          <div className="mb-4 space-y-2">
+            {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).slice(0, 3).map(msg => (
+              <div
+                key={msg.id}
+                className="bg-gradient-to-r from-purple-900/80 to-pink-900/60 border border-purple-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+                onClick={() => {
+                  setDismissedProactive(prev => new Set([...prev, msg.id]));
+                  router.push(`/chat/${msg.character.slug}`);
+                }}
+              >
+                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-400/50">
+                  {msg.character.avatarUrl ? (
+                    <img src={msg.character.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{msg.character.name[0]}</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-bold">{msg.character.name}</p>
+                  <p className="text-white/60 text-xs truncate">{msg.message}</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-2 py-0.5">NEW</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {/* ══ キャラからのメッセージバナー ══ */}
         {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId)).map(msg => (
           <div
@@ -803,12 +835,16 @@ export default function ChatPage() {
                 const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
                 const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
                 const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
+                // キャラごとの未読proactiveメッセージ数
+                const charProactiveCount = proactiveMessages.filter(m => m.character.id === character.id && !dismissedProactive.has(m.id)).length;
+                const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
                 return (
                   <ChatRow
                     key={character.id}
                     character={character}
                     relationship={rel}
-                    hasUnread={hasUnread}
+                    hasUnread={hasUnread || charProactiveCount > 0}
+                    unreadCount={totalUnread}
                     onClick={() => router.push(`/chat/${character.id}`)}
                   />
                 );
