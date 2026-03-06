@@ -115,6 +115,7 @@ export async function recoverStreak(
         userId,
         amount: -costCoins,
         type: 'SPEND',
+        balanceAfter: totalCoins - costCoins,
         description: 'ストリーク回復チケット',
         metadata: { characterId: rel.characterId, recoveredStreak: rel.streakDays },
         balanceAfter: totalCoins - costCoins,
