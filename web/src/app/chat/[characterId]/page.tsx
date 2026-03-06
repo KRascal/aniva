@@ -23,6 +23,8 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { FcSubscribeModal } from '@/components/chat/FcSubscribeModal';
 import { rollRandomEvent, type RandomEvent } from '@/lib/random-events';
 import { PushNotificationSetup } from '@/components/push/PushNotificationSetup';
+import { useProactiveMessages } from '@/hooks/useProactiveMessages';
+import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 
 /* ─────────────── ユーティリティ ─────────────── */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -321,6 +323,12 @@ export default function ChatCharacterPage() {
     const h = new Date().getHours();
     return h >= 23 || h < 6;
   });
+
+  /* ── プロアクティブメッセージ ── */
+  const { messages: proactiveMessages, unreadCount: proactiveUnread, markAsRead: markProactiveRead } = useProactiveMessages();
+  const charProactiveUnread = proactiveMessages.filter(
+    (m) => m.characterId === characterId && !m.isRead
+  ).length;
 
   /* ── 新規 UI state ── */
   const [showCall, setShowCall] = useState(false);
@@ -1664,7 +1672,20 @@ export default function ChatCharacterPage() {
         onMemoryClick={openMemoryPeek}
         onProfileClick={() => router.push(`/profile/${characterId}`)}
         onFcClick={() => setShowFcModal(true)}
+        proactiveUnreadCount={charProactiveUnread}
       />
+
+      {/* ══════════════ プロアクティブメッセージバナー ══════════════ */}
+      {proactiveMessages.filter(m => m.characterId === characterId && !m.isRead).map(msg => (
+        <div
+          key={msg.id}
+          className="mx-4 my-2 p-3 bg-purple-900/40 border border-purple-500/30 rounded-xl cursor-pointer hover:bg-purple-900/50 transition-colors"
+          onClick={async () => { await markProactiveRead(msg.id); }}
+        >
+          <p className="text-sm text-purple-200">{msg.content}</p>
+          <CountdownTimer expiresAt={msg.expiresAt} className="mt-1" />
+        </div>
+      ))}
 
       {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
       {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (

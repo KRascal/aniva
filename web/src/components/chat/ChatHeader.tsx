@@ -92,6 +92,7 @@ export function ChatHeader({
   onMemoryClick,
   onProfileClick,
   onFcClick,
+  proactiveUnreadCount,
 }: ChatHeaderProps) {
   const [dailyState, setDailyState] = useState<DailyState | null>(null);
   const [moodPopupOpen, setMoodPopupOpen] = useState(false);
@@ -232,6 +233,12 @@ export function ChatHeader({
           <h1 className="text-white font-semibold text-sm leading-tight break-words">
             {character?.name ?? 'キャラクター'}
           </h1>
+          {/* プロアクティブメッセージ未読バッジ */}
+          {proactiveUnreadCount && proactiveUnreadCount > 0 ? (
+            <span className="flex-shrink-0 bg-pink-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 animate-pulse">
+              NEW
+            </span>
+          ) : null}
           {/* 気分バッジはアバター横に表示 */}
           {relationship?.isFanclub ? (
             <span className="text-base leading-none flex-shrink-0">💜</span>
