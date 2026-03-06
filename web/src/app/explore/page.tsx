@@ -918,6 +918,7 @@ interface RelationshipInfo {
 const FRANCHISE_CATEGORIES = [
   { name: 'すべて', gradient: 'from-purple-500 to-pink-500' },
   { name: 'ONE PIECE', gradient: 'from-orange-500 to-red-500' },
+  { name: 'アイシールド21', gradient: 'from-green-500 to-lime-500' },
   { name: '呪術廻戦', gradient: 'from-blue-500 to-indigo-600' },
   { name: '鬼滅の刃', gradient: 'from-pink-500 to-rose-600' },
   { name: 'ドラゴンボール', gradient: 'from-yellow-400 to-orange-500' },
@@ -928,6 +929,7 @@ const FRANCHISE_CATEGORIES = [
 
 const FRANCHISE_META: Record<string, { gradient: string }> = {
   'ONE PIECE':    { gradient: 'from-orange-500 to-red-500' },
+  'アイシールド21': { gradient: 'from-green-500 to-lime-500' },
   '呪術廻戦':     { gradient: 'from-blue-500 to-indigo-600' },
   '鬼滅の刃':     { gradient: 'from-pink-500 to-rose-600' },
   'ドラゴンボール':{ gradient: 'from-yellow-400 to-orange-500' },
