@@ -28,6 +28,7 @@ import { useProactiveMessages } from '@/hooks/useProactiveMessages';
 import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 import { useConversationEnd } from '@/hooks/useConversationEnd';
 import { EndingMessage } from '@/components/chat/EndingMessage';
+import { StreakBreakPopup } from '@/components/chat/StreakBreakPopup';
 
 /* ─────────────── ユーティリティ ─────────────── */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -317,6 +318,7 @@ export default function ChatCharacterPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [daysSinceLastChat, setDaysSinceLastChat] = useState(0);
+  const [showStreakBreak, setShowStreakBreak] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
@@ -617,6 +619,14 @@ export default function ChatCharacterPage() {
               setShowWelcomeBack(true);
               sessionStorage.setItem(shownKey, '1');
             }
+          }
+        }
+        // ストリーク途切れチェック
+        if (relData.streakDays === 0 && relData.isStreakActive === false) {
+          const streakKey = `streakBreak_${characterId}_${new Date().toDateString()}`;
+          if (!sessionStorage.getItem(streakKey)) {
+            setShowStreakBreak(true);
+            sessionStorage.setItem(streakKey, '1');
           }
         }
       }
@@ -1578,6 +1588,19 @@ export default function ChatCharacterPage() {
           characterAvatarUrl={character.avatarUrl ?? null}
           daysSinceLastChat={daysSinceLastChat}
           onDismiss={() => setShowWelcomeBack(false)}
+        />
+      )}
+
+      {showStreakBreak && character && relationship && (
+        <StreakBreakPopup
+          characterSlug={character.slug ?? 'luffy'}
+          characterName={character.name}
+          characterAvatarUrl={character.avatarUrl ?? null}
+          onDismiss={() => setShowStreakBreak(false)}
+          onRecovered={(newStreak) => {
+            setShowStreakBreak(false);
+            setRelationship(prev => prev ? { ...prev, streakDays: newStreak, isStreakActive: true } : prev);
+          }}
         />
       )}
 
