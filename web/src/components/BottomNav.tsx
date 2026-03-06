@@ -118,7 +118,7 @@ export function BottomNav() {
       >
         <div className="flex justify-around items-stretch h-16">
 
-          {/* Explore */}
+          {/* 1. さがす */}
           <Link
             href="/explore"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
@@ -134,7 +134,7 @@ export function BottomNav() {
             <span className={`text-[10px] font-semibold ${isHome ? 'text-purple-400' : 'text-gray-500'}`}>{t('explore')}</span>
           </Link>
 
-          {/* Timeline */}
+          {/* 2. タイムライン */}
           <Link
             href="/moments"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
@@ -150,55 +150,51 @@ export function BottomNav() {
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>
 
-          {/* ストーリーズ（中央ボタン） */}
-          <Link
-            href="/stories"
-            className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
-              pathname.startsWith('/stories') ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
-            }`}
-          >
-            <div className={`relative flex items-center justify-center w-12 h-12 -mt-4 rounded-2xl transition-all ${
-              pathname.startsWith('/stories')
-                ? 'bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 shadow-lg shadow-purple-500/40 scale-110'
-                : 'bg-gradient-to-br from-purple-600/80 to-pink-600/80 shadow-md shadow-purple-500/20'
-            }`}>
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
-                <path strokeLinecap="round" d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
-              </svg>
-              {!pathname.startsWith('/stories') && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-gray-950 animate-pulse" />
-              )}
-            </div>
-            <span className={`text-[10px] font-semibold ${pathname.startsWith('/stories') ? 'text-purple-400' : 'text-gray-400'}`}>ストーリー</span>
-          </Link>
-
-          {/* Chat */}
+          {/* 3. チャット（中央・特別強調） */}
           <Link
             href="/chat"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isChat ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
           >
-            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
+            <div className={`relative flex items-center justify-center w-12 h-12 -mt-4 rounded-2xl transition-all ${
               isChat
-                ? 'bg-gradient-to-br from-purple-600 to-pink-600 scale-105'
-                : ''
+                ? 'bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 shadow-lg shadow-purple-500/40 scale-110'
+                : 'bg-gradient-to-br from-purple-600/80 to-pink-600/80 shadow-md shadow-purple-500/20'
             }`}>
-              <svg className={`w-6 h-6 ${isChat ? 'text-white' : ''}`} fill={isChat ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isChat ? 0 : 1.8}>
+              <svg className="w-6 h-6 text-white" fill={isChat ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isChat ? 0 : 1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              {isChat && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
               {proactiveCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none">
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none border-2 border-gray-950">
                   {proactiveCount > 9 ? '9+' : proactiveCount}
                 </span>
               )}
+              {!isChat && proactiveCount === 0 && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-gray-950 animate-pulse" />
+              )}
             </div>
-            <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-500'}`}>{t('chat')}</span>
+            <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-400'}`}>{t('chat')}</span>
           </Link>
 
-          {/* My Page */}
+          {/* 4. ストーリー */}
+          <Link
+            href="/stories"
+            className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
+              isStories ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
+            }`}
+          >
+            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isStories ? 'bg-purple-500/15' : ''}`}>
+              <svg className="w-6 h-6" fill={isStories ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isStories ? 0 : 1.8}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+                <path strokeLinecap="round" d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
+              </svg>
+              {isStories && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+            </div>
+            <span className={`text-[10px] font-semibold ${isStories ? 'text-purple-400' : 'text-gray-500'}`}>ストーリー</span>
+          </Link>
+
+          {/* 5. マイページ */}
           <Link
             href="/mypage"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
