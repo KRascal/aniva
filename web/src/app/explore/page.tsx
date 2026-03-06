@@ -1981,10 +1981,10 @@ export default function ExplorePage() {
 
                         <div className="flex gap-3">
                           <button
-                            onClick={() => document.getElementById('popular-section')?.scrollIntoView({ behavior: 'smooth' })}
+                            onClick={() => router.push('/discover')}
                             className="px-5 py-2.5 bg-white text-gray-900 rounded-full font-bold text-sm hover:bg-gray-100 active:scale-95 transition-all shadow-lg"
                           >
-                            探す →
+                            スワイプで探す →
                           </button>
                           <button
                             onClick={() => router.push('/chat')}

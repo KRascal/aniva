@@ -568,7 +568,7 @@ export default function ChatCharacterPage() {
       setTopicCardVisible(false);
       return; // topicカードは表示しない — 即送信
     } else {
-      setInputText(`${character.name}のモーメントの「${truncated}」について話したいんだけど`);
+      setInputText(`${character.name}のタイムラインの「${truncated}」について話したいんだけど`);
     }
     setTopicCardVisible(true);
   // character変化のたびに再実行しないよう character.name のみ依存
@@ -1946,7 +1946,7 @@ export default function ChatCharacterPage() {
             </div>
             {/* コンテンツ */}
             <div className="flex-1 min-w-0 mr-5">
-              <p className="text-purple-300 text-[10px] font-semibold mb-1">📸 モーメントの話題</p>
+              <p className="text-purple-300 text-[10px] font-semibold mb-1">📸 タイムラインの話題</p>
               <p className="text-white/70 text-xs leading-relaxed line-clamp-2">{topicText}</p>
               <button
                 className="mt-2 flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors active:scale-95"

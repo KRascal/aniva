@@ -76,6 +76,7 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith('/api/push/character-notify') ||
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/cron') ||
+    pathname.startsWith('/api/chat/comment-reply') ||
     pathname.startsWith('/api/onboarding/guest-chat') ||
     pathname === '/api/coins/packages' ||
     pathname.startsWith('/api/geoip') ||

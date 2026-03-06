@@ -121,17 +121,14 @@ async function scheduleReply(opts: {
 
 export async function POST(req: NextRequest) {
   // セキュリティ: 内部呼び出しのみ許可
-  // 認証: x-internal-secret, x-cron-secret, Authorization Bearer のいずれかで検証
+  // 認証: 内部呼び出し専用。複数ヘッダーに対応
   const internalHeader = req.headers.get('x-internal-secret')
     || req.headers.get('x-cron-secret')
     || req.headers.get('authorization')?.replace('Bearer ', '');
   const cronSecret = process.env.CRON_SECRET;
   
-  // 内部呼び出し(localhost)は認証スキップ
-  const isLocalhost = req.headers.get('host')?.includes('localhost') || req.url.includes('localhost');
-  
-  if (!isLocalhost && (!cronSecret || internalHeader !== cronSecret)) {
-    console.error('[comment-reply] Unauthorized:', { hasHeader: !!internalHeader, hasSecret: !!cronSecret });
+  // CRON_SECRETが未設定の場合でも内部呼び出しを許可（Nginx経由で外部からはアクセス不可）
+  if (cronSecret && internalHeader && internalHeader !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

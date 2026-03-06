@@ -117,7 +117,7 @@ export default function MomentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">モーメント管理</h1>
+        <h1 className="text-2xl font-bold text-white">タイムライン管理</h1>
         <div className="flex items-center gap-3">
           <span className="text-gray-400 text-sm">総計: {total.toLocaleString()}</span>
           <button
@@ -145,7 +145,7 @@ export default function MomentsPage() {
               {loading ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">読み込み中...</td></tr>
               ) : moments.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">モーメントがありません</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">投稿がありません</td></tr>
               ) : (
                 moments.map((m) => (
                   <tr key={m.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
