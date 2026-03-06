@@ -19,7 +19,8 @@ class TabErrorBoundary extends Component<{ children: ReactNode; fallback?: React
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <p className="text-4xl mb-3">😵</p>
           <p className="text-white/60 text-sm mb-2">読み込みエラーが発生しました</p>
-          <button onClick={() => this.setState({ hasError: false })} className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold">再試行</button>
+          <p className="text-red-400/60 text-[10px] mb-3 break-all">{this.state.error?.message}</p>
+          <button onClick={() => { this.setState({ hasError: false }); window.location.reload(); }} className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold">再読み込み</button>
         </div>
       );
     }
