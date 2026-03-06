@@ -259,3 +259,125 @@ export async function getCliffhangerTease(relationshipId: string): Promise<strin
   if (!rel?.pendingCliffhanger) return null;
   return (rel.pendingCliffhanger as unknown as Cliffhanger).teaseMessage;
 }
+
+// ============================================================
+// タスク仕様に沿ったAPI（generateCliffhanger / getPendingCliffhanger / resolveCliffhanger）
+// ============================================================
+
+/**
+ * generateCliffhanger(characterId, userId)
+ * キャラ+ユーザーのRelationshipを特定してクリフハンガーを生成・保存
+ * テンプレートからランダム選択し、pendingCliffhangerに書き込む
+ */
+export async function generateCliffhanger(
+  characterId: string,
+  userId: string,
+  locale: string = 'ja',
+): Promise<Cliffhanger | null> {
+  // 既存Relationshipを取得
+  const rel = await prisma.relationship.findUnique({
+    where: { userId_characterId_locale: { userId, characterId, locale } },
+    select: { id: true, pendingCliffhanger: true, character: { select: { slug: true } } },
+  });
+
+  if (!rel) return null;
+
+  // setCliffhanger に委譲
+  return setCliffhanger(rel.id, rel.character?.slug ?? '');
+}
+
+/**
+ * getPendingCliffhanger(userId, characterId)
+ * 未解決の予告を取得（消費しない）
+ */
+export async function getPendingCliffhanger(
+  userId: string,
+  characterId: string,
+  locale: string = 'ja',
+): Promise<Cliffhanger | null> {
+  const rel = await prisma.relationship.findUnique({
+    where: { userId_characterId_locale: { userId, characterId, locale } },
+    select: { pendingCliffhanger: true },
+  });
+
+  if (!rel?.pendingCliffhanger) return null;
+  return rel.pendingCliffhanger as unknown as Cliffhanger;
+}
+
+/**
+ * resolveCliffhanger(userId, characterId)
+ * 翌日に「続き」を話す内容を grok-3-mini で動的生成してクリア
+ * character-engine の consumeCliffhanger はハードコードのfollowUpを使うが、
+ * こちらは LLM で生成するより豊かなバリエーションを得る
+ */
+export async function resolveCliffhanger(
+  userId: string,
+  characterId: string,
+  locale: string = 'ja',
+): Promise<string | null> {
+  const rel = await prisma.relationship.findUnique({
+    where: { userId_characterId_locale: { userId, characterId, locale } },
+    select: {
+      id: true,
+      pendingCliffhanger: true,
+      character: { select: { name: true, slug: true } },
+      user: { select: { nickname: true, displayName: true } },
+    },
+  });
+
+  if (!rel?.pendingCliffhanger) return null;
+
+  const cliffhanger = rel.pendingCliffhanger as unknown as Cliffhanger;
+  const characterName = rel.character?.name ?? 'キャラクター';
+  const userName = rel.user?.nickname || rel.user?.displayName || 'お前';
+
+  let followUp = cliffhanger.followUp;
+
+  // grok-3-mini でより自然な続きを生成
+  const xaiKey = process.env.XAI_API_KEY;
+  if (xaiKey) {
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${xaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'grok-3-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `あなたは${characterName}です。昨日「${cliffhanger.teaseMessage}」という予告をした。
+今日の会話冒頭で自然にその続きを話してください。
+キャラの口調を維持し、1〜2文で続きのセリフを生成してください。
+ユーザー名: ${userName}`,
+            },
+            {
+              role: 'user',
+              content: '昨日予告していた話、聞かせてください',
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.9,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json() as { choices: { message: { content: string } }[] };
+        const generated = data.choices?.[0]?.message?.content;
+        if (generated) followUp = generated;
+      }
+    } catch (e) {
+      console.warn('[resolveCliffhanger] LLM generation failed, using template:', e);
+    }
+  }
+
+  // Relationship の pendingCliffhanger をクリア
+  await prisma.relationship.update({
+    where: { id: rel.id },
+    data: { pendingCliffhanger: Prisma.JsonNull },
+  });
+
+  return followUp;
+}
