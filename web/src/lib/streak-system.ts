@@ -118,7 +118,6 @@ export async function recoverStreak(
         balanceAfter: totalCoins - costCoins,
         description: 'ストリーク回復チケット',
         metadata: { characterId: rel.characterId, recoveredStreak: rel.streakDays },
-        balanceAfter: totalCoins - costCoins,
       },
     }),
     // ストリークを復元（昨日の日付にセット）
