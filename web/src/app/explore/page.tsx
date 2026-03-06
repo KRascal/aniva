@@ -11,6 +11,67 @@ import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 import { useProactiveMessages } from '@/hooks/useProactiveMessages';
 import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 
+// ── ガチャバナーセクション ──
+function GachaBannerSection({ freeAvailable }: { freeAvailable: boolean }) {
+  const router = useRouter();
+
+  return (
+    <FadeSection delay={12}>
+      <div className="mb-5">
+        <button
+          onClick={() => router.push('/explore/gacha')}
+          className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, rgba(120,53,15,0.25), rgba(88,28,135,0.2), rgba(78,20,140,0.15))',
+            border: '1px solid rgba(245,158,11,0.35)',
+            boxShadow: '0 2px 20px rgba(245,158,11,0.12)',
+          }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0">🎰</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-yellow-400 text-[10px] font-black tracking-widest uppercase">
+                  ガチャ
+                </span>
+                {freeAvailable && (
+                  <span
+                    className="text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse"
+                    style={{
+                      background: 'rgba(16,185,129,0.25)',
+                      color: 'rgba(52,211,153,0.95)',
+                      border: '1px solid rgba(16,185,129,0.4)',
+                    }}
+                  >
+                    🎁 無料あり
+                  </span>
+                )}
+              </div>
+              <p className="text-white font-bold text-sm leading-tight">
+                推しカードをゲットしよう！
+              </p>
+              <p className="text-white/50 text-xs mt-0.5">
+                毎日1回無料で引ける
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span
+                className="text-white text-xs font-bold px-3 py-1.5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.9), rgba(120,53,15,0.9))',
+                  boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
+                }}
+              >
+                引く →
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </FadeSection>
+  );
+}
+
 // ── 投票バナーセクション ──
 function PollBannerSection() {
   const router = useRouter();
@@ -1120,6 +1181,7 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [incompleteMissions, setIncompleteMissions] = useState(0);
   const [missionHint, setMissionHint] = useState('');
+  const [freeGachaAvailable, setFreeGachaAvailable] = useState(false);
 
   // プロアクティブメッセージ（未読マップ: characterId → message）
   const { messages: proactiveMsgs } = useProactiveMessages();
@@ -1170,6 +1232,12 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
+      // ガチャ無料状態を取得
+      fetch('/api/gacha/banners')
+        .then(r => r.json())
+        .then(data => setFreeGachaAvailable(data.freeGachaAvailable ?? false))
+        .catch(() => {});
+
       fetch('/api/characters').then(r => r.json()).then(charData => {
         setCharacters(charData.characters || []);
       }).catch(err => console.error('Failed to fetch characters:', err));
@@ -1593,6 +1661,9 @@ export default function ExplorePage() {
                   );
                 })()}
               </FadeSection>
+
+              {/* ガチャバナー */}
+              <GachaBannerSection freeAvailable={freeGachaAvailable} />
 
               {/* 期間限定シナリオバナー */}
               <LimitedScenariosSection />

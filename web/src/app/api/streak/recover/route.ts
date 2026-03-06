@@ -10,7 +10,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json();
+  let body: { relationshipId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
   const { relationshipId } = body;
   if (!relationshipId) {
     return NextResponse.json({ error: 'relationshipId required' }, { status: 400 });
@@ -25,15 +31,19 @@ export async function POST(req: NextRequest) {
       insufficient_coins: 402,
     };
     return NextResponse.json(
-      { error: result.error, newStreak: result.newStreak },
+      {
+        error: result.error,
+        newStreak: result.newStreak,
+        coinsSpent: 0,
+      },
       { status: statusMap[result.error ?? ''] ?? 500 },
     );
   }
 
   return NextResponse.json({
     success: true,
-    newStreak: result.newStreak,
-    cost: RECOVERY_COST,
+    newStreak: result.newStreak,   // 復活後のstreakDays（直前の値を保持）
+    coinsSpent: RECOVERY_COST,     // 消費コイン数
     message: 'ストリーク復活！🔥',
   });
 }

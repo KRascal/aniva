@@ -46,7 +46,17 @@ export async function POST(req: Request) {
         create: { userId, balance: 0 },
         update: {},
       });
-      return NextResponse.json({ results, coinBalance: coinBalance.balance, free: true });
+      // 天井進捗を取得
+      const pityRecord = await prisma.userGachaPity.findUnique({
+        where: { userId_bannerId: { userId, bannerId } },
+      });
+      const bannerData = await prisma.gachaBanner.findUnique({ where: { id: bannerId } });
+      const pityProgress = {
+        current: pityRecord?.pullCount ?? 0,
+        ceiling: bannerData?.ceilingCount ?? 100,
+        guaranteedRarity: 'UR',
+      };
+      return NextResponse.json({ results, coinBalance: coinBalance.balance, free: true, pityProgress });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gacha failed';
       return NextResponse.json({ error: message }, { status: 500 });
@@ -81,7 +91,17 @@ export async function POST(req: Request) {
 
   try {
     const results = await pullGacha(userId, bannerId, count);
-    return NextResponse.json({ results, coinBalance: updatedBalance.balance });
+    // 天井進捗を取得
+    const pityRecord = await prisma.userGachaPity.findUnique({
+      where: { userId_bannerId: { userId, bannerId } },
+    });
+    const bannerInfo = await prisma.gachaBanner.findUnique({ where: { id: bannerId } });
+    const pityProgress = {
+      current: pityRecord?.pullCount ?? 0,
+      ceiling: bannerInfo?.ceilingCount ?? 100,
+      guaranteedRarity: 'UR',
+    };
+    return NextResponse.json({ results, coinBalance: updatedBalance.balance, pityProgress });
   } catch (err) {
     // ガチャ失敗時はコインを戻す
     await prisma.coinBalance.update({
