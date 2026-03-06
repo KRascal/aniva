@@ -3,14 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, Component, type ErrorInfo, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-
-// Dynamic import to prevent SSR issues
-import dynamic from 'next/dynamic';
-const GachaFlipCard = dynamic(
-  () => import('@/components/gacha/GachaFlipCard').then(mod => mod.GachaFlipCard),
-  { ssr: false, loading: () => <div className="w-full aspect-[3/4] bg-gray-800 rounded-xl animate-pulse" /> }
-);
-type GachaRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
+import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
 
 // Error Boundary
 class TabErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean; error?: Error }> {
@@ -288,17 +281,24 @@ function GachaTab() {
     Promise.allSettled([
       fetch('/api/gacha/banners').then(r => r.json()).catch(() => ({})),
       fetch('/api/coins/balance').then(r => r.json()).catch(() => ({})),
-      fetch('/api/gacha/pity').then(r => r.json()).catch(() => ({})),
-    ]).then((results) => {
+    ]).then(async (results) => {
       const bannerData = results[0].status === 'fulfilled' ? results[0].value : {};
       const coinData = results[1].status === 'fulfilled' ? results[1].value : {};
-      const pityData = results[2].status === 'fulfilled' ? results[2].value : {};
       const b = bannerData.banners ?? [];
       setBanners(b);
-      if (b.length > 0) setSelectedBanner(b[0]);
+      if (b.length > 0) {
+        setSelectedBanner(b[0]);
+        // pity情報はbannerId必須なのでバナー取得後に呼ぶ
+        try {
+          const pityRes = await fetch(`/api/gacha/pity?bannerId=${b[0].id}`);
+          if (pityRes.ok) {
+            const pityData = await pityRes.json();
+            setPityProgress(pityData.pityProgress ?? 0);
+            setFreeAvailable(pityData.freeAvailable ?? false);
+          }
+        } catch {}
+      }
       setCoinBalance(coinData.balance ?? 0);
-      setPityProgress(pityData.pityProgress ?? 0);
-      setFreeAvailable(pityData.freeAvailable ?? false);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
