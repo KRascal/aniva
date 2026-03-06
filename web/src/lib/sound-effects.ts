@@ -268,3 +268,41 @@ export function vibrateReaction(): void {
 export function vibrateReward(): void {
   vibrate([80, 40, 80]);
 }
+
+/** チャット感情ハプティクス — キャラの感情に応じた振動パターン */
+export function vibrateEmotion(emotion: string): void {
+  switch (emotion) {
+    // 強い感情 → 目立つ振動
+    case 'excited':   vibrate([40, 30, 40, 30, 60]); break; // ワクワクの連打
+    case 'love':      vibrate([80, 60, 120]); break;        // ドキッ…ドキドキ
+    case 'angry':     vibrate([150]); break;                 // ドンッ
+    case 'surprised': vibrate([100, 80, 50]); break;         // ビクッ→余韻
+    case 'sad':       vibrate([200]); break;                  // じわっと長い
+
+    // 中程度の感情 → 軽い振動
+    case 'happy':     vibrate([30, 20, 30]); break;
+    case 'shy':       vibrate([20, 40, 20]); break;          // もじもじ
+    case 'jealous':   vibrate([60, 30, 60]); break;
+    case 'teasing':   vibrate([25, 15, 25, 15, 25]); break;  // にひひ
+    case 'worried':   vibrate([40, 60]); break;
+
+    // ささやか or なし
+    case 'calm':
+    case 'neutral':
+    case 'thinking':
+    default:
+      break; // 平常時は振動なし
+  }
+}
+
+/** メッセージ送信時の軽い触覚フィードバック */
+export function vibrateSend(): void {
+  vibrate([15]);
+}
+
+/** ストリーク達成時の振動 */
+export function vibrateStreakMilestone(days: number): void {
+  if (days >= 30) vibrate([100, 50, 100, 50, 200, 100, 300]); // 30日: 大きなお祝い
+  else if (days >= 7) vibrate([80, 40, 80, 40, 120]);           // 7日: 中程度
+  else vibrate([40, 30, 40]);                                    // それ以外: 軽い
+}

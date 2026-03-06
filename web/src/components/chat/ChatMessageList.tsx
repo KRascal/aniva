@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { vibrateEmotion } from '@/lib/sound-effects';
 
 /* ─────────────── 型定義（page.tsxから移動・export） ─────────────── */
 export interface Message {
@@ -412,6 +413,10 @@ export function ChatMessageList({
           const prevCharEmotion = !isUser ? messages.slice(0, idx).reverse().find(m => m.role === 'CHARACTER')?.metadata?.emotion : undefined;
           const emotionEmoji = getEmotionEmoji(emotion);
           const emotionTransitionClass = !isUser ? getEmotionTransitionClass(prevCharEmotion, emotion) : '';
+          // 感情変化時にハプティクスフィードバック（最新メッセージのみ）
+          if (!isUser && emotion && emotion !== prevCharEmotion && idx === messages.length - 1) {
+            vibrateEmotion(emotion);
+          }
           // 記憶参照タグ検出・除去
           const hasMemoryRef = !isUser && msg.content.includes('【MEMORY_REF】');
           const displayContent = hasMemoryRef ? msg.content.replace(/【MEMORY_REF】/g, '').trim() : msg.content;

@@ -10,7 +10,7 @@ import { OnboardingOverlay, type UserProfile } from '@/components/chat/Onboardin
 import { CallModal } from '@/components/chat/CallModal';
 import { RealtimeCallModal } from '@/components/chat/RealtimeCallModal';
 import { GiftPanel } from '@/components/chat/GiftPanel';
-import { playSound, vibrateLevelUp, vibrateReaction } from '@/lib/sound-effects';
+import { playSound, vibrateLevelUp, vibrateReaction, vibrateSend } from '@/lib/sound-effects';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
 import EmotionIndicator from '@/components/live2d/EmotionIndicator';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
@@ -738,6 +738,7 @@ export default function ChatCharacterPage() {
     const text = inputText.trim();
     setInputText('');
     setIsSending(true);
+    vibrateSend(); // 送信時の軽い触覚フィードバック
 
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
