@@ -672,27 +672,26 @@ export function MomentCard({
                           </span>
                         )}
                         <span className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{comment.content}</span>
-                        {/* 返信するボタン */}
-                        {!isReply && (
-                          <button
-                            className="block mt-1 text-[10px] text-white/30 hover:text-purple-400 transition-colors"
-                            onClick={() => {
-                              if (replyingToId === comment.id) {
-                                setReplyingToId(null);
-                              } else {
-                                setReplyingToId(comment.id);
-                                setReplyToName(
-                                  comment.characterId
-                                    ? (charName ?? 'キャラ')
-                                    : (displayLabel ?? 'ユーザー')
-                                );
-                                setReplyText('');
-                              }
-                            }}
-                          >
-                            返信する
-                          </button>
-                        )}
+                        {/* 返信するボタン — キャラのコメントにも返信可能 */}
+                        <button
+                          className="block mt-1 text-[10px] text-white/30 hover:text-purple-400 transition-colors"
+                          onClick={() => {
+                            if (replyingToId === comment.id) {
+                              setReplyingToId(null);
+                            } else {
+                              // ネスト返信の場合もトップレベルコメント(c.id)の子として投稿
+                              setReplyingToId(isReply ? c.id : comment.id);
+                              setReplyToName(
+                                comment.characterId
+                                  ? (charName ?? 'キャラ')
+                                  : (displayLabel ?? 'ユーザー')
+                              );
+                              setReplyText('');
+                            }
+                          }}
+                        >
+                          返信する
+                        </button>
                       </div>
 
                       {/* 削除ボタン（自分のコメントのみ） */}

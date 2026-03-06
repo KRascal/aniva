@@ -161,12 +161,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Moment not found' }, { status: 404 });
     }
 
+    // トリガーコメントの親を取得 — キャラの返信に対する返信かチェック
+    const triggerComment = await prisma.momentComment.findUnique({
+      where: { id: triggerCommentId },
+      select: { parentCommentId: true },
+    });
+
+    // 親コメントがキャラのものなら、そのキャラからも返信させる
+    let repliedToChar: { id: string; name: string; slug: string; systemPrompt: string } | null = null;
+    if (triggerComment?.parentCommentId) {
+      const parentComment = await prisma.momentComment.findUnique({
+        where: { id: triggerComment.parentCommentId },
+        select: { characterId: true },
+      });
+      if (parentComment?.characterId && parentComment.characterId !== moment.characterId) {
+        const char = await prisma.character.findUnique({
+          where: { id: parentComment.characterId, isActive: true },
+          select: { id: true, name: true, slug: true, systemPrompt: true },
+        });
+        if (char) repliedToChar = char;
+      }
+    }
+
     // このMomentに既にコメントしている他のキャラ（重複排除）
     const existingCharComments = await prisma.momentComment.findMany({
       where: {
         momentId,
         characterId: { not: null },
-        // トリガーコメント自体は除く
         id: { not: triggerCommentId },
       },
       select: { characterId: true },
@@ -176,7 +197,11 @@ export async function POST(req: NextRequest) {
 
     const otherCharIds = existingCharComments
       .map((c) => c.characterId)
-      .filter((id): id is string => id !== null && id !== moment.characterId);
+      .filter((id): id is string =>
+        id !== null &&
+        id !== moment.characterId &&
+        id !== repliedToChar?.id // 直接返信キャラは別途処理
+      );
 
     const otherChars = otherCharIds.length > 0
       ? await prisma.character.findMany({
@@ -187,10 +212,28 @@ export async function POST(req: NextRequest) {
 
     const scheduled: string[] = [];
 
-    // 投稿キャラ: 100%即返信（3〜8秒ディレイ — 人間らしい間を演出）
+    // ① 直接返信先キャラ: 100%即返信（2〜5秒 — 会話感を演出）
+    if (repliedToChar) {
+      const delayMs = (2 + Math.floor(Math.random() * 3)) * 1000;
+      await scheduleReply({
+        characterId: repliedToChar.id,
+        characterName: repliedToChar.name,
+        characterSlug: repliedToChar.slug,
+        systemPrompt: repliedToChar.systemPrompt,
+        momentId,
+        triggerCommentId,
+        triggerContent,
+        triggerUserName: displayName,
+        delayMs,
+      });
+      scheduled.push(`${repliedToChar.name} (${Math.round(delayMs / 1000)}s, direct)`);
+    }
+
+    // ② 投稿キャラ: 100%即返信（3〜8秒）
     const momentChar = moment.character;
-    {
-      const delayMs = (3 + Math.floor(Math.random() * 5)) * 1000; // 3〜8秒
+    // 直接返信先と投稿キャラが同じなら重複させない
+    if (!repliedToChar || repliedToChar.id !== momentChar.id) {
+      const delayMs = (3 + Math.floor(Math.random() * 5)) * 1000;
       await scheduleReply({
         characterId: momentChar.id,
         characterName: momentChar.name,
@@ -205,10 +248,10 @@ export async function POST(req: NextRequest) {
       scheduled.push(`${momentChar.name} (${Math.round(delayMs / 1000)}s)`);
     }
 
-    // 既存コメントキャラ: 各40%確率で返信、10〜30秒ディレイ
+    // ③ 既存コメントキャラ: 各40%確率、10〜30秒ディレイ
     for (const char of otherChars) {
       if (Math.random() < 0.4) {
-        const delayMs = (10 + Math.floor(Math.random() * 20)) * 1000; // 10〜30秒
+        const delayMs = (10 + Math.floor(Math.random() * 20)) * 1000;
         await scheduleReply({
           characterId: char.id,
           characterName: char.name,
