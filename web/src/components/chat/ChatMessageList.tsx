@@ -435,7 +435,7 @@ export function ChatMessageList({
                 </div>
               )}
               <div
-                className={`msg-animate msg-bubble-in flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
+                className={`msg-animate ${isUser ? 'aniva-msg-send' : 'aniva-msg-recv'} flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
                 style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}
               >
                 {/* キャラクターアバター */}
