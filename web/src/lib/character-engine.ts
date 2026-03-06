@@ -1867,9 +1867,10 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       }
     }
 
-    // 5メッセージごとにAI要約を生成
+    // N メッセージごとにAI要約を生成（デフォルト20、環境変数でチューニング可）
+    const SUMMARY_INTERVAL = parseInt(process.env.MEMORY_SUMMARY_INTERVAL ?? '20', 10);
     const newTotalMessages = relationship.totalMessages + 1;
-    if (newTotalMessages % 5 === 0 && recentMessages.length > 0) {
+    if (newTotalMessages % SUMMARY_INTERVAL === 0 && recentMessages.length > 0) {
       try {
         const summaryResult = await this.generateMemorySummary(
           recentMessages,

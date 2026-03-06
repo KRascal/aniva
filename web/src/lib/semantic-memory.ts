@@ -8,6 +8,8 @@
 
 import { prisma } from './prisma';
 
+// Voyage voyage-3-lite = 512dim, OpenAI text-embedding-3-small = 1536dim
+// DB column is vector(1536), padding zeros for smaller embeddings
 const EMBEDDING_DIM = 1536;
 const MAX_MEMORIES_PER_QUERY = 5;
 const MIN_SIMILARITY = 0.72; // cosine similarity threshold
@@ -33,7 +35,32 @@ async function getEmbedding(text: string): Promise<number[]> {
     // ローカルサーバーが起動していない場合はフォールバック
   }
 
-  // ② OpenAI API（フォールバック）
+  // ② Anthropic Voyage AI（推奨embeddingプロバイダー）
+  const voyageKey = process.env.VOYAGE_API_KEY;
+  if (voyageKey) {
+    try {
+      const res = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${voyageKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'voyage-3-lite',
+          input: text,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const emb = data.data?.[0]?.embedding;
+        if (emb && emb.length > 0) return emb;
+      }
+    } catch {
+      // フォールバック
+    }
+  }
+
+  // ③ OpenAI API（フォールバック）
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey) {
     try {
@@ -58,7 +85,7 @@ async function getEmbedding(text: string): Promise<number[]> {
     }
   }
 
-  console.warn('[SemanticMemory] No embedding provider available');
+  console.warn('[SemanticMemory] No embedding provider available — set VOYAGE_API_KEY or OPENAI_API_KEY');
   return [];
 }
 
