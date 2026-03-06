@@ -8,6 +8,7 @@ import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import type { Message, Character } from '@/components/chat/ChatMessageList';
 import { OnboardingOverlay, type UserProfile } from '@/components/chat/OnboardingOverlay';
 import { CallModal } from '@/components/chat/CallModal';
+import { RealtimeCallModal } from '@/components/chat/RealtimeCallModal';
 import { GiftPanel } from '@/components/chat/GiftPanel';
 import { playSound, vibrateLevelUp, vibrateReaction } from '@/lib/sound-effects';
 import Live2DViewer from '@/components/live2d/Live2DViewer';
@@ -1256,7 +1257,7 @@ export default function ChatCharacterPage() {
 
       {/* 📞 通話モーダル（既存） */}
       {showCall && character && (
-        <CallModal
+        <RealtimeCallModal
           characterId={characterId}
           characterName={character.name}
           characterAvatar={character.avatarUrl}
