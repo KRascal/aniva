@@ -41,8 +41,14 @@ pnpm build
 
 echo "🔄 Restarting staging..."
 pm2 delete aniva-staging 2>/dev/null || true
+pm2 delete aniva-embeddings 2>/dev/null || true
 cd "$STAGING_DIR/web"
-pm2 start ecosystem.staging.config.cjs
+if [ -f ecosystem.staging.config.cjs ]; then
+  pm2 start ecosystem.staging.config.cjs
+else
+  echo "⚠️ ecosystem.staging.config.cjs not found, using npm start"
+  pm2 start npm --name aniva-staging -- start -- -p 3061
+fi
 pm2 save
 
 echo "⏳ Waiting for startup..."
