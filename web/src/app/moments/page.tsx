@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MomentCard, MOMENT_CARD_STYLES, type Moment, type MomentCharacter } from '@/components/moments/MomentCard';
 
@@ -117,6 +118,51 @@ function SkeletonCard() {
   );
 }
 
+/* ── QuickChat Carousel ── */
+function QuickChatCarousel({
+  characters,
+  onChat,
+}: {
+  characters: { id: string; character: MomentCharacter; preview: string }[];
+  onChat: (characterId: string) => void;
+}) {
+  if (characters.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider mb-2 px-1">💬 今すぐ話しかける</p>
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {characters.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onChat(item.id)}
+            className="flex-shrink-0 flex flex-col items-center gap-2 bg-gray-900/70 border border-white/8 rounded-2xl p-3 w-28 hover:border-purple-500/40 hover:bg-purple-900/20 transition-all active:scale-95"
+          >
+            <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-purple-500/40 flex-shrink-0">
+              {item.character.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.character.avatarUrl} alt={item.character.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                  {item.character.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            <div className="text-center w-full">
+              <p className="text-white text-xs font-bold truncate">{item.character.name}</p>
+              {item.preview && (
+                <p className="text-white/40 text-[10px] line-clamp-2 mt-0.5 leading-snug">{item.preview}</p>
+              )}
+            </div>
+            <span className="flex items-center gap-1 bg-purple-600/80 hover:bg-purple-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors">
+              💬 話す
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Tab type ── */
 type TabMode = 'recommend' | 'following';
 
@@ -124,6 +170,7 @@ type TabMode = 'recommend' | 'following';
 
 export default function MomentsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<TabMode>('recommend');
@@ -331,6 +378,29 @@ export default function MomentsPage() {
     );
   };
 
+  /* ── quick chat (おすすめタブ) ── */
+  const handleQuickChat = useCallback((characterId: string, content: string) => {
+    const topic = encodeURIComponent(content.slice(0, 100));
+    router.push(`/chat/${characterId}?topic=${topic}`);
+  }, [router]);
+
+  /* ── quick chat carousel characters (おすすめタブ上部) ── */
+  const quickChatChars = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { id: string; character: MomentCharacter; preview: string }[] = [];
+    for (const m of recommendMoments) {
+      if (!seen.has(m.characterId) && result.length < 5) {
+        seen.add(m.characterId);
+        result.push({
+          id: m.characterId,
+          character: m.character,
+          preview: (m.content ?? '').slice(0, 28),
+        });
+      }
+    }
+    return result;
+  }, [recommendMoments]);
+
   /* ── seed ── */
   const handleSeed = async () => {
     setSeeding(true);
@@ -481,6 +551,14 @@ export default function MomentsPage() {
             </div>
           )}
 
+          {/* おすすめタブ — 今すぐ話しかけるカルーセル */}
+          {activeTab === 'recommend' && !currentLoading && quickChatChars.length > 0 && (
+            <QuickChatCarousel
+              characters={quickChatChars}
+              onChat={(characterId) => router.push(`/chat/${characterId}`)}
+            />
+          )}
+
           {/* Feed */}
           {currentLoading ? (
             <>
@@ -527,6 +605,8 @@ export default function MomentsPage() {
                   showFollowButton={activeTab === 'recommend'}
                   isFollowing={moment.isFollowing}
                   onFollowChange={handleFollowChange}
+                  showQuickChat={activeTab === 'recommend'}
+                  onQuickChat={handleQuickChat}
                 />
               ))}
               {activeCharacterId && filteredMoments.length === 0 && (

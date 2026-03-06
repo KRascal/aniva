@@ -62,6 +62,20 @@ export const MOMENT_CARD_STYLES = `
   .like-pop { animation: likePopIn 0.4s cubic-bezier(0.22,1,0.36,1); }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
+  @keyframes quickChatPulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.05); }
+    70%  { transform: scale(0.97); }
+    100% { transform: scale(1); }
+  }
+  @keyframes bubbleExpand {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.4); }
+    65%  { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+  .quick-chat-pulse { animation: quickChatPulse 0.45s cubic-bezier(0.22,1,0.36,1); }
+  .quick-chat-bubble { animation: bubbleExpand 0.4s cubic-bezier(0.22,1,0.36,1); }
 `;
 
 /* ────────────────────────────────── helpers ── */
@@ -248,6 +262,8 @@ export function MomentCard({
   showFollowButton,
   isFollowing: isFollowingProp,
   onFollowChange,
+  showQuickChat,
+  onQuickChat,
 }: {
   moment: Moment;
   onLike: (id: string) => void;
@@ -255,6 +271,8 @@ export function MomentCard({
   showFollowButton?: boolean;
   isFollowing?: boolean;
   onFollowChange?: (characterId: string, following: boolean) => void;
+  showQuickChat?: boolean;
+  onQuickChat?: (characterId: string, content: string, isFollowing: boolean) => void;
 }) {
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [bouncing, setBouncing] = useState(false);
@@ -271,6 +289,7 @@ export function MomentCard({
   // フォロー状態（propsで初期化、ローカルで管理）
   const [followState, setFollowState] = useState<boolean>(isFollowingProp ?? moment.isFollowing ?? false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [quickChatPressed, setQuickChatPressed] = useState(false);
 
   const handleFollow = async () => {
     if (followLoading) return;
@@ -553,6 +572,28 @@ export function MomentCard({
           </svg>
         </button>
       </div>
+
+      {/* Quick Chat CTA — おすすめタブのみ表示 */}
+      {showQuickChat && !moment.isLocked && (
+        <div className="px-4 pb-3 pt-1">
+          <button
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold shadow-lg shadow-purple-900/30 hover:from-purple-500 hover:to-pink-500 transition-all active:scale-[0.97] ${quickChatPressed ? 'quick-chat-pulse' : ''}`}
+            onClick={() => {
+              setQuickChatPressed(true);
+              setTimeout(() => setQuickChatPressed(false), 450);
+              onQuickChat?.(moment.characterId, moment.content ?? '', followState);
+            }}
+          >
+            <svg
+              className={`w-4 h-4 flex-shrink-0 ${quickChatPressed ? 'quick-chat-bubble' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>{followState ? 'この話題で話す' : '話しかける'}</span>
+          </button>
+        </div>
+      )}
 
       {/* コメント展開エリア */}
       {expandedComments && (

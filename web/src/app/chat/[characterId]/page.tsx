@@ -410,6 +410,10 @@ export default function ChatCharacterPage() {
   const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
   const [showDailyEvent, setShowDailyEvent] = useState(false);
 
+  /* ── モーメントtopicパラメータ対応 ── */
+  const [topicCardVisible, setTopicCardVisible] = useState(false);
+  const [topicText, setTopicText] = useState('');
+
   /* ── メッセージ長押しコンテキストメニュー ── */
   const [ctxMenu, setCtxMenu] = useState<{ msgId: string; content: string } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -532,6 +536,18 @@ export default function ChatCharacterPage() {
       router.replace(`/chat/${characterId}`);
     }
   }, [searchParams, characterId, router]);
+
+  /* モーメントtopicパラメータ対応 — キャラ読込後にプリセット */
+  useEffect(() => {
+    const topicParam = searchParams.get('topic');
+    if (!topicParam || !character) return;
+    const truncated = topicParam.slice(0, 100);
+    setTopicText(truncated);
+    setInputText(`${character.name}のモーメントの「${truncated}」について話したいんだけど`);
+    setTopicCardVisible(true);
+  // character変化のたびに再実行しないよう character.name のみ依存
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [character?.name]);
 
   /* ─────────── 既存ロジック（変更なし） ─────────── */
   useEffect(() => {
@@ -1859,6 +1875,50 @@ export default function ChatCharacterPage() {
       )}
 
       {/* ══════════════ 入力エリア ══════════════ */}
+
+      {/* ── モーメント話題カード（topicパラメータがある場合） ── */}
+      {topicCardVisible && topicText && character && (
+        <div className="px-3 pb-2">
+          <div className="relative bg-purple-900/30 border border-purple-500/30 rounded-2xl p-3 flex items-start gap-3">
+            {/* 閉じるボタン */}
+            <button
+              className="absolute top-2 right-2 text-white/30 hover:text-white/60 transition-colors"
+              onClick={() => { setTopicCardVisible(false); setInputText(''); }}
+              aria-label="話題カードを閉じる"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {/* キャラアバター */}
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/40">
+              {character.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
+                  {character.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            {/* コンテンツ */}
+            <div className="flex-1 min-w-0 mr-5">
+              <p className="text-purple-300 text-[10px] font-semibold mb-1">📸 モーメントの話題</p>
+              <p className="text-white/70 text-xs leading-relaxed line-clamp-2">{topicText}</p>
+              <button
+                className="mt-2 flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors active:scale-95"
+                onClick={() => {
+                  setTopicCardVisible(false);
+                  handleSendClick();
+                }}
+              >
+                この話題で話す →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* プッシュ通知バナー — チャット開始後15秒で表示 */}
       {character && (
         <PushNotificationSetup

@@ -100,7 +100,7 @@ export function BottomNav() {
   const isHome = pathname === '/explore' || pathname === '/explore/';
   const isTimeline = pathname === '/moments' || pathname.startsWith('/moments');
   const isChat = pathname.startsWith('/chat');
-  const isGacha = pathname.startsWith('/gacha');
+  const isStories = pathname.startsWith('/stories');
   const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
@@ -150,22 +150,27 @@ export function BottomNav() {
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>
 
-          {/* Gacha */}
+          {/* ストーリーズ（中央ボタン） */}
           <Link
-            href="/gacha"
+            href="/stories"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
-              isGacha ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
+              pathname.startsWith('/stories') ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
           >
-            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isGacha ? 'bg-purple-500/15' : ''}`}>
-              <svg className="w-6 h-6" fill={isGacha ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isGacha ? 0 : 1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.686 2 6 4.239 6 7v1H5a1 1 0 00-1 1v7c0 3.314 3.582 6 8 6s8-2.686 8-6V9a1 1 0 00-1-1h-1V7c0-2.761-2.686-5-6-5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12" />
-                <circle cx="12" cy="13" r="2.5" />
+            <div className={`relative flex items-center justify-center w-12 h-12 -mt-4 rounded-2xl transition-all ${
+              pathname.startsWith('/stories')
+                ? 'bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 shadow-lg shadow-purple-500/40 scale-110'
+                : 'bg-gradient-to-br from-purple-600/80 to-pink-600/80 shadow-md shadow-purple-500/20'
+            }`}>
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+                <path strokeLinecap="round" d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
               </svg>
-              {isGacha && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+              {!pathname.startsWith('/stories') && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-gray-950 animate-pulse" />
+              )}
             </div>
-            <span className={`text-[10px] font-semibold ${isGacha ? 'text-purple-400' : 'text-gray-500'}`}>ガチャ</span>
+            <span className={`text-[10px] font-semibold ${pathname.startsWith('/stories') ? 'text-purple-400' : 'text-gray-400'}`}>ストーリー</span>
           </Link>
 
           {/* Chat */}

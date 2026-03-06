@@ -10,6 +10,8 @@ import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
 import { useProactiveMessages } from '@/hooks/useProactiveMessages';
 import { CountdownTimer } from '@/components/proactive/CountdownTimer';
+import { useTutorial } from '@/hooks/useTutorial';
+import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 
 // ── ガチャバナーセクション ──
 function GachaBannerSection({ freeAvailable }: { freeAvailable: boolean }) {
@@ -1519,6 +1521,12 @@ export default function ExplorePage() {
   // ミッション「キャラを探す」自動完了
   useMissionTrigger('explore_visit');
 
+  // ポストオンボーディング・チュートリアル
+  const { tutorialState, initialized: tutorialInitialized, advanceTutorial, skipTutorial, completeTutorial } = useTutorial(
+    session?.user?.onboardingStep,
+    session?.user?.nickname,
+  );
+
   const [characters, setCharacters] = useState<Character[]>([]);
   const [relationships, setRelationships] = useState<Map<string, RelationshipInfo>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -1726,6 +1734,16 @@ export default function ExplorePage() {
     <>
       {/* デイリーログインボーナス */}
       <DailyBonus />
+
+      {/* ポストオンボーディング・チュートリアル */}
+      {tutorialInitialized && tutorialState.step >= 1 && tutorialState.step <= 5 && (
+        <TutorialOverlay
+          tutorialState={tutorialState}
+          onAdvance={advanceTutorial}
+          onSkip={skipTutorial}
+          onComplete={completeTutorial}
+        />
+      )}
       <style>{`
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
