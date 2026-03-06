@@ -1792,7 +1792,7 @@ export default function ChatCharacterPage() {
       {proactiveMessages.filter(m => m.characterId === characterId && !m.isRead).map(msg => (
         <div
           key={msg.id}
-          className="mx-4 my-2 p-3 bg-purple-900/40 border border-purple-500/30 rounded-xl cursor-pointer hover:bg-purple-900/50 transition-colors"
+          className="mx-3 my-1 p-2.5 bg-purple-900/40 border border-purple-500/30 rounded-2xl cursor-pointer hover:bg-purple-900/50 transition-colors"
           onClick={async () => { await markProactiveRead(msg.id); }}
         >
           <p className="text-sm text-purple-200">{msg.content}</p>
@@ -1802,13 +1802,13 @@ export default function ChatCharacterPage() {
 
       {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
       {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (
-        <div className="flex-shrink-0 bg-purple-950/30 border-b border-white/5 px-3 py-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex-shrink-0 bg-gray-950 px-3 py-1 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[10px] text-gray-500 flex-shrink-0">覚えてること:</span>
+            <span className="text-[9px] text-gray-600 flex-shrink-0">覚えてること:</span>
             {relationship.sharedTopics.slice(0, 5).map((topic, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-0.5 text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded-full border border-purple-700/30"
+                className="inline-flex items-center gap-0.5 text-[9px] bg-purple-900/30 text-purple-400/70 px-1.5 py-0.5 rounded-full"
               >
                 {topic.type === 'like' ? '💜' : '📝'} {topic.text}
               </span>

@@ -68,16 +68,41 @@ const EMOTION_BUBBLE_STYLE: Record<string, string> = {
 
 /* 感情ステータスバー設定 */
 const EMOTION_STATUS_BAR: Record<string, { emoji: string; text: string; gradient: string; textColor: string }> = {
-  angry:     { emoji: '🔥', text: '怒ってる…',      gradient: 'from-red-800/50 to-red-600/30',      textColor: 'text-red-300' },
-  shy:       { emoji: '💕', text: '照れてる…',       gradient: 'from-pink-800/50 to-pink-600/30',    textColor: 'text-pink-300' },
-  sad:       { emoji: '💧', text: '悲しんでる…',     gradient: 'from-blue-800/50 to-blue-600/30',    textColor: 'text-blue-300' },
-  excited:   { emoji: '⚡', text: 'テンション高い！', gradient: 'from-orange-800/50 to-orange-600/30', textColor: 'text-orange-300' },
-  happy:     { emoji: '✨', text: '嬉しそう！',       gradient: 'from-yellow-800/50 to-yellow-600/30', textColor: 'text-yellow-300' },
-  lonely:    { emoji: '🌙', text: '寂しそう…',       gradient: 'from-purple-800/50 to-purple-600/30', textColor: 'text-purple-300' },
-  anxious:   { emoji: '💦', text: '焦ってる…',       gradient: 'from-gray-700/50 to-gray-500/30',    textColor: 'text-gray-300' },
-  motivated: { emoji: '🔥', text: 'やる気満々！',    gradient: 'from-orange-800/50 to-amber-600/30', textColor: 'text-amber-300' },
-  love:      { emoji: '💕', text: 'ときめいてる…',   gradient: 'from-pink-800/50 to-rose-600/30',    textColor: 'text-pink-300' },
-  proud:     { emoji: '✨', text: '誇らしそう！',     gradient: 'from-amber-800/50 to-yellow-600/30', textColor: 'text-amber-300' },
+  // 基本感情
+  happy:       { emoji: '✨', text: '嬉しそう！',       gradient: 'from-yellow-800/50 to-yellow-600/30', textColor: 'text-yellow-300' },
+  sad:         { emoji: '💧', text: '悲しんでる…',     gradient: 'from-blue-800/50 to-blue-600/30',    textColor: 'text-blue-300' },
+  angry:       { emoji: '🔥', text: '怒ってる…',      gradient: 'from-red-800/50 to-red-600/30',      textColor: 'text-red-300' },
+  excited:     { emoji: '⚡', text: 'テンション高い！', gradient: 'from-orange-800/50 to-orange-600/30', textColor: 'text-orange-300' },
+  shy:         { emoji: '💕', text: '照れてる…',       gradient: 'from-pink-800/50 to-pink-600/30',    textColor: 'text-pink-300' },
+  lonely:      { emoji: '🌙', text: '寂しそう…',       gradient: 'from-purple-800/50 to-purple-600/30', textColor: 'text-purple-300' },
+  anxious:     { emoji: '💦', text: '焦ってる…',       gradient: 'from-gray-700/50 to-gray-500/30',    textColor: 'text-gray-300' },
+  motivated:   { emoji: '💪', text: 'やる気満々！',    gradient: 'from-orange-800/50 to-amber-600/30', textColor: 'text-amber-300' },
+  // 愛情系
+  love:        { emoji: '💗', text: 'ときめいてる…',   gradient: 'from-pink-800/50 to-rose-600/30',    textColor: 'text-pink-300' },
+  caring:      { emoji: '🤗', text: '心配してくれてる', gradient: 'from-green-800/50 to-emerald-600/30', textColor: 'text-emerald-300' },
+  grateful:    { emoji: '🙏', text: '感謝してる',      gradient: 'from-amber-800/50 to-yellow-600/30', textColor: 'text-yellow-300' },
+  // 自信系
+  confident:   { emoji: '😎', text: '自信に満ちてる',   gradient: 'from-indigo-800/50 to-blue-600/30',  textColor: 'text-indigo-300' },
+  proud:       { emoji: '🏆', text: '誇らしそう！',     gradient: 'from-amber-800/50 to-yellow-600/30', textColor: 'text-amber-300' },
+  determined:  { emoji: '🔥', text: '覚悟を決めてる',   gradient: 'from-red-900/50 to-orange-600/30',   textColor: 'text-orange-300' },
+  // 遊び心系
+  teasing:     { emoji: '😏', text: 'からかってる…',   gradient: 'from-violet-800/50 to-purple-600/30', textColor: 'text-violet-300' },
+  playful:     { emoji: '😆', text: 'いたずらしたい気分', gradient: 'from-emerald-800/50 to-teal-600/30', textColor: 'text-emerald-300' },
+  curious:     { emoji: '🤔', text: '興味津々',        gradient: 'from-cyan-800/50 to-blue-600/30',    textColor: 'text-cyan-300' },
+  // 知性系
+  thoughtful:  { emoji: '🧠', text: '考え込んでる…',   gradient: 'from-slate-700/50 to-gray-600/30',   textColor: 'text-slate-300' },
+  confused:    { emoji: '❓', text: '混乱してる…',     gradient: 'from-gray-700/50 to-slate-600/30',   textColor: 'text-gray-300' },
+  // リラックス系
+  relaxed:     { emoji: '😌', text: 'リラックスしてる', gradient: 'from-teal-800/50 to-green-600/30',   textColor: 'text-teal-300' },
+  sleepy:      { emoji: '😴', text: '眠そう…',        gradient: 'from-indigo-900/50 to-purple-700/30', textColor: 'text-indigo-300' },
+  nostalgic:   { emoji: '🌸', text: '懐かしんでる…',   gradient: 'from-rose-800/50 to-pink-600/30',    textColor: 'text-rose-300' },
+  // 驚き系
+  surprised:   { emoji: '😲', text: 'ビックリしてる！', gradient: 'from-yellow-700/50 to-amber-600/30', textColor: 'text-yellow-300' },
+  moved:       { emoji: '🥺', text: '感動してる…',     gradient: 'from-rose-800/50 to-purple-600/30',  textColor: 'text-rose-300' },
+  // その他
+  jealous:     { emoji: '😤', text: 'ヤキモチ中…',    gradient: 'from-green-900/50 to-emerald-700/30', textColor: 'text-green-300' },
+  tired:       { emoji: '😫', text: '疲れてる…',      gradient: 'from-gray-800/50 to-gray-600/30',    textColor: 'text-gray-400' },
+  mysterious:  { emoji: '🌙', text: '謎めいている',    gradient: 'from-violet-900/50 to-indigo-700/30', textColor: 'text-violet-300' },
 };
 
 /* 感情変化トランジションクラス */
@@ -417,9 +442,11 @@ export function ChatMessageList({
           if (!isUser && emotion && emotion !== prevCharEmotion && idx === messages.length - 1) {
             vibrateEmotion(emotion);
           }
-          // 記憶参照タグ検出・除去
+          // 記憶参照タグ + 感情タグ 検出・除去
           const hasMemoryRef = !isUser && msg.content.includes('【MEMORY_REF】');
-          const displayContent = hasMemoryRef ? msg.content.replace(/【MEMORY_REF】/g, '').trim() : msg.content;
+          const displayContent = (hasMemoryRef ? msg.content.replace(/【MEMORY_REF】/g, '') : msg.content)
+            .replace(/\s*\[emotion:\w[\w-]*\]\s*/g, '')
+            .trim();
           // 連続メッセージの最後にだけアバター表示
           const nextMsg = messages[idx + 1];
           const showAvatar = !isUser && (nextMsg?.role !== 'CHARACTER' || nextMsg == null);
