@@ -8,9 +8,9 @@
 
 import { prisma } from './prisma';
 
-// Voyage voyage-3-lite = 512dim, OpenAI text-embedding-3-small = 1536dim
-// DB column is vector(1536), padding zeros for smaller embeddings
-const EMBEDDING_DIM = 1536;
+// Voyage voyage-3-lite = 512dim (primary provider)
+// DB column: vector(512) — matched to Voyage output
+const EMBEDDING_DIM = 512;
 const MAX_MEMORIES_PER_QUERY = 5;
 const MIN_SIMILARITY = 0.72; // cosine similarity threshold
 const LOCAL_EMBEDDING_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhost:3075/v1/embeddings';
@@ -23,7 +23,7 @@ async function getEmbedding(text: string): Promise<number[]> {
     const res = await fetch(LOCAL_EMBEDDING_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: text, dimensions: EMBEDDING_DIM }),
+      body: JSON.stringify({ input: text }),
       signal: AbortSignal.timeout(3000), // 3秒タイムアウト
     });
     if (res.ok) {
