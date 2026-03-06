@@ -274,3 +274,699 @@ html {
 .voice-pulse {
   animation: voicePulse 1.5s ease-in-out infinite;
 }
+
+
+/* ============================================================
+   ANIVA WORLD-CLASS ANIMATIONS v2.0
+   Added: 2026-03-06
+   GPU-accelerated (transform + opacity only) | 60fps
+   iOS Safari compatible | prefers-reduced-motion aware
+   ============================================================ */
+
+/* ================================================================
+   1. チャットメッセージ演出 (ANIVA Chat Message Animations)
+   ================================================================ */
+
+/* 受信メッセージ: 左からスライド+スケール+バウンス */
+@keyframes aniva-msg-receive {
+  0%   { opacity: 0; transform: translateX(-16px) scale(0.92); }
+  60%  { opacity: 1; transform: translateX(4px) scale(1.02); }
+  80%  { transform: translateX(-2px) scale(0.99); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.aniva-msg-receive {
+  animation: aniva-msg-receive 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+/* 送信メッセージ: 右からスライドイン */
+@keyframes aniva-msg-send {
+  0%   { opacity: 0; transform: translateX(16px) scale(0.93); }
+  60%  { opacity: 1; transform: translateX(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.aniva-msg-send {
+  animation: aniva-msg-send 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+/* メッセージバブル下からスライド+バウンス (汎用) */
+@keyframes aniva-msg-bubble-up {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.9); }
+  55%  { opacity: 1; transform: translateY(-4px) scale(1.03); }
+  75%  { transform: translateY(2px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.aniva-msg-bubble-up {
+  animation: aniva-msg-bubble-up 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+/* タイピングインジケーター: 3ドット波状アニメーション */
+@keyframes aniva-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+.aniva-typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+}
+.aniva-typing-indicator .aniva-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: aniva-typing-dot 1.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.aniva-typing-indicator .aniva-dot:nth-child(1) { animation-delay: 0s; }
+.aniva-typing-indicator .aniva-dot:nth-child(2) { animation-delay: 0.18s; }
+.aniva-typing-indicator .aniva-dot:nth-child(3) { animation-delay: 0.36s; }
+
+
+/* ================================================================
+   2. ページ遷移・モーダル演出 (Page Transitions & Modals)
+   ================================================================ */
+
+/* ページ遷移: フェード+微かなスライドアップ */
+@keyframes aniva-page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.aniva-page-enter {
+  animation: aniva-page-enter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform, opacity;
+}
+
+@keyframes aniva-page-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+.aniva-page-exit {
+  animation: aniva-page-exit 0.2s ease-in both;
+  will-change: transform, opacity;
+}
+
+/* モーダル背景ブラー */
+@keyframes aniva-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.aniva-modal-backdrop {
+  animation: aniva-backdrop-in 0.25s ease both;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.55);
+  will-change: opacity;
+}
+
+/* モーダル: 下からスライドアップ（iOS風） */
+@keyframes aniva-modal-slide-up {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.aniva-modal-enter {
+  animation: aniva-modal-slide-up 0.4s cubic-bezier(0.34, 1.36, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes aniva-modal-slide-down {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(40px) scale(0.95); }
+}
+.aniva-modal-exit {
+  animation: aniva-modal-slide-down 0.25s ease-in both;
+  will-change: transform, opacity;
+}
+
+/* トースト通知: 上からドロップイン */
+@keyframes aniva-toast-drop {
+  0%   { opacity: 0; transform: translateY(-24px) scale(0.94); }
+  55%  { opacity: 1; transform: translateY(4px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes aniva-toast-fade-out {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(0.95); }
+}
+.aniva-toast-enter {
+  animation: aniva-toast-drop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+.aniva-toast-exit {
+  animation: aniva-toast-fade-out 0.3s ease-in both;
+  will-change: transform, opacity;
+}
+/* 自動フェードアウト付きトースト (3s表示) */
+.aniva-toast-auto {
+  animation:
+    aniva-toast-drop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both,
+    aniva-toast-fade-out 0.35s ease-in 3s both;
+  will-change: transform, opacity;
+}
+
+
+/* ================================================================
+   3. キャラクター関連演出 (Character Animations)
+   ================================================================ */
+
+/* キャラカードホバー: 浮遊+影変化 */
+@keyframes aniva-card-float {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-6px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+.aniva-char-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease,
+              opacity 0.3s ease;
+  will-change: transform, box-shadow;
+}
+.aniva-char-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(139, 92, 246, 0.3);
+}
+.aniva-char-card:hover .aniva-char-card-glow {
+  opacity: 1;
+}
+.aniva-char-card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+/* レベルアップ: ゴールドパーティクル爆発+テキストスケール */
+@keyframes aniva-level-up-text {
+  0%   { opacity: 0; transform: scale(0.5); }
+  30%  { opacity: 1; transform: scale(1.2); }
+  50%  { transform: scale(0.95); }
+  65%  { transform: scale(1.05); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1) translateY(-20px); }
+}
+.aniva-level-up-text {
+  animation: aniva-level-up-text 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes aniva-gold-particle {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--px, 40px), var(--py, -60px)) scale(0.3) rotate(var(--pr, 180deg)); }
+}
+.aniva-gold-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd700 0%, #ff9500 60%, transparent 100%);
+  animation: aniva-gold-particle 0.8s ease-out both;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+/* 各パーティクルに --px --py --pr カスタムプロパティを設定してください */
+
+/* XP獲得フロート: 改良版 */
+@keyframes aniva-xp-float {
+  0%   { opacity: 0; transform: translateY(0) scale(0.8); }
+  15%  { opacity: 1; transform: translateY(-4px) scale(1.1); }
+  70%  { opacity: 1; transform: translateY(-28px) scale(1); }
+  100% { opacity: 0; transform: translateY(-48px) scale(0.85); }
+}
+.aniva-xp-float {
+  animation: aniva-xp-float 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform, opacity;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* 感情バッジ: パルスアニメーション */
+@keyframes aniva-emotion-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); }
+  40%       { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(168, 85, 247, 0); }
+}
+.aniva-emotion-badge {
+  animation: aniva-emotion-pulse 2s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+/* ストリーク: 炎のゆらめきエフェクト */
+@keyframes aniva-flame-flicker {
+  0%   { transform: scale(1) rotate(-2deg); filter: brightness(1); }
+  20%  { transform: scale(1.08) rotate(1deg); filter: brightness(1.15); }
+  40%  { transform: scale(0.96) rotate(-1deg); filter: brightness(0.95); }
+  60%  { transform: scale(1.05) rotate(2deg); filter: brightness(1.1); }
+  80%  { transform: scale(0.98) rotate(-1deg); filter: brightness(1.05); }
+  100% { transform: scale(1) rotate(-2deg); filter: brightness(1); }
+}
+.aniva-streak-flame {
+  animation: aniva-flame-flicker 0.9s ease-in-out infinite;
+  will-change: transform, filter;
+  display: inline-block;
+}
+
+@keyframes aniva-streak-glow {
+  0%, 100% { text-shadow: 0 0 8px #ff6b00, 0 0 16px #ff4400; }
+  50%       { text-shadow: 0 0 16px #ffaa00, 0 0 32px #ff6600, 0 0 48px #ff3300; }
+}
+.aniva-streak-text {
+  animation: aniva-streak-glow 1.2s ease-in-out infinite;
+  will-change: text-shadow;
+}
+
+
+/* ================================================================
+   4. ガチャ演出 (Gacha Animations)
+   ================================================================ */
+
+/* カード出現: 3D回転+光の走り */
+@keyframes aniva-gacha-reveal {
+  0%   { opacity: 0; transform: perspective(800px) rotateY(-90deg) scale(0.8); }
+  40%  { opacity: 1; transform: perspective(800px) rotateY(12deg) scale(1.05); }
+  65%  { transform: perspective(800px) rotateY(-6deg) scale(0.98); }
+  80%  { transform: perspective(800px) rotateY(3deg) scale(1.02); }
+  100% { opacity: 1; transform: perspective(800px) rotateY(0deg) scale(1); }
+}
+.aniva-gacha-reveal {
+  animation: aniva-gacha-reveal 0.7s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+  will-change: transform, opacity;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+}
+
+/* カード裏返し */
+@keyframes aniva-card-flip {
+  0%   { transform: perspective(1000px) rotateY(0deg); }
+  50%  { transform: perspective(1000px) rotateY(90deg); }
+  100% { transform: perspective(1000px) rotateY(180deg); }
+}
+.aniva-card-flip-container {
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.aniva-card-flip-front,
+.aniva-card-flip-back {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.aniva-card-flip-back {
+  transform: rotateY(180deg);
+}
+.aniva-card-flipping {
+  animation: aniva-card-flip 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+  will-change: transform;
+}
+
+/* 光の走り (カード上のシャイン効果) */
+@keyframes aniva-card-shine {
+  from { transform: translateX(-100%) skewX(-15deg); }
+  to   { transform: translateX(300%) skewX(-15deg); }
+}
+.aniva-card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.aniva-card-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 60%,
+    transparent 100%
+  );
+  animation: aniva-card-shine 0.8s ease-in-out 0.3s both;
+  will-change: transform;
+}
+
+/* SSR: レインボーグロー */
+@keyframes aniva-ssr-glow {
+  0%   { box-shadow: 0 0 16px 4px #ff0080, 0 0 32px 8px rgba(255, 0, 128, 0.4); }
+  16%  { box-shadow: 0 0 16px 4px #ff8000, 0 0 32px 8px rgba(255, 128, 0, 0.4); }
+  33%  { box-shadow: 0 0 16px 4px #ffff00, 0 0 32px 8px rgba(255, 255, 0, 0.4); }
+  50%  { box-shadow: 0 0 16px 4px #00ff80, 0 0 32px 8px rgba(0, 255, 128, 0.4); }
+  66%  { box-shadow: 0 0 16px 4px #0080ff, 0 0 32px 8px rgba(0, 128, 255, 0.4); }
+  83%  { box-shadow: 0 0 16px 4px #8000ff, 0 0 32px 8px rgba(128, 0, 255, 0.4); }
+  100% { box-shadow: 0 0 16px 4px #ff0080, 0 0 32px 8px rgba(255, 0, 128, 0.4); }
+}
+@keyframes aniva-ssr-border {
+  0%   { border-color: #ff0080; }
+  16%  { border-color: #ff8000; }
+  33%  { border-color: #ffff00; }
+  50%  { border-color: #00ff80; }
+  66%  { border-color: #0080ff; }
+  83%  { border-color: #8000ff; }
+  100% { border-color: #ff0080; }
+}
+.aniva-rarity-ssr {
+  animation: aniva-ssr-glow 2s linear infinite, aniva-ssr-border 2s linear infinite;
+  border: 2px solid #ff0080;
+  will-change: box-shadow, border-color;
+}
+
+/* UR: ゴールドパーティクル+輝き */
+@keyframes aniva-ur-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 20px 6px rgba(255, 215, 0, 0.6),
+      0 0 48px 12px rgba(255, 165, 0, 0.3),
+      inset 0 0 16px rgba(255, 215, 0, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 32px 10px rgba(255, 215, 0, 0.9),
+      0 0 72px 20px rgba(255, 165, 0, 0.5),
+      inset 0 0 24px rgba(255, 215, 0, 0.2);
+  }
+}
+.aniva-rarity-ur {
+  animation: aniva-ur-glow 1.5s ease-in-out infinite;
+  border: 2px solid #ffd700;
+  will-change: box-shadow;
+}
+
+
+/* ================================================================
+   5. コイン・報酬演出 (Coin & Reward Animations)
+   ================================================================ */
+
+/* コイン飛び散り */
+@keyframes aniva-coin-scatter {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  30%  { opacity: 1; transform: translate(var(--cx, 20px), var(--cy, -40px)) scale(1.2) rotate(var(--cr1, 90deg)); }
+  100% { opacity: 0; transform: translate(var(--cx2, 0px), var(--cy2, 60px)) scale(0.4) rotate(var(--cr2, 360deg)); }
+}
+.aniva-coin-scatter {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff8a0, #ffd700 40%, #b8860b);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  animation: aniva-coin-scatter 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* コイン集まる */
+@keyframes aniva-coin-collect {
+  0%   { opacity: 1; transform: translate(var(--cx, 0px), var(--cy, 0px)) scale(1); }
+  100% { opacity: 0; transform: translate(0, 0) scale(0.2); }
+}
+.aniva-coin-collect {
+  animation: aniva-coin-collect 0.5s ease-in 0.6s both;
+  will-change: transform, opacity;
+}
+
+/* コイン+数値カウントアップアニメーション */
+@keyframes aniva-coin-counter-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.4); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.aniva-coin-counter-pop {
+  animation: aniva-coin-counter-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform;
+  display: inline-block;
+}
+
+/* ログインボーナス: スタンプ押しアニメーション */
+@keyframes aniva-stamp {
+  0%   { opacity: 0; transform: scale(2.5) rotate(-12deg); }
+  40%  { opacity: 1; transform: scale(0.88) rotate(4deg); }
+  55%  { transform: scale(1.06) rotate(-2deg); }
+  70%  { transform: scale(0.96) rotate(1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.aniva-stamp {
+  animation: aniva-stamp 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+/* スタンプ後のリング波紋 */
+@keyframes aniva-stamp-ripple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.aniva-stamp-ripple {
+  position: absolute;
+  inset: -4px;
+  border: 2px solid currentColor;
+  border-radius: inherit;
+  animation: aniva-stamp-ripple 0.6s ease-out 0.3s both;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+
+/* ================================================================
+   6. マイクロインタラクション (Micro-interactions)
+   ================================================================ */
+
+/* ボタンタップ: スケールダウン+リリースでバウンス */
+.aniva-btn-tap {
+  transition: transform 0.1s ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.aniva-btn-tap:active {
+  transform: scale(0.93);
+  transition: transform 0.08s ease;
+}
+/* JS側で :active解除後に .aniva-btn-bounce クラスを一時的に付与 */
+@keyframes aniva-btn-bounce {
+  0%   { transform: scale(0.93); }
+  50%  { transform: scale(1.06); }
+  75%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.aniva-btn-bounce {
+  animation: aniva-btn-bounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform;
+}
+
+/* いいね: ハートポップ */
+@keyframes aniva-heart-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  20%  { transform: scale(0.85); }
+  50%  { transform: scale(1.3); }
+  70%  { transform: scale(1.15); }
+  85%  { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.aniva-heart-pop {
+  animation: aniva-heart-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+  display: inline-block;
+}
+
+/* いいね周囲のパーティクル */
+@keyframes aniva-heart-particle {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--hx, 16px), var(--hy, -16px)) scale(0); }
+}
+.aniva-heart-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4d8d;
+  animation: aniva-heart-particle 0.5s ease-out 0.1s both;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* スクロールフェードイン: Intersection Observer用 (改良版) */
+.aniva-scroll-fade {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, opacity;
+}
+.aniva-scroll-fade.aniva-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* ディレイバリアント */
+.aniva-scroll-fade[data-delay="1"] { transition-delay: 0.05s; }
+.aniva-scroll-fade[data-delay="2"] { transition-delay: 0.1s; }
+.aniva-scroll-fade[data-delay="3"] { transition-delay: 0.15s; }
+.aniva-scroll-fade[data-delay="4"] { transition-delay: 0.2s; }
+.aniva-scroll-fade[data-delay="5"] { transition-delay: 0.25s; }
+
+/* スクロールズームイン */
+.aniva-scroll-zoom {
+  opacity: 0;
+  transform: scale(0.94);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+  will-change: transform, opacity;
+}
+.aniva-scroll-zoom.aniva-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+/* ================================================================
+   BONUS: グラデーション・グロー・パーティクルユーティリティ
+   ================================================================ */
+
+/* ゴールドグロー */
+@keyframes aniva-gold-glow {
+  0%, 100% { box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.4); }
+  50%       { box-shadow: 0 0 24px 8px rgba(255, 215, 0, 0.7); }
+}
+.aniva-gold-glow {
+  animation: aniva-gold-glow 1.8s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* 紫パルスグロー */
+@keyframes aniva-purple-glow {
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(139, 92, 246, 0.35); }
+  50%       { box-shadow: 0 0 22px 7px rgba(139, 92, 246, 0.65); }
+}
+.aniva-purple-glow {
+  animation: aniva-purple-glow 2s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* シマーローディング (スケルトン) */
+@keyframes aniva-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.aniva-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.1) 40%,
+    rgba(255,255,255,0.04) 80%
+  );
+  background-size: 200% auto;
+  animation: aniva-shimmer 1.6s linear infinite;
+  will-change: background-position;
+}
+
+/* スピン (ローディング) */
+@keyframes aniva-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.aniva-spin {
+  animation: aniva-spin 0.8s linear infinite;
+  will-change: transform;
+  display: inline-block;
+}
+
+/* 揺れ (エラー通知等) */
+@keyframes aniva-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(5px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(3px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(1px); }
+}
+.aniva-shake {
+  animation: aniva-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  will-change: transform;
+}
+
+
+/* ================================================================
+   prefers-reduced-motion: アクセシビリティ対応
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .aniva-msg-receive,
+  .aniva-msg-send,
+  .aniva-msg-bubble-up,
+  .aniva-page-enter,
+  .aniva-page-exit,
+  .aniva-modal-enter,
+  .aniva-modal-exit,
+  .aniva-toast-enter,
+  .aniva-toast-exit,
+  .aniva-toast-auto,
+  .aniva-level-up-text,
+  .aniva-gold-particle,
+  .aniva-xp-float,
+  .aniva-gacha-reveal,
+  .aniva-card-flipping,
+  .aniva-coin-scatter,
+  .aniva-coin-collect,
+  .aniva-coin-counter-pop,
+  .aniva-stamp,
+  .aniva-stamp-ripple,
+  .aniva-btn-bounce,
+  .aniva-heart-pop,
+  .aniva-heart-particle {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .aniva-typing-indicator .aniva-dot {
+    animation: none !important;
+    opacity: 0.6 !important;
+  }
+
+  .aniva-emotion-badge,
+  .aniva-streak-flame,
+  .aniva-streak-text,
+  .aniva-rarity-ssr,
+  .aniva-rarity-ur,
+  .aniva-gold-glow,
+  .aniva-purple-glow,
+  .aniva-spin,
+  .aniva-shake {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  .aniva-char-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .aniva-scroll-fade,
+  .aniva-scroll-zoom {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .aniva-shimmer {
+    animation: none;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .aniva-card-shine::after {
+    animation: none;
+    display: none;
+  }
+}
