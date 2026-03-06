@@ -46,11 +46,13 @@ function OnboardingInner() {
     if (status === 'loading') return;
     if (!session) {
       // JWT確立直後はsessionがnullの場合がある — 少し待ってリトライ
-      if (authRetries < 3) {
+      // OAuth直後は確立が遅い場合があるため、十分なリトライ回数と間隔を確保
+      if (authRetries < 8) {
+        const delay = authRetries < 3 ? 600 : 1200; // 序盤は速く、後半はゆっくり
         const t = setTimeout(() => {
           setAuthRetries(r => r + 1);
           update(); // セッション再取得
-        }, 800);
+        }, delay);
         return () => clearTimeout(t);
       }
       router.replace('/login');
