@@ -65,6 +65,10 @@ const BASE_PLACEHOLDERS = [
   (_: string) => '推しに伝えたいことは？',
   (name: string) => `${name}と話そう 😊`,
   (_: string) => '一緒に冒険しようぜ！',
+  (_: string) => '「○○が好き」って伝えてみて…',
+  (name: string) => `${name}の秘密、聞いてみる？`,
+  (_: string) => '「ありがとう」って言ってみよう',
+  (name: string) => `${name}の本音、聞けるかも…`,
 ];
 
 interface ChatInputProps {

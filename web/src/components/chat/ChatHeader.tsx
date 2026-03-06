@@ -259,6 +259,24 @@ export function ChatHeader({
             </div>
           )}
         </div>
+        {/* XP プログレスバー */}
+        {relationship && relationship.nextLevelXp !== null && relationship.nextLevelXp > 0 && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${Math.min((relationship.xp / relationship.nextLevelXp) * 100, 100)}%`,
+                  background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
+                  boxShadow: '0 0 6px rgba(139,92,246,0.5)',
+                }}
+              />
+            </div>
+            <span className="text-[9px] text-white/25 flex-shrink-0">
+              Lv.{relationship.level}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 🧠 記憶ペークボタン */}
