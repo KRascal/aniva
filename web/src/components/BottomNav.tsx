@@ -76,20 +76,47 @@ export function BottomNav() {
   }, []);
 
   useEffect(() => {
-    // チャット未読合計数を取得（30秒ごとにポーリング）
-    const fetchChatUnread = async () => {
+    // チャット未読数をクライアント側で計算（localStorageの最終訪問時刻と比較）
+    const calcChatUnread = async () => {
       try {
-        const res = await fetch('/api/chat/unread-count');
-        if (res.ok) {
-          const data = await res.json();
-          setChatUnreadCount(data.count ?? 0);
+        // relationship一覧を取得
+        const res = await fetch('/api/relationship/all');
+        if (!res.ok) return;
+        const data = await res.json();
+        const rels = data.relationships ?? [];
+
+        // proactive未読数
+        let proactiveUnread = 0;
+        try {
+          const pRes = await fetch('/api/proactive-messages');
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            proactiveUnread = (pData.messages ?? []).filter((m: { isRead: boolean }) => !m.isRead).length;
+          }
+        } catch {}
+
+        // 各キャラの未読チェック
+        let unread = 0;
+        for (const rel of rels) {
+          const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
+          if (!lastMsgAt) continue;
+          // キャラからの最新メッセージかチェック
+          const lastMsg = rel.lastMessage;
+          if (!lastMsg || lastMsg.role === 'USER') continue;
+          // localStorageの最終訪問時刻と比較
+          const visitedTs = parseInt(localStorage.getItem(`aniva_chat_visited_${rel.characterId}`) ?? '0', 10);
+          if (lastMsgAt > visitedTs) {
+            unread++;
+          }
         }
+
+        setChatUnreadCount(unread + proactiveUnread);
       } catch {
         // ignore
       }
     };
-    fetchChatUnread();
-    const interval = setInterval(fetchChatUnread, 30_000);
+    calcChatUnread();
+    const interval = setInterval(calcChatUnread, 30_000);
     return () => clearInterval(interval);
   }, []);
 

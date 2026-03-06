@@ -1,6 +1,7 @@
 /**
  * GET /api/chat/unread-count
- * チャット一覧の未読合計数を返す（BottomNavバッジ用）
+ * チャット未読数を返す（BottomNavバッジ用）
+ * 未読 = キャラからの最新メッセージの後にユーザーが返信していない会話
  */
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -12,19 +13,18 @@ export async function GET() {
   if (!userId) return NextResponse.json({ count: 0 });
 
   try {
-    // ユーザーのrelationship一覧（最新メッセージ付き）
+    // ユーザーの全relationship（最新会話の最新2メッセージ取得）
     const relationships = await prisma.relationship.findMany({
       where: { userId },
       select: {
         characterId: true,
-        lastMessageAt: true,
         conversations: {
           orderBy: { updatedAt: 'desc' },
           take: 1,
           select: {
             messages: {
               orderBy: { createdAt: 'desc' },
-              take: 1,
+              take: 2,
               select: { role: true, createdAt: true },
             },
           },
@@ -41,17 +41,18 @@ export async function GET() {
       },
     });
 
-    // 各キャラの未読チェック（lastVisitはlocalStorageなのでサーバーでは概算）
-    // キャラからの最新メッセージが存在する = 未読の可能性あり
     let chatUnread = 0;
     for (const rel of relationships) {
       const lastConv = rel.conversations[0];
       if (!lastConv?.messages[0]) continue;
-      const lastMsg = lastConv.messages[0];
-      if (lastMsg.role === 'CHARACTER') {
-        // キャラからの最新メッセージ → 未読カウント
+      const msgs = lastConv.messages; // [newest, second-newest]
+      
+      // 最新メッセージがキャラからで、かつその後にユーザーの返信がない = 未読
+      if (msgs[0].role === 'CHARACTER') {
+        // 最新がCHARACTER → 未読
         chatUnread++;
       }
+      // 最新がUSER → 既読（ユーザーが返信済み）
     }
 
     return NextResponse.json({
