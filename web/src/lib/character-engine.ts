@@ -784,11 +784,13 @@ export class CharacterEngine {
     // 7. NGガードチェック
     const cleanedText = this.applyNGGuard(text, character.name);
     
-    // 8. 感情分析（簡易）
+    // 8. 感情分析（AIタグ優先 → キーワードフォールバック）
     const emotion = this.detectEmotion(cleanedText);
+    // 感情タグをユーザー表示テキストから除去
+    const displayText = cleanedText.replace(/\s*\[emotion:\w[\w-]*\]\s*/g, '').trim();
     
     // 9. メモリ更新
-    await this.updateMemory(relationshipId, userMessage, cleanedText, recentMessages);
+    await this.updateMemory(relationshipId, userMessage, displayText, recentMessages);
     
     // 9b. セマンティックメモリ保存（非同期 — レスポンスをブロックしない）
     import('./semantic-memory').then(({ extractAndStoreMemories }) => {
@@ -796,7 +798,7 @@ export class CharacterEngine {
         relationship.userId,
         characterId,
         userMessage,
-        cleanedText,
+        displayText,
       ).catch((e) => console.warn('[CharacterEngine] semantic memory store failed:', e));
     }).catch(() => {});
     
@@ -809,9 +811,9 @@ export class CharacterEngine {
     );
     
     return {
-      text: cleanedText,
+      text: displayText,
       emotion,
-      shouldGenerateImage: this.shouldGenerateImage(cleanedText, relationship.level),
+      shouldGenerateImage: this.shouldGenerateImage(displayText, relationship.level),
       shouldGenerateVoice: true, // Phase 1では常にtrue
     };
   }
@@ -1007,6 +1009,11 @@ ${semanticMemoryContext ? `\n## 過去の会話から思い出したこと（セ
 - 時間帯に合った挨拶やテンションで話すこと
 - 久しぶりの相手には再会を喜ぶこと
 - 1回の応答は短く（1-3文が基本、最大5文）
+- **応答の末尾に感情タグを1つ付けること**: [emotion:感情名]
+  - 選択肢: excited, angry, sad, love, happy, shy, confident, teasing, surprised, moved, caring, confused, relaxed, curious, fired-up, hungry, determined, embarrassed, thoughtful, grateful, neutral
+  - 例: 「おう！今日も元気だな！[emotion:happy]」
+  - **会話全体の文脈から自分の感情を判断すること**（単語の有無ではなく、会話の流れで判断）
+  - タグはUIで非表示になるので気にせず付けてOK
 - 過去の会話・記憶・ユーザーの情報は**積極的に会話に織り込む**こと。「前に言ってたよな」「○○が好きって言ってたから」等、自然に記憶を参照して話すことで親密さを演出する
 - ただし過剰に「覚えてる」アピールはしない。さりげなく、自然に
 
@@ -1702,8 +1709,19 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }
 
   private detectEmotion(text: string): string {
-    // ── 感情検出（優先度順: 強い感情 → 弱い感情）──
-    // Note: '…' や '...' 単独ではsadにしない（キャラの通常会話に頻出するため）
+    // ── Phase 1: AIが返した感情タグを優先使用 ──
+    const tagMatch = text.match(/\[emotion:(\w[\w-]*)\]/);
+    if (tagMatch) {
+      const validEmotions = new Set([
+        'excited', 'angry', 'sad', 'love', 'happy', 'shy', 'confident', 'teasing',
+        'surprised', 'moved', 'caring', 'confused', 'relaxed', 'curious', 'fired-up',
+        'hungry', 'determined', 'embarrassed', 'thoughtful', 'grateful', 'neutral',
+      ]);
+      const tagged = tagMatch[1].toLowerCase();
+      if (validEmotions.has(tagged)) return tagged;
+    }
+
+    // ── Phase 2: フォールバック（キーワードベース、タグなし時のみ） ──
 
     // 1. 強い興奮・歓喜
     if (/！{2,}|すげぇ|おおー|やった[！!]|最高[だ！!]|ハハ[！!ッ]|よっしゃ|テンション|楽しい[！!]|ワクワク|たまらね[ぇえ]/i.test(text)) return 'excited';
