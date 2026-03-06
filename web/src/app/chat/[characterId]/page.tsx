@@ -1792,10 +1792,10 @@ export default function ChatCharacterPage() {
       {proactiveMessages.filter(m => m.characterId === characterId && !m.isRead).map(msg => (
         <div
           key={msg.id}
-          className="mx-3 my-1 p-2.5 bg-purple-900/40 border border-purple-500/30 rounded-2xl cursor-pointer hover:bg-purple-900/50 transition-colors"
+          className="mx-3 my-1 p-2.5 bg-purple-900/30 border border-purple-500/20 rounded-2xl cursor-pointer hover:bg-purple-900/50 transition-colors"
           onClick={async () => { await markProactiveRead(msg.id); }}
         >
-          <p className="text-sm text-purple-200">{msg.content}</p>
+          <p className="text-[13px] text-purple-200/80">{msg.content}</p>
           <CountdownTimer expiresAt={msg.expiresAt} className="mt-1" />
         </div>
       ))}
