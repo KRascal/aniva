@@ -42,9 +42,10 @@ const INLINE_STORIES: Omit<StoryItem, 'avatarUrl' | 'coverUrl'>[] = [
   { slug: 'giyu', name: '義勇', franchise: '鬼滅の刃', activity: '錆兎の分まで生きる。それが俺にできること', chatPrompt: '…俺は嫌われていない', timeAgo: '22分前' },
 ];
 
-function InstaStoriesBar({ onOpenStory }: { onOpenStory: (index: number) => void }) {
+function InstaStoriesBar({ onOpenStory, activeTab }: { onOpenStory: (index: number) => void; activeTab: 'recommend' | 'following' }) {
   const [charMap, setCharMap] = useState<Record<string, { avatarUrl: string }>>({});
   const [viewedSlugs, setViewedSlugs] = useState<Set<string>>(new Set());
+  const [followingSlugs, setFollowingSlugs] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     // Load viewed state
@@ -53,6 +54,7 @@ function InstaStoriesBar({ onOpenStory }: { onOpenStory: (index: number) => void
       setViewedSlugs(new Set(v));
     } catch { /* ignore */ }
 
+    // 全キャラのavatar取得
     fetch('/api/characters')
       .then((r) => r.json())
       .then((data) => {
@@ -61,19 +63,37 @@ function InstaStoriesBar({ onOpenStory }: { onOpenStory: (index: number) => void
         setCharMap(m);
       })
       .catch(() => {});
+
+    // フォロー中キャラのslug取得
+    fetch('/api/characters?followingOnly=true')
+      .then((r) => r.json())
+      .then((data) => {
+        const slugs = new Set<string>((data.characters ?? []).map((c: { slug: string }) => c.slug));
+        setFollowingSlugs(slugs);
+      })
+      .catch(() => setFollowingSlugs(new Set()));
   }, []);
+
+  // タブに応じてストーリーズをフィルタリング
+  const visibleStories = activeTab === 'following' && followingSlugs !== null
+    ? INLINE_STORIES.filter((s) => followingSlugs.has(s.slug))
+    : INLINE_STORIES;
 
   return (
     <div className="bg-gray-950 border-b border-white/5 overflow-hidden max-w-lg mx-auto">
       <div className="flex gap-3 overflow-x-auto py-3 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {INLINE_STORIES.map((story, i) => {
+        {visibleStories.length === 0 && activeTab === 'following' ? (
+          <div className="text-white/30 text-xs py-2 px-2">フォロー中のキャラのストーリーがここに表示されます</div>
+        ) : visibleStories.map((story, i) => {
           const avatar = charMap[story.slug]?.avatarUrl;
           const viewed = viewedSlugs.has(story.slug);
+          // StoryViewerはINLINE_STORIES全体を受け取るので元のindexを渡す
+          const originalIndex = INLINE_STORIES.findIndex((s) => s.slug === story.slug);
           return (
             <button
               key={story.slug}
               onClick={() => {
-                onOpenStory(i);
+                onOpenStory(originalIndex);
                 // Mark as viewed
                 setViewedSlugs((prev) => {
                   const next = new Set(prev);
@@ -644,7 +664,7 @@ export default function MomentsPage() {
 
         {/* Instagram風ストーリーズバー — 常に表示 */}
         <div className="max-w-lg mx-auto">
-          <InstaStoriesBar onOpenStory={(i) => setStoryViewerIndex(i)} />
+          <InstaStoriesBar onOpenStory={(i) => setStoryViewerIndex(i)} activeTab={activeTab} />
         </div>
 
         <main
