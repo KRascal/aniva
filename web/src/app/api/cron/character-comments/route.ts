@@ -254,11 +254,134 @@ export async function GET(req: NextRequest) {
       console.error('Reply chain generation error:', err);
     }
 
+    // ──────────────────────────────────────────────────
+    // Phase 2.5: 投稿主キャラ → ユーザーコメントへの返信
+    // ユーザーがMomentにコメントした場合、投稿主キャラが高確率で返信
+    // ──────────────────────────────────────────────────
+    const MAX_OWNER_REPLIES = 3;
+    let ownerReplyCount = 0;
+
+    try {
+      // 24h以内のMomentsでユーザーコメントがあるものを取得
+      const momentsWithUserComments = await prisma.moment.findMany({
+        where: {
+          publishedAt: { gte: since },
+          comments: {
+            some: {
+              userId: { not: null }, // ユーザーコメントあり
+              characterId: null,     // キャラコメントではない
+              parentCommentId: null, // トップレベルのみ
+            },
+          },
+        },
+        select: {
+          id: true,
+          characterId: true,
+          character: { select: { id: true, name: true, systemPrompt: true } },
+          comments: {
+            where: {
+              userId: { not: null },
+              characterId: null,
+              parentCommentId: null,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: {
+              id: true,
+              content: true,
+              userId: true,
+              user: { select: { nickname: true, displayName: true, name: true } },
+              // 既に投稿主キャラが返信済みか確認用
+              replies: {
+                where: { characterId: { not: null } },
+                select: { id: true, characterId: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+
+      // シャッフル
+      const shuffledMoments = momentsWithUserComments.sort(() => Math.random() - 0.5);
+
+      for (const moment of shuffledMoments) {
+        if (ownerReplyCount >= MAX_OWNER_REPLIES) break;
+
+        const ownerChar = moment.character;
+        if (!ownerChar) continue;
+
+        // 投稿主キャラがまだ返信していないコメントを探す
+        const unrepliedComments = moment.comments.filter(
+          (c) => !c.replies.some((r) => r.characterId === ownerChar.id)
+        );
+        if (unrepliedComments.length === 0) continue;
+
+        // 最新のコメントに返信（確率70%）
+        if (Math.random() > 0.7) continue;
+        const targetComment = unrepliedComments[0];
+
+        try {
+          const systemPromptCore = (ownerChar.systemPrompt || '').split(/\n##/)[0].trim();
+          const userName = targetComment.user?.nickname || targetComment.user?.displayName || targetComment.user?.name || 'ユーザー';
+          const systemMessage = `${systemPromptCore}\n\n重要: 自分のSNS投稿へのコメントへの返信として自然な1〜2文のみを出力せよ。`;
+          const userMessage = `${userName}が「${targetComment.content?.slice(0, 100)}」とコメントしてくれた。${ownerChar.name}らしく返信してください。`;
+
+          const rawContent = await generateText(systemMessage, userMessage);
+          if (!rawContent) continue;
+
+          const content = cleanGeneratedText(rawContent);
+          if (!content) continue;
+
+          await prisma.momentComment.create({
+            data: {
+              momentId: moment.id,
+              characterId: ownerChar.id,
+              userId: null,
+              content,
+              parentCommentId: targetComment.id,
+            },
+          });
+
+          generated.push({
+            momentId: moment.id,
+            commenterName: ownerChar.name,
+            content,
+            isReply: true,
+            parentCommentId: targetComment.id,
+          });
+          ownerReplyCount++;
+
+          // ユーザーにプッシュ通知（オプション）
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3061';
+          const internalSecret = process.env.INTERNAL_SECRET || '';
+          fetch(`${baseUrl}/api/push/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': internalSecret,
+            },
+            body: JSON.stringify({
+              userId: targetComment.userId,
+              title: `${ownerChar.name}があなたのコメントに返信しました`,
+              body: content.slice(0, 80),
+              url: `/moments`,
+            }),
+          }).catch(() => {});
+        } catch (err) {
+          console.error(`Owner reply generation failed for ${ownerChar.name}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Phase 2.5 owner reply error:', err);
+    }
+
     return NextResponse.json({
       success: true,
       generated,
       count: generated.length,
       replyCount,
+      ownerReplyCount,
     });
   } catch (err) {
     console.error('Cron character-comments error:', err);
