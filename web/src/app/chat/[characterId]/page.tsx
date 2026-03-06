@@ -503,6 +503,7 @@ export default function ChatCharacterPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   /** 送信フライト中フラグ（delay中のダブル送信防止） */
   const inFlightRef = useRef(false);
+  const pendingAutoSendRef = useRef(false);
 
   /* ─────────── 音声ミニプレーヤー制御 ─────────── */
   const handleAudioToggle = useCallback((messageId: string, audioUrl: string) => {
@@ -544,11 +545,12 @@ export default function ChatCharacterPage() {
     const truncated = topicParam.slice(0, 100);
     setTopicText(truncated);
 
-    // ストーリーから来た場合: キャラの名シーンに紐づく自然な会話スターター
+    // ストーリーから来た場合: ワンタップで自動送信（チュートリアルもスキップ）
     const fromStory = searchParams.get('fromStory') === '1';
     if (fromStory) {
-      setInputText(`「${truncated}」…その話、もっと聞かせて`);
-      // チュートリアルをスキップ（ストーリー経由は既にチャットへの導線が成立）
+      const autoMsg = `「${truncated}」…その話、もっと聞かせて`;
+      setInputText(autoMsg);
+      // チュートリアルをスキップ
       try {
         const stored = localStorage.getItem('aniva_tutorial_v1');
         if (stored) {
@@ -561,6 +563,10 @@ export default function ChatCharacterPage() {
           localStorage.setItem('aniva_tutorial_v1', JSON.stringify({ step: 6 }));
         }
       } catch { /* ignore */ }
+      // 自動送信フラグをセット（useEffectで送信）
+      pendingAutoSendRef.current = true;
+      setTopicCardVisible(false);
+      return; // topicカードは表示しない — 即送信
     } else {
       setInputText(`${character.name}のモーメントの「${truncated}」について話したいんだけど`);
     }
@@ -1068,6 +1074,18 @@ export default function ChatCharacterPage() {
       inputRef.current?.focus();
     }
   };
+
+  /* ── ストーリーからの自動送信（pendingAutoSendRef） ── */
+  useEffect(() => {
+    if (pendingAutoSendRef.current && inputText.trim() && userId && !inFlightRef.current) {
+      pendingAutoSendRef.current = false;
+      // 少し待ってから送信（UIレンダリング完了後）
+      const timer = setTimeout(() => {
+        sendMessage();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [inputText, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── 送信ボタンクリック（バウンスアニメ付き） ── */
   const openMemoryPeek = async () => {

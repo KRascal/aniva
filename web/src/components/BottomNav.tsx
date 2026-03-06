@@ -166,12 +166,9 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               {proactiveCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none border-2 border-gray-950">
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none border-2 border-gray-950 animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 3 }}>
                   {proactiveCount > 9 ? '9+' : proactiveCount}
                 </span>
-              )}
-              {!isChat && proactiveCount === 0 && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-gray-950 animate-pulse" />
               )}
             </div>
             <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-400'}`}>{t('chat')}</span>
