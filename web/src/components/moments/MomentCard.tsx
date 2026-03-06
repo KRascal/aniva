@@ -325,8 +325,10 @@ export function MomentCard({
 
   // コメント投稿後のライブポーリング（キャラ返信を5秒×3回チェック）
   async function pollForCharacterReplies(times: number) {
+    // キャラ返信は3〜8秒後に来る。5秒後に初回チェック、以降10秒間隔
+    const delays = [5000, 10000, 10000, 15000, 15000];
     for (let i = 0; i < times; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, delays[i] ?? 10000));
       await fetchComments();
     }
   }
@@ -352,7 +354,7 @@ export function MomentCard({
         }
         fetchComments();
         // キャラが返信してくれる可能性があるので5秒×3回ポーリング
-        pollForCharacterReplies(3);
+        pollForCharacterReplies(5);
         // デイリーミッション: moment_comment 自動完了（1セッション1回）
         if (!isReply && !sessionStorage.getItem('mission_triggered_moment_comment')) {
           sessionStorage.setItem('mission_triggered_moment_comment', '1');

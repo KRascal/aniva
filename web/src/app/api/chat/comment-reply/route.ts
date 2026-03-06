@@ -187,10 +187,10 @@ export async function POST(req: NextRequest) {
 
     const scheduled: string[] = [];
 
-    // 投稿キャラ: 70%確率で返信、1〜5分ディレイ
+    // 投稿キャラ: 100%即返信（3〜8秒ディレイ — 人間らしい間を演出）
     const momentChar = moment.character;
-    if (Math.random() < 0.7) {
-      const delayMs = (60 + Math.floor(Math.random() * 4 * 60)) * 1000; // 1〜5分
+    {
+      const delayMs = (3 + Math.floor(Math.random() * 5)) * 1000; // 3〜8秒
       await scheduleReply({
         characterId: momentChar.id,
         characterName: momentChar.name,
@@ -205,10 +205,10 @@ export async function POST(req: NextRequest) {
       scheduled.push(`${momentChar.name} (${Math.round(delayMs / 1000)}s)`);
     }
 
-    // 既存コメントキャラ: 各30%確率で返信、2〜10分ディレイ
+    // 既存コメントキャラ: 各40%確率で返信、10〜30秒ディレイ
     for (const char of otherChars) {
-      if (Math.random() < 0.3) {
-        const delayMs = (2 * 60 + Math.floor(Math.random() * 8 * 60)) * 1000; // 2〜10分
+      if (Math.random() < 0.4) {
+        const delayMs = (10 + Math.floor(Math.random() * 20)) * 1000; // 10〜30秒
         await scheduleReply({
           characterId: char.id,
           characterName: char.name,
