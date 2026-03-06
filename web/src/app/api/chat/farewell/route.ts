@@ -55,6 +55,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: '', shouldSend: false });
     }
 
+    // 同じ会話で直近1時間以内にfarewell送信済みならスキップ
+    if (conversation) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentFarewell = await prisma.message.findFirst({
+        where: {
+          conversationId: conversation.id,
+          role: 'CHARACTER',
+          metadata: { path: ['type'], equals: 'farewell' },
+          createdAt: { gte: oneHourAgo },
+        },
+      });
+      if (recentFarewell) {
+        return NextResponse.json({ message: '', shouldSend: false });
+      }
+    }
+
     const streak = await getStreak(relationshipId);
     const characterSlug = relationship.character?.slug ?? 'luffy';
     const mood: Mood = relationship.level >= 5 ? 'high' : relationship.level >= 3 ? 'normal' : 'low';
@@ -66,6 +82,22 @@ export async function POST(req: Request) {
       streakDays: streak.streakDays,
       level: relationship.level,
     });
+
+    // DB保存（CHARACTER発言として記録、次回ロード時にも表示される）
+    if (conversation) {
+      try {
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: message,
+            metadata: { type: 'farewell', timeSlot: getTimeSlot() },
+          },
+        });
+      } catch (dbErr) {
+        console.warn('[chat/farewell] DB save failed (non-critical):', dbErr);
+      }
+    }
 
     return NextResponse.json({ message, shouldSend: true });
   } catch (error) {

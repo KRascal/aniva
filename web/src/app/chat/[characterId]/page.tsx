@@ -17,6 +17,7 @@ import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 import { getCharacterTheme } from '@/lib/character-themes';
 import { WelcomeBackModal } from '@/components/chat/WelcomeBackModal';
+import { WelcomeBackOverlay } from '@/components/chat/WelcomeBackOverlay';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatMenu } from '@/components/chat/ChatMenu';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -25,6 +26,8 @@ import { rollRandomEvent, type RandomEvent } from '@/lib/random-events';
 import { PushNotificationSetup } from '@/components/push/PushNotificationSetup';
 import { useProactiveMessages } from '@/hooks/useProactiveMessages';
 import { CountdownTimer } from '@/components/proactive/CountdownTimer';
+import { useConversationEnd } from '@/hooks/useConversationEnd';
+import { EndingMessage } from '@/components/chat/EndingMessage';
 
 /* ─────────────── ユーティリティ ─────────────── */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -326,6 +329,30 @@ export default function ChatCharacterPage() {
 
   /* ── プロアクティブメッセージ ── */
   const { messages: proactiveMessages, unreadCount: proactiveUnread, markAsRead: markProactiveRead } = useProactiveMessages();
+
+  /* ── エンディングメッセージ（ピークエンドの法則） ── */
+  const [endingMessage, setEndingMessage] = useState<{ content: string } | null>(null);
+
+  const { onUserMessage: onUserMsgSent } = useConversationEnd({
+    relationshipId: relationshipId,
+    onEndingMessage: (msg) => {
+      setEndingMessage({ content: msg.content });
+      // メッセージリストにも追加
+      const endMsg: Message = {
+        id: msg.id,
+        role: 'CHARACTER',
+        content: msg.content,
+        createdAt: msg.createdAt,
+        metadata: { emotion: msg.metadata?.emotion ?? 'warm', isFarewell: true },
+      };
+      setMessages((prev) => {
+        // 重複防止
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, endMsg];
+      });
+    },
+    disabled: !relationshipId,
+  });
   const charProactiveUnread = proactiveMessages.filter(
     (m) => m.characterId === characterId && !m.isRead
   ).length;
@@ -940,6 +967,9 @@ export default function ChatCharacterPage() {
         generateVoiceForMessage(finalCharMsgId, streamingText, characterId);
       }
 
+      // エンディングタイマーリセット（ユーザーがメッセージ送信するたびに5分タイマーを再スタート）
+      onUserMsgSent();
+
       // 本日送信数インクリメント（Free plan 表示・後方互換）
       setTodayMsgCount((prev) => {
         const next = prev + 1;
@@ -1541,14 +1571,13 @@ export default function ChatCharacterPage() {
         </div>
       )}
 
-      {/* 復帰時演出モーダル */}
+      {/* 復帰時演出オーバーレイ（WelcomeBackOverlay: 改善版） */}
       {showWelcomeBack && character && (
-        <WelcomeBackModal
+        <WelcomeBackOverlay
           characterName={character.name}
-          characterAvatar={character.avatarUrl}
-          characterSlug={character.slug ?? ''}
+          characterAvatarUrl={character.avatarUrl ?? null}
           daysSinceLastChat={daysSinceLastChat}
-          onClose={() => setShowWelcomeBack(false)}
+          onDismiss={() => setShowWelcomeBack(false)}
         />
       )}
 
@@ -1788,6 +1817,21 @@ export default function ChatCharacterPage() {
         onFcClick={() => setShowFcModal(true)}
         onReaction={handleReaction}
       />
+
+      {/* ══════════════ エンディングメッセージ（ピークエンドの法則） ══════════════ */}
+      {endingMessage && character && (
+        <div className="px-4 pb-2">
+          <EndingMessage
+            content={endingMessage.content}
+            characterName={character.name}
+            characterAvatarUrl={character.avatarUrl}
+            onAnimationComplete={() => {
+              // 5秒後に自然消去
+              setTimeout(() => setEndingMessage(null), 5000);
+            }}
+          />
+        </div>
+      )}
 
       {/* ══════════════ 入力エリア ══════════════ */}
       {/* プッシュ通知バナー — チャット開始後15秒で表示 */}
