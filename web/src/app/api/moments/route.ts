@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const characterId = url.searchParams.get('characterId') ?? undefined;
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 50);
     const cursor = url.searchParams.get('cursor') ?? undefined;
+    const mode = url.searchParams.get('mode') ?? 'following'; // 'following' | 'recommend'
 
     const now = new Date();
 
@@ -20,6 +21,8 @@ export async function GET(req: NextRequest) {
     let followingCharacterIds: string[] | null = null; // null = フィルタなし（characterId指定時）
     // FC加入状態: characterId → true/false
     const fcSubscribedCharacterIds: Set<string> = new Set();
+    // フォロー中キャラのSet（おすすめモードでisFollowingを返すため）
+    const followingSet: Set<string> = new Set();
 
     if (userId) {
       const user = await prisma.user.findUnique({
@@ -34,6 +37,7 @@ export async function GET(req: NextRequest) {
       });
       for (const r of relationships) {
         userRelationships[r.characterId] = r.level;
+        if (r.isFollowing) followingSet.add(r.characterId);
       }
 
       // CharacterSubscription（FC加入状態）を取得
@@ -49,8 +53,8 @@ export async function GET(req: NextRequest) {
         fcSubscribedCharacterIds.add(sub.characterId);
       }
 
-      // characterId 未指定の場合はフォロー中のキャラのみ
-      if (!characterId) {
+      // characterId 未指定 かつ followingモードの場合はフォロー中のキャラのみ
+      if (!characterId && mode !== 'recommend') {
         followingCharacterIds = relationships
           .filter((r: { characterId: string; level: number; isFollowing: boolean }) => r.isFollowing)
           .map((r: { characterId: string; level: number; isFollowing: boolean }) => r.characterId);
@@ -62,6 +66,8 @@ export async function GET(req: NextRequest) {
       where: {
         ...(characterId
           ? { characterId }
+          : mode === 'recommend'
+          ? { visibility: 'PUBLIC' } // おすすめモード: PUBLIC投稿のみ、フォロー関係なし
           : followingCharacterIds !== null
           ? { characterId: { in: followingCharacterIds } }
           : {}),
@@ -132,6 +138,8 @@ export async function GET(req: NextRequest) {
         userHasLiked,
         isLocked,
         commentCount: moment._count.comments,
+        // おすすめモード時: フォロー状態を含める
+        isFollowing: mode === 'recommend' ? followingSet.has(moment.characterId) : undefined,
       };
     });
 

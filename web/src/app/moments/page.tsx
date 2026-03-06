@@ -117,60 +117,116 @@ function SkeletonCard() {
   );
 }
 
+/* ── Tab type ── */
+type TabMode = 'recommend' | 'following';
+
 /* ────────────────────────────────── page ── */
 
 export default function MomentsPage() {
   const { data: session } = useSession();
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+
+  // タブ状態
+  const [activeTab, setActiveTab] = useState<TabMode>('recommend');
+
+  // 「おすすめ」タブ用
+  const [recommendMoments, setRecommendMoments] = useState<Moment[]>([]);
+  const [recommendNextCursor, setRecommendNextCursor] = useState<string | null>(null);
+  const [recommendLoading, setRecommendLoading] = useState(true);
+  const [recommendLoadingMore, setRecommendLoadingMore] = useState(false);
+
+  // 「フォロー中」タブ用
+  const [followingMoments, setFollowingMoments] = useState<Moment[]>([]);
+  const [followingNextCursor, setFollowingNextCursor] = useState<string | null>(null);
+  const [followingLoading, setFollowingLoading] = useState(false);
+  const [followingLoadingMore, setFollowingLoadingMore] = useState(false);
+  const [isFollowingNone, setIsFollowingNone] = useState(false);
+  const [followingFetched, setFollowingFetched] = useState(false);
+
+  // 共通
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
-  const [isFollowingNone, setIsFollowingNone] = useState(false);
   const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
 
+  // スワイプ検知
+  const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
-  const fetchMoments = useCallback(async (cursor?: string) => {
+  /* ── fetch helpers ── */
+  const fetchRecommend = useCallback(async (cursor?: string) => {
+    const params = new URLSearchParams({ limit: '20', mode: 'recommend' });
+    if (cursor) params.set('cursor', cursor);
+    const res = await fetch(`/api/moments?${params}`);
+    if (!res.ok) return null;
+    return res.json() as Promise<{ moments: Moment[]; nextCursor: string | null }>;
+  }, []);
+
+  const fetchFollowing = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
     if (cursor) params.set('cursor', cursor);
-
     const res = await fetch(`/api/moments?${params}`);
     if (!res.ok) return null;
     return res.json() as Promise<{ moments: Moment[]; nextCursor: string | null; isFollowingNone?: boolean }>;
   }, []);
 
+  /* ── initial load: recommend ── */
   useEffect(() => {
-    setLoading(true);
-    fetchMoments().then((data) => {
+    setRecommendLoading(true);
+    fetchRecommend().then((data) => {
       if (data) {
-        setMoments(data.moments);
-        setNextCursor(data.nextCursor);
-        setIsFollowingNone(data.isFollowingNone ?? false);
+        setRecommendMoments(data.moments);
+        setRecommendNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setRecommendLoading(false);
     });
-  }, [fetchMoments]);
+  }, [fetchRecommend]);
 
+  /* ── lazy load following tab on first switch ── */
+  useEffect(() => {
+    if (activeTab === 'following' && !followingFetched) {
+      setFollowingLoading(true);
+      fetchFollowing().then((data) => {
+        if (data) {
+          setFollowingMoments(data.moments);
+          setFollowingNextCursor(data.nextCursor);
+          setIsFollowingNone(data.isFollowingNone ?? false);
+        }
+        setFollowingLoading(false);
+        setFollowingFetched(true);
+      });
+    }
+  }, [activeTab, followingFetched, fetchFollowing]);
+
+  /* ── refresh ── */
   const handleRefresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     setShowRefreshHint(true);
-    const data = await fetchMoments();
-    if (data) {
-      setMoments(data.moments);
-      setNextCursor(data.nextCursor);
-      setIsFollowingNone(data.isFollowingNone ?? false);
+
+    if (activeTab === 'recommend') {
+      const data = await fetchRecommend();
+      if (data) {
+        setRecommendMoments(data.moments);
+        setRecommendNextCursor(data.nextCursor);
+      }
+    } else {
+      const data = await fetchFollowing();
+      if (data) {
+        setFollowingMoments(data.moments);
+        setFollowingNextCursor(data.nextCursor);
+        setIsFollowingNone(data.isFollowingNone ?? false);
+      }
     }
+
     setRefreshing(false);
     setTimeout(() => setShowRefreshHint(false), 300);
-  }, [refreshing, fetchMoments]);
+  }, [refreshing, activeTab, fetchRecommend, fetchFollowing]);
 
+  /* ── pull-to-refresh touch ── */
   const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
     if (mainRef.current?.scrollTop === 0) {
       touchStartY.current = e.touches[0].clientY;
     }
@@ -184,58 +240,98 @@ export default function MomentsPage() {
     }
   };
 
-  const handleTouchEnd = () => {
-    if (showRefreshHint && !refreshing) {
-      handleRefresh();
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // スワイプ切り替え
+    if (touchStartX.current !== null) {
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = touchStartY.current !== null
+        ? Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+        : 0;
+
+      if (Math.abs(dx) > 50 && Math.abs(dx) > dy) {
+        // 横スワイプ優先
+        if (dx < -50 && activeTab === 'recommend') {
+          // 左スワイプ → フォロー中
+          setActiveTab('following');
+          setActiveCharacterId(null);
+        } else if (dx > 50 && activeTab === 'following') {
+          // 右スワイプ → おすすめ
+          setActiveTab('recommend');
+          setActiveCharacterId(null);
+        }
+      }
     }
+
+    // pull-to-refresh
+    if (showRefreshHint && !refreshing && touchStartY.current !== null) {
+      const dy = e.changedTouches[0].clientY - (touchStartY.current ?? 0);
+      if (dy > 60) handleRefresh();
+    }
+
+    touchStartX.current = null;
     touchStartY.current = null;
   };
 
-  const handleLoadMore = async () => {
-    if (!nextCursor) return;
-    setLoadingMore(true);
-    const data = await fetchMoments(nextCursor);
+  /* ── load more ── */
+  const handleLoadMoreRecommend = async () => {
+    if (!recommendNextCursor) return;
+    setRecommendLoadingMore(true);
+    const data = await fetchRecommend(recommendNextCursor);
     if (data) {
-      setMoments((prev) => [...prev, ...data.moments]);
-      setNextCursor(data.nextCursor);
+      setRecommendMoments((prev) => [...prev, ...data.moments]);
+      setRecommendNextCursor(data.nextCursor);
     }
-    setLoadingMore(false);
+    setRecommendLoadingMore(false);
   };
 
-  const handleLike = async (momentId: string) => {
-    if (!session?.user) return;
+  const handleLoadMoreFollowing = async () => {
+    if (!followingNextCursor) return;
+    setFollowingLoadingMore(true);
+    const data = await fetchFollowing(followingNextCursor);
+    if (data) {
+      setFollowingMoments((prev) => [...prev, ...data.moments]);
+      setFollowingNextCursor(data.nextCursor);
+    }
+    setFollowingLoadingMore(false);
+  };
 
-    setMoments((prev) =>
+  /* ── like ── */
+  const handleLike = (momentId: string) => {
+    if (!session?.user) return;
+    const updater = (prev: Moment[]) =>
       prev.map((m) => {
         if (m.id !== momentId) return m;
         const liked = !m.userHasLiked;
         return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
-      })
-    );
-
-    try {
-      const res = await fetch(`/api/moments/${momentId}/react`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'like' }),
       });
-      if (res.ok) {
-        const { liked, reactionCount } = await res.json();
-        setMoments((prev) =>
-          prev.map((m) => (m.id === momentId ? { ...m, userHasLiked: liked, reactionCount } : m))
-        );
-      }
-    } catch {
-      setMoments((prev) =>
-        prev.map((m) => {
-          if (m.id !== momentId) return m;
-          const liked = !m.userHasLiked;
-          return { ...m, userHasLiked: liked, reactionCount: liked ? m.reactionCount + 1 : m.reactionCount - 1 };
-        })
-      );
-    }
+    setRecommendMoments(updater);
+    setFollowingMoments(updater);
+
+    fetch(`/api/moments/${momentId}/react`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'like' }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const { liked, reactionCount } = await res.json();
+          const sync = (prev: Moment[]) =>
+            prev.map((m) => (m.id === momentId ? { ...m, userHasLiked: liked, reactionCount } : m));
+          setRecommendMoments(sync);
+          setFollowingMoments(sync);
+        }
+      })
+      .catch(() => {});
   };
 
+  /* ── follow change callback (おすすめタブ) ── */
+  const handleFollowChange = (characterId: string, following: boolean) => {
+    setRecommendMoments((prev) =>
+      prev.map((m) => (m.characterId === characterId ? { ...m, isFollowing: following } : m))
+    );
+  };
+
+  /* ── seed ── */
   const handleSeed = async () => {
     setSeeding(true);
     setSeedMessage('');
@@ -244,10 +340,10 @@ export default function MomentsPage() {
       const data = await res.json();
       if (res.ok) {
         setSeedMessage(`✅ ${data.message}`);
-        const fresh = await fetchMoments();
+        const fresh = await fetchRecommend();
         if (fresh) {
-          setMoments(fresh.moments);
-          setNextCursor(fresh.nextCursor);
+          setRecommendMoments(fresh.moments);
+          setRecommendNextCursor(fresh.nextCursor);
         }
       } else {
         setSeedMessage(`❌ ${data.error}`);
@@ -257,6 +353,16 @@ export default function MomentsPage() {
     }
     setSeeding(false);
   };
+
+  /* ── derived ── */
+  const currentMoments = activeTab === 'recommend' ? recommendMoments : followingMoments;
+  const currentLoading = activeTab === 'recommend' ? recommendLoading : followingLoading;
+  const currentNextCursor = activeTab === 'recommend' ? recommendNextCursor : followingNextCursor;
+  const currentLoadingMore = activeTab === 'recommend' ? recommendLoadingMore : followingLoadingMore;
+
+  const filteredMoments = activeCharacterId
+    ? currentMoments.filter((m) => m.characterId === activeCharacterId)
+    : currentMoments;
 
   return (
     <>
@@ -274,7 +380,7 @@ export default function MomentsPage() {
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-white">タイムライン</h1>
-              {moments.length > 0 && (
+              {currentMoments.length > 0 && (
                 <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
               )}
             </div>
@@ -300,12 +406,32 @@ export default function MomentsPage() {
               </Link>
             </div>
           </div>
+
+          {/* Tabs — X/Twitter風 */}
+          <div className="max-w-lg mx-auto relative flex border-b border-white/5">
+            {(['recommend', 'following'] as TabMode[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setActiveTab(tab); setActiveCharacterId(null); }}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors relative ${
+                  activeTab === tab ? 'text-white' : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                {tab === 'recommend' ? 'おすすめ' : 'フォロー中'}
+                {/* アクティブインジケーター */}
+                <span
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full bg-purple-500 transition-all duration-300"
+                  style={{ width: activeTab === tab ? '40%' : '0%' }}
+                />
+              </button>
+            ))}
+          </div>
         </header>
 
-        {/* Stories bar */}
-        {!loading && moments.length > 0 && (
+        {/* Stories bar — フォロー中タブのみ表示 */}
+        {activeTab === 'following' && !currentLoading && followingMoments.length > 0 && (
           <div className="max-w-lg mx-auto">
-            <StoriesBar moments={moments} activeId={activeCharacterId} onSelect={setActiveCharacterId} />
+            <StoriesBar moments={followingMoments} activeId={activeCharacterId} onSelect={setActiveCharacterId} />
           </div>
         )}
 
@@ -338,10 +464,10 @@ export default function MomentsPage() {
           )}
 
           {/* アクティブフィルターラベル */}
-          {activeCharacterId && !loading && (
+          {activeCharacterId && !currentLoading && (
             <div className="flex items-center justify-between px-1">
               <span className="text-xs text-purple-300 font-medium">
-                {moments.find(m => m.characterId === activeCharacterId)?.character.name ?? ''} のモーメント
+                {currentMoments.find(m => m.characterId === activeCharacterId)?.character.name ?? ''} のモーメント
               </span>
               <button
                 onClick={() => setActiveCharacterId(null)}
@@ -356,13 +482,13 @@ export default function MomentsPage() {
           )}
 
           {/* Feed */}
-          {loading ? (
+          {currentLoading ? (
             <>
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </>
-          ) : isFollowingNone ? (
+          ) : activeTab === 'following' && isFollowingNone ? (
             <div className="text-center py-20 px-6">
               <div className="relative inline-block mb-5">
                 <div className="text-7xl">🌟</div>
@@ -371,15 +497,15 @@ export default function MomentsPage() {
               <p className="text-white/50 text-sm leading-relaxed mb-6">
                 好きなキャラクターをフォローすると、<br />ここに最新の投稿が届きます
               </p>
-              <a
-                href="/explore"
+              <button
+                onClick={() => { setActiveTab('recommend'); setActiveCharacterId(null); }}
                 className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-2xl transition-colors text-sm"
               >
                 <span>✨</span>
-                キャラクターを探す
-              </a>
+                おすすめを見る
+              </button>
             </div>
-          ) : moments.length === 0 ? (
+          ) : currentMoments.length === 0 ? (
             <div className="text-center py-20">
               <div className="relative inline-block mb-4">
                 <div className="text-6xl">📭</div>
@@ -387,28 +513,36 @@ export default function MomentsPage() {
               </div>
               <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
               <p className="text-white/25 text-xs mt-1">
-                フォロー中のキャラがまだ投稿していません
+                {activeTab === 'following' ? 'フォロー中のキャラがまだ投稿していません' : '投稿が見つかりませんでした'}
               </p>
             </div>
           ) : (
             <>
-              {(activeCharacterId ? moments.filter(m => m.characterId === activeCharacterId) : moments).map((moment) => (
-                <MomentCard key={moment.id} moment={moment} onLike={handleLike} currentUserId={(session?.user as { id?: string })?.id} />
+              {filteredMoments.map((moment) => (
+                <MomentCard
+                  key={moment.id}
+                  moment={moment}
+                  onLike={handleLike}
+                  currentUserId={(session?.user as { id?: string })?.id}
+                  showFollowButton={activeTab === 'recommend'}
+                  isFollowing={moment.isFollowing}
+                  onFollowChange={handleFollowChange}
+                />
               ))}
-              {activeCharacterId && moments.filter(m => m.characterId === activeCharacterId).length === 0 && (
+              {activeCharacterId && filteredMoments.length === 0 && (
                 <div className="text-center py-16">
                   <div className="text-5xl mb-3">🌸</div>
                   <p className="text-white/50 text-sm">まだモーメントがありません</p>
                 </div>
               )}
 
-              {nextCursor && (
+              {currentNextCursor && (
                 <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
+                  onClick={activeTab === 'recommend' ? handleLoadMoreRecommend : handleLoadMoreFollowing}
+                  disabled={currentLoadingMore}
                   className="w-full py-3.5 text-sm text-white/40 hover:text-white/70 bg-gray-900/50 hover:bg-gray-900/80 rounded-2xl transition-all disabled:opacity-50 border border-white/5"
                 >
-                  {loadingMore ? (
+                  {currentLoadingMore ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                       読み込み中…

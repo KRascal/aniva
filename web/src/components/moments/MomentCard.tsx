@@ -18,6 +18,8 @@ export interface MomentComment {
   userId?: string | null;
   character?: { name: string; slug: string; avatarUrl: string | null } | null;
   user?: { id: string; name: string | null; email: string; displayName?: string | null; nickname?: string | null; image?: string | null } | null;
+  parentCommentId?: string | null;
+  replies?: MomentComment[];
 }
 
 export interface Moment {
@@ -34,6 +36,7 @@ export interface Moment {
   userHasLiked: boolean;
   isLocked: boolean;
   commentCount?: number;
+  isFollowing?: boolean;
 }
 
 /* ────────────────────────────────── CSS animations ── */
@@ -242,10 +245,16 @@ export function MomentCard({
   moment,
   onLike,
   currentUserId,
+  showFollowButton,
+  isFollowing: isFollowingProp,
+  onFollowChange,
 }: {
   moment: Moment;
   onLike: (id: string) => void;
   currentUserId?: string | null;
+  showFollowButton?: boolean;
+  isFollowing?: boolean;
+  onFollowChange?: (characterId: string, following: boolean) => void;
 }) {
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [bouncing, setBouncing] = useState(false);
@@ -255,6 +264,32 @@ export function MomentCard({
   const [commentError, setCommentError] = useState<string | null>(null);
   const [comments, setComments] = useState<MomentComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  // 返信UI state
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyToName, setReplyToName] = useState<string>('');
+  const [replyText, setReplyText] = useState('');
+  // フォロー状態（propsで初期化、ローカルで管理）
+  const [followState, setFollowState] = useState<boolean>(isFollowingProp ?? moment.isFollowing ?? false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const handleFollow = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    const newFollowing = !followState;
+    try {
+      const res = await fetch(`/api/relationship/${moment.characterId}/follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ follow: newFollowing }),
+      });
+      if (res.ok) {
+        setFollowState(newFollowing);
+        onFollowChange?.(moment.characterId, newFollowing);
+      }
+    } catch { /* ignore */ } finally {
+      setFollowLoading(false);
+    }
+  };
 
   async function fetchComments() {
     setLoadingComments(true);
@@ -269,8 +304,17 @@ export function MomentCard({
     }
   }
 
-  async function submitComment() {
-    const text = commentText.trim();
+  // コメント投稿後のライブポーリング（キャラ返信を5秒×3回チェック）
+  async function pollForCharacterReplies(times: number) {
+    for (let i = 0; i < times; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await fetchComments();
+    }
+  }
+
+  async function submitComment(parentCommentId?: string | null) {
+    const isReply = !!parentCommentId;
+    const text = (isReply ? replyText : commentText).trim();
     if (!text || isSubmittingComment) return;
     setIsSubmittingComment(true);
     setCommentError(null);
@@ -278,13 +322,20 @@ export function MomentCard({
       const res = await fetch(`/api/moments/${moment.id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify({ content: text, parentCommentId: parentCommentId ?? null }),
       });
       if (res.ok) {
-        setCommentText('');
+        if (isReply) {
+          setReplyText('');
+          setReplyingToId(null);
+        } else {
+          setCommentText('');
+        }
         fetchComments();
+        // キャラが返信してくれる可能性があるので5秒×3回ポーリング
+        pollForCharacterReplies(3);
         // デイリーミッション: moment_comment 自動完了（1セッション1回）
-        if (!sessionStorage.getItem('mission_triggered_moment_comment')) {
+        if (!isReply && !sessionStorage.getItem('mission_triggered_moment_comment')) {
           sessionStorage.setItem('mission_triggered_moment_comment', '1');
           fetch('/api/missions/complete', {
             method: 'POST',
@@ -323,7 +374,22 @@ export function MomentCard({
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
         <Avatar character={moment.character} ring online />
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm leading-tight">{moment.character.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-white text-sm leading-tight">{moment.character.name}</p>
+            {showFollowButton && (
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-all flex-shrink-0 ${
+                  followState
+                    ? 'bg-gray-700/60 text-white/50 border border-white/10'
+                    : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-900/30'
+                } disabled:opacity-50`}
+              >
+                {followLoading ? '…' : followState ? 'フォロー中' : 'フォローする'}
+              </button>
+            )}
+          </div>
           <p className="text-white/40 text-xs" title={fullDateTime(moment.publishedAt)}>
             {relativeTime(moment.publishedAt)}
           </p>
@@ -496,31 +562,33 @@ export function MomentCard({
             <p className="text-white/30 text-xs text-center pt-2">読み込み中...</p>
           ) : comments.length > 0 ? (
             <div className="space-y-2 mt-3">
-              {comments.map((c) => (
-                <div
-                  key={c.id}
-                  className={`flex items-start gap-2 rounded-xl px-3 py-2 ${
-                    c.characterId ? 'bg-purple-900/20 border border-purple-500/20' : 'bg-gray-800/40'
-                  }`}
-                >
-                  {/* アバター */}
-                  {c.characterId && c.character ? (
-                    c.character.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.character.avatarUrl} alt={c.character.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
-                        {c.character.name.charAt(0)}
-                      </div>
-                    )
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    (() => {
-                      const userName = c.user?.displayName || c.user?.nickname || c.user?.name;
-                      const userAvatar = c.user?.image;
-                      const displayLabel = userName || (c.user?.email ? c.user.email.split('@')[0] : null);
-                      return c.user?.id ? (
-                        <a href={`/user/${c.user.id}`}>
+              {comments.map((c) => {
+                /* ── コメント1件のアバター+名前+本文レンダラ ── */
+                const renderCommentRow = (comment: MomentComment, isReply = false) => {
+                  const charName = comment.character?.name;
+                  const userName = comment.user?.displayName || comment.user?.nickname || comment.user?.name;
+                  const userAvatar = comment.user?.image;
+                  const displayLabel = userName || (comment.user?.email ? comment.user.email.split('@')[0] : null);
+
+                  return (
+                    <div
+                      key={comment.id}
+                      className={`flex items-start gap-2 rounded-xl px-3 py-2 ${
+                        comment.characterId ? 'bg-purple-900/20 border border-purple-500/20' : 'bg-gray-800/40'
+                      }`}
+                    >
+                      {/* アバター */}
+                      {comment.characterId && comment.character ? (
+                        comment.character.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={comment.character.avatarUrl} alt={charName} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
+                            {charName?.charAt(0)}
+                          </div>
+                        )
+                      ) : comment.user?.id ? (
+                        <a href={`/user/${comment.user.id}`}>
                           {userAvatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={userAvatar} alt={displayLabel ?? ''} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5 hover:ring-1 hover:ring-purple-500/40 transition-all" />
@@ -536,43 +604,123 @@ export function MomentCard({
                         <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white/50 text-[10px] flex-shrink-0 mt-0.5">
                           {(displayLabel ?? '?').charAt(0).toUpperCase()}
                         </div>
-                      );
-                    })()
-                  )}
-                  <div className="flex-1 min-w-0">
-                    {c.characterId ? (
-                      <span className="text-xs font-semibold mr-1.5 text-purple-300">
-                        {c.character?.name ?? 'キャラ'}
-                        <span className="ml-1 text-purple-400/60 text-[9px]">✨</span>
-                      </span>
-                    ) : c.user?.id ? (
-                      <a href={`/user/${c.user.id}`} className="text-xs font-semibold mr-1.5 text-white/60 hover:text-purple-300 transition-colors">
-                        {c.user?.displayName || c.user?.nickname || c.user?.name || (c.user?.email ? c.user.email.split('@')[0] : 'ユーザー')}
-                      </a>
-                    ) : (
-                      <span className="text-xs font-semibold mr-1.5 text-white/60">
-                        {c.user?.displayName || c.user?.nickname || c.user?.name || (c.user?.email ? c.user.email.split('@')[0] : 'ユーザー')}
-                      </span>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        {/* 返信ラベル */}
+                        {isReply && (
+                          <span className="text-[9px] text-purple-400/50 block mb-0.5">
+                            ↩ {c.characterId ? (c.character?.name ?? 'キャラ') : (displayLabel ?? 'ユーザー')}に返信
+                          </span>
+                        )}
+                        {/* 名前 */}
+                        {comment.characterId ? (
+                          <span className="text-xs font-semibold mr-1.5 text-purple-300">
+                            {charName ?? 'キャラ'}
+                            <span className="ml-1 text-purple-400 text-[9px]">✓</span>
+                          </span>
+                        ) : comment.user?.id ? (
+                          <a href={`/user/${comment.user.id}`} className="text-xs font-semibold mr-1.5 text-white/60 hover:text-purple-300 transition-colors">
+                            {displayLabel ?? 'ユーザー'}
+                          </a>
+                        ) : (
+                          <span className="text-xs font-semibold mr-1.5 text-white/60">
+                            {displayLabel ?? 'ユーザー'}
+                          </span>
+                        )}
+                        <span className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{comment.content}</span>
+                        {/* 返信するボタン */}
+                        {!isReply && (
+                          <button
+                            className="block mt-1 text-[10px] text-white/30 hover:text-purple-400 transition-colors"
+                            onClick={() => {
+                              if (replyingToId === comment.id) {
+                                setReplyingToId(null);
+                              } else {
+                                setReplyingToId(comment.id);
+                                setReplyToName(
+                                  comment.characterId
+                                    ? (charName ?? 'キャラ')
+                                    : (displayLabel ?? 'ユーザー')
+                                );
+                                setReplyText('');
+                              }
+                            }}
+                          >
+                            返信する
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 削除ボタン（自分のコメントのみ） */}
+                      {currentUserId && comment.userId === currentUserId && (
+                        <button
+                          className="text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
+                          title="削除"
+                          onClick={async () => {
+                            const res = await fetch(`/api/moments/${moment.id}/comments/${comment.id}`, { method: 'DELETE' });
+                            if (res.ok) {
+                              setComments((prev) =>
+                                prev
+                                  .filter((x) => x.id !== comment.id)
+                                  .map((x) => ({ ...x, replies: x.replies?.filter((r) => r.id !== comment.id) }))
+                              );
+                            }
+                          }}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div key={c.id}>
+                    {/* トップレベルコメント */}
+                    {renderCommentRow(c, false)}
+
+                    {/* 返信入力欄 */}
+                    {replyingToId === c.id && (
+                      <div className="ml-8 mt-1 flex items-end gap-2">
+                        <div className="flex-1 relative">
+                          <span className="absolute left-3 top-2 text-[10px] text-purple-400/60">↩ {replyToName}に返信</span>
+                          <textarea
+                            value={replyText}
+                            onChange={(e) => {
+                              setReplyText(e.target.value);
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.min(e.target.scrollHeight, 80)}px`;
+                            }}
+                            placeholder="返信を入力..."
+                            rows={1}
+                            style={{ fontSize: '16px', resize: 'none', paddingTop: '1.4rem' }}
+                            className="w-full bg-gray-800/60 border border-purple-500/30 rounded-2xl px-3 pb-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-purple-500/60 transition-colors overflow-y-auto"
+                          />
+                        </div>
+                        <button
+                          className="p-2 text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-30 flex-shrink-0"
+                          disabled={!replyText.trim() || isSubmittingComment}
+                          onClick={() => submitComment(c.id)}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                          </svg>
+                        </button>
+                      </div>
                     )}
-                    <span className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{c.content}</span>
+
+                    {/* ネストされた返信 */}
+                    {c.replies && c.replies.length > 0 && (
+                      <div className="ml-8 mt-1 space-y-1 border-l-2 border-purple-500/20 pl-3">
+                        {c.replies.map((reply) => renderCommentRow(reply, true))}
+                      </div>
+                    )}
                   </div>
-                  {/* 削除ボタン（自分のコメントのみ） */}
-                  {currentUserId && c.userId === currentUserId && (
-                    <button
-                      className="text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
-                      title="削除"
-                      onClick={async () => {
-                        const res = await fetch(`/api/moments/${moment.id}/comments/${c.id}`, { method: 'DELETE' });
-                        if (res.ok) setComments((prev) => prev.filter((x) => x.id !== c.id));
-                      }}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
           <div className="flex items-end gap-2 mt-3">
@@ -592,7 +740,7 @@ export function MomentCard({
             <button
               className="p-2 text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-30"
               disabled={!commentText.trim() || isSubmittingComment}
-              onClick={submitComment}
+              onClick={() => submitComment()}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

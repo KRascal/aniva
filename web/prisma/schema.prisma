@@ -280,16 +280,19 @@ model Reaction {
 }
 
 model MomentComment {
-  id          String        @id @default(uuid())
-  momentId    String
-  userId      String?
-  characterId String?
-  content     String        @db.Text
-  createdAt   DateTime      @default(now())
-  moment      Moment        @relation(fields: [momentId], references: [id], onDelete: Cascade)
-  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character   Character?    @relation(fields: [characterId], references: [id])
-  likes       CommentLike[]
+  id              String          @id @default(uuid())
+  momentId        String
+  userId          String?
+  characterId     String?
+  content         String          @db.Text
+  parentCommentId String?
+  createdAt       DateTime        @default(now())
+  moment          Moment          @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character       Character?      @relation(fields: [characterId], references: [id])
+  likes           CommentLike[]
+  parentComment   MomentComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         MomentComment[] @relation("CommentReplies")
 }
 
 model CommentLike {

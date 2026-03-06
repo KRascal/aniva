@@ -12,8 +12,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   const userId = (session?.user as { id?: string })?.id;
 
   try {
+    // トップレベルコメントのみ取得（parentCommentId = null）
+    // repliesはネストして取得
     const comments = await prisma.momentComment.findMany({
-      where: { momentId },
+      where: { momentId, parentCommentId: null },
       orderBy: { createdAt: 'asc' },
       take: 50,
       include: {
@@ -23,15 +25,32 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           ? { where: { userId }, select: { id: true } }
           : false,
         _count: { select: { likes: true } },
+        // ネストされた返信
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            user: { select: { id: true, name: true, email: true, displayName: true, nickname: true, image: true } },
+            character: { select: { name: true, slug: true, avatarUrl: true } },
+            _count: { select: { likes: true } },
+          },
+        },
       },
     });
 
     const enriched = comments.map((c) => ({
       ...c,
+      parentCommentId: c.parentCommentId ?? null,
       likeCount: c._count.likes,
       likedByMe: userId ? (c.likes as { id: string }[]).length > 0 : false,
       likes: undefined,
       _count: undefined,
+      replies: c.replies.map((r) => ({
+        ...r,
+        parentCommentId: r.parentCommentId ?? null,
+        likeCount: r._count.likes,
+        likedByMe: false,
+        _count: undefined,
+      })),
     }));
 
     return NextResponse.json({ comments: enriched });
@@ -51,12 +70,22 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!content || content.length > 500) {
     return NextResponse.json({ error: 'Invalid content' }, { status: 400 });
   }
+  // parentCommentId: 返信の場合は親コメントIDを受け取る
+  const parentCommentId = (body.parentCommentId ?? null) as string | null;
+
   const comment = await prisma.momentComment.create({
-    data: { momentId, userId: session.user.id, content },
+    data: {
+      momentId,
+      userId: session.user.id,
+      content,
+      ...(parentCommentId ? { parentCommentId } : {}),
+    },
     include: {
       user: { select: { id: true, name: true, email: true, displayName: true, nickname: true, image: true } },
       character: { select: { name: true, slug: true, avatarUrl: true } },
     },
   });
-  return NextResponse.json({ comment: { ...comment, likeCount: 0, likedByMe: false } }, { status: 201 });
+  return NextResponse.json({
+    comment: { ...comment, parentCommentId: comment.parentCommentId ?? null, likeCount: 0, likedByMe: false },
+  }, { status: 201 });
 }
