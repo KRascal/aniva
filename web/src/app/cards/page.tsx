@@ -119,7 +119,7 @@ function CardCollectionTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-purple-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -285,8 +285,9 @@ function GachaTab() {
     ]).then(async (results) => {
       const bannerData = results[0].status === 'fulfilled' ? results[0].value : {};
       const coinData = results[1].status === 'fulfilled' ? results[1].value : {};
-      const b = bannerData.banners ?? [];
+      const b = Array.isArray(bannerData.banners) ? bannerData.banners : [];
       setBanners(b);
+      setFreeAvailable(!!bannerData.freeGachaAvailable);
       if (b.length > 0) {
         setSelectedBanner(b[0]);
         // pity情報はbannerId必須なのでバナー取得後に呼ぶ
@@ -294,12 +295,13 @@ function GachaTab() {
           const pityRes = await fetch(`/api/gacha/pity?bannerId=${b[0].id}`);
           if (pityRes.ok) {
             const pityData = await pityRes.json();
-            setPityProgress(pityData.pityProgress ?? 0);
-            setFreeAvailable(pityData.freeAvailable ?? false);
+            const cur = Number(pityData.current) || 0;
+            const ceil = Number(pityData.ceiling) || 100;
+            setPityProgress(ceil > 0 ? (cur / ceil) * 100 : 0);
           }
         } catch {}
       }
-      setCoinBalance(coinData.balance ?? 0);
+      setCoinBalance(Number(coinData.balance) || 0);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -360,12 +362,40 @@ function GachaTab() {
       });
       const data = await res.json();
       if (data.error) return;
-      setPullResults(data.cards ?? []);
-      setCoinBalance(data.remainingCoins ?? coinBalance);
-      setPityProgress(data.pityProgress ?? pityProgress);
+      // APIは { results: PullResult[], coinBalance, pityProgress } を返す
+      // PullResult = { card: {...}, isNew, rarity, pityInfo }
+      const rawResults = data.results ?? data.cards ?? [];
+      const mappedCards: PullResultCard[] = rawResults.map((r: Record<string, unknown>) => {
+        // r が { card: {...}, isNew, rarity } 形式の場合と、フラット形式の両方に対応
+        const card = (r.card && typeof r.card === 'object') ? r.card as Record<string, unknown> : r;
+        return {
+          id: String(card.id ?? ''),
+          name: String(card.name ?? '???'),
+          description: card.description as string | null ?? null,
+          imageUrl: card.imageUrl as string | null ?? null,
+          cardImageUrl: card.cardImageUrl as string | null ?? null,
+          illustrationUrl: card.illustrationUrl as string | null ?? null,
+          rarity: (card.rarity ?? r.rarity ?? 'N') as GachaRarity,
+          category: card.category as string | null ?? null,
+          character: card.character && typeof card.character === 'object'
+            ? card.character as { id: string; name: string; avatarUrl: string | null }
+            : null,
+          isNew: !!(r.isNew ?? card.isNew),
+          frameType: (card.frameType as string | null) ?? null,
+        };
+      });
+      setPullResults(mappedCards);
+      setCoinBalance(Number(data.coinBalance ?? data.remainingCoins) || coinBalance);
+      // pityProgress from pull response
+      const pp = data.pityProgress;
+      if (pp && typeof pp === 'object') {
+        const cur = Number(pp.current) || 0;
+        const ceil = Number(pp.ceiling) || 100;
+        setPityProgress(ceil > 0 ? (cur / ceil) * 100 : 0);
+      }
       if (count === 'free') setFreeAvailable(false);
       // SR以上ならパーティクル
-      if ((data.cards ?? []).some((c: PullResultCard) => ['SR', 'SSR', 'UR'].includes(c.rarity))) {
+      if (mappedCards.some((c: PullResultCard) => ['SR', 'SSR', 'UR'].includes(c.rarity))) {
         setTimeout(spawnParticles, 300);
       }
     } catch {}
@@ -375,7 +405,7 @@ function GachaTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-purple-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -520,7 +550,7 @@ export default function CardsPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-purple-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -580,7 +610,7 @@ export default function CardsPage() {
             <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
           </div>
           <div className="w-1/2 min-h-[60vh]">
-            <TabErrorBoundary><GachaTab /></TabErrorBoundary>
+            {activeTab === 'gacha' ? <TabErrorBoundary key="gacha"><GachaTab /></TabErrorBoundary> : <div />}
           </div>
         </div>
       </div>
