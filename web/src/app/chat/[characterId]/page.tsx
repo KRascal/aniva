@@ -1027,6 +1027,7 @@ export default function ChatCharacterPage() {
       console.error('Send message error:', err);
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
+      inFlightRef.current = false;
       setIsSending(false);
       inputRef.current?.focus();
     }
