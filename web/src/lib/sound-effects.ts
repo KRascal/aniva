@@ -4,7 +4,85 @@
  * MP3ファイル配置先: public/sounds/{sound-type}.mp3
  */
 
-// ─── MP3プリロード+再生レイヤー ──────────────────────────────
+// ─── ガチャ専用 MP3 ファイルマップ ──────────────────────────────
+const GACHA_SOUNDS: Record<string, string> = {
+  'gacha-pull':       '/sounds/gacha-pull.mp3',
+  'gacha-reveal-n':   '/sounds/gacha-reveal-n.mp3',
+  'gacha-reveal-r':   '/sounds/gacha-reveal-r.mp3',
+  'gacha-reveal-sr':  '/sounds/gacha-reveal-sr.mp3',
+  'gacha-reveal-ssr': '/sounds/gacha-reveal-ssr.mp3',
+  'gacha-reveal-ur':  '/sounds/gacha-reveal-ur.mp3',
+};
+
+const audioCache = new Map<string, HTMLAudioElement>();
+const audioFailed = new Set<string>();
+
+/** ページロード時にガチャ音声をプリロード */
+function preloadGachaSounds(): void {
+  if (typeof window === 'undefined') return;
+  Object.entries(GACHA_SOUNDS).forEach(([key, path]) => {
+    if (audioFailed.has(path)) return;
+    const audio = new Audio(path);
+    audio.preload = 'auto';
+    audio.volume = 0.4;
+    audio.addEventListener('error', () => {
+      audioFailed.add(path);
+    }, { once: true });
+    audioCache.set(key, audio);
+  });
+}
+
+/** ガチャ専用 MP3 を再生（失敗時は Web Audio フォールバック） */
+export function playGachaSoundFile(key: string): void {
+  if (typeof window === 'undefined') return;
+  if (isSoundMuted()) return;
+
+  const path = GACHA_SOUNDS[key];
+  if (!path || audioFailed.has(path)) {
+    playGachaRevealSoundFallback(key);
+    return;
+  }
+
+  const cached = audioCache.get(key);
+  if (cached) {
+    const clone = cached.cloneNode(true) as HTMLAudioElement;
+    clone.volume = 0.4;
+    clone.play().catch(() => {
+      audioFailed.add(path);
+      playGachaRevealSoundFallback(key);
+    });
+    return;
+  }
+
+  // キャッシュなし（プリロード前）→ 直接生成
+  const audio = new Audio(path);
+  audio.volume = 0.4;
+  audio.play().catch(() => {
+    audioFailed.add(path);
+    playGachaRevealSoundFallback(key);
+  });
+}
+
+/** Web Audio API フォールバック（MP3 が存在しない場合） */
+function playGachaRevealSoundFallback(key: string): void {
+  const rarityMap: Record<string, SoundType> = {
+    'gacha-pull':       'gacha_pull',
+    'gacha-reveal-n':   'gacha_reveal_n',
+    'gacha-reveal-r':   'gacha_reveal_r',
+    'gacha-reveal-sr':  'gacha_reveal_sr',
+    'gacha-reveal-ssr': 'gacha_reveal_ssr',
+    'gacha-reveal-ur':  'gacha_reveal_ur',
+  };
+  const soundType = rarityMap[key];
+  if (soundType) SOUNDS[soundType]();
+}
+
+// ページロード時にプリロード開始
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', preloadGachaSounds);
+}
+
+// ─── 汎用 MP3プリロード+再生レイヤー ──────────────────────────────
 const MP3_CACHE: Map<string, HTMLAudioElement> = new Map();
 const MP3_FAILED: Set<string> = new Set(); // 読み込み失敗したパスは再試行しない
 
@@ -223,17 +301,17 @@ export function playSound(sound: SoundType): void {
 }
 
 /**
- * ガチャ結果のレアリティに応じた効果音を再生
+ * ガチャ結果のレアリティに応じた効果音を再生（MP3優先、フォールバックあり）
  */
 export function playGachaRevealSound(rarity: string): void {
-  const map: Record<string, SoundType> = {
-    N: 'gacha_reveal_n',
-    R: 'gacha_reveal_r',
-    SR: 'gacha_reveal_sr',
-    SSR: 'gacha_reveal_ssr',
-    UR: 'gacha_reveal_ur',
+  const keyMap: Record<string, string> = {
+    N: 'gacha-reveal-n',
+    R: 'gacha-reveal-r',
+    SR: 'gacha-reveal-sr',
+    SSR: 'gacha-reveal-ssr',
+    UR: 'gacha-reveal-ur',
   };
-  playSound(map[rarity] ?? 'gacha_reveal_n');
+  playGachaSoundFile(keyMap[rarity] ?? 'gacha-reveal-n');
 }
 
 // ─── ハプティクス（振動フィードバック） ──────────────────────────────

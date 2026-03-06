@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, playGachaRevealSound, vibrateGacha } from '@/lib/sound-effects';
 import { GachaRarityOverlay } from '@/components/gacha/GachaRarityOverlay';
 import { GachaFlipCard } from '@/components/gacha/GachaFlipCard';
+import { GachaParticleCanvas, type ParticlePreset } from '@/components/gacha/GachaParticleCanvas';
 
 // ---- Types ----
 interface Banner {
@@ -56,6 +57,17 @@ type View = 'banners' | 'gacha' | 'animating' | 'results';
 
 // ---- Constants ----
 const RARITY_ORDER: Record<string, number> = { N: 0, R: 1, SR: 2, SSR: 3, UR: 4 };
+
+/** レアリティに応じたパーティクルプリセットを返す（R未満はundefined） */
+function rarityToParticlePreset(rarity: string): ParticlePreset | undefined {
+  const map: Partial<Record<string, ParticlePreset>> = {
+    R:   'r-burst',
+    SR:  'sr-snowfall',
+    SSR: 'ssr-rise',
+    UR:  'ur-explosion',
+  };
+  return map[rarity];
+}
 
 
 // ---- Flip Card Wrapper (GachaFlipCard を使用) ----
@@ -426,6 +438,7 @@ export default function GachaPage() {
         {view === 'animating' && (
           <GachaRarityOverlay
             rarity={animRarity as 'N' | 'R' | 'SR' | 'SSR' | 'UR'}
+            themeColor={themeColor}
             onComplete={onAnimationComplete}
           />
         )}
@@ -693,6 +706,13 @@ export default function GachaPage() {
                   background: `radial-gradient(ellipse at top, ${themeColor}22 0%, transparent 60%)`,
                 }}
               />
+              {/* レアリティ別パーティクル演出（SR以上） */}
+              {rarityToParticlePreset(animRarity) && (
+                <GachaParticleCanvas
+                  preset={rarityToParticlePreset(animRarity)!}
+                  delayMs={200}
+                />
+              )}
 
               <div className="relative z-10 max-w-2xl mx-auto">
                 {/* Results header */}
