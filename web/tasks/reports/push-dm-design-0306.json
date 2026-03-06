@@ -1,0 +1,39 @@
+{
+  "task": "プッシュDM設計",
+  "status": "success",
+  "summary": "既存インフラ（CharacterProactiveMessage + PushSubscription + web-push）を活用し、AI生成 + Web Push 統合のpush-dm-aiエンドポイント設計書を作成",
+  "design_doc_path": "tasks/designs/aniva/push-dm.md",
+  "implementation_tasks": [
+    {
+      "id": "push-dm-ai-endpoint",
+      "description": "AI生成 + Web Push 統合のcronエンドポイント実装。フォロー中ユーザーに1日3通上限でAI生成メッセージをDBに保存しWebPush送信する。",
+      "files": [
+        "src/app/api/cron/push-dm-ai/route.ts",
+        "src/lib/push-dm-generator.ts",
+        "docs/cron-schedule.md"
+      ]
+    },
+    {
+      "id": "cleanup-old-endpoints",
+      "description": "旧エンドポイント（push-dm、character-notify）を新push-dm-aiに統合または非推奨化。オプション。",
+      "files": [
+        "src/app/api/push/character-notify/route.ts",
+        "src/app/api/cron/push-dm/route.ts"
+      ]
+    }
+  ],
+  "files_changed": [
+    "tasks/designs/aniva/push-dm.md",
+    "tasks/reports/push-dm-design-0306.json"
+  ],
+  "risks": [
+    "既存proactive-messagesとの競合（8hクールダウンで回避済み）",
+    "LLM APIダウン時は旧push-dmをフォールバックとして維持",
+    "フォロワー急増時のAIコスト増 → MAX_PER_RUN制御"
+  ],
+  "next_actions": [
+    "Task 1: src/app/api/cron/push-dm-ai/route.ts 実装",
+    "Task 2: src/lib/push-dm-generator.ts で既存generateProactiveMessageを再利用",
+    "crontab/PM2にJST 8:30/20:30でpush-dm-aiを登録"
+  ]
+}

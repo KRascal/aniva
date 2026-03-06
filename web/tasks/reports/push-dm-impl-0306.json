@@ -1,0 +1,20 @@
+{
+  "task": "プッシュDM実装",
+  "status": "success",
+  "summary": "3ファイル作成完了。TypeScriptエラーなし。AI生成→DB保存→Web Push送信の統合cron実装。",
+  "files_changed": [
+    "src/lib/web-push-sender.ts",
+    "src/lib/push-dm-generator.ts",
+    "src/app/api/cron/push-dm-ai/route.ts"
+  ],
+  "risks": [
+    "grok-3-mini の日本語品質が低い場合は LLM_MODEL 環境変数で claude-haiku-4-5 等に切り替え可能",
+    "PushSubscription がないユーザーは noPushSub でスキップされる（正常動作）",
+    "既存 proactive-messages cron との8hクールダウン競合はチェック済み"
+  ],
+  "next_actions": [
+    "crontab / PM2 に '30 8,20 * * *' スケジュール追加",
+    "vercel.json の crons に push-dm-ai を追加（Vercel 使用時）",
+    "本番環境での動作確認（ログ: totalSent / skipped.dailyLimit / skipped.cooldown）"
+  ]
+}

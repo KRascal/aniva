@@ -46,6 +46,7 @@ interface ChatHeaderProps {
   onMemoryClick: () => void;
   onProfileClick: () => void;
   onFcClick?: () => void;
+  proactiveUnreadCount?: number;
 }
 
 const EMOTION_EMOJI: Record<string, string> = {

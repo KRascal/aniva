@@ -524,7 +524,7 @@ export class CharacterEngine {
     userMessage: string,
     locale: string = 'ja',
     options?: { isFcMember?: boolean },
-  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[] }> {
+  ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[]; memoryRecalled?: boolean }> {
     // 1. キャラクター情報取得
     const character = await prisma.character.findUniqueOrThrow({ where: { id: characterId } });
 
