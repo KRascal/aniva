@@ -68,15 +68,18 @@ function InstaStoriesBar({ onOpenStory, activeTab }: { onOpenStory: (index: numb
     fetch('/api/characters?followingOnly=true')
       .then((r) => r.json())
       .then((data) => {
-        const slugs = new Set<string>((data.characters ?? []).map((c: { slug: string }) => c.slug));
+        const chars = data.characters ?? [];
+        const slugs = new Set<string>(chars.map((c: { slug: string }) => c.slug));
+        console.log('[StoriesBar] following slugs:', [...slugs], 'count:', slugs.size);
         setFollowingSlugs(slugs);
       })
       .catch(() => setFollowingSlugs(new Set()));
   }, []);
 
   // タブに応じてストーリーズをフィルタリング
-  const visibleStories = activeTab === 'following' && followingSlugs !== null
-    ? INLINE_STORIES.filter((s) => followingSlugs.has(s.slug))
+  // フォロー中タブ: followingSlugsがロード完了するまで空表示、ロード後はフォロー中キャラのみ
+  const visibleStories = activeTab === 'following'
+    ? (followingSlugs === null ? [] : INLINE_STORIES.filter((s) => followingSlugs.has(s.slug)))
     : INLINE_STORIES;
 
   return (

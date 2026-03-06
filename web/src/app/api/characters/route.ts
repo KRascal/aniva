@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
         where.relationships = {
           some: { userId: token.sub, isFollowing: true },
         };
+      } else {
+        // 未認証時はフォロー中キャラなし → 空を返す
+        return NextResponse.json({ characters: [] });
       }
     }
 
