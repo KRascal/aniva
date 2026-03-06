@@ -11,6 +11,48 @@ interface CoinPackage {
   priceWebJpy: number;
 }
 
+interface MonthlyPass {
+  id: string;
+  name: string;
+  priceJpy: number;
+  dailyCoins: number;
+  badge: string | null;
+  priorityResponse: boolean;
+  popular?: boolean;
+  priceId: string;
+}
+
+const MONTHLY_PASSES: MonthlyPass[] = [
+  {
+    id: 'light',
+    name: 'ライトパス',
+    priceJpy: 500,
+    dailyCoins: 50,
+    badge: null,
+    priorityResponse: false,
+    priceId: 'price_light_monthly',
+  },
+  {
+    id: 'standard',
+    name: 'スタンダードパス',
+    priceJpy: 1500,
+    dailyCoins: 200,
+    badge: '⭐ スタンダードバッジ',
+    priorityResponse: false,
+    popular: true,
+    priceId: 'price_standard_monthly',
+  },
+  {
+    id: 'premium',
+    name: 'プレミアムパス',
+    priceJpy: 3000,
+    dailyCoins: 500,
+    badge: '👑 プレミアムバッジ',
+    priorityResponse: true,
+    priceId: 'price_premium_monthly',
+  },
+];
+
 const COIN_BONUSES: Record<string, number> = {
   スターター: 0,
   スタンダード: 100,
@@ -26,6 +68,8 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const [fcPrice, setFcPrice] = useState(500);
   const [characterName, setCharacterName] = useState<string | null>(null);
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [subError, setSubError] = useState<string | null>(null);
 
   // キャラ別FC価格取得
   useEffect(() => {
@@ -79,6 +123,36 @@ export default function PricingPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '購入に失敗しました');
       setPurchasing(null);
+    }
+  };
+
+  const handleSubscribe = async (pass: MonthlyPass) => {
+    if (!session) {
+      router.push('/login?from=/pricing');
+      return;
+    }
+    setSubscribing(pass.id);
+    setSubError(null);
+    try {
+      const res = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: (session.user as { id?: string }).id,
+          plan: pass.id,
+          priceId: pass.priceId,
+          successUrl: `${window.location.origin}/coins?status=subscribed&plan=${pass.id}`,
+          cancelUrl: `${window.location.origin}/pricing`,
+        }),
+      });
+      const data = await res.json() as { checkoutUrl?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? '購入に失敗しました');
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    } catch (err) {
+      setSubError(err instanceof Error ? err.message : '購入に失敗しました');
+      setSubscribing(null);
     }
   };
 
@@ -189,6 +263,124 @@ export default function PricingPage() {
             </a>
           </div>
         </div>
+      </div>
+
+      {/* ── 月額パスセクション ── */}
+      <div className="max-w-md mx-auto mb-12">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-1">月額パス</h2>
+          <p className="text-gray-400 text-sm">毎日ログインで自動付与！コインが貯まり続ける</p>
+          <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full"
+            style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <span className="text-yellow-400 text-xs font-bold">🪙 毎日ログインで○コインもらえる！</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {MONTHLY_PASSES.map((pass) => {
+            const isSubscribing = subscribing === pass.id;
+            const isPopular = pass.popular === true;
+
+            return (
+              <div
+                key={pass.id}
+                className="relative rounded-2xl overflow-hidden border p-5"
+                style={{
+                  borderColor: isPopular ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)',
+                  background: isPopular
+                    ? 'linear-gradient(135deg, rgba(88,28,135,0.25), rgba(157,23,77,0.2))'
+                    : 'rgba(255,255,255,0.04)',
+                  boxShadow: isPopular ? '0 4px 24px rgba(139,92,246,0.25)' : 'none',
+                }}
+              >
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-3 py-1 rounded-full"
+                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}>
+                    🌟 おすすめ
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{pass.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-yellow-400 font-bold text-xl">
+                        毎日 {pass.dailyCoins} コイン
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-xs mt-1">毎日ログインで自動付与</p>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <div className="text-white font-bold text-2xl">
+                      ¥{pass.priceJpy.toLocaleString()}
+                    </div>
+                    <div className="text-gray-500 text-xs">/ 月</div>
+                  </div>
+                </div>
+
+                {/* 特典一覧 */}
+                <div className="space-y-1.5 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>毎日 {pass.dailyCoins} コイン自動付与</span>
+                  </div>
+                  {pass.badge && (
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-purple-300 font-medium">{pass.badge}</span>
+                    </div>
+                  )}
+                  {pass.priorityResponse && (
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-yellow-300 font-medium">⚡ 優先応答（返信速度UP）</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                    <span>月 {pass.dailyCoins * 30} コイン相当（¥{Math.round(pass.priceJpy / (pass.dailyCoins * 30) * 10) / 10}/コイン）</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => void handleSubscribe(pass)}
+                  disabled={!!subscribing}
+                  className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={isPopular ? {
+                    background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                    boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
+                  } : {
+                    background: 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  {isSubscribing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      処理中...
+                    </span>
+                  ) : (
+                    `${pass.name}に加入する`
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {subError && (
+          <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-sm text-red-400 text-center">
+            {subError}
+          </div>
+        )}
+
+        <p className="text-center text-xs text-gray-600 mt-4">
+          月額パスはいつでもキャンセル可能。次回請求日の前日まで有効。
+        </p>
       </div>
 
       {/* ── コイン購入セクション ── */}

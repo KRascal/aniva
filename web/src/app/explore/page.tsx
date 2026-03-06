@@ -261,6 +261,73 @@ function PollBannerSection() {
   );
 }
 
+// ── コンテンツリンク（メモリーブック・ストーリー） ──
+function ContentLinksSection({ activePollCount }: { activePollCount: number }) {
+  const router = useRouter();
+  return (
+    <FadeSection delay={300}>
+      <div className="mt-8 mb-6">
+        <h3 className="text-white font-bold text-base mb-3">コンテンツ</h3>
+        <div className="space-y-3">
+          {/* 思い出のアルバム */}
+          <button
+            onClick={() => router.push('/memory-book')}
+            className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.1))',
+              border: '1px solid rgba(139,92,246,0.25)',
+              boxShadow: '0 2px 16px rgba(139,92,246,0.1)',
+            }}
+          >
+            <div className="px-4 py-3 flex items-center gap-3">
+              <span className="text-2xl flex-shrink-0">📚</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-sm leading-tight">思い出のアルバム</p>
+                <p className="text-white/50 text-xs mt-0.5">推しとの大切な時間を振り返ろう</p>
+              </div>
+              <span className="text-gray-500 flex-shrink-0">›</span>
+            </div>
+          </button>
+
+          {/* みんなで作るストーリー */}
+          <button
+            onClick={() => router.push('/story')}
+            className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, rgba(236,72,153,0.15), rgba(88,28,135,0.12))',
+              border: '1px solid rgba(236,72,153,0.25)',
+              boxShadow: '0 2px 16px rgba(236,72,153,0.1)',
+            }}
+          >
+            <div className="px-4 py-3 flex items-center gap-3">
+              <span className="text-2xl flex-shrink-0">📖</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-white font-bold text-sm leading-tight">みんなで作るストーリー</p>
+                  {activePollCount > 0 && (
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse flex-shrink-0"
+                      style={{
+                        background: 'rgba(236,72,153,0.3)',
+                        color: 'rgba(251,182,206,0.95)',
+                        border: '1px solid rgba(236,72,153,0.4)',
+                      }}
+                    >
+                      投票受付中！
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/50 text-xs">あなたの選択がストーリーを変える</p>
+              </div>
+              <span className="text-gray-500 flex-shrink-0">›</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
 // ── 期間限定シナリオ型 ──
 interface LimitedScenarioSummary {
   id: string;
@@ -1284,6 +1351,167 @@ function CharacterHorizontalCard({
   );
 }
 
+// ── ミッション進捗バーセクション ──
+function MissionProgressSection({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
+  const router = useRouter();
+  const pct = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
+  const remaining = total - completed;
+  const isAllDone = completed >= total && total > 0;
+  const isNearDone = pct >= 80 && !isAllDone;
+
+  return (
+    <FadeSection delay={13}>
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-white font-bold text-base flex items-center gap-2">
+            📋 今日のミッション
+          </h3>
+          <button
+            onClick={() => router.push('/mypage#daily-missions')}
+            className="text-xs font-semibold"
+            style={{ color: 'rgba(167,139,250,0.85)' }}
+          >
+            一覧 →
+          </button>
+        </div>
+
+        <div
+          className="rounded-2xl p-4 relative overflow-hidden"
+          style={{
+            background: isAllDone
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.12))'
+              : isNearDone
+              ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.12))'
+              : 'rgba(255,255,255,0.04)',
+            border: isAllDone
+              ? '1px solid rgba(16,185,129,0.35)'
+              : isNearDone
+              ? '1px solid rgba(245,158,11,0.35)'
+              : '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          {/* 花火エフェクト（全完了時） */}
+          {isAllDone && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {[...Array(14)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    width: 3 + (i % 3),
+                    height: 3 + (i % 3),
+                    left: `${8 + i * 6.5}%`,
+                    top: '60%',
+                    background: ['#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'][i % 6],
+                    animation: `missionFw${i % 4 + 1} 1.4s ease-out ${i * 0.07}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ステータス行 */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <p
+                className={`font-bold text-sm ${
+                  isAllDone ? 'text-emerald-300' : isNearDone ? 'text-yellow-300' : 'text-white'
+                }`}
+              >
+                {isAllDone
+                  ? '🎉 全ミッションクリア！おめでとう！'
+                  : isNearDone
+                  ? `⚡ あと${remaining}個！今日中に達成しよう`
+                  : `${completed} / ${total} ミッション完了`}
+              </p>
+              {!isAllDone && (
+                <p className="text-white/45 text-xs mt-0.5">
+                  {isNearDone
+                    ? '今日中にあと1つ！全クリアボーナスを逃すな！'
+                    : 'ミッションをクリアしてコインをゲット 🪙'}
+                </p>
+              )}
+              {isAllDone && (
+                <p className="text-emerald-400/70 text-xs mt-0.5">
+                  今日のボーナスコインを全部獲得！すごい ✨
+                </p>
+              )}
+            </div>
+            <span
+              className={`text-xs font-bold px-2.5 py-1 rounded-full ml-3 flex-shrink-0 ${
+                isAllDone
+                  ? 'bg-emerald-500/20 text-emerald-300'
+                  : isNearDone
+                  ? 'bg-yellow-500/20 text-yellow-300'
+                  : 'bg-white/10 text-white/60'
+              }`}
+            >
+              {Math.round(pct)}%
+            </span>
+          </div>
+
+          {/* プログレスバー */}
+          <div
+            className="h-2.5 rounded-full overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.08)' }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${pct}%`,
+                background: isAllDone
+                  ? 'linear-gradient(90deg, #10b981, #06b6d4)'
+                  : isNearDone
+                  ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                  : 'linear-gradient(90deg, #8b5cf6, #ec4899)',
+                boxShadow: isAllDone
+                  ? '0 0 10px rgba(16,185,129,0.6)'
+                  : isNearDone
+                  ? '0 0 10px rgba(245,158,11,0.6)'
+                  : '0 0 8px rgba(139,92,246,0.5)',
+              }}
+            />
+          </div>
+
+          {/* ミッションドット（6個以下の場合） */}
+          {total > 0 && total <= 6 && (
+            <div className="flex gap-2 mt-3 justify-center">
+              {Array.from({ length: total }, (_, i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    background:
+                      i < completed
+                        ? isAllDone
+                          ? '#10b981'
+                          : isNearDone
+                          ? '#f59e0b'
+                          : '#8b5cf6'
+                        : 'rgba(255,255,255,0.15)',
+                    transform: i < completed ? 'scale(1.2)' : 'scale(1)',
+                    boxShadow: i < completed
+                      ? isNearDone
+                        ? '0 0 4px rgba(245,158,11,0.6)'
+                        : '0 0 4px rgba(139,92,246,0.5)'
+                      : 'none',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </FadeSection>
+  );
+}
+
 export default function ExplorePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -1298,7 +1526,9 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [incompleteMissions, setIncompleteMissions] = useState(0);
   const [missionHint, setMissionHint] = useState('');
+  const [missionProgress, setMissionProgress] = useState<{ completed: number; total: number } | null>(null);
   const [freeGachaAvailable, setFreeGachaAvailable] = useState(false);
+  const [exploreActivePollCount, setExploreActivePollCount] = useState(0);
 
   // プロアクティブメッセージ（未読マップ: characterId → message）
   const { messages: proactiveMsgs } = useProactiveMessages();
@@ -1336,13 +1566,18 @@ export default function ExplorePage() {
     fetch('/api/missions')
       .then(r => r.json())
       .then(data => {
-        const daily = (data.missions ?? []).filter((m: { completed: boolean }) => !m.completed);
-        const weekly = (data.weeklyMissions ?? []).filter((m: { completed: boolean }) => !m.completed);
-        const total = daily.length + weekly.length;
-        setIncompleteMissions(total);
-        if (total === 1) setMissionHint('あと1個でコイン獲得！急げ！');
-        else if (total === 2) setMissionHint('あと2個！今日中にクリアしよう');
-        else if (total > 0) setMissionHint(`${total}個の未完了ミッション`);
+        const allMissions = (data.missions ?? []) as { completed: boolean }[];
+        const allWeekly = (data.weeklyMissions ?? []) as { completed: boolean }[];
+        const totalMissions = allMissions.length + allWeekly.length;
+        const completedMissions =
+          allMissions.filter(m => m.completed).length +
+          allWeekly.filter(m => m.completed).length;
+        const incomplete = totalMissions - completedMissions;
+        setIncompleteMissions(incomplete);
+        setMissionProgress({ completed: completedMissions, total: totalMissions });
+        if (incomplete === 1) setMissionHint('あと1個でコイン獲得！急げ！');
+        else if (incomplete === 2) setMissionHint('あと2個！今日中にクリアしよう');
+        else if (incomplete > 0) setMissionHint(`${incomplete}個の未完了ミッション`);
       })
       .catch(() => {});
   }, [status]);
@@ -1353,6 +1588,11 @@ export default function ExplorePage() {
       fetch('/api/gacha/banners')
         .then(r => r.json())
         .then(data => setFreeGachaAvailable(data.freeGachaAvailable ?? false))
+        .catch(() => {});
+
+      fetch('/api/polls/active')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => setExploreActivePollCount((data?.polls ?? []).length))
         .catch(() => {});
 
       fetch('/api/characters').then(r => r.json()).then(charData => {
@@ -1495,6 +1735,10 @@ export default function ExplorePage() {
           100% { transform: scale(1); opacity: 1; }
         }
         .cat-badge-active { animation: catBadgePop 0.25s cubic-bezier(0.22,1,0.36,1) forwards; }
+        @keyframes missionFw1 { 0% { transform: translateY(0) scale(1); opacity:1; } 100% { transform: translateY(-44px) translateX(-22px) scale(0); opacity:0; } }
+        @keyframes missionFw2 { 0% { transform: translateY(0) scale(1); opacity:1; } 100% { transform: translateY(-38px) translateX(22px) scale(0); opacity:0; } }
+        @keyframes missionFw3 { 0% { transform: translateY(0) scale(1); opacity:1; } 100% { transform: translateY(-50px) scale(0); opacity:0; } }
+        @keyframes missionFw4 { 0% { transform: translateY(0) scale(1); opacity:1; } 100% { transform: translateY(-32px) translateX(-32px) scale(0); opacity:0; } }
       `}</style>
 
       <div className="min-h-screen bg-gray-950 pb-24">
@@ -1782,6 +2026,67 @@ export default function ExplorePage() {
               {/* ガチャバナー */}
               <GachaBannerSection freeAvailable={freeGachaAvailable} />
 
+              {/* グループチャットバナー */}
+              <FadeSection delay={14}>
+                <div className="mb-5">
+                  <button
+                    onClick={() => router.push('/chat/group')}
+                    className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(88,28,135,0.25), rgba(157,23,77,0.2), rgba(30,27,75,0.15))',
+                      border: '1px solid rgba(139,92,246,0.35)',
+                      boxShadow: '0 2px 20px rgba(139,92,246,0.12)',
+                    }}
+                  >
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <span className="text-2xl flex-shrink-0">👥</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">
+                            グループチャット
+                          </span>
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                            style={{
+                              background: 'rgba(139,92,246,0.25)',
+                              color: 'rgba(196,181,254,0.9)',
+                              border: '1px solid rgba(139,92,246,0.3)',
+                            }}
+                          >
+                            NEW
+                          </span>
+                        </div>
+                        <p className="text-white font-bold text-sm leading-tight">
+                          キャラ同士の掛け合いを見よう！
+                        </p>
+                        <p className="text-white/50 text-xs mt-0.5">
+                          複数のキャラを招待してトーク
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span
+                          className="text-white text-xs font-bold px-3 py-1.5 rounded-full"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                            boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
+                          }}
+                        >
+                          試す →
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </FadeSection>
+
+              {/* 今日のミッション進捗バー */}
+              {missionProgress !== null && missionProgress.total > 0 && (
+                <MissionProgressSection
+                  completed={missionProgress.completed}
+                  total={missionProgress.total}
+                />
+              )}
+
               {/* 今日の日記プレビュー */}
               <DiaryPreviewSection />
 
@@ -2012,6 +2317,9 @@ export default function ExplorePage() {
                   </div>
                 </FadeSection>
               )}
+
+              {/* ── コンテンツリンク：メモリーブック・ストーリー ── */}
+              <ContentLinksSection activePollCount={exploreActivePollCount} />
             </div>
           )}
 
