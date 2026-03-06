@@ -182,7 +182,7 @@ export function ChatHeader({
           <button
             onClick={handleMoodBadgeClick}
             aria-label={`今日の気分: ${EMOTION_LABEL[dailyState.emotion] ?? dailyState.emotion}`}
-            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center text-[9px] leading-none z-10"
+            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center text-[9px] leading-none z-10 aniva-emotion-badge"
             style={{ animation: 'moodBadgePulse 2.5s ease-in-out infinite' }}
           >
             {EMOTION_EMOJI[dailyState.emotion] ?? '✨'}
