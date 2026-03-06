@@ -93,6 +93,38 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     || 'ユーザー';
 
   const baseUrl = req.nextUrl.origin;
+
+  // 返信通知: 親コメントの投稿者にプッシュ通知
+  if (parentCommentId) {
+    setTimeout(async () => {
+      try {
+        const parentComment = await prisma.momentComment.findUnique({
+          where: { id: parentCommentId },
+          select: { userId: true, characterId: true, user: { select: { nickname: true, displayName: true, name: true } } },
+        });
+        // ユーザーコメントへの返信（自分自身への返信は除外）
+        if (parentComment?.userId && parentComment.userId !== session.user.id) {
+          const replierName = (comment.character?.name) || userDisplay;
+          await fetch(`${baseUrl}/api/push/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': process.env.INTERNAL_SECRET || '',
+            },
+            body: JSON.stringify({
+              userId: parentComment.userId,
+              title: `${replierName}があなたのコメントに返信しました`,
+              body: content.slice(0, 80),
+              url: `/moments`,
+            }),
+          }).catch(() => {});
+        }
+      } catch {
+        // 通知失敗は無視
+      }
+    }, 0);
+  }
+
   setTimeout(() => {
     fetch(`${baseUrl}/api/chat/comment-reply`, {
       method: 'POST',
