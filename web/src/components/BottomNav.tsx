@@ -101,6 +101,7 @@ export function BottomNav() {
   const isTimeline = pathname === '/moments' || pathname.startsWith('/moments');
   const isChat = pathname.startsWith('/chat');
   const isStories = pathname.startsWith('/stories');
+  const isCards = pathname.startsWith('/cards');
   const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
@@ -174,21 +175,18 @@ export function BottomNav() {
             <span className={`text-[10px] font-semibold ${isChat ? 'text-purple-400' : 'text-gray-400'}`}>{t('chat')}</span>
           </Link>
 
-          {/* 4. ストーリー */}
+          {/* 4. カード */}
           <Link
-            href="/stories"
+            href="/cards"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
-              isStories ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
+              isCards ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
           >
-            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isStories ? 'bg-purple-500/15' : ''}`}>
-              <svg className="w-6 h-6" fill={isStories ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isStories ? 0 : 1.8}>
-                <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
-                <path strokeLinecap="round" d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
-              </svg>
-              {isStories && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+            <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isCards ? 'bg-purple-500/15' : ''}`}>
+              <span className="text-xl">{isCards ? '🃏' : '🎴'}</span>
+              {isCards && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
             </div>
-            <span className={`text-[10px] font-semibold ${isStories ? 'text-purple-400' : 'text-gray-500'}`}>ストーリー</span>
+            <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>カード</span>
           </Link>
 
           {/* 5. マイページ */}
