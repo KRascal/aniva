@@ -554,7 +554,7 @@ export function MomentCard({
                         {c.user?.displayName || c.user?.nickname || c.user?.name || (c.user?.email ? c.user.email.split('@')[0] : 'ユーザー')}
                       </span>
                     )}
-                    <span className="text-gray-200 text-xs leading-relaxed">{c.content}</span>
+                    <span className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{c.content}</span>
                   </div>
                   {/* 削除ボタン（自分のコメントのみ） */}
                   {currentUserId && c.userId === currentUserId && (
