@@ -1077,6 +1077,12 @@ function CharacterVerticalCard({
           }}
         />
 
+        {/* オンラインドット */}
+        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 bg-black/50 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-sm shadow-green-400/50" />
+          <span className="text-[8px] text-green-300/80 font-medium">ONLINE</span>
+        </div>
+
         {/* Glassmorphism overlay card at bottom */}
         <div
           className="absolute bottom-0 left-0 right-0 p-3"
