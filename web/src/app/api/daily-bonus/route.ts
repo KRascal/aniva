@@ -3,6 +3,7 @@
  * POST /api/daily-bonus
  * - 今日まだボーナスを受け取っていなければコインを付与
  * - 連続ログイン日数に応じてボーナス倍率UP
+ * - 記念日（anniversary）がある場合はボーナス2倍
  * - キャラクターからの一言メッセージも返す
  */
 
@@ -89,7 +90,6 @@ export async function POST() {
 
     // ストリークカウント: 直近のBONUSトランザクションから逆算
     let streak = 1; // 今日で1日目
-    let streakBroken = false; // ストリーク切れフラグ
     if (yesterdayBonus) {
       // 昨日もログインしていた → ストリーク継続
       const recentBonuses = await prisma.coinTransaction.findMany({
@@ -119,7 +119,36 @@ export async function POST() {
       }
     }
 
-    const multiplier = getMultiplier(streak);
+    // 記念日ボーナス判定: memorySummary.anniversaryContext が有効期限内かチェック
+    let isAnniversaryBonus = false;
+    let anniversaryCharacterName: string | null = null;
+    try {
+      const relationships = await prisma.relationship.findMany({
+        where: { userId },
+        select: {
+          memorySummary: true,
+          character: { select: { name: true } },
+        },
+      });
+
+      const now = new Date();
+      for (const rel of relationships) {
+        const summary = rel.memorySummary as Record<string, unknown> | null;
+        if (!summary) continue;
+        const ctx = summary.anniversaryContext as { expiresAt?: string; label?: string } | undefined;
+        if (ctx?.expiresAt && new Date(ctx.expiresAt) > now) {
+          isAnniversaryBonus = true;
+          anniversaryCharacterName = rel.character.name;
+          break;
+        }
+      }
+    } catch {
+      // 記念日チェック失敗は無視（ボーナス自体は継続）
+    }
+
+    const streakMultiplier = getMultiplier(streak);
+    const anniversaryMultiplier = isAnniversaryBonus ? 2 : 1;
+    const multiplier = streakMultiplier * anniversaryMultiplier;
     const coins = Math.round(BASE_COINS * multiplier);
 
     // コイン付与（freeBalanceに加算 — 無料コイン扱い）
@@ -135,14 +164,25 @@ export async function POST() {
         type: 'BONUS',
         amount: coins,
         balanceAfter: balance.balance,
-        description: `daily_login_streak_${streak}`,
-        metadata: { source: 'login_bonus', coinType: 'free' },
+        description: `daily_login_streak_${streak}${isAnniversaryBonus ? '_anniversary2x' : ''}`,
+        metadata: {
+          source: 'login_bonus',
+          coinType: 'free',
+          streakMultiplier,
+          anniversaryMultiplier,
+          anniversaryCharacter: anniversaryCharacterName,
+        },
       },
     });
 
-    // メッセージ選択
+    // メッセージ選択（記念日優先）
     const streakMessage = STREAK_MESSAGES[streak];
-    const greeting = streakMessage || CHARACTER_GREETINGS[Math.floor(Math.random() * CHARACTER_GREETINGS.length)];
+    let greeting: string;
+    if (isAnniversaryBonus && anniversaryCharacterName) {
+      greeting = `${anniversaryCharacterName}との記念日！ボーナス2倍だ！🎉💕`;
+    } else {
+      greeting = streakMessage || CHARACTER_GREETINGS[Math.floor(Math.random() * CHARACTER_GREETINGS.length)];
+    }
 
     // 初回登録かチェック（BONUSトランザクションの件数で判定）
     const bonusCount = await prisma.coinTransaction.count({
@@ -190,6 +230,10 @@ export async function POST() {
       streakDays: streak,
       streakBroken: !yesterdayBonus && streak === 1 && !isFirstLogin,
       multiplier,
+      streakMultiplier,
+      anniversaryMultiplier,
+      isAnniversaryBonus,
+      anniversaryCharacter: anniversaryCharacterName,
       totalBalance: (finalBalance ?? balance).freeBalance + (finalBalance ?? balance).paidBalance,
       isFirstLogin,
       welcomeAmount: 500,

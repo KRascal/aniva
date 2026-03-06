@@ -251,12 +251,8 @@ export async function POST(req: NextRequest) {
       );
       results.promptsInjected++;
 
-      // TODO: ログインボーナス2倍連携
-      // src/app/api/daily-bonus/route.ts にて以下を参照:
-      // memorySummary.anniversaryContext が存在する場合、ボーナスコイン量を2倍にする。
-      // 例: const multiplier = hasAnniversary ? 2 : 1;
-      //     const bonusAmount = BASE_DAILY_BONUS * multiplier;
-      // ※ 実装は daily-bonus/route.ts 側に追記すること（このcronから直接呼ぶと重複リスクあり）
+      // ✅ ログインボーナス2倍連携 実装済み (daily-bonus/route.ts)
+      // memorySummary.anniversaryContext.expiresAt が有効期限内の場合、ボーナスが2倍になる
 
       results.anniversaryDMs++;
     }
@@ -348,11 +344,8 @@ export async function POST(req: NextRequest) {
     );
     results.promptsInjected++;
 
-    // TODO: ログインボーナス2倍連携（マイルストーン記念日も対象）
-    // src/app/api/daily-bonus/route.ts にて memorySummary.anniversaryContext の有無を確認し、
-    // ボーナス額を2倍に設定する。例:
-    //   const isAnniversaryDay = !!anniversaryCtx && new Date(anniversaryCtx.expiresAt) > new Date();
-    //   const dailyBonusAmount = BASE_DAILY_BONUS * (isAnniversaryDay ? 2 : 1);
+    // ✅ ログインボーナス2倍連携 実装済み（マイルストーン記念日も対象）(daily-bonus/route.ts)
+    // memorySummary.anniversaryContext.expiresAt が有効期限内の場合、ボーナスが2倍になる
 
     results.anniversaryDMs++;
   }
