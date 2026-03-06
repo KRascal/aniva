@@ -242,7 +242,7 @@ export default function PricingPage() {
             {packages.map((pkg, i) => {
               const bonus = COIN_BONUSES[pkg.name] ?? 0;
               const totalCoins = pkg.coinAmount + bonus;
-              const isPopular = i === 1;
+              const isPopular = i === 2;
               const isPurchasing = purchasing === pkg.id;
 
               return (
@@ -256,7 +256,7 @@ export default function PricingPage() {
                 >
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                      人気 No.1
+                      🎉 最もお得！
                     </div>
                   )}
 
