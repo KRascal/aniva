@@ -347,6 +347,18 @@ export default function ProfilePage() {
   const [diaryPage, setDiaryPage] = useState(1);
   const [diaryTotalPages, setDiaryTotalPages] = useState(1);
 
+  // 嫉妬メカニクス: ランキングデータ
+  interface RankingEntry {
+    rank: number;
+    maskedName: string;
+    totalMessages: number;
+    level: number;
+    isMe: boolean;
+  }
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [myRank, setMyRank] = useState<number | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
@@ -455,6 +467,45 @@ export default function ProfilePage() {
       .catch(console.error)
       .finally(() => setDlLoading(false));
   }, [characterId]);
+
+  // ランキングフェッチ（嫉妬メカニクス）
+  useEffect(() => {
+    if (!characterId || !userId) return;
+    setRankingLoading(true);
+
+    // 匿名マスク用のキャラクター職業リスト
+    const maskNames = ['海賊A', '剣士B', '航海士C', '料理人D', '船医E', '考古学者F', '大工G', '音楽家H', '操舵手I', '狙撃手J'];
+
+    fetch(`/api/ranking/${characterId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ranking) {
+          // ランキングエントリをマスク済み形式に変換
+          const masked = (data.ranking as {
+            rank: number;
+            isMe: boolean;
+            totalMessages: number;
+            level: number;
+            displayName: string;
+          }[]).map((entry) => ({
+            rank: entry.rank,
+            maskedName: entry.isMe ? (userId ? 'あなた' : maskNames[(entry.rank - 1) % maskNames.length]) : maskNames[(entry.rank - 1) % maskNames.length],
+            totalMessages: entry.totalMessages,
+            level: entry.level,
+            isMe: entry.isMe,
+          }));
+          setRanking(masked);
+        }
+        // myRankはオブジェクトまたはnullで返る
+        if (data.myRank && typeof data.myRank === 'object') {
+          setMyRank((data.myRank as { rank: number }).rank);
+        } else if (typeof data.myRank === 'number') {
+          setMyRank(data.myRank);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRankingLoading(false));
+  }, [characterId, userId]);
 
   // 日記フェッチ
   useEffect(() => {
@@ -1011,6 +1062,83 @@ export default function ProfilePage() {
         {/* ══════════════ タブコンテンツ: プロフィール ══════════════ */}
         {activeTab === 'profile' && (
         <div className="space-y-5 pt-2 pb-24">
+
+        {/* ══════════════ 絆レベル表示（目立つ位置） ══════════════ */}
+        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-purple-900/50 to-pink-900/30 border border-purple-500/30 rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💫</span>
+            <div>
+              <p className="text-xs text-purple-300 font-semibold">あなたの絆レベル</p>
+              <p className="text-white font-black text-lg leading-tight">Lv.{level} <span className="text-purple-300 text-sm font-semibold">「{levelInfo?.name ?? '—'}」</span></p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">{(relationship?.totalMessages ?? 0).toLocaleString()} 通</p>
+            <p className="text-xs text-purple-400 mt-0.5">会話回数</p>
+          </div>
+        </div>
+
+        {/* ══════════════ 今週のTOP3ランキング（嫉妬メカニクス） ══════════════ */}
+        <div>
+          <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+            🏆 今週の親密度TOP3
+          </p>
+          <div className="bg-gray-900/80 rounded-2xl border border-white/8 overflow-hidden">
+            {rankingLoading ? (
+              <div className="py-8 text-center text-white/30 text-sm">読み込み中…</div>
+            ) : ranking.length === 0 ? (
+              <div className="py-8 text-center text-white/30 text-sm">ランキングデータなし</div>
+            ) : (
+              <>
+                {ranking.slice(0, 3).map((entry) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  return (
+                    <div
+                      key={entry.rank}
+                      className={`flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0 ${
+                        entry.isMe ? 'bg-purple-900/30' : ''
+                      }`}
+                    >
+                      <span className="text-xl w-6 text-center flex-shrink-0">{medals[entry.rank - 1] ?? `#${entry.rank}`}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${entry.isMe ? 'text-purple-200' : 'text-white/80'}`}>
+                          {entry.maskedName}
+                          {entry.isMe && <span className="ml-2 text-xs text-purple-400 bg-purple-900/50 px-1.5 py-0.5 rounded-full">あなた</span>}
+                        </p>
+                        <p className="text-xs text-gray-500">{entry.totalMessages.toLocaleString()} 通</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs text-yellow-400 font-bold">Lv.{entry.level}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 自分が4位以下の場合の嫉妬トリガー表示 */}
+                {myRank !== null && myRank > 3 && (
+                  <div className="px-4 py-3 bg-orange-950/20 border-t border-orange-500/20">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">😤</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold">あなたは現在 {myRank}位</p>
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          まだ{character?.name ?? 'キャラ'}に追いつけるかも…もっと話しかけてみよう！
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 自分が1位の場合の特別表示 */}
+                {myRank === 1 && (
+                  <div className="px-4 py-2 bg-yellow-950/20 border-t border-yellow-500/20 text-center">
+                    <p className="text-yellow-300 text-xs font-semibold">✨ あなたが最も親しい存在です！</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* ══════════════ 基本情報カード（全キャラ対応） ══════════════ */}
         {character && CHARACTER_PROFILES[character.slug] && (

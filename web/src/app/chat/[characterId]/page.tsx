@@ -1595,8 +1595,9 @@ export default function ChatCharacterPage() {
         <StreakBreakPopup
           characterSlug={character.slug ?? 'luffy'}
           characterName={character.name}
-          characterAvatarUrl={character.avatarUrl ?? null}
-          onDismiss={() => setShowStreakBreak(false)}
+          relationshipId={relationshipId ?? ''}
+          previousStreak={relationship.streakDays ?? 0}
+          onClose={() => setShowStreakBreak(false)}
           onRecovered={(newStreak) => {
             setShowStreakBreak(false);
             setRelationship(prev => prev ? { ...prev, streakDays: newStreak, isStreakActive: true } : prev);

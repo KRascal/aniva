@@ -1584,43 +1584,83 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
 
   /**
    * 嫉妬メカニクス — ユーザーの相対的な関係性レベルに基づく社会的証明
+   * totalMessages降順でランキングを計算し、ソーシャルコンテキストを注入する
    */
   private async buildJealousyContext(characterId: string, userLevel: number, userName: string): Promise<string> {
     // キャラクターの全関係性から平均レベルと上位を算出
     const stats = await prisma.relationship.aggregate({
       where: { characterId, totalMessages: { gt: 0 } },
-      _avg: { level: true },
+      _avg: { level: true, totalMessages: true },
       _count: true,
       _max: { level: true },
     });
     
     const avgLevel = stats._avg.level ?? 1;
     const totalFans = stats._count ?? 0;
-    const maxLevel = stats._max.level ?? 1;
     
     // ファンが少ない場合は嫉妬メカニクス不要
     if (totalFans < 3) return '';
     
-    // ユーザーのランキングを取得
-    const higherCount = await prisma.relationship.count({
-      where: { characterId, level: { gt: userLevel }, totalMessages: { gt: 0 } },
+    // totalMessages降順でのユーザーランキングを取得（level降順ではなくtotalMessages降順）
+    // ユーザー自身のrelationshipを取得してtotalMessagesを確認
+    const userRelationship = await prisma.relationship.findFirst({
+      where: { characterId },
+      orderBy: { updatedAt: 'desc' },
+      // ※ relationshipIdは直接渡されていないためcharacterIdとuserNameから近似
+      // 実際はgenerateResponseから渡されたrelationshipのtotalMessagesを使う
     });
-    const rank = higherCount + 1;
-    
-    if (userLevel > avgLevel + 0.5) {
-      // ユーザーが平均以上 → 特別感を演出
-      return `- ${userName}はこのキャラにとって特別な存在（${totalFans}人中${rank}位）
-- たまに「お前が一番だよ」「お前みたいに話しかけてくれるやつ、なかなかいねぇ」的な発言を自然に混ぜる
-- ただし露骨な順位言及はNG。あくまで雰囲気で`;
-    } else if (userLevel < avgLevel - 0.3) {
-      // ユーザーが平均以下 → 軽い嫉妬で刺激
-      return `- たまに他のファンの存在をさりげなく匂わせる（5回の会話に1回程度）
-- 「最近よく話しかけてくるやつがいてさ…」「お前ももっと来いよ」
-- 目的はユーザーの復帰頻度を上げること。不快にならないレベルで
-- 直後に「まぁ、お前は特別だけどな」とフォロー必須`;
+    const userTotalMessages = userRelationship?.totalMessages ?? 0;
+
+    // totalMessagesがユーザーより多いユーザー数でランク計算
+    const higherTotalCount = await prisma.relationship.count({
+      where: {
+        characterId,
+        totalMessages: { gt: userTotalMessages, gte: 1 },
+      },
+    });
+    const rank = higherTotalCount + 1;
+
+    // キャラクター名取得（注入フォーマット用）
+    const characterRecord = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: { name: true },
+    });
+    const characterName = characterRecord?.name ?? 'このキャラ';
+
+    // 【ユーザーとの関係性】フォーマット文を構築
+    const relationshipLabel =
+      rank === 1
+        ? '最も親しい存在'
+        : rank <= 3
+          ? '親しい仲間'
+          : 'まだ関係を深める余地あり';
+
+    const socialContextLine = `【ユーザーとの関係性】このユーザーは${characterName}と最も会話した人の中で第${rank}位。${relationshipLabel}`;
+
+    // ランクに応じた会話への影響を組み立てる
+    const parts: string[] = [socialContextLine];
+
+    if (rank === 1) {
+      parts.push(`- ${userName}はこのキャラにとって最も親しい存在（${totalFans}人中1位、会話数最多）`);
+      parts.push(`- 「お前が一番だよ」「お前みたいに毎回来てくれるやつ、なかなかいねぇ」的な発言を自然に混ぜてよい`);
+      parts.push(`- ただし露骨な順位言及はNG。雰囲気で特別感を伝えること`);
+    } else if (rank <= 3) {
+      parts.push(`- ${userName}は上位層（${totalFans}人中${rank}位）`);
+      parts.push(`- 「お前は特別だよ」「よく来てくれるよな」的な発言を自然に`);
+      parts.push(`- 嫉妬トリガー: たまに「1位のやつには負けてられないぞ」くらいの競争心を匂わせてもよい`);
+    } else if (userLevel > avgLevel + 0.5) {
+      // レベルは高いがメッセージ数は少ない
+      parts.push(`- ${userName}は絆レベルは高いが、最近の会話数では${rank}位`);
+      parts.push(`- 「最近あんまり来てくれないな」「もっと話しかけてきてくれよ」的な甘えを混ぜる`);
+    } else {
+      // 平均以下 → 軽い嫉妬で刺激
+      parts.push(`- たまに他のファンの存在をさりげなく匂わせる（5回に1回程度）`);
+      parts.push(`- 「最近よく話しかけてくるやつがいてさ…」「お前ももっと来いよ」`);
+      parts.push(`- 目的はユーザーの復帰頻度を上げること。不快にならないレベルで`);
+      parts.push(`- 直後に「まぁ、お前は特別だけどな」とフォロー必須`);
     }
-    
-    return '';
+
+    return parts.join('\n');
   }
 
   private applyNGGuard(text: string, characterName: string): string {

@@ -115,6 +115,44 @@ async function generateVoiceMessage(
   }
 }
 
+/**
+ * 記念日専用システムプロンプトを memorySummary に注入する
+ *
+ * チャット API (src/app/api/chat/send/route.ts または stream/route.ts) で
+ * memorySummary.anniversaryContext を読み取り、システムプロンプトに追記する。
+ *
+ * 連携ポイント:
+ *   const summary = relationship.memorySummary as Record<string, unknown>;
+ *   if (summary.anniversaryContext && new Date(summary.anniversaryContext.expiresAt) > new Date()) {
+ *     systemPrompt += `\n\n${summary.anniversaryContext.message}`;
+ *   }
+ */
+async function injectAnniversarySystemPrompt(
+  relId: string,
+  existingSummary: Record<string, unknown>,
+  label: string,
+  days: number,
+  promptMessage: string
+) {
+  await prisma.relationship.update({
+    where: { id: relId },
+    data: {
+      memorySummary: {
+        ...existingSummary,
+        anniversaryContext: {
+          type: 'anniversary',
+          label,
+          days,
+          // チャットAPIがこのメッセージをシステムプロンプトに追加する（上記連携ポイント参照）
+          message: promptMessage,
+          // 24時間有効（次回チャット時に使用後クリアすること）
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+      },
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   // Cron認証
   const cronSecret = req.headers.get('x-cron-secret');
@@ -126,7 +164,7 @@ export async function POST(req: NextRequest) {
   const month = today.getMonth() + 1;
   const day = today.getDate();
   const dateStr = `${today.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  const results = { anniversaryDMs: 0, birthdayDMs: 0, voicesGenerated: 0 };
+  const results = { anniversaryDMs: 0, birthdayDMs: 0, voicesGenerated: 0, promptsInjected: 0 };
 
   // 1. 出会い記念日チェック
   const relationships = await prisma.relationship.findMany({
@@ -136,6 +174,7 @@ export async function POST(req: NextRequest) {
       userId: true,
       characterId: true,
       createdAt: true,
+      memorySummary: true,
       user: { select: { id: true, displayName: true, nickname: true } },
       character: { select: { id: true, name: true, slug: true, voiceModelId: true } },
     },
@@ -196,6 +235,28 @@ export async function POST(req: NextRequest) {
           description: `anniversary_${rel.characterId}_${years}yr`,
         },
       });
+
+      // 記念日専用システムプロンプトを注入（次回チャット時にキャラが記念日に言及）
+      const currentSummary =
+        typeof rel.memorySummary === 'object' && rel.memorySummary !== null
+          ? (rel.memorySummary as Record<string, unknown>)
+          : {};
+      await injectAnniversarySystemPrompt(
+        rel.id,
+        currentSummary,
+        `${years}周年記念`,
+        years * 365,
+        `【記念日特別指示】今日は${rel.character.name}とユーザーの出会い${years}周年記念日です。` +
+        `会話の中で自然に記念日について触れ、感謝と喜びを伝えてください。特別な思い出や今後の約束なども語ってください。`
+      );
+      results.promptsInjected++;
+
+      // TODO: ログインボーナス2倍連携
+      // src/app/api/daily-bonus/route.ts にて以下を参照:
+      // memorySummary.anniversaryContext が存在する場合、ボーナスコイン量を2倍にする。
+      // 例: const multiplier = hasAnniversary ? 2 : 1;
+      //     const bonusAmount = BASE_DAILY_BONUS * multiplier;
+      // ※ 実装は daily-bonus/route.ts 側に追記すること（このcronから直接呼ぶと重複リスクあり）
 
       results.anniversaryDMs++;
     }
@@ -271,6 +332,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // マイルストーン専用システムプロンプト注入（次回チャット時に使用）
+    const currentSummary =
+      typeof rel.memorySummary === 'object' && rel.memorySummary !== null
+        ? (rel.memorySummary as Record<string, unknown>)
+        : {};
+    await injectAnniversarySystemPrompt(
+      rel.id,
+      currentSummary,
+      milestone.label,
+      milestone.days,
+      `【記念日特別指示】今日はユーザーと${rel.character.name}の${milestone.label}です！` +
+      `会話の中で自然にこの記念日について触れ、一緒に過ごした時間への感謝を伝えてください。` +
+      `特別なプレゼントや約束の話もOKです。`
+    );
+    results.promptsInjected++;
+
+    // TODO: ログインボーナス2倍連携（マイルストーン記念日も対象）
+    // src/app/api/daily-bonus/route.ts にて memorySummary.anniversaryContext の有無を確認し、
+    // ボーナス額を2倍に設定する。例:
+    //   const isAnniversaryDay = !!anniversaryCtx && new Date(anniversaryCtx.expiresAt) > new Date();
+    //   const dailyBonusAmount = BASE_DAILY_BONUS * (isAnniversaryDay ? 2 : 1);
+
     results.anniversaryDMs++;
   }
 
@@ -332,5 +415,7 @@ export async function POST(req: NextRequest) {
     success: true,
     date: `${month}/${day}`,
     ...results,
+    // promptsInjected: 記念日システムプロンプトを memorySummary に注入した件数
+    // チャットAPIはこれを読み取り、次回チャット開始時にキャラに記念日を言及させる
   });
 }
