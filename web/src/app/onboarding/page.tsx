@@ -581,7 +581,10 @@ function OnboardingInner() {
             avatarUrl: c.avatarUrl ?? null,
             franchise: c.franchise ?? '',
           };
-          await selectCharacter(char);
+          const ok = await selectCharacter(char);
+          if (!ok) advance(); // selectCharacter失敗時もフェーズを進める
+        } else {
+          advance(); // fetch失敗時もフェーズを進める
         }
       } catch {
         // fallback: 何もなくても次へ進む
