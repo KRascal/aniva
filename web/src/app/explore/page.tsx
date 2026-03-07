@@ -1566,21 +1566,21 @@ function MissionProgressSection({
                 }`}
               >
                 {isAllDone
-                  ? '🎉 全ミッションクリア！おめでとう！'
+                  ? '全ミッションクリア'
                   : isNearDone
-                  ? `⚡ あと${remaining}個！今日中に達成しよう`
+                  ? `あと${remaining}個で達成`
                   : `${completed} / ${total} ミッション完了`}
               </p>
               {!isAllDone && (
                 <p className="text-white/45 text-xs mt-0.5">
                   {isNearDone
-                    ? '今日中にあと1つ！全クリアボーナスを逃すな！'
-                    : 'ミッションをクリアしてコインをゲット 🪙'}
+                    ? '今日中にクリアしてボーナスを獲得'
+                    : 'ミッション達成でコインを獲得'}
                 </p>
               )}
               {isAllDone && (
                 <p className="text-emerald-400/70 text-xs mt-0.5">
-                  今日のボーナスコインを全部獲得！すごい ✨
+                  今日のボーナスコインを全て獲得しました
                 </p>
               )}
             </div>

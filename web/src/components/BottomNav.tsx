@@ -202,7 +202,10 @@ export function BottomNav() {
             }`}
           >
             <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isCards ? 'bg-purple-500/15' : ''}`}>
-              <span className="text-xl">{isCards ? '🃏' : '🎴'}</span>
+              <svg className="w-6 h-6" fill={isCards ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isCards ? 0 : 1.8}>
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h4m-4 4h10m-10 4h6" />
+              </svg>
               {isCards && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
             </div>
             <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>カード</span>
