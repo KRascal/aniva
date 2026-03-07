@@ -1239,7 +1239,7 @@ export default function ChatCharacterPage() {
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
       setIsPushSubscribed(true);
-      alert('ルフィからの通知をONにしました 🔔');
+      alert('プッシュ通知をONにしました 🔔');
     } catch (err) {
       console.error('Push subscribe error:', err);
       alert('通知の設定に失敗しました');

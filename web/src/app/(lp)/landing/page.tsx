@@ -858,7 +858,7 @@ export default function LandingPage() {
           <GachaCard emoji="⚔️" rarity="SR" name="ゾロ\n鷹の目" delay={80} />
           <GachaCard emoji="✨" rarity="SSR" name="Sora\n覚醒" delay={160} />
           <GachaCard emoji="🐉" rarity="SR" name="悟空\n超サイヤ人" delay={240} />
-          <GachaCard emoji="🔥" rarity="R" name="炭治郎\n日の呼吸" delay={320} />
+          <GachaCard emoji="🔥" rarity="R" name="Ren\n覚醒" delay={320} />
         </div>
 
         <div className="flex justify-center items-center gap-2 mb-6">

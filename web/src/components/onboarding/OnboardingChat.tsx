@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { CharacterData } from './CharacterReveal';
 import { GuestMessage } from '@/lib/onboarding-session';
 
@@ -163,12 +164,11 @@ export default function OnboardingChat({
       {/* Character info header */}
       <div className="relative z-10 flex items-center gap-3 px-4 pt-8 pb-4 border-b border-white/5">
         <div
-          className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+          className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 relative"
           style={{ boxShadow: '0 0 12px rgba(168,85,247,0.3)' }}
         >
           {character.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+            <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
           ) : (
             <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-white/60 text-sm">
               {character.name[0]}
@@ -208,12 +208,11 @@ export default function OnboardingChat({
           >
             {msg.role === 'character' && (
               <div
-                className="w-7 h-7 rounded-full overflow-hidden mr-2 flex-shrink-0 mt-1"
+                className="w-7 h-7 rounded-full overflow-hidden mr-2 flex-shrink-0 mt-1 relative"
                 style={{ boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}
               >
                 {character.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+                  <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
                 ) : (
                   <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-white/60 text-xs">
                     {character.name[0]}
@@ -241,12 +240,11 @@ export default function OnboardingChat({
         {isLoading && (
           <div className="flex justify-start">
             <div
-              className="w-7 h-7 rounded-full overflow-hidden mr-2 flex-shrink-0"
+              className="w-7 h-7 rounded-full overflow-hidden mr-2 flex-shrink-0 relative"
               style={{ boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}
             >
               {character.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+                <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
               ) : (
                 <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-white/60 text-xs">
                   {character.name[0]}

@@ -17,7 +17,7 @@ export default function Error({
       <div className="text-center">
         <div className="text-5xl mb-4">😤</div>
         <h2 className="text-xl font-bold text-white mb-2">エラーが発生しました</h2>
-        <p className="text-gray-400 mb-6 text-sm">ルフィも驚いている...</p>
+        <p className="text-gray-400 mb-6 text-sm">ちょっと何かが起きたみたい...</p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}

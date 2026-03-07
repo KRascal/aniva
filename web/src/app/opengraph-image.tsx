@@ -83,7 +83,7 @@ export default function Image() {
               marginTop: '12px',
             }}
           >
-            {['🏴‍☠️ ワンピース', '⚔️ 名探偵コナン', '🌙 鬼滅の刃'].map((label) => (
+            {['💬 AIチャット', '🎭 キャラクター', '✨ 推し活'].map((label) => (
               <div
                 key={label}
                 style={{
