@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { playSound } from '@/lib/sound-effects';
+import { playSound, vibrateGacha } from '@/lib/sound-effects';
 import type { GachaRarity } from './GachaFlipCard';
 
 // ---- Types ----
@@ -76,8 +76,9 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   const ripPack = useCallback(() => {
     if (phase !== 'pack-rip') return;
     playSound('gacha-pull');
+    vibrateGacha(bestRarity);
     setPhase('rarity-flash');
-  }, [phase]);
+  }, [phase, bestRarity]);
 
   // ---- 次のカード ----
   const nextCard = useCallback(() => {
@@ -90,9 +91,9 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
       setShowCard(false);
       setTimeout(() => {
         setRevealIndex(nextIdx);
-        // レアリティに応じたSE
         const r = cards[nextIdx]?.rarity?.toLowerCase() || 'n';
         playSound(`gacha-reveal-${r}` as Parameters<typeof playSound>[0]);
+        vibrateGacha(cards[nextIdx]?.rarity || 'N');
         setShowCard(true);
       }, 300);
     }

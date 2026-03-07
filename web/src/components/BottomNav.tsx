@@ -115,7 +115,7 @@ export function BottomNav() {
   const isTimeline = pathname === '/moments' || pathname.startsWith('/moments');
   const isChat = pathname.startsWith('/chat');
   const isStories = pathname.startsWith('/stories');
-  const isCards = pathname.startsWith('/cards') || pathname.startsWith('/memory-cards');
+  const isCards = pathname.startsWith('/cards') || pathname.startsWith('/memory-cards') || pathname.startsWith('/explore/gacha');
   const isMypage = pathname.startsWith('/mypage') || pathname.startsWith('/profile');
   const isActive = (href: string) => {
     if (href === '/explore') return pathname === '/explore' || pathname === '/explore/';
@@ -196,7 +196,7 @@ export function BottomNav() {
 
           {/* 4. カード */}
           <Link
-            href="/memory-cards"
+            href="/cards"
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isCards ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
