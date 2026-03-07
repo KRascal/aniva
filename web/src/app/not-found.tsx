@@ -29,11 +29,11 @@ export default function NotFound() {
             探しに行く
           </Link>
           <Link
-            href="/"
+            href="/explore"
             className="w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)] inline-block text-center
                        active:scale-[0.97] transition-transform"
           >
-            ホームに戻る
+            探すに戻る
           </Link>
         </div>
       </div>

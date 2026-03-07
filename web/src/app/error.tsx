@@ -84,11 +84,11 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
             もう一度試す
           </button>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => window.location.href = '/explore'}
             className="w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)]
                        active:scale-[0.97] transition-transform"
           >
-            ホームに戻る
+            探すに戻る
           </button>
         </motion.div>
       </motion.div>
