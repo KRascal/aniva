@@ -17,11 +17,15 @@ interface Notif {
 }
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  character_reply:  { icon: '💬', color: 'text-purple-400', label: '返信' },
-  character_comment:{ icon: '✨', color: 'text-pink-400',   label: 'コメント' },
-  moment_like:      { icon: '❤️', color: 'text-red-400',    label: 'いいね' },
-  moment_comment:   { icon: '💭', color: 'text-blue-400',   label: 'コメント' },
-  follow:           { icon: '👤', color: 'text-emerald-400', label: 'フォロー' },
+  character_reply:    { icon: '💬', color: 'text-purple-400',  label: '返信' },
+  CHARACTER_MESSAGE:  { icon: '💌', color: 'text-pink-400',    label: 'メッセージ' },
+  character_comment:  { icon: '✨', color: 'text-pink-400',    label: 'コメント' },
+  moment_like:        { icon: '❤️', color: 'text-red-400',     label: 'いいね' },
+  moment_comment:     { icon: '💭', color: 'text-blue-400',    label: 'コメント' },
+  follow:             { icon: '👤', color: 'text-emerald-400', label: 'フォロー' },
+  MILESTONE:          { icon: '💎', color: 'text-amber-400',   label: '思い出' },
+  DAILY_BONUS:        { icon: '🎁', color: 'text-yellow-400',  label: 'デイリー' },
+  SYSTEM:             { icon: '🔔', color: 'text-gray-400',    label: 'システム' },
 };
 
 function timeAgo(iso: string) {
