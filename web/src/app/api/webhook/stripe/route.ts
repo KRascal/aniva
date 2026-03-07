@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { paymentLimiter, rateLimitResponse } from '@/lib/rate-limit';
+import { auditLog, AUDIT_ACTIONS } from '@/lib/audit-log';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 
@@ -17,8 +18,15 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.error('Webhook signature verification failed');
+    await auditLog(AUDIT_ACTIONS.WEBHOOK_FAILED, { error: 'Invalid signature' }, { ip })
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
+  
+  // 全Webhookイベントを監査ログに記録
+  await auditLog(AUDIT_ACTIONS.WEBHOOK_RECEIVED, { 
+    eventType: event.type, 
+    eventId: event.id,
+  }, { ip })
   
   switch (event.type) {
     case 'checkout.session.completed': {
