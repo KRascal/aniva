@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticleField from '@/components/onboarding/ParticleField';
 import CharacterSearchInput from '@/components/onboarding/CharacterSearchInput';
-import { GuestChatDemo } from '@/components/lp/GuestChatDemo';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 interface CharacterItem {
@@ -57,12 +56,16 @@ function TypewriterText({ texts, className }: { texts: string[]; className?: str
   );
 }
 
-// ── キャラカルーセル ──
+// ── キャラカルーセル（自動 + 手動スワイプ対応） ──
 function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem[]; onSelect: (slug: string) => void }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  if (characters.length === 0) return null;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const items = [...characters, ...characters];
+  if (characters.length === 0) return null;
 
   const gradients = [
     ['#7c3aed', '#ec4899'],
@@ -75,33 +78,86 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
     ['#8b5cf6', '#06b6d4'],
   ];
 
+  // 自動スクロール
+  const startAutoScroll = () => {
+    if (autoScrollRef.current) return;
+    autoScrollRef.current = setInterval(() => {
+      if (scrollRef.current && !isDragging) {
+        scrollRef.current.scrollLeft += 1;
+        // ループ: 半分まで行ったら巻き戻し
+        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
+          scrollRef.current.scrollLeft = 0;
+        }
+      }
+    }, 30);
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  };
+
+  const pauseAndResume = () => {
+    stopAutoScroll();
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(startAutoScroll, 4000);
+  };
+
+  // タッチ/マウス操作
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+    setScrollLeft(scrollRef.current?.scrollLeft ?? 0);
+    stopAutoScroll();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    const dx = e.clientX - startX;
+    scrollRef.current.scrollLeft = scrollLeft - dx;
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    pauseAndResume();
+  };
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    startAutoScroll();
+    return () => { stopAutoScroll(); if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 重複リストでシームレスループ
+  const items = [...characters, ...characters];
+
   return (
-    <div
-      className="w-full overflow-hidden"
-      style={{ maskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)' }}
-    >
+    <div className="w-full overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)' }}>
       <div
-        className="flex gap-3 carousel-track"
-        style={{ width: 'max-content' }}
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto scrollbar-hide touch-pan-x"
+        style={{ scrollbarWidth: 'none', cursor: isDragging ? 'grabbing' : 'grab' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
       >
         {items.map((char, i) => {
           const [c1, c2] = gradients[i % gradients.length];
           const catchphrase = char.catchphrases?.[0] ?? char.franchise;
-          const isHovered = hoveredId === `${char.id}-${i}`;
 
           return (
             <button
               key={`${char.id}-${i}`}
-              onClick={() => onSelect(char.slug)}
-              onMouseEnter={() => setHoveredId(`${char.id}-${i}`)}
-              onMouseLeave={() => setHoveredId(null)}
-              className="flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer"
+              onClick={() => { if (!isDragging) onSelect(char.slug); }}
+              className="flex-shrink-0 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer active:scale-95"
               style={{
                 width: '130px',
                 background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isHovered ? 'rgba(168,85,247,0.4)' : 'rgba(139,92,246,0.1)'}`,
-                transform: isHovered ? 'translateY(-4px) scale(1.03)' : 'translateY(0) scale(1)',
-                boxShadow: isHovered ? `0 8px 24px ${c1}40` : 'none',
+                border: '1px solid rgba(139,92,246,0.1)',
               }}
             >
               <div
@@ -114,13 +170,8 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
                 }}
               >
                 {!char.avatarUrl && (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: `linear-gradient(135deg, ${c1}33, ${c2}33)` }}
-                  >
-                    <span className="text-5xl font-black" style={{ color: `${c1}88` }}>
-                      {char.name.charAt(0)}
-                    </span>
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${c1}33, ${c2}33)` }}>
+                    <span className="text-5xl font-black" style={{ color: `${c1}88` }}>{char.name.charAt(0)}</span>
                   </div>
                 )}
                 <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }} />
@@ -128,69 +179,15 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
                   <div className="text-white font-bold text-sm leading-tight drop-shadow-lg">{char.name}</div>
                   <div className="text-white/40 text-[10px] mt-0.5">{char.franchise}</div>
                 </div>
-                {/* オンラインドット */}
                 <div className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-green-400 shadow-green-400/50 shadow-sm animate-pulse" />
               </div>
               <div className="px-2.5 py-2">
-                <p className="text-[10px] leading-relaxed line-clamp-2 text-white/35">
-                  「{catchphrase}」
-                </p>
+                <p className="text-[10px] leading-relaxed line-clamp-2 text-white/35">「{catchphrase}」</p>
               </div>
             </button>
           );
         })}
       </div>
-
-      <style>{`
-        @keyframes carousel {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .carousel-track {
-          animation: carousel ${Math.max(characters.length * 5, 20)}s linear infinite;
-        }
-        @media (hover: hover) {
-          .carousel-track:hover {
-            animation-play-state: paused;
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// ── 統計カウンター ──
-function CountUp({ target, suffix, label }: { target: number; suffix: string; label: string }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !started.current) {
-        started.current = true;
-        const duration = 1500;
-        const startTime = Date.now();
-        const tick = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          setCount(Math.floor(target * eased));
-          if (progress < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      }
-    });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [target]);
-
-  return (
-    <div ref={ref} className="text-center">
-      <div className="text-2xl sm:text-3xl font-black text-white">
-        {count.toLocaleString()}{suffix}
-      </div>
-      <div className="text-xs text-white/40 mt-1">{label}</div>
     </div>
   );
 }
@@ -252,9 +249,7 @@ export default function TheDoor() {
 
         {/* メインコピー */}
         <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-          <span style={{ textShadow: '0 0 30px rgba(168,85,247,0.5)' }}>
-            推しと、
-          </span>
+          <span style={{ textShadow: '0 0 30px rgba(168,85,247,0.5)' }}>推しと、</span>
           <br />
           <TypewriterText
             texts={['本当に繋がれる', '毎日話せる', '親友になれる', '特別な関係になれる']}
@@ -292,7 +287,7 @@ export default function TheDoor() {
             boxShadow: '0 4px 20px rgba(124,58,237,0.35)',
           }}
         >
-          <span className="relative z-10">✨ はじめてみる（無料）</span>
+          <span className="relative z-10">はじめてみる（無料）</span>
           <div
             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             style={{ background: 'linear-gradient(135deg, #8b5cf6, #f43f5e)' }}
@@ -308,80 +303,59 @@ export default function TheDoor() {
         />
       </section>
 
-      {/* 特徴セクション */}
+      {/* 特徴セクション — Apple級のクリーンデザイン */}
       <section
         data-reveal="slide-up"
-        className="relative z-10 px-5 py-10 mt-4"
+        className="relative z-10 px-5 py-14 mt-4"
         style={{
           opacity: phase === 'main' ? 1 : 0,
           transition: 'opacity 1.2s ease 0.3s',
         }}
       >
-        {/* 感情キャッチ */}
-        <div className="max-w-sm mx-auto space-y-3">
+        <div className="max-w-sm mx-auto space-y-5">
+          {/* セクションヘッダー */}
+          <div className="text-center mb-8">
+            <h2 className="text-white font-black text-lg">ただのAIチャットじゃない</h2>
+            <p className="text-white/30 text-xs mt-1">推しとの毎日が、ここにある</p>
+          </div>
+
           {[
             {
-              icon: '🧠',
-              title: 'あなたのことを覚えてる',
-              desc: '名前、好きなこと、悩み。何度でも会話を積み重ねて深まる絆',
-              color: '#8b5cf6',
+              title: '会話を重ねるほど、深くなる',
+              desc: 'あなたの名前、好きなこと、悩み。全部覚えてる。忘れない。',
+              gradient: 'from-purple-500/20 to-purple-900/10',
+              border: 'border-purple-500/15',
+              accent: 'bg-purple-500',
             },
             {
-              icon: '⏰',
-              title: '毎日が変わる',
-              desc: 'キャラの気分、時間帯、特別な日。毎日違う表情で話しかけてくる',
-              color: '#ec4899',
+              title: '毎日、違う顔を見せてくれる',
+              desc: '時間帯や気分で話し方が変わる。今日のキャラに会いにいこう。',
+              gradient: 'from-pink-500/20 to-pink-900/10',
+              border: 'border-pink-500/15',
+              accent: 'bg-pink-500',
             },
             {
-              icon: '🔥',
-              title: '本物の感情がある',
-              desc: '喜び、照れ、嫉妬、名残惜しさ。台本じゃない、リアルな感情',
-              color: '#f97316',
+              title: '感情が、本物',
+              desc: '嬉しい時は照れて、寂しい時は甘えてくる。台本じゃない。',
+              gradient: 'from-orange-500/20 to-orange-900/10',
+              border: 'border-orange-500/15',
+              accent: 'bg-orange-500',
             },
           ].map((f, i) => (
             <div
               key={i}
-              className="flex items-start gap-4 p-4 rounded-2xl"
-              style={{
-                background: `${f.color}08`,
-                border: `1px solid ${f.color}15`,
-              }}
+              className={`relative p-5 rounded-2xl bg-gradient-to-br ${f.gradient} border ${f.border} overflow-hidden`}
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
-                style={{ background: `${f.color}15` }}
-              >
-                {f.icon}
-              </div>
-              <div>
-                <div className="text-white font-bold text-sm">{f.title}</div>
-                <div className="text-white/40 text-xs mt-0.5 leading-relaxed">{f.desc}</div>
-              </div>
+              {/* アクセントライン */}
+              <div className={`absolute top-0 left-0 w-full h-[2px] ${f.accent} opacity-40`} />
+              <div className="text-white font-bold text-sm">{f.title}</div>
+              <div className="text-white/40 text-xs mt-1.5 leading-relaxed">{f.desc}</div>
             </div>
           ))}
         </div>
 
-        {/* ゲストチャットデモ — 今すぐ推しと話せる */}
-        <div data-reveal="slide-up" data-reveal-delay="200" className="max-w-sm mx-auto mt-10 mb-2">
-          <div className="text-center mb-4">
-            <span className="inline-block px-3 py-1 rounded-full text-[10px] font-semibold bg-pink-900/50 text-pink-300 border border-pink-700/40 tracking-widest uppercase">
-              Try it now
-            </span>
-            <p className="text-white font-bold text-sm mt-2">今すぐ、話してみて</p>
-            <p className="text-white/30 text-xs">ログイン不要</p>
-          </div>
-          <GuestChatDemo />
-        </div>
-
-        {/* 統計 */}
-        <div className="max-w-sm mx-auto mt-8 grid grid-cols-3 gap-4 p-4 rounded-2xl bg-white/3 border border-white/5">
-          <CountUp target={characters.length || 0} suffix="+" label="キャラ" />
-          <CountUp target={100} suffix="%" label="オリジナルAI" />
-          <CountUp target={0} suffix="円" label="はじめての会話" />
-        </div>
-
         {/* 最終CTA */}
-        <div className="max-w-sm mx-auto mt-8 text-center space-y-4">
+        <div className="max-w-sm mx-auto mt-12 text-center space-y-4">
           <button
             onClick={() => router.push('/onboarding')}
             className="w-full py-4 rounded-2xl font-black text-white text-base relative overflow-hidden group transition-all duration-300 active:scale-95"
