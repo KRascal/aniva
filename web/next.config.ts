@@ -31,7 +31,6 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   org: process.env.SENTRY_ORG || '',
   project: process.env.SENTRY_PROJECT || '',
   silent: true, // ビルド時のログ抑制
-  disableLogger: true,
   // Source maps（本番のみ）
   widenClientFileUpload: true,
   sourcemaps: { disable: true },
