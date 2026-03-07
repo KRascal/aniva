@@ -467,7 +467,7 @@ export default function RankingPage() {
                 {(!charData || charData.ranking.length === 0) && !charLoading && (
                   <div className="text-center py-16 px-6">
                     <div className="text-5xl mb-4">⭐</div>
-                    <p className="font-bold text-white text-lg mb-2">まだデータがありません</p>
+                    <p className="font-bold text-white text-lg mb-2">ランキングはこれから始まる</p>
                     <p className="text-sm text-gray-400 mb-6">
                       {charTab === 'coins' ? '推しにコインを贈ると、キャラの人気ランキングに反映されます！' : '推しにたくさんトークすると、キャラの人気ランキングに反映されます！'}
                     </p>

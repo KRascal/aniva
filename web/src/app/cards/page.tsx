@@ -319,7 +319,7 @@ function CardCollectionTab() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3h10.5a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0117.25 21H6.75A2.25 2.25 0 014.5 18.75V5.25A2.25 2.25 0 016.75 3zm0 0V21m10.5-18V21M3 8.25h18M3 15.75h18" />
             </svg>
           </div>
-          <p className="text-white/60 text-sm">カードがまだありません</p>
+          <p className="text-white/60 text-sm">最初のカードを手に入れよう</p>
           <p className="text-white/30 text-xs mt-1">ガチャを引いてコレクションを始めよう！</p>
         </div>
       ) : (

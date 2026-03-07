@@ -36,7 +36,7 @@ function LoadingDark() {
 function NotFound() {
   return (
     <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-4">
-      <p className="text-white/30 text-sm tracking-widest">キャラクターが見つかりませんでした</p>
+      <p className="text-white/30 text-sm tracking-widest">この子はまだここにいないみたい…</p>
       <a href="/explore" className="text-white/20 text-xs hover:text-white/40 transition-colors">
         探しに戻る
       </a>

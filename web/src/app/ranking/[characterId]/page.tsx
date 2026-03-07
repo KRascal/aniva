@@ -159,7 +159,7 @@ export default function RankingPage() {
         {(!data?.ranking || data.ranking.length === 0) && (
           <div className="text-center py-20 text-gray-600">
             <p className="text-4xl mb-3">🏆</p>
-            <p>まだランキングデータがありません</p>
+            <p>ランキングはこれから始まるよ</p>
           </div>
         )}
       </div>

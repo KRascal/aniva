@@ -229,7 +229,7 @@ export default function CollectionPage() {
             <div className="text-center py-20">
               <p className="text-4xl mb-3">📦</p>
               <p className="text-gray-400 text-sm">
-                {filter === 'ALL' ? 'まだカードがありません。ガチャを引いてみよう！' : `${filter}レアリティのカードはまだありません`}
+                {filter === 'ALL' ? '最初の一枚を手に入れよう' : `${filter}レアリティのカードはまだありません`}
               </p>
               {filter === 'ALL' && (
                 <Link

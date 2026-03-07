@@ -722,7 +722,7 @@ export default function MomentsPage() {
               </div>
               <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
               <p className="text-white/25 text-xs mt-1">
-                {activeTab === 'following' ? 'フォロー中のキャラがまだ投稿していません' : '投稿が見つかりませんでした'}
+                {activeTab === 'following' ? 'フォローしたキャラの日常がここに届くよ' : 'みんなの投稿はまだこれから'}
               </p>
             </div>
           ) : (

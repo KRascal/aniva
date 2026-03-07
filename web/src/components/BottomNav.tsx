@@ -131,7 +131,7 @@ export function BottomNav() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        <div className="flex justify-around items-stretch h-16">
+        <div className="flex justify-around items-stretch h-16 [&_a]:active:scale-95 [&_a]:transition-transform [&_a]:duration-100">
 
           {/* 1. さがす */}
           <Link

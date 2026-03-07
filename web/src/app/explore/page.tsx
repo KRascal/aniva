@@ -2537,7 +2537,7 @@ export default function ExplorePage() {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState message="該当するキャラクターが見つかりませんでした" />
+                  <EmptyState message="まだ出会えてないキャラがいるかも…" />
                 )}
               </div>
             </FadeSection>

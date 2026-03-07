@@ -55,7 +55,7 @@ export default function MemoryBookPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex items-center justify-center text-gray-400">
-        <p>思い出がまだありません…</p>
+        <p>二人の思い出はこれから作ろう</p>
       </div>
     );
   }
