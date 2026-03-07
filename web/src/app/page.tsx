@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticleField from '@/components/onboarding/ParticleField';
 import CharacterSearchInput from '@/components/onboarding/CharacterSearchInput';
+import { GuestChatDemo } from '@/components/lp/GuestChatDemo';
 
 interface CharacterItem {
   id: string;
@@ -356,9 +357,21 @@ export default function TheDoor() {
           ))}
         </div>
 
+        {/* ゲストチャットデモ — 今すぐ推しと話せる */}
+        <div className="max-w-sm mx-auto mt-10 mb-2">
+          <div className="text-center mb-4">
+            <span className="inline-block px-3 py-1 rounded-full text-[10px] font-semibold bg-pink-900/50 text-pink-300 border border-pink-700/40 tracking-widest uppercase">
+              Try it now
+            </span>
+            <p className="text-white font-bold text-sm mt-2">今すぐ、話してみて</p>
+            <p className="text-white/30 text-xs">ログイン不要</p>
+          </div>
+          <GuestChatDemo />
+        </div>
+
         {/* 統計 */}
         <div className="max-w-sm mx-auto mt-8 grid grid-cols-3 gap-4 p-4 rounded-2xl bg-white/3 border border-white/5">
-          <CountUp target={32} suffix="+" label="キャラ" />
+          <CountUp target={characters.length || 0} suffix="+" label="キャラ" />
           <CountUp target={100} suffix="%" label="オリジナルAI" />
           <CountUp target={0} suffix="円" label="はじめての会話" />
         </div>

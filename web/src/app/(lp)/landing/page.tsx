@@ -87,10 +87,10 @@ const chatMessages: ChatMessage[] = [
 ];
 
 const stats = [
-  { value: "50,000+", label: "会話数" },
-  { value: "2,000+", label: "アクティブユーザー" },
-  { value: "30+", label: "キャラクター" },
-  { value: "4.9", label: "平均評価 ⭐" },
+  { value: "100%", label: "オリジナルAI" },
+  { value: "∞", label: "記憶する会話" },
+  { value: "24/7", label: "いつでも話せる" },
+  { value: "0円", label: "はじめての会話" },
 ];
 
 const testimonials = [
