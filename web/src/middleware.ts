@@ -66,7 +66,8 @@ export default async function proxy(req: NextRequest) {
     pathname === '/moments' ||
     pathname === '/offline' ||
     pathname === '/discover' ||
-    pathname.startsWith('/user/');  // 公開プロフィールページ
+    pathname.startsWith('/user/') ||
+    pathname.startsWith('/legal/');  // 公開プロフィールページ
 
   const isPublicApi =
     pathname.startsWith('/api/users/') ||  // 公開プロフィールAPI
