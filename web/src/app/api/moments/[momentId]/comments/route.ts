@@ -233,13 +233,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       const delay = 3000 + Math.random() * 7000;
       await new Promise(r => setTimeout(r, delay));
 
+      // Twitter方式: キャラ返信もトップレベルにフラット化（2階層以上のネストを防ぐ）
+      const charReplyParentId = comment.parentCommentId || comment.id;
+      const charReplyContent = comment.parentCommentId
+        ? `@${userName} ${replyContent}`.slice(0, 200)
+        : replyContent.slice(0, 200);
+
       await prisma.momentComment.create({
         data: {
           momentId,
           characterId: ownerChar.id,
           userId: null,
-          content: replyContent.slice(0, 200),
-          parentCommentId: comment.id,
+          content: charReplyContent,
+          parentCommentId: charReplyParentId,
         },
       });
 

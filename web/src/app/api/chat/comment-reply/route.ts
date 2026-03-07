@@ -104,13 +104,25 @@ async function scheduleReply(opts: {
         .slice(0, 200);
       if (!content) return;
 
+      // Twitter方式: キャラ返信もトップレベルにフラット化（2階層以上のネスト防止）
+      const triggerCommentData = await prisma.momentComment.findUnique({
+        where: { id: triggerCommentId },
+        select: { parentCommentId: true, user: { select: { displayName: true, nickname: true, name: true } }, character: { select: { name: true } } },
+      });
+      const flatParentId = triggerCommentData?.parentCommentId || triggerCommentId;
+      // ネストされている場合は@メンション追加
+      const mentionTarget = triggerCommentData?.parentCommentId
+        ? (triggerCommentData.character?.name || triggerCommentData.user?.displayName || triggerCommentData.user?.nickname || triggerCommentData.user?.name)
+        : null;
+      const finalContent = mentionTarget ? `@${mentionTarget} ${content}`.slice(0, 200) : content;
+
       await prisma.momentComment.create({
         data: {
           momentId,
           characterId,
           userId: null,
-          content,
-          parentCommentId: triggerCommentId,
+          content: finalContent,
+          parentCommentId: flatParentId,
         },
       });
     } catch (err) {
