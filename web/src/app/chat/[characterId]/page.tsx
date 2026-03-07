@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { track, EVENTS } from '@/lib/analytics';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { LevelUpModal } from '@/components/chat/LevelUpModal';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
@@ -601,6 +602,7 @@ export default function ChatCharacterPage() {
   useEffect(() => {
     if (!characterId || typeof window === 'undefined') return;
     localStorage.setItem(`aniva_chat_visited_${characterId}`, Date.now().toString());
+    track(EVENTS.CHAT_OPENED, { characterId });
   }, [characterId]);
 
   // プレゼンス（オンライン状態）取得
@@ -1024,6 +1026,7 @@ export default function ChatCharacterPage() {
         generateVoiceForMessage(finalCharMsgId, streamingText, characterId);
       }
 
+      track(EVENTS.CHAT_MESSAGE_SENT, { characterId, messageLength: text.length });
       // エンディングタイマーリセット（ユーザーがメッセージ送信するたびに5分タイマーを再スタート）
       onUserMsgSent();
 

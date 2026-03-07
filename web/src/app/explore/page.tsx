@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 import { DailyBonus } from '@/components/DailyBonus';
 import { ProactiveMessagePanel } from '@/components/proactive/ProactiveMessagePanel';
 import { getTodayMainEvent } from '@/lib/today-events';
@@ -1073,8 +1074,12 @@ function FollowButton({
         body: JSON.stringify({ follow: !following }),
       });
       if (res.ok) {
-        setFollowing(!following);
-        onFollow(characterId, !following);
+        const newFollowing = !following;
+        setFollowing(newFollowing);
+        onFollow(characterId, newFollowing);
+        if (newFollowing) {
+          track(EVENTS.CHARACTER_FOLLOWED, { characterId });
+        }
       }
     } catch {
       // ignore

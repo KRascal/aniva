@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { track, EVENTS } from '@/lib/analytics';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -102,6 +103,13 @@ export default function StoriesPage() {
     }
   }, [currentIndex]);
 
+  // ストーリー表示時にイベントを計測
+  useEffect(() => {
+    if (loading || stories.length === 0) return;
+    const s = stories[currentIndex];
+    if (s) track(EVENTS.STORY_VIEWED, { characterId: s.slug });
+  }, [currentIndex, loading, stories]);
+
   // Auto-progress timer (6秒で次へ)
   useEffect(() => {
     if (loading || stories.length === 0) return;
@@ -122,6 +130,7 @@ export default function StoriesPage() {
   const handleChat = (slug: string) => {
     const s = stories.find((st) => st.slug === slug);
     const topic = s ? s.activity : '';
+    track(EVENTS.STORY_CHAT_STARTED, { characterId: slug });
     // fromStory=1 でチュートリアルスキップフラグ
     router.push(`/chat/${slug}?topic=${encodeURIComponent(topic.slice(0, 100))}&fromStory=1`);
   };

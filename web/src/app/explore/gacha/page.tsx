@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -358,6 +359,11 @@ export default function GachaPage() {
       const results: PullResult[] = data.results ?? [];
       setPullResults(results);
       setFlippedCards(new Array(results.length).fill(false));
+      const bestRarity = results.reduce((best, r) => {
+        const order = ['N', 'R', 'SR', 'SSR', 'UR'];
+        return order.indexOf(r.rarity) > order.indexOf(best) ? r.rarity : best;
+      }, 'N' as string);
+      track(EVENTS.GACHA_PULLED, { bannerId: selectedBanner.id, rarity: bestRarity });
 
       if (data.coinBalance !== undefined) setCoinBalance(data.coinBalance);
       if (data.freeGachaAvailable === false) setFreeAvailable(false);

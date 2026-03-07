@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
+import { track, EVENTS } from '@/lib/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -510,6 +511,7 @@ function OnboardingInner() {
       } catch {}
 
       setInitialized(true);
+      track(EVENTS.ONBOARDING_STARTED);
     };
 
     init();
@@ -572,6 +574,7 @@ function OnboardingInner() {
   const handleApprovalComplete = async () => {
     // hook（プッシュ通知許可）フェーズ削除: approval完了後に直接オンボーディング完了
     // プッシュ通知許可はチャット画面で別途表示する（Keisuke指示 2026-03-05）
+    track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
     const redirectTo = await completeOnboarding(null);
     await update();
     await new Promise((resolve) => setTimeout(resolve, 300));

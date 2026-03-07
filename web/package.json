@@ -30,6 +30,8 @@
     "pg": "^8.18.0",
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^8.16.0",
+    "posthog-js": "^1.359.1",
+    "posthog-node": "^5.28.0",
     "prisma": "^7.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",

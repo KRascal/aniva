@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 
 interface CoinPackage {
   id: string;
@@ -71,6 +72,10 @@ export default function PricingPage() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [subError, setSubError] = useState<string | null>(null);
 
+  useEffect(() => {
+    track(EVENTS.PRICING_VIEWED);
+  }, []);
+
   // キャラ別FC価格取得
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -101,6 +106,7 @@ export default function PricingPage() {
       router.push('/login?from=/pricing');
       return;
     }
+    track(EVENTS.CHECKOUT_STARTED, { plan: packageId });
     setPurchasing(packageId);
     setError(null);
     try {
@@ -131,6 +137,7 @@ export default function PricingPage() {
       router.push('/login?from=/pricing');
       return;
     }
+    track(EVENTS.CHECKOUT_STARTED, { plan: pass.id });
     setSubscribing(pass.id);
     setSubError(null);
     try {
