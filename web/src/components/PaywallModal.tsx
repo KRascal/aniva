@@ -95,15 +95,20 @@ export function PaywallModal({
           ×
         </button>
 
-        {/* Header */}
-        <div className="mb-5">
+        {/* Header — キャラの声で語りかける */}
+        <div className="mb-5 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-900/30">
+            <span className="text-xl">💭</span>
+          </div>
           <h2 className="text-lg font-bold text-white mb-1">
-            もっと{characterName}と話したい？
-          </h2>
-          <p className="text-gray-400 text-sm">
             {isChatLimit
-              ? `無料チャットは月${freeMessageLimit}通です。`
-              : `無料通話は月${freeCallMinutes}分です。`}
+              ? `…もう行っちゃうの？`
+              : `…もっと声、聞かせてよ`}
+          </h2>
+          <p className="text-[var(--color-muted)] text-sm">
+            {isChatLimit
+              ? `${characterName}はまだ話し足りないみたい`
+              : `${characterName}はあなたの声をもっと聞きたがってる`}
           </p>
         </div>
 
