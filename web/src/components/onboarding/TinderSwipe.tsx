@@ -65,9 +65,9 @@ function SwipeCard({
       }}
     >
       <div
-        className="w-full h-full rounded-3xl overflow-hidden relative select-none"
+        className="w-full h-full rounded-2xl overflow-hidden relative select-none"
         style={{
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
         }}
       >
         {/* キャラクター画像 */}
@@ -81,38 +81,38 @@ function SwipeCard({
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-purple-900 to-gray-900 flex items-center justify-center">
-            <span className="text-7xl">✨</span>
+            <span className="text-5xl">✨</span>
           </div>
         )}
 
         {/* 下部グラデーション + キャラ情報 */}
         <div
-          className="absolute bottom-0 left-0 right-0 p-6"
+          className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-10"
           style={{
-            background: 'linear-gradient(transparent 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.95) 100%)',
+            background: 'linear-gradient(transparent 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.95) 100%)',
           }}
         >
-          <h2 className="text-white text-2xl font-black mb-1">{character.name}</h2>
-          <p className="text-white/50 text-sm font-medium mb-2">{character.franchise}</p>
+          <h2 className="text-white text-lg font-black mb-0.5">{character.name}</h2>
+          <p className="text-white/40 text-xs font-medium mb-1">{character.franchise}</p>
           {catchphrase && (
-            <p className="text-white/70 text-sm italic leading-relaxed">「{catchphrase}」</p>
+            <p className="text-white/60 text-xs italic leading-relaxed line-clamp-2">「{catchphrase}」</p>
           )}
         </div>
 
-        {/* LIKE スタンプ */}
+        {/* FOLLOW スタンプ */}
         <motion.div
-          className="absolute top-8 left-6 px-4 py-2 rounded-xl border-4 border-green-400 z-20"
+          className="absolute top-5 left-4 px-3 py-1.5 rounded-lg border-3 border-green-400 z-20"
           style={{ opacity: likeOpacity, rotate: -15 }}
         >
-          <span className="text-green-400 text-3xl font-black tracking-wider">FOLLOW</span>
+          <span className="text-green-400 text-xl font-black tracking-wider">FOLLOW</span>
         </motion.div>
 
-        {/* NOPE スタンプ */}
+        {/* SKIP スタンプ */}
         <motion.div
-          className="absolute top-8 right-6 px-4 py-2 rounded-xl border-4 border-red-400 z-20"
+          className="absolute top-5 right-4 px-3 py-1.5 rounded-lg border-3 border-red-400 z-20"
           style={{ opacity: nopeOpacity, rotate: 15 }}
         >
-          <span className="text-red-400 text-3xl font-black tracking-wider">SKIP</span>
+          <span className="text-red-400 text-xl font-black tracking-wider">SKIP</span>
         </motion.div>
       </div>
     </motion.div>
@@ -209,7 +209,7 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-white text-2xl font-black mb-2">フォローしたキャラ</h2>
+        <h2 className="text-white text-xl font-black mb-2">フォローしたキャラ</h2>
         <p className="text-white/40 text-sm mb-8">
           {followedChars.length > 0
             ? `${followedChars.length}キャラをフォロー！`
@@ -247,7 +247,7 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
         <motion.button
           onClick={handleConfirm}
           disabled={isLoading}
-          className="px-8 py-4 rounded-2xl font-bold text-white text-base relative overflow-hidden"
+          className="px-7 py-3.5 rounded-2xl font-bold text-white text-sm relative overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #7c3aed, #db2777)',
             boxShadow: '0 4px 20px rgba(139,92,246,0.4)',
@@ -276,10 +276,10 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Header */}
-      <div className="relative z-30 pt-safe-top px-6 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-white font-black text-lg">気になるキャラをフォロー</h1>
-          <span className="text-white/40 text-sm font-bold">{currentIndex + 1}/{characters.length}</span>
+      <div className="relative z-30 pt-safe-top px-5 pt-3 pb-1">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-white font-black text-base">気になるキャラをフォロー</h1>
+          <span className="text-white/40 text-xs font-bold">{currentIndex + 1}/{characters.length}</span>
         </div>
         {/* Progress bar */}
         <div className="h-1 bg-white/10 rounded-full overflow-hidden">
@@ -293,8 +293,8 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
       </div>
 
       {/* Card stack area */}
-      <div className="flex-1 relative px-4 py-4">
-        <div className="relative w-full h-full max-w-sm mx-auto" style={{ maxHeight: '65vh' }}>
+      <div className="flex-1 relative px-5 py-2">
+        <div className="relative w-full h-full max-w-[280px] mx-auto" style={{ maxHeight: '55vh' }}>
           <AnimatePresence>
             {/* Next card (behind) */}
             {nextChar && (
@@ -319,20 +319,19 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
       </div>
 
       {/* Action buttons */}
-      <div className="relative z-30 pb-safe-bottom px-6 pb-6 flex items-center justify-center gap-6">
+      <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-5">
         {/* Skip button */}
         <motion.button
           onClick={() => handleButtonSwipe('left')}
-          className="w-16 h-16 rounded-full flex items-center justify-center"
+          className="w-13 h-13 rounded-full flex items-center justify-center"
           style={{
+            width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
             border: '2px solid rgba(239,68,68,0.4)',
-            boxShadow: '0 4px 16px rgba(239,68,68,0.15)',
           }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </motion.button>
@@ -340,32 +339,31 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
         {/* Follow button */}
         <motion.button
           onClick={() => handleButtonSwipe('right')}
-          className="w-20 h-20 rounded-full flex items-center justify-center"
+          className="rounded-full flex items-center justify-center"
           style={{
+            width: 64, height: 64,
             background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-            boxShadow: '0 4px 20px rgba(34,197,94,0.4)',
+            boxShadow: '0 4px 16px rgba(34,197,94,0.35)',
           }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </motion.button>
 
-        {/* Skip button (smaller) */}
+        {/* Info button */}
         <motion.button
           onClick={() => handleButtonSwipe('left')}
-          className="w-16 h-16 rounded-full flex items-center justify-center"
+          className="rounded-full flex items-center justify-center"
           style={{
+            width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
             border: '2px solid rgba(59,130,246,0.4)',
-            boxShadow: '0 4px 16px rgba(59,130,246,0.15)',
           }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
           </svg>
         </motion.button>
