@@ -3,7 +3,7 @@
  * POST /api/cron/proactive-messages
  * Header: x-cron-secret
  *
- * キャラクターがユーザーへ先にメッセージを送る（24時間後に消滅）
+ * キャラクターがユーザーへ先にメッセージを送る（8時間後に消滅）
  * スケジュール: 0 8,14,20 * * * (JST 8時/14時/20時)
  */
 
@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 const MAX_PER_RUN = 30;
-const EXPIRES_IN_MS = 24 * 60 * 60 * 1000; // 24時間
+const EXPIRES_IN_MS = 8 * 60 * 60 * 1000; // 8時間（次のcronサイクルで置き換え）
 
 async function generateProactiveMessage(
   systemPrompt: string,
