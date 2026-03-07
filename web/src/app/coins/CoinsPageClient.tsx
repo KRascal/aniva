@@ -73,7 +73,7 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
 
   useEffect(() => {
     if (showCelebration) {
-      playSound('coin-earn');
+      playSound('coin_earn');
       setTimeout(() => spawnConfetti(), 200);
       setTimeout(() => setShowCelebration(false), 4000);
     }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cache Clear</title></head>
+<body style="background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
+<div style="text-align:center;max-width:320px">
+<h2>🔄 キャッシュクリア中...</h2>
+<p id="status">Service Workerを解除しています...</p>
+<script>
+(async function() {
+  const status = document.getElementById('status');
+  try {
+    // Unregister all service workers
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) { await reg.unregister(); }
+    status.textContent = 'SW解除完了 (' + regs.length + '件)。キャッシュを削除中...';
+    
+    // Clear all caches
+    const keys = await caches.keys();
+    for (const key of keys) { await caches.delete(key); }
+    status.textContent = 'キャッシュ削除完了 (' + keys.length + '件)。3秒後にリダイレクト...';
+    
+    setTimeout(() => { window.location.href = '/'; }, 3000);
+  } catch(e) {
+    status.textContent = 'エラー: ' + e.message + ' — 手動でサイトデータを削除してください';
+  }
+})();
+</script>
+</div>
+</body>
+</html>

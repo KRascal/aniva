@@ -34,5 +34,5 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   disableLogger: true,
   // Source maps（本番のみ）
   widenClientFileUpload: true,
-  hideSourceMaps: true,
+  sourcemaps: { disable: true },
 });

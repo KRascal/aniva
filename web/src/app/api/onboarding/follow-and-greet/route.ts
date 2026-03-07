@@ -24,18 +24,19 @@ export async function POST(req: NextRequest) {
     // キャラクター情報を取得
     const characters = await prisma.character.findMany({
       where: { id: { in: characterIds } },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, avatarUrl: true },
     });
 
     for (const char of characters) {
       // 1. Relationship作成 or 更新（isFollowing = true）
       await prisma.relationship.upsert({
         where: {
-          userId_characterId: { userId, characterId: char.id },
+          userId_characterId_locale: { userId, characterId: char.id, locale: 'ja' },
         },
         create: {
           userId,
           characterId: char.id,
+          locale: 'ja',
           level: 1,
           experiencePoints: 0,
           isFollowing: true,
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest) {
             type: 'CHARACTER_MESSAGE',
             title: char.name,
             body: greetingMsg,
+            actorName: char.name,
+            actorAvatar: char.avatarUrl,
             targetUrl: `/chat/${char.id}`,
             isRead: false,
           },

@@ -28,32 +28,34 @@ export async function GET(
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    // 今日のメッセージ数集計（ユーザー別）
-    const todayMessages = await prisma.chatMessage.groupBy({
-      by: ['userId'],
-      where: {
-        characterId,
-        role: 'user',
-        createdAt: { gte: todayStart },
-      },
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 10,
-    });
+    // 今日のメッセージ数集計（Relationship → Conversation → Message 経由）
+    type MessageCountRow = { userId: string; message_count: bigint };
+    const todayMessages = await prisma.$queryRaw<MessageCountRow[]>`
+      SELECT r."userId", COUNT(m.id) as message_count
+      FROM "Relationship" r
+      JOIN "Conversation" c ON c."relationshipId" = r.id
+      JOIN "Message" m ON m."conversationId" = c.id
+      WHERE r."characterId" = ${characterId}
+        AND m.role = 'USER'
+        AND m."createdAt" >= ${todayStart}
+      GROUP BY r."userId"
+      ORDER BY message_count DESC
+      LIMIT 10
+    `;
 
     // 今日一番話した人（匿名）
     const topFan = todayMessages[0];
-    const topFanCount = topFan?._count?.id ?? 0;
+    const topFanCount = topFan ? Number(topFan.message_count) : 0;
     const isCurrentUserTop = topFan?.userId === userId;
 
     // 今日の総メッセージ数
-    const totalTodayMessages = todayMessages.reduce((sum, m) => sum + (m._count?.id ?? 0), 0);
+    const totalTodayMessages = todayMessages.reduce((sum, m) => sum + Number(m.message_count), 0);
 
     // 今日のアクティブファン数
     const activeFansToday = todayMessages.length;
 
     // FC会員数
-    const fcMemberCount = await prisma.fCSubscription.count({
+    const fcMemberCount = await prisma.characterSubscription.count({
       where: { characterId, status: 'ACTIVE' },
     });
 
@@ -67,7 +69,7 @@ export async function GET(
     let myRank = 0;
     if (userId) {
       const myEntry = todayMessages.find(m => m.userId === userId);
-      myTodayMessages = myEntry?._count?.id ?? 0;
+      myTodayMessages = myEntry ? Number(myEntry.message_count) : 0;
       myRank = todayMessages.findIndex(m => m.userId === userId) + 1;
     }
 
@@ -76,22 +78,23 @@ export async function GET(
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
 
-    const weeklyRanking = await prisma.chatMessage.groupBy({
-      by: ['userId'],
-      where: {
-        characterId,
-        role: 'user',
-        createdAt: { gte: weekStart },
-      },
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 5,
-    });
+    const weeklyRanking = await prisma.$queryRaw<MessageCountRow[]>`
+      SELECT r."userId", COUNT(m.id) as message_count
+      FROM "Relationship" r
+      JOIN "Conversation" c ON c."relationshipId" = r.id
+      JOIN "Message" m ON m."conversationId" = c.id
+      WHERE r."characterId" = ${characterId}
+        AND m.role = 'USER'
+        AND m."createdAt" >= ${weekStart}
+      GROUP BY r."userId"
+      ORDER BY message_count DESC
+      LIMIT 5
+    `;
 
     // ユーザー名を匿名化して返す
     const weeklyTop = weeklyRanking.map((entry, index) => ({
       rank: index + 1,
-      messageCount: entry._count?.id ?? 0,
+      messageCount: Number(entry.message_count),
       isMe: entry.userId === userId,
       label: entry.userId === userId ? 'あなた' : `ファン#${index + 1}`,
     }));

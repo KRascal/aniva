@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticleField from '@/components/onboarding/ParticleField';
 import CharacterSearchInput from '@/components/onboarding/CharacterSearchInput';
@@ -65,6 +65,38 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
   const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 自動スクロール
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollRef.current) return;
+    autoScrollRef.current = setInterval(() => {
+      if (scrollRef.current && !isDragging) {
+        scrollRef.current.scrollLeft += 1;
+        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
+          scrollRef.current.scrollLeft = 0;
+        }
+      }
+    }, 30);
+  }, [isDragging]);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  }, []);
+
+  const pauseAndResume = useCallback(() => {
+    stopAutoScroll();
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(startAutoScroll, 4000);
+  }, [stopAutoScroll, startAutoScroll]);
+
+  useEffect(() => {
+    if (characters.length === 0) return;
+    startAutoScroll();
+    return () => { stopAutoScroll(); if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); };
+  }, [characters.length, startAutoScroll, stopAutoScroll]);
+
   if (characters.length === 0) return null;
 
   const gradients = [
@@ -77,33 +109,6 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
     ['#f59e0b', '#ef4444'],
     ['#8b5cf6', '#06b6d4'],
   ];
-
-  // 自動スクロール
-  const startAutoScroll = () => {
-    if (autoScrollRef.current) return;
-    autoScrollRef.current = setInterval(() => {
-      if (scrollRef.current && !isDragging) {
-        scrollRef.current.scrollLeft += 1;
-        // ループ: 半分まで行ったら巻き戻し
-        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
-          scrollRef.current.scrollLeft = 0;
-        }
-      }
-    }, 30);
-  };
-
-  const stopAutoScroll = () => {
-    if (autoScrollRef.current) {
-      clearInterval(autoScrollRef.current);
-      autoScrollRef.current = null;
-    }
-  };
-
-  const pauseAndResume = () => {
-    stopAutoScroll();
-    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-    pauseTimeoutRef.current = setTimeout(startAutoScroll, 4000);
-  };
 
   // タッチ/マウス操作
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -123,13 +128,6 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
     setIsDragging(false);
     pauseAndResume();
   };
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    startAutoScroll();
-    return () => { stopAutoScroll(); if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // 重複リストでシームレスループ
   const items = [...characters, ...characters];

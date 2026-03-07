@@ -199,6 +199,7 @@ interface Character {
   fcMonthlyPriceJpy: number;
   fcIncludedCallMin: number;
   fcOverageCallCoinPerMin: number;
+  birthday?: string | null;
 }
 
 interface DiaryItem {

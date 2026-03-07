@@ -32,12 +32,12 @@ export async function checkAndCreateMemoryCard(
   const milestone = MILESTONES.find(m => totalMessages === m.threshold);
   if (!milestone) return { created: false };
 
-  // 既に同じマイルストーンのカードがあるか確認
+  // 既に同じマイルストーンのカードがあるか確認（titleで重複チェック）
   const existing = await prisma.notification.findFirst({
     where: {
       userId,
       type: 'MILESTONE',
-      metadata: { path: ['milestone'], equals: milestone.threshold },
+      title: `${milestone.emoji} ${milestone.title}`,
     },
   });
 
@@ -54,15 +54,9 @@ export async function checkAndCreateMemoryCard(
     data: {
       userId,
       type: 'MILESTONE',
+      characterId,
       title: `${milestone.emoji} ${milestone.title}`,
       body: `${character?.name ?? 'キャラクター'}との会話が${milestone.threshold}通に到達しました`,
-      metadata: {
-        milestone: milestone.threshold,
-        characterId,
-        characterName: character?.name,
-        emoji: milestone.emoji,
-        gradient: milestone.color,
-      },
     },
   });
 
@@ -85,8 +79,8 @@ export async function getMemoryCards(userId: string) {
     id: n.id,
     title: n.title,
     body: n.body,
+    characterId: n.characterId,
     createdAt: n.createdAt,
-    ...(typeof n.metadata === 'object' && n.metadata !== null ? n.metadata as Record<string, unknown> : {}),
   }));
 }
 

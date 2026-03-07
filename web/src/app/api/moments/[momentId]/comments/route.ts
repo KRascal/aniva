@@ -80,13 +80,42 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid content' }, { status: 400 });
   }
   // parentCommentId: 返信の場合は親コメントIDを受け取る
-  const parentCommentId = (body.parentCommentId ?? null) as string | null;
+  // Twitter方式: 返信の返信はトップレベルコメントにフラット化する
+  let parentCommentId = (body.parentCommentId ?? null) as string | null;
+  let mentionPrefix = '';
+
+  if (parentCommentId) {
+    const parentComment = await prisma.momentComment.findUnique({
+      where: { id: parentCommentId },
+      select: {
+        id: true,
+        parentCommentId: true,
+        characterId: true,
+        userId: true,
+        user: { select: { displayName: true, nickname: true, name: true } },
+        character: { select: { name: true } },
+      },
+    });
+    // 返信先がネストされたコメント（既に返信）の場合、トップレベル親にフラット化
+    if (parentComment?.parentCommentId) {
+      // @メンション付与（返信先の名前を先頭に追加）
+      const replyTargetName = parentComment.characterId
+        ? parentComment.character?.name
+        : (parentComment.user?.displayName || parentComment.user?.nickname || parentComment.user?.name);
+      if (replyTargetName) {
+        mentionPrefix = `@${replyTargetName} `;
+      }
+      parentCommentId = parentComment.parentCommentId;
+    }
+  }
+
+  const finalContent = mentionPrefix ? `${mentionPrefix}${content}` : content;
 
   const comment = await prisma.momentComment.create({
     data: {
       momentId,
       userId: session.user.id,
-      content,
+      content: finalContent.slice(0, 500),
       ...(parentCommentId ? { parentCommentId } : {}),
     },
     include: {
@@ -123,6 +152,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               body: content.slice(0, 80),
               momentId,
               actorName: replierName,
+              actorAvatar: comment.character?.avatarUrl ?? null,
               targetUrl: '/moments',
             },
           }).catch(() => {});
@@ -156,7 +186,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         select: {
           id: true,
           content: true,
-          character: { select: { id: true, name: true, systemPrompt: true } },
+          character: { select: { id: true, name: true, slug: true, avatarUrl: true, systemPrompt: true } },
         },
       });
       if (!momentWithChar?.character) return;
@@ -223,6 +253,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           momentId,
           characterId: ownerChar.id,
           actorName: ownerChar.name,
+          actorAvatar: ownerChar.avatarUrl,
           targetUrl: `/moments`,
         },
       });

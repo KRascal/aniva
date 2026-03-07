@@ -9,11 +9,31 @@ export async function GET() {
   if (!userId) return NextResponse.json({ notifications: [] });
 
   try {
-    const notifications = await prisma.notification.findMany({
+    const raw = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+
+    // actorAvatarが未設定の通知にcharacterIdからアバターを補完
+    const missingAvatarIds = raw
+      .filter((n) => !n.actorAvatar && n.characterId)
+      .map((n) => n.characterId as string);
+
+    let charMap: Record<string, string | null> = {};
+    if (missingAvatarIds.length > 0) {
+      const chars = await prisma.character.findMany({
+        where: { id: { in: [...new Set(missingAvatarIds)] } },
+        select: { id: true, avatarUrl: true },
+      });
+      charMap = Object.fromEntries(chars.map((c) => [c.id, c.avatarUrl]));
+    }
+
+    const notifications = raw.map((n) => ({
+      ...n,
+      actorAvatar: n.actorAvatar || (n.characterId ? charMap[n.characterId] ?? null : null),
+    }));
+
     return NextResponse.json({ notifications });
   } catch {
     return NextResponse.json({ notifications: [] });

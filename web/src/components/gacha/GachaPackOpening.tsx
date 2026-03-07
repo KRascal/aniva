@@ -49,7 +49,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   const bestRarity = getBestRarity(cards);
   const bestColors = RARITY_COLORS[bestRarity] ?? RARITY_COLORS.N;
   const isSingle = cards.length === 1;
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // ---- フェーズ遷移 ----
   useEffect(() => {
@@ -75,7 +75,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   // ---- パックを切る ----
   const ripPack = useCallback(() => {
     if (phase !== 'pack-rip') return;
-    playSound('gacha-pull');
+    playSound('gacha_pull');
     vibrateGacha(bestRarity);
     setPhase('rarity-flash');
   }, [phase, bestRarity]);
