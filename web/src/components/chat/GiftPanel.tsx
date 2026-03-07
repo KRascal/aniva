@@ -124,11 +124,11 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
                   <span className="text-white text-xs font-semibold">{gift.name}</span>
                   <div className="flex items-center gap-0.5">
                     <span className="text-[10px]">🪙</span>
-                    <span className={`text-[11px] font-bold ${canAfford ? 'text-yellow-300' : 'text-gray-600'}`}>
+                    <span className={`text-xs font-bold ${canAfford ? 'text-yellow-300' : 'text-gray-600'}`}>
                       {gift.coinCost}
                     </span>
                   </div>
-                  <span className="text-[9px] text-purple-400/70">+{gift.xpReward}XP</span>
+                  <span className="text-xs text-purple-400/70">+{gift.xpReward}XP</span>
                 </button>
               );
             })}

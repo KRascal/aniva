@@ -74,7 +74,7 @@ function GachaBannerSection({ freeAvailable }: { freeAvailable: boolean }) {
                 </span>
                 {freeAvailable && (
                   <span
-                    className="text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse"
+                    className="text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse"
                     style={{
                       background: 'rgba(16,185,129,0.25)',
                       color: 'rgba(52,211,153,0.95)',
@@ -271,7 +271,7 @@ function PollBannerSection() {
                   ストーリー投票
                 </span>
                 <span
-                  className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                  className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                   style={{
                     background: 'rgba(139,92,246,0.25)',
                     color: 'rgba(196,181,254,0.9)',
@@ -359,7 +359,7 @@ function ContentLinksSection({ activePollCount }: { activePollCount: number }) {
                   <p className="text-white font-bold text-sm leading-tight">みんなで作るストーリー</p>
                   {activePollCount > 0 && (
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse flex-shrink-0"
+                      className="text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse flex-shrink-0"
                       style={{
                         background: 'rgba(236,72,153,0.3)',
                         color: 'rgba(251,182,206,0.95)',
@@ -479,7 +479,7 @@ function LimitedScenarioBannerCard({ scenario }: { scenario: LimitedScenarioSumm
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="text-red-400 text-[10px] font-black tracking-widest uppercase">期間限定</span>
             {isUrgent && (
-              <span className="text-red-300 text-[9px] font-bold bg-red-500/20 px-1.5 py-0.5 rounded-full border border-red-500/30">
+              <span className="text-red-300 text-xs font-bold bg-red-500/20 px-1.5 py-0.5 rounded-full border border-red-500/30">
                 🔥 まもなく終了
               </span>
             )}
@@ -1039,13 +1039,13 @@ function FranchiseBadge({ franchise }: { franchise: string }) {
   const meta = FRANCHISE_META[franchise];
   if (!meta) {
     return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/15 text-white/70 border border-white/20">
+      <span className="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-white/15 text-white/70 border border-white/20">
         {franchise}
       </span>
     );
   }
   return (
-    <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${meta.gradient} text-white shadow-sm`}>
+    <span className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${meta.gradient} text-white shadow-sm`}>
       {franchise}
     </span>
   );
@@ -1272,7 +1272,7 @@ function CharacterVerticalCard({
         {/* オンラインドット */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 bg-black/50 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-sm shadow-green-400/50" />
-          <span className="text-[8px] text-green-300/80 font-medium">ONLINE</span>
+          <span className="text-[10px] text-green-300/80 font-medium">ONLINE</span>
         </div>
 
         {/* プロアクティブメッセージバッジ（新着あり） */}
@@ -1286,9 +1286,9 @@ function CharacterVerticalCard({
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              <span className="text-[8px] text-white font-bold">NEW MSG</span>
+              <span className="text-[10px] text-white font-bold">NEW MSG</span>
             </div>
-            <CountdownTimer expiresAt={proactiveMessage.expiresAt} className="text-[8px] text-pink-300/90 font-semibold px-1" />
+            <CountdownTimer expiresAt={proactiveMessage.expiresAt} className="text-[10px] text-pink-300/90 font-semibold px-1" />
           </div>
         )}
 
@@ -1311,7 +1311,7 @@ function CharacterVerticalCard({
           {(() => {
             const state = getDailyState(character.slug ?? character.id);
             return (
-              <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 mb-1 text-[9px] font-medium ${
+              <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 mb-1 text-xs font-medium ${
                 state.isRareDay
                   ? 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-300'
                   : state.energy === 'high'
@@ -1329,7 +1329,7 @@ function CharacterVerticalCard({
             </p>
           )}
           {(character.followerCount ?? 0) > 0 && (
-            <p className="text-white/45 text-[9px] mb-1.5">
+            <p className="text-white/45 text-xs mb-1.5">
               {(character.followerCount ?? 0).toLocaleString()} フォロワー
             </p>
           )}
@@ -1356,7 +1356,7 @@ function CharacterVerticalCard({
 
         {/* Fanclub badge */}
         {isFanclub && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 text-white text-[9px] font-bold px-2 py-0.5 rounded-full"
+          <div className="absolute top-2 left-2 flex items-center gap-1 text-white text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.9), rgba(139,92,246,0.9))', boxShadow: '0 2px 8px rgba(236,72,153,0.5)' }}
           >
             推し
@@ -1450,7 +1450,7 @@ function CharacterHorizontalCard({
           <p className="text-white font-bold text-base leading-tight">{character.name}</p>
           {proactiveMessage && (
             <span
-              className="flex-shrink-0 flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              className="flex-shrink-0 flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full"
               style={{
                 background: 'linear-gradient(135deg, rgba(236,72,153,0.9), rgba(139,92,246,0.9))',
                 color: 'white',
@@ -2228,7 +2228,7 @@ export default function ExplorePage() {
                             グループチャット
                           </span>
                           <span
-                            className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                            className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                             style={{
                               background: 'rgba(139,92,246,0.25)',
                               color: 'rgba(196,181,254,0.9)',

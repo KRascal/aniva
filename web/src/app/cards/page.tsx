@@ -159,15 +159,15 @@ function HoloCardThumbnail({ oc, onClick }: { oc: OwnedCard; onClick: () => void
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
       {/* Rarity badge */}
-      <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-gradient-to-r ${style.bg} text-white shadow-sm z-10`}>
+      <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-xs font-black bg-gradient-to-r ${style.bg} text-white shadow-sm z-10`}>
         {rarity}
       </div>
 
       {/* Card name */}
       <div className="absolute bottom-0 left-0 right-0 p-2 z-10">
-        <p className="text-white text-[11px] font-bold truncate drop-shadow">{oc.card.name}</p>
+        <p className="text-white text-xs font-bold truncate drop-shadow">{oc.card.name}</p>
         {oc.card.character && (
-          <p className="text-white/50 text-[9px] truncate">{oc.card.character.name}</p>
+          <p className="text-white/50 text-xs truncate">{oc.card.character.name}</p>
         )}
       </div>
 
@@ -280,7 +280,7 @@ function CardCollectionTab() {
               style={{ width: `${totalCards > 0 ? (cards.length / totalCards) * 100 : 0}%` }}
             />
           </div>
-          <p className="text-white/30 text-[9px] text-right mt-0.5">{totalCards > 0 ? Math.round((cards.length / totalCards) * 100) : 0}% Complete</p>
+          <p className="text-white/30 text-xs text-right mt-0.5">{totalCards > 0 ? Math.round((cards.length / totalCards) * 100) : 0}% Complete</p>
         </div>
       </div>
 

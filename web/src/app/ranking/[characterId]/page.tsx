@@ -129,12 +129,12 @@ export default function RankingPage() {
                     {entry.displayName}
                   </p>
                   {entry.isFanclub && (
-                    <span className="text-[8px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30 font-bold">
+                    <span className="text-[10px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30 font-bold">
                       FC
                     </span>
                   )}
                   {entry.isMe && (
-                    <span className="text-[8px] bg-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] bg-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded-full font-bold">
                       YOU
                     </span>
                   )}
@@ -150,7 +150,7 @@ export default function RankingPage() {
                 <p className={`font-black text-sm ${entry.rank <= 3 ? 'text-yellow-300' : 'text-gray-300'}`}>
                   {entry.score.toLocaleString()}
                 </p>
-                <p className="text-[9px] text-gray-600">pt</p>
+                <p className="text-xs text-gray-600">pt</p>
               </div>
             </div>
           </div>

@@ -241,7 +241,7 @@ export default function SettingsPage() {
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                   )}
                   {opt.value !== 'dark' && (
-                    <span className="absolute top-1 right-1 text-[8px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full">Soon</span>
+                    <span className="absolute top-1 right-1 text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full">Soon</span>
                   )}
                 </button>
               ))}

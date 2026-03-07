@@ -65,7 +65,7 @@ export function CharacterCarouselSection({ characters }: { characters: Character
               </div>
               {/* Phrase */}
               <div className="px-3 py-2">
-                <p className="text-[11px] leading-relaxed text-white/40 line-clamp-2">「{phrase}」</p>
+                <p className="text-xs leading-relaxed text-white/40 line-clamp-2">「{phrase}」</p>
               </div>
             </button>
           );

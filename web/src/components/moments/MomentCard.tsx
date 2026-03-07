@@ -359,13 +359,13 @@ function CommentRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="font-bold text-[13px] text-white leading-tight">{displayName}</span>
+          <span className="font-bold text-sm text-white leading-tight">{displayName}</span>
           {comment.characterId && (
             <svg className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
             </svg>
           )}
-          <span className="text-white/40 text-[12px]">· {twitterRelTime(comment.createdAt)}</span>
+          <span className="text-white/40 text-xs">· {twitterRelTime(comment.createdAt)}</span>
           {currentUserId && comment.userId === currentUserId && (
             <button
               className="ml-auto text-white/20 hover:text-red-400 transition-colors p-0.5"
@@ -379,9 +379,9 @@ function CommentRow({
           )}
         </div>
         {parentDisplayName && (
-          <span className="text-[12px] text-blue-400/70">@{parentDisplayName} </span>
+          <span className="text-xs text-blue-400/70">@{parentDisplayName} </span>
         )}
-        <p className="text-[13px] text-gray-100 leading-relaxed whitespace-pre-line mt-0.5">{comment.content}</p>
+        <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-line mt-0.5">{comment.content}</p>
         <div className="flex items-center gap-4 mt-1.5">
           <button
             className="flex items-center gap-1 text-white/30 hover:text-blue-400 transition-colors"
@@ -398,7 +398,7 @@ function CommentRow({
             <svg className="w-3.5 h-3.5" fill={commentLiked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            {commentLikeCount > 0 && <span className="text-[11px]">{commentLikeCount}</span>}
+            {commentLikeCount > 0 && <span className="text-xs">{commentLikeCount}</span>}
           </button>
         </div>
         {replyingToId === comment.id && (
@@ -413,11 +413,11 @@ function CommentRow({
               placeholder={`@${replyToName} に返信...`}
               rows={1}
               style={{ fontSize: '16px', resize: 'none' }}
-              className="flex-1 bg-transparent border-b border-white/20 px-1 py-1 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-purple-500/60 transition-colors"
+              className="flex-1 bg-transparent border-b border-white/20 px-1 py-1 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/60 transition-colors"
               autoFocus
             />
             <button
-              className="mt-0.5 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[12px] font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
+              className="mt-0.5 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
               disabled={!replyText.trim() || isSubmittingComment}
               onClick={() => onReplySubmit(comment.id)}
             >
@@ -481,13 +481,13 @@ function CommentThread({
         {/* Content */}
         <div className="flex-1 min-w-0 pb-1">
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-bold text-[13px] text-white leading-tight">{parentDisplayName}</span>
+            <span className="font-bold text-sm text-white leading-tight">{parentDisplayName}</span>
             {comment.characterId && (
               <svg className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
               </svg>
             )}
-            <span className="text-white/40 text-[12px]">· {twitterRelTime(comment.createdAt)}</span>
+            <span className="text-white/40 text-xs">· {twitterRelTime(comment.createdAt)}</span>
             {currentUserId && comment.userId === currentUserId && (
               <button
                 className="ml-auto text-white/20 hover:text-red-400 transition-colors p-0.5"
@@ -500,7 +500,7 @@ function CommentThread({
               </button>
             )}
           </div>
-          <p className="text-[13px] text-gray-100 leading-relaxed whitespace-pre-line mt-0.5">{comment.content}</p>
+          <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-line mt-0.5">{comment.content}</p>
           <div className="flex items-center gap-4 mt-1.5">
             <button
               className="flex items-center gap-1 text-white/30 hover:text-blue-400 transition-colors"
@@ -509,7 +509,7 @@ function CommentThread({
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              {replies.length > 0 && <span className="text-[11px]">{replies.length}</span>}
+              {replies.length > 0 && <span className="text-xs">{replies.length}</span>}
             </button>
             <button className="flex items-center gap-1 text-white/30 hover:text-red-400 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -529,11 +529,11 @@ function CommentThread({
                 placeholder={`@${replyToName} に返信...`}
                 rows={1}
                 style={{ fontSize: '16px', resize: 'none' }}
-                className="flex-1 bg-transparent border-b border-white/20 px-1 py-1 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-purple-500/60 transition-colors"
+                className="flex-1 bg-transparent border-b border-white/20 px-1 py-1 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/60 transition-colors"
                 autoFocus
               />
               <button
-                className="mt-0.5 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[12px] font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
+                className="mt-0.5 px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
                 disabled={!replyText.trim() || isSubmittingComment}
                 onClick={() => onReplySubmit(comment.id)}
               >
@@ -566,7 +566,7 @@ function CommentThread({
           ))}
           {!showAllReplies && hiddenCount > 0 && (
             <button
-              className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors mt-1 ml-1 py-0.5"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors mt-1 ml-1 py-0.5"
               onClick={() => setShowAllReplies(true)}
             >
               返信を{hiddenCount}件表示
@@ -732,7 +732,7 @@ export function MomentCard({
               <button
                 onClick={handleFollow}
                 disabled={followLoading}
-                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-all flex-shrink-0 ${
+                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all flex-shrink-0 ${
                   followState
                     ? 'bg-gray-700/60 text-white/50 border border-white/10'
                     : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-900/30'
@@ -982,10 +982,10 @@ export function MomentCard({
               placeholder="返信をポスト..."
               rows={1}
               style={{ fontSize: '16px', resize: 'none' }}
-              className="flex-1 bg-transparent border-b border-white/15 py-1.5 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
+              className="flex-1 bg-transparent border-b border-white/15 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
             />
             <button
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[13px] font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
+              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-full disabled:opacity-30 transition-colors flex-shrink-0"
               disabled={!commentText.trim() || isSubmittingComment}
               onClick={() => submitComment()}
             >

@@ -445,7 +445,7 @@ export function ChatInput({
       <div className={`text-right mt-1 pr-14 transition-colors ${
         inputText.length >= 1900 ? 'text-red-400' :
         inputText.length >= 1500 ? 'text-amber-400' : 'text-gray-600'
-      } text-[11px]`}>
+      } text-xs`}>
         {inputText.length > 0 && `${inputText.length}/2000`}
       </div>
 

@@ -1795,7 +1795,7 @@ export default function ChatCharacterPage() {
           className="mx-3 my-1 p-2.5 bg-purple-900/30 border border-purple-500/20 rounded-2xl cursor-pointer hover:bg-purple-900/50 transition-colors"
           onClick={async () => { await markProactiveRead(msg.id); }}
         >
-          <p className="text-[13px] text-purple-200/80">{msg.content}</p>
+          <p className="text-sm text-purple-200/80">{msg.content}</p>
           <CountdownTimer expiresAt={msg.expiresAt} className="mt-1" />
         </div>
       ))}
@@ -1804,11 +1804,11 @@ export default function ChatCharacterPage() {
       {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (
         <div className="flex-shrink-0 bg-gray-950 px-3 py-1 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[9px] text-gray-600 flex-shrink-0">覚えてること:</span>
+            <span className="text-xs text-gray-600 flex-shrink-0">覚えてること:</span>
             {relationship.sharedTopics.slice(0, 5).map((topic, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-0.5 text-[9px] bg-purple-900/30 text-purple-400/70 px-1.5 py-0.5 rounded-full"
+                className="inline-flex items-center gap-0.5 text-xs bg-purple-900/30 text-purple-400/70 px-1.5 py-0.5 rounded-full"
               >
                 {topic.type === 'like' ? '💜' : '📝'} {topic.text}
               </span>

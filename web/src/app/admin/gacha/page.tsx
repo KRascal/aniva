@@ -793,7 +793,7 @@ export default function AdminGachaPage() {
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {c.effect?.effectText && (
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded font-bold"
+                      className="text-xs px-1.5 py-0.5 rounded font-bold"
                       style={{
                         color: (c.effect?.effectColor as string) ?? '#a855f7',
                         backgroundColor: `${(c.effect?.effectColor as string) ?? '#a855f7'}20`,
@@ -804,7 +804,7 @@ export default function AdminGachaPage() {
                     </span>
                   )}
                   {c.effect?.hasSpecialEffect && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-300 border border-red-700/30 font-bold">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-900/50 text-red-300 border border-red-700/30 font-bold">
                       💥 画面割れ
                     </span>
                   )}

@@ -233,7 +233,7 @@ function CollectionCard({ card }: { card: UserCard }) {
       <div className="absolute bottom-0 left-0 right-0 p-2"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
       >
-        <p className="text-yellow-400 text-[9px] font-bold">{RARITY_STARS[rarity]}</p>
+        <p className="text-yellow-400 text-xs font-bold">{RARITY_STARS[rarity]}</p>
         <p className="text-white text-[10px] font-semibold truncate">{card.card.name}</p>
       </div>
     </div>
@@ -578,7 +578,7 @@ export default function GachaPage() {
                         }}
                       >
                         {freeAvailable && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                             FREE
                           </span>
                         )}
@@ -621,7 +621,7 @@ export default function GachaPage() {
                           border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
-                        <span className="absolute -top-1.5 -right-1.5 bg-yellow-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="absolute -top-1.5 -right-1.5 bg-yellow-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                           お得
                         </span>
                         <span className="block text-lg mb-0.5">×10</span>

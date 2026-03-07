@@ -109,6 +109,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         // ユーザーコメントへの返信（自分自身への返信は除外）
         if (parentComment?.userId && parentComment.userId !== session.user.id) {
           const replierName = (comment.character?.name) || userDisplay;
+          // Notificationテーブルに記録
+          await prisma.notification.create({
+            data: {
+              userId: parentComment.userId,
+              type: 'moment_comment',
+              title: `${replierName}があなたのコメントに返信しました`,
+              body: content.slice(0, 80),
+              momentId,
+              actorName: replierName,
+              targetUrl: '/moments',
+            },
+          }).catch(() => {});
+          // push通知
           await fetch(`${baseUrl}/api/push/send`, {
             method: 'POST',
             headers: {

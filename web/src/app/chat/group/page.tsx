@@ -189,7 +189,7 @@ function MessageBubble({
           <span className="text-xs font-bold" style={{ color: color.text }}>
             {message.characterName}
           </span>
-          <span className="text-[11px]">{emotionEmoji}</span>
+          <span className="text-xs">{emotionEmoji}</span>
         </div>
         <div
           className="inline-block max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tl-md text-sm text-white leading-relaxed"
@@ -484,7 +484,7 @@ export default function GroupChatPage() {
                           {c.name.charAt(0)}
                         </div>
                       )}
-                      <span className="text-[9px] font-bold" style={{ color: color.text }}>
+                      <span className="text-xs font-bold" style={{ color: color.text }}>
                         {c.name.split('・')[0]}
                       </span>
                     </div>

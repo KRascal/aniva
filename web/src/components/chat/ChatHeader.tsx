@@ -176,10 +176,10 @@ export function ChatHeader({
               {character?.name ?? 'キャラクター'}
             </h1>
             {/* 認証バッジ */}
-            <span className="flex-shrink-0 text-blue-400 text-[13px] leading-none">✓</span>
+            <span className="flex-shrink-0 text-blue-400 text-sm leading-none">✓</span>
             {/* ストリーク */}
             {showStreak && (
-              <span className="flex-shrink-0 text-[12px] leading-none">
+              <span className="flex-shrink-0 text-xs leading-none">
                 🔥{relationship!.streakDays}
               </span>
             )}
@@ -240,15 +240,15 @@ export function ChatHeader({
           <div className="flex items-center gap-1 mt-0.5 pl-[60px]">
             {moodEmoji && (
               <>
-                <span className="text-[11px] leading-none">{moodEmoji}</span>
-                <span className="text-[11px] text-white/40 leading-none">{moodLabel}</span>
+                <span className="text-xs leading-none">{moodEmoji}</span>
+                <span className="text-xs text-white/40 leading-none">{moodLabel}</span>
               </>
             )}
             {moodEmoji && statusText && (
-              <span className="text-[11px] text-white/25 leading-none mx-0.5">·</span>
+              <span className="text-xs text-white/25 leading-none mx-0.5">·</span>
             )}
             {statusText && (
-              <span className="text-[11px] text-white/40 leading-none">{statusText}</span>
+              <span className="text-xs text-white/40 leading-none">{statusText}</span>
             )}
           </div>
         )}

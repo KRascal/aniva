@@ -240,7 +240,7 @@ export default function RankingPage() {
                 >
                   <span className="text-lg">{t.icon}</span>
                   <span className="text-xs font-bold">{t.label}</span>
-                  <span className={`text-[9px] leading-tight text-center ${tab === t.type ? 'text-purple-300' : 'text-gray-600'}`}>{t.desc}</span>
+                  <span className={`text-xs leading-tight text-center ${tab === t.type ? 'text-purple-300' : 'text-gray-600'}`}>{t.desc}</span>
                 </button>
               ))}
             </div>
@@ -282,7 +282,7 @@ export default function RankingPage() {
                 >
                   <span className="text-lg">{t.icon}</span>
                   <span className="text-xs font-bold">{t.label}</span>
-                  <span className={`text-[9px] leading-tight text-center ${charTab === t.type ? 'text-pink-300' : 'text-gray-600'}`}>{t.desc}</span>
+                  <span className={`text-xs leading-tight text-center ${charTab === t.type ? 'text-pink-300' : 'text-gray-600'}`}>{t.desc}</span>
                 </button>
               ))}
             </div>
@@ -324,7 +324,7 @@ export default function RankingPage() {
                     }`}
                   >
                     <span className="text-base">🌐</span>
-                    <span className="whitespace-nowrap text-[9px]">全員</span>
+                    <span className="whitespace-nowrap text-xs">全員</span>
                   </button>
                   {characters.map(c => (
                     <button
@@ -539,7 +539,7 @@ function TopRankCard({ entry, ref }: TopRankCardProps) {
             {MEDAL_EMOJI[rank - 1]}
           </span>
           {rankTitle && (
-            <span className={`text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded-full border ${rankTitle.bg} ${rankTitle.color}`}>
+            <span className={`text-xs font-black mt-0.5 px-1.5 py-0.5 rounded-full border ${rankTitle.bg} ${rankTitle.color}`}>
               {rankTitle.title}
             </span>
           )}
@@ -583,7 +583,7 @@ function CharTopRankCard({ entry, onClick }: { entry: CharRankEntry; onClick: ()
             {MEDAL_EMOJI[rank - 1]}
           </span>
           {rankTitle && (
-            <span className={`text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded-full border ${rankTitle.bg} ${rankTitle.color}`}>
+            <span className={`text-xs font-black mt-0.5 px-1.5 py-0.5 rounded-full border ${rankTitle.bg} ${rankTitle.color}`}>
               {rankTitle.title}
             </span>
           )}

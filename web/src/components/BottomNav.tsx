@@ -162,7 +162,7 @@ export function BottomNav() {
               </svg>
               {isTimeline && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
               {notifUnreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full leading-none border border-gray-950">
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full leading-none border border-gray-950">
                   {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
                 </span>
               )}
@@ -221,7 +221,7 @@ export function BottomNav() {
               </svg>
               {isMypage && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
               {unreadLetters > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-pink-500 text-white text-[9px] font-bold rounded-full leading-none">
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-pink-500 text-white text-xs font-bold rounded-full leading-none">
                   {unreadLetters > 9 ? '9+' : unreadLetters}
                 </span>
               )}

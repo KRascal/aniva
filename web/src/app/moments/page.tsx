@@ -248,7 +248,7 @@ function QuickChatCarousel({
   if (characters.length === 0) return null;
   return (
     <div className="mb-4">
-      <p className="text-[11px] text-white/40 font-semibold uppercase tracking-wider mb-2 px-1">💬 今すぐ話しかける</p>
+      <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-2 px-1">💬 今すぐ話しかける</p>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
         {characters.map((item) => (
           <button

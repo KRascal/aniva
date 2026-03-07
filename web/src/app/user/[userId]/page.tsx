@@ -228,7 +228,7 @@ export default function UserProfilePage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-white truncate">{oshi.characterName}</span>
                           {oshi.isFanclub && (
-                            <span className="text-[9px] bg-purple-600/60 text-purple-200 px-1.5 py-0.5 rounded-full font-bold">FC</span>
+                            <span className="text-xs bg-purple-600/60 text-purple-200 px-1.5 py-0.5 rounded-full font-bold">FC</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-gray-500">
@@ -282,7 +282,7 @@ export default function UserProfilePage() {
                           <div className="w-full h-full flex items-center justify-center text-2xl">🃏</div>
                         )}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-1.5">
-                          <span className={`text-[8px] font-black ${style.text}`}>{card.rarity}</span>
+                          <span className={`text-[10px] font-black ${style.text}`}>{card.rarity}</span>
                           <p className="text-[10px] text-white font-medium truncate leading-tight">{card.name}</p>
                         </div>
                         {card.rarity === 'UR' && (

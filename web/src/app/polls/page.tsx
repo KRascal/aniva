@@ -187,17 +187,17 @@ function PollCard({
               {poll.character.franchise}
             </span>
             {isExpired ? (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-700/50 text-gray-400 font-medium border border-gray-600/30">
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-700/50 text-gray-400 font-medium border border-gray-600/30">
                 投票終了
               </span>
             ) : isUrgent ? (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                 style={{ background: 'rgba(239,68,68,0.2)', color: 'rgba(252,165,165,0.9)', border: '1px solid rgba(239,68,68,0.3)' }}
               >
                 🔥 まもなく終了
               </span>
             ) : (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                 style={{ background: 'rgba(139,92,246,0.2)', color: 'rgba(196,181,253,0.9)', border: '1px solid rgba(139,92,246,0.25)' }}
               >
                 🗳 投票受付中

@@ -152,7 +152,7 @@ function PollCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white font-bold text-sm">{poll.character.name}</span>
             <span
-              className="text-[9px] px-2 py-0.5 rounded-full font-bold"
+              className="text-xs px-2 py-0.5 rounded-full font-bold"
               style={{ background: 'rgba(139,92,246,0.2)', color: 'rgba(196,181,254,0.9)', border: '1px solid rgba(139,92,246,0.3)' }}
             >
               {poll.character.franchise}
@@ -477,7 +477,7 @@ export default function StoryIndexPage() {
           }}
         >
           <div className="px-5 py-6">
-            <p className="text-purple-300 text-[11px] font-black tracking-widest uppercase mb-2">
+            <p className="text-purple-300 text-xs font-black tracking-widest uppercase mb-2">
               ✦ Interactive Story
             </p>
             <h2 className="text-white font-black text-2xl leading-tight mb-2">

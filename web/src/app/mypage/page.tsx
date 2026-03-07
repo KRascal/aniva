@@ -620,7 +620,7 @@ export default function MyPage() {
               })}
             </div>
             {unlockedAchievements.length < ACHIEVEMENTS.length && (
-              <p className="text-[11px] text-gray-600 mt-2">
+              <p className="text-xs text-gray-600 mt-2">
                 あと{ACHIEVEMENTS.length - unlockedAchievements.length}個の称号がロック中… 🔒
               </p>
             )}
@@ -654,7 +654,7 @@ export default function MyPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-purple-400 font-medium mb-0.5">{b.characterName}</p>
+                    <p className="text-xs text-purple-400 font-medium mb-0.5">{b.characterName}</p>
                     <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">{b.content}</p>
                   </div>
                   <button

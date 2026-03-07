@@ -112,7 +112,7 @@ function ChatRow({
           <span className="font-bold text-white text-sm truncate">{character.name}</span>
           <span className="text-[10px] text-gray-500 flex-shrink-0">{formatTime(lastAt)}</span>
         </div>
-        <p className="text-[13px] text-gray-400 truncate mt-0.5">
+        <p className="text-sm text-gray-400 truncate mt-0.5">
           {previewText}
         </p>
       </div>

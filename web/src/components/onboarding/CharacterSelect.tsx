@@ -306,7 +306,7 @@ export default function CharacterSelect({ onSelect, isLoading }: CharacterSelect
                             className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-center"
                             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}
                           >
-                            <p className="text-white/70 text-[9px] leading-tight truncate">
+                            <p className="text-white/70 text-xs leading-tight truncate">
                               {char.catchphrases?.[0] ? `「${char.catchphrases[0]}」` : char.franchise}
                             </p>
                           </div>

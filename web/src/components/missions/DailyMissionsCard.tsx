@@ -196,7 +196,7 @@ export default function DailyMissionsCard() {
               <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
                 🏆 週チャレンジ
                 {data.weekly.completedCount > 0 && (
-                  <span className="bg-amber-500/20 text-amber-300 text-[9px] px-1.5 rounded-full ml-1">
+                  <span className="bg-amber-500/20 text-amber-300 text-xs px-1.5 rounded-full ml-1">
                     {data.weekly.completedCount}/{data.weekly.missions.length}完了
                   </span>
                 )}

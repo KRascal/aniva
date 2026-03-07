@@ -323,7 +323,7 @@ function Step1Card({
 
           {/* Message bubble */}
           <div className="flex-1 min-w-0 pt-1">
-            <p className="text-purple-300 text-[11px] font-bold mb-1.5">{characterName}</p>
+            <p className="text-purple-300 text-xs font-bold mb-1.5">{characterName}</p>
             <div
               className="rounded-2xl rounded-tl-none px-3.5 py-2.5 mb-3"
               style={{
@@ -422,7 +422,7 @@ function Step2Card({
             <CharAvatar avatarUrl={characterAvatar} name={characterName} size={52} />
           </div>
           <div className="flex-1 min-w-0 pt-1">
-            <p className="text-purple-300 text-[11px] font-bold mb-1.5">{characterName}</p>
+            <p className="text-purple-300 text-xs font-bold mb-1.5">{characterName}</p>
             <div
               className="rounded-2xl rounded-tl-none px-3.5 py-2.5 mb-3"
               style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.12)' }}
@@ -521,7 +521,7 @@ function Step3Card({
             <CharAvatar avatarUrl={characterAvatar} name={characterName} size={52} />
           </div>
           <div className="flex-1 min-w-0 pt-1">
-            <p className="text-purple-300 text-[11px] font-bold mb-1.5">{characterName}</p>
+            <p className="text-purple-300 text-xs font-bold mb-1.5">{characterName}</p>
             <div
               className="rounded-2xl rounded-tl-none px-3.5 py-2.5 mb-3"
               style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.12)' }}
@@ -619,7 +619,7 @@ function Step4Card({
             <CharAvatar avatarUrl={characterAvatar} name={characterName} size={52} />
           </div>
           <div className="flex-1 min-w-0 pt-1">
-            <p className="text-purple-300 text-[11px] font-bold mb-1.5">{characterName}</p>
+            <p className="text-purple-300 text-xs font-bold mb-1.5">{characterName}</p>
             <div
               className="rounded-2xl rounded-tl-none px-3.5 py-2.5 mb-3"
               style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.12)' }}
@@ -746,7 +746,7 @@ function Step5Card({
             className="rounded-2xl px-4 py-3 mb-5 text-left"
             style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            <p className="text-purple-300 text-[11px] font-bold mb-1.5">{characterName}</p>
+            <p className="text-purple-300 text-xs font-bold mb-1.5">{characterName}</p>
             <p className="text-white text-sm leading-relaxed">{message}</p>
           </div>
 

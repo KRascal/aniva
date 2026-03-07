@@ -414,7 +414,7 @@ export function ChatMessageList({
                 {showDateSeparator && (
                   <div className="flex items-center gap-3 my-4 px-2">
                     <div className="flex-1 h-px bg-gray-800" />
-                    <span className="text-[11px] text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
+                    <span className="text-xs text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
                     <div className="flex-1 h-px bg-gray-800" />
                   </div>
                 )}
@@ -462,7 +462,7 @@ export function ChatMessageList({
               {showDateSeparator && (
                 <div className="flex items-center gap-3 my-4 px-2">
                   <div className="flex-1 h-px bg-gray-800" />
-                  <span className="text-[11px] text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
+                  <span className="text-xs text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
                   <div className="flex-1 h-px bg-gray-800" />
                 </div>
               )}

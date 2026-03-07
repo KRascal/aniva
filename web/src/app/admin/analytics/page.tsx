@@ -62,7 +62,7 @@ function LineChart({ data }: { data: { day: string; count: number }[] }) {
           <circle key={i} cx={p.x} cy={p.y} r="1" fill="#a78bfa" />
         ))}
       </svg>
-      <div className="flex justify-between text-gray-600 text-[9px] mt-1">
+      <div className="flex justify-between text-gray-600 text-xs mt-1">
         {data.filter((_, i) => i % 5 === 0 || i === data.length - 1).map((d) => (
           <span key={d.day}>{d.day.slice(5)}</span>
         ))}
