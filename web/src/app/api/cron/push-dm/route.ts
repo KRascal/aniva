@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3050';
+    // localhost直接呼び出し（Nginx Basic Authバイパス）
+    const port = process.env.PORT || '3050';
+    const baseUrl = `http://localhost:${port}`;
     const res = await fetch(`${baseUrl}/api/push/character-notify`, {
       method: 'POST',
       headers: { 'x-cron-secret': process.env.CRON_SECRET! },

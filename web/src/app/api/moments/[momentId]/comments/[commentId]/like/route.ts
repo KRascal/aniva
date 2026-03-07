@@ -55,7 +55,7 @@ export async function POST(
         }).catch(() => {});
 
         // push通知
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3061';
+        const baseUrl = `http://localhost:${process.env.PORT || '3061'}`;
         fetch(`${baseUrl}/api/push/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_SECRET || '' },

@@ -1293,6 +1293,10 @@ export default function ChatCharacterPage() {
   const handleStartChat = async (_userProfile?: UserProfile) => {
     setShowOnboarding(false);
     setIsGreeting(true);
+    // キャラが「打ち始めてる」演出: 1.2秒TypingIndicator表示後にグリーティング
+    setIsSending(true);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    setIsSending(false);
     try {
       const res = await fetch('/api/chat/greet', {
         method: 'POST',
