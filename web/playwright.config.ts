@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: './tests/e2e',
   timeout: 30000,
   retries: 1,
+  reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:3050',
+    baseURL: process.env.BASE_URL || 'http://localhost:3061',
     screenshot: 'only-on-failure',
   },
   projects: [
