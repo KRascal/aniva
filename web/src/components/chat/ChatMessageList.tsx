@@ -639,7 +639,7 @@ export function ChatMessageList({
                   {/* タイムスタンプ + 既読 */}
                   <span className={`text-[10px] text-gray-600 px-1 flex items-center gap-1 ${msgReaction ? 'mt-1' : ''}`}>
                     {new Date(msg.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                    {isUser && idx === messages.length - 1 && (
+                    {isUser && (
                       (() => {
                         const hasCharReply = messages.slice(idx + 1).some((m: Message) => m.role === 'CHARACTER');
                         return hasCharReply ? (

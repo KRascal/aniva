@@ -79,6 +79,27 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
     }
   }, [showCelebration, spawnConfetti]);
 
+  // Stripe復帰時に残高をリフレッシュ（Webhook処理後の最新残高を取得）
+  useEffect(() => {
+    if (status === 'success') {
+      const refreshBalance = async () => {
+        try {
+          const res = await fetch('/api/coins/balance');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.balance !== undefined) setBalance(data.balance);
+            if (data.freeBalance !== undefined) setFreeCoins(data.freeBalance);
+            if (data.paidBalance !== undefined) setPaidCoins(data.paidBalance);
+          }
+        } catch { /* ignore */ }
+      };
+      // 少し遅延（Webhook処理を待つ）
+      setTimeout(refreshBalance, 1500);
+      setTimeout(refreshBalance, 5000);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePurchase = async (pkg: PackageDisplayItem) => {
     setLoading(pkg.id);
     setMessage(null);
