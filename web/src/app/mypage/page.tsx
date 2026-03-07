@@ -525,46 +525,53 @@ export default function MyPage() {
 
         {/* フォロー中のキャラ一覧 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">
-            フォロー中のキャラ
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-400">フォロー中</h3>
+            {following.length > 0 && (
+              <span className="text-xs text-purple-400 font-bold">{following.length}人</span>
+            )}
+          </div>
           {following.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-600 text-sm">まだフォローしていません</p>
-              <a href="/chat" className="text-purple-400 text-xs hover:underline mt-1 block">
-                キャラを探す →
-              </a>
+            <div className="text-center py-6">
+              <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">💫</span>
+              </div>
+              <p className="text-gray-500 text-sm mb-1">まだフォローしていません</p>
+              <a href="/explore" className="text-purple-400 text-xs hover:underline">キャラを探す →</a>
             </div>
           ) : (
-            <div className="space-y-2">
-              {following.map((char) => (
-                <a
-                  key={char.id}
-                  href={`/profile/${char.id}`}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
-                >
-                  <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
-                    {char.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
-                        {char.name.charAt(0)}
-                      </div>
+            <div className="grid grid-cols-4 gap-3">
+              {following.map((char) => {
+                const rel = relationships.find(r => r.characterId === char.id);
+                return (
+                  <a
+                    key={char.id}
+                    href={`/profile/${char.id}`}
+                    className="flex flex-col items-center gap-1.5 group"
+                  >
+                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
+                      {char.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover group-active:scale-95 transition-transform" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg font-black text-white">
+                          {char.name.charAt(0)}
+                        </div>
+                      )}
+                      {/* FCバッジ */}
+                      {char.isFanclub && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center text-[8px] font-black text-gray-900">FC</div>
+                      )}
+                      {/* オンラインドット */}
+                      <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-green-400 border border-gray-900 animate-pulse" />
+                    </div>
+                    <p className="text-white/70 text-[10px] font-medium truncate w-full text-center">{char.name}</p>
+                    {rel && (
+                      <p className="text-purple-400/60 text-[9px]">Lv.{rel.level}</p>
                     )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{char.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{char.franchise}</p>
-                  </div>
-                  {char.isFanclub && (
-                    <span className="text-xs bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full">ファン</span>
-                  )}
-                  <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-              ))}
+                  </a>
+                );
+              })}
             </div>
           )}
         </section>
