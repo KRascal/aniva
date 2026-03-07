@@ -30,7 +30,7 @@ export default function TermsPage() {
         <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
           利用規約
         </h1>
-        <p className="text-gray-500 text-sm mb-10">最終更新日：2026年3月5日</p>
+        <p className="text-gray-500 text-sm mb-10">最終更新日：2026年3月7日</p>
 
         <div className="space-y-10 text-gray-300 leading-relaxed text-sm">
 
@@ -96,17 +96,56 @@ export default function TermsPage() {
             </h2>
             <div className="space-y-4">
               <div>
-                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-purple-400 mb-2">4.1 コイン購入</h3>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-purple-400 mb-2">4.1 コインの定義と種類</h3>
+                <p className="text-gray-400 mb-2">
+                  本サービスにおける「コイン」とは、AIキャラクターとの会話、ガチャ、その他当社が定めるサービス内の機能を利用するために使用できるデジタルポイントをいいます。コインには以下の2種類があります。
+                </p>
                 <ul className="list-disc list-inside space-y-1 text-gray-400">
-                  <li>コインは本サービス内で使用できる仮想通貨です。日本円または対応通貨でご購入いただけます。</li>
-                  <li>コインは購入後の返金・払い戻しは原則として行いません。</li>
-                  <li>コインは他のユーザーへの譲渡・売買・換金はできません。</li>
-                  <li>未使用コインはアカウント削除またはサービス終了時に消滅します。</li>
-                  <li>コインの有効期限は購入日から1年間とします（別途明示がある場合を除く）。</li>
+                  <li><strong className="text-white">有償コイン：</strong>お客様が日本円またはその他の対応通貨で購入したコインです。</li>
+                  <li><strong className="text-white">無償コイン：</strong>キャンペーン、ログインボーナス、お詫び等により当社が無償で付与するコインです。</li>
+                </ul>
+                <p className="text-gray-400 mt-2">
+                  有償コインと無償コインは、お客様のアカウント上で区別して管理・表示されます。
+                </p>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-purple-400 mb-2">4.2 有償コインの購入と有効期限</h3>
+                <div className="bg-purple-900/20 border border-purple-700/40 rounded-xl p-4 mb-3">
+                  <p className="text-purple-200 font-semibold text-sm">
+                    ⚠️ 有償コインの有効期限は購入日から180日間です。
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    有効期限を過ぎた有償コインは自動的に失効し、利用できなくなります。失効したコインの復元・返金・延長・再発行はいたしません。
+                  </p>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>有償コインは、当社が定める料金および方法（クレジットカード等）により購入できます。</li>
+                  <li>有償コインの有効期限は、各コインの<strong className="text-white">購入日（付与日）から起算して180日間</strong>です。複数回に分けて購入した場合、各購入分ごとに個別に有効期限が設定されます。</li>
+                  <li>有効期限の自動延長、失効後の自動返金・再チャージ等は一切行いません。</li>
+                  <li>有償コインは購入後の返金・払い戻しは原則として行いません。</li>
+                  <li>有償コインは他のユーザーへの譲渡・売買・換金・現金化はできません。</li>
+                  <li>お客様が退会等により本サービスの利用資格を喪失した場合、未使用の有償コインは消滅します。</li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-pink-400 mb-2">4.2 サブスクリプション</h3>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-purple-400 mb-2">4.3 コインの消費順序（FIFO）</h3>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>コインの消費時は、<strong className="text-white">有償コインが無償コインよりも先に消費</strong>されます。</li>
+                  <li>有償コイン同士の消費順序は、<strong className="text-white">購入日が古いもの（有効期限が近いもの）から順に消費</strong>されます（先入れ先出し方式：FIFO）。</li>
+                  <li>お客様がコインの消費順序を任意に変更することはできません。</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-purple-400 mb-2">4.4 無償コインについて</h3>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>無償コインは当社が任意に付与するものであり、付与条件・数量は当社の裁量で決定されます。</li>
+                  <li>無償コインの有効期限は、付与時に個別に定められます。特段の定めがない場合は付与日から180日間とします。</li>
+                  <li>無償コインは換金・譲渡・売買できません。</li>
+                  <li>無償コインは、有償コインがすべて消費された後に消費されます。</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-pink-400 mb-2">4.5 サブスクリプション</h3>
                 <ul className="list-disc list-inside space-y-1 text-gray-400">
                   <li>有料サブスクリプションプランの料金は、月次または年次で自動更新されます。</li>
                   <li>料金は事前に明示された金額が、登録された支払い方法に請求されます。</li>
@@ -116,11 +155,19 @@ export default function TermsPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-blue-400 mb-2">4.3 返金・返品</h3>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-blue-400 mb-2">4.6 返金・返品</h3>
                 <ul className="list-disc list-inside space-y-1 text-gray-400">
                   <li>デジタルコンテンツの性質上、原則として返金には応じません。</li>
                   <li>当社の重大な過失やシステム障害によりサービスが提供できなかった場合は、個別に対応します。</li>
-                  <li>特定商取引法に基づくクーリングオフ制度は、デジタルコンテンツには適用されません。</li>
+                  <li>特定商取引法に基づくクーリングオフ制度は、電子商取引によるデジタルコンテンツの提供には適用されません。</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-xs uppercase tracking-wide text-green-400 mb-2">4.7 サービス終了時の取扱い</h3>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>当社が本サービスを終了する場合、終了日の60日前までにお客様に通知します。</li>
+                  <li>サービス終了時に未使用の有償コインがある場合、当社は未使用残高に相当する金額の払戻しを行います。払戻しの方法・期間については、サービス終了通知にてお知らせします。</li>
+                  <li>無償コインについてはサービス終了時に消滅し、払戻しの対象にはなりません。</li>
                 </ul>
               </div>
             </div>
@@ -275,12 +322,16 @@ export default function TermsPage() {
                 <dd>株式会社K-Rascal</dd>
               </div>
               <div className="flex gap-2">
+                <dt className="text-gray-500 w-20 shrink-0">所在地</dt>
+                <dd>東京都港区港南1-6-33 11F</dd>
+              </div>
+              <div className="flex gap-2">
                 <dt className="text-gray-500 w-20 shrink-0">サービス名</dt>
                 <dd>ANIVA</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="text-gray-500 w-20 shrink-0">お問い合わせ</dt>
-                <dd>サービス内のサポート機能またはメールにてお問い合わせください。</dd>
+                <dd>support@aniva-project.com</dd>
               </div>
             </dl>
           </section>
@@ -295,6 +346,7 @@ export default function TermsPage() {
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-purple-400 transition-colors text-purple-400">利用規約</Link>
             <Link href="/privacy" className="hover:text-purple-400 transition-colors">プライバシーポリシー</Link>
+            <Link href="/legal/tokushoho" className="hover:text-purple-400 transition-colors">特定商取引法に基づく表記</Link>
             <Link href="/" className="hover:text-gray-400 transition-colors">トップへ戻る</Link>
           </div>
         </div>

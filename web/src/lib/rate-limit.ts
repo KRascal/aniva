@@ -94,6 +94,18 @@ export const apiLimiter = createRateLimiter({ prefix: 'api', limit: 60, windowSe
 /** 課金: 5回/分 */
 export const paymentLimiter = createRateLimiter({ prefix: 'payment', limit: 5, windowSec: 60 })
 
+/**
+ * 後方互換ヘルパー: checkRateLimit(identifier, limit, windowMs)
+ * 旧APIとの互換性を維持するためのラッパー
+ * @deprecated createRateLimiter() を直接使用することを推奨
+ */
+export async function checkRateLimit(identifier: string, limit: number, windowMs: number) {
+  const prefix = identifier.split(':')[0]
+  const limiter = createRateLimiter({ prefix, limit, windowSec: Math.floor(windowMs / 1000) })
+  const result = await limiter.check(identifier)
+  return { allowed: result.success, resetAt: result.resetAt, remaining: result.remaining }
+}
+
 /** ヘルパー: rate limit超過レスポンス */
 export function rateLimitResponse(result: RateLimitResult) {
   return new Response(

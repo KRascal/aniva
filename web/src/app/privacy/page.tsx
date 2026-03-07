@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
           プライバシーポリシー
         </h1>
-        <p className="text-gray-500 text-sm mb-10">最終更新日：2026年3月5日</p>
+        <p className="text-gray-500 text-sm mb-10">最終更新日：2026年3月7日</p>
 
         <div className="space-y-10 text-gray-300 leading-relaxed text-sm">
 
@@ -147,6 +147,10 @@ export default function PrivacyPage() {
                 <div>
                   <p className="text-purple-300 font-medium text-xs mb-1">AI APIプロバイダー（OpenAI等）</p>
                   <p className="text-gray-400 text-xs">AIキャラクターとの会話生成に使用します。会話内容がAPIに送信されます。各プロバイダーのプライバシーポリシーもご確認ください。</p>
+                </div>
+                <div>
+                  <p className="text-purple-300 font-medium text-xs mb-1">PostHog（アクセス解析）</p>
+                  <p className="text-gray-400 text-xs">サービスの利用状況の分析・改善のために使用します。匿名化されたイベントデータを収集します。プライバシーポリシー：<a href="https://posthog.com/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">posthog.com/privacy</a></p>
                 </div>
               </div>
             </div>
@@ -286,8 +290,12 @@ export default function PrivacyPage() {
                 <dd>ANIVA</dd>
               </div>
               <div className="flex gap-2">
+                <dt className="text-gray-500 w-28 shrink-0">所在地</dt>
+                <dd>東京都港区港南1-6-33 11F</dd>
+              </div>
+              <div className="flex gap-2">
                 <dt className="text-gray-500 w-28 shrink-0">お問い合わせ</dt>
-                <dd>サービス内のサポート機能またはメールにてお問い合わせください。<br />個人情報の開示・訂正・削除・利用停止の請求も同様にご連絡ください。</dd>
+                <dd>support@aniva-project.com<br />個人情報の開示・訂正・削除・利用停止の請求も同様にご連絡ください。</dd>
               </div>
             </dl>
           </section>
@@ -302,6 +310,7 @@ export default function PrivacyPage() {
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-purple-400 transition-colors">利用規約</Link>
             <Link href="/privacy" className="hover:text-purple-400 transition-colors text-purple-400">プライバシーポリシー</Link>
+            <Link href="/legal/tokushoho" className="hover:text-purple-400 transition-colors">特定商取引法に基づく表記</Link>
             <Link href="/" className="hover:text-gray-400 transition-colors">トップへ戻る</Link>
           </div>
         </div>
