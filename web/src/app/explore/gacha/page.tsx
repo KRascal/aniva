@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
+import { playSound } from '@/lib/sound-effects';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface GachaBanner {
@@ -358,6 +359,8 @@ export default function GachaPage() {
 
       const results: PullResult[] = data.results ?? [];
       setPullResults(results);
+      // SE: ガチャプル演出音
+      playSound('gacha-pull');
       setFlippedCards(new Array(results.length).fill(false));
       const bestRarity = results.reduce((best, r) => {
         const order = ['N', 'R', 'SR', 'SSR', 'UR'];
@@ -397,6 +400,12 @@ export default function GachaPage() {
   };
 
   const flipCard = (index: number) => {
+    // SE連動: カードのレアリティに応じた効果音
+    const card = pullResults[index];
+    if (card) {
+      const rarityKey = card.rarity?.toLowerCase() || 'n';
+      playSound(`gacha-reveal-${rarityKey}` as Parameters<typeof playSound>[0]);
+    }
     setFlippedCards(prev => {
       const next = [...prev];
       next[index] = true;

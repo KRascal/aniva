@@ -2556,12 +2556,15 @@ function EmptyState({ message }: { message?: string }) {
   return (
     <div className="text-center py-16">
       <div className="flex justify-center mb-4">
-        <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
-        </svg>
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/20 flex items-center justify-center">
+          <span className="text-2xl animate-pulse">✨</span>
+        </div>
       </div>
-      <p className="text-white/50 text-sm">{message ?? 'キャラクターを準備中です'}</p>
-      <p className="text-white/30 text-xs mt-2">もうすぐ追加されます</p>
+      <p className="text-white/60 text-sm font-medium">{message ?? '新しいキャラクターがまもなく登場'}</p>
+      <p className="text-white/30 text-xs mt-2 leading-relaxed">
+        あなたを待っているキャラクターがいます。<br />
+        もう少しだけ待っていてね。
+      </p>
     </div>
   );
 }
