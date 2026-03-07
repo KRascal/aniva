@@ -13,6 +13,37 @@ import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 import { useTutorial } from '@/hooks/useTutorial';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 
+// ── TinderUI発見バナー ──
+function DiscoverBanner() {
+  const router = useRouter();
+  return (
+    <div className="mb-5">
+      <button
+        onClick={() => router.push('/discover')}
+        className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200"
+        style={{
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.95), rgba(236,72,153,0.9))',
+          boxShadow: '0 4px 28px rgba(139,92,246,0.5)',
+        }}
+      >
+        <div className="px-4 py-4 flex items-center gap-3">
+          <span className="text-2xl flex-shrink-0">✨</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-black text-base leading-tight">新しいキャラを発見しよう</p>
+            <p className="text-white/75 text-xs mt-0.5">スワイプして推しを見つけよう</p>
+          </div>
+          <span
+            className="text-white font-bold text-xs px-4 py-2 rounded-full flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}
+          >
+            スワイプで探す →
+          </span>
+        </div>
+      </button>
+    </div>
+  );
+}
+
 // ── ガチャバナーセクション ──
 function GachaBannerSection({ freeAvailable }: { freeAvailable: boolean }) {
   const router = useRouter();
@@ -1062,6 +1093,7 @@ function CharacterVerticalCard({
   onFollow,
   onClick,
   proactiveMessage,
+  showChatButton,
 }: {
   character: Character;
   index: number;
@@ -1069,7 +1101,9 @@ function CharacterVerticalCard({
   onFollow: (id: string, following: boolean) => void;
   onClick: () => void;
   proactiveMessage?: { content: string; expiresAt: string } | null;
+  showChatButton?: boolean;
 }) {
+  const router = useRouter();
   const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
   const catchphrase = character.catchphrases?.[0] ?? null;
   const isFollowing = relationship?.isFollowing ?? false;
@@ -1215,6 +1249,18 @@ function CharacterVerticalCard({
               onFollow={onFollow}
             />
           </div>
+          {showChatButton && (
+            <button
+              onClick={(e) => { e.stopPropagation(); router.push(`/chat/${character.slug}`); }}
+              className="mt-2 w-full px-3 py-1.5 text-xs font-bold text-white rounded-full transition-all active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
+              }}
+            >
+              チャット →
+            </button>
+          )}
         </div>
 
         {/* Fanclub badge */}
@@ -1622,6 +1668,21 @@ export default function ExplorePage() {
     }
   }, [status]);
 
+  // 新規ユーザー / 久しぶりユーザー (72時間以上) を /discover にリダイレクト
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const LAST_VISIT_KEY = 'aniva_last_explore_visit';
+    const HOURS_72 = 72 * 60 * 60 * 1000;
+    try {
+      const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+      const now = Date.now();
+      localStorage.setItem(LAST_VISIT_KEY, String(now));
+      if (!lastVisit || now - parseInt(lastVisit, 10) > HOURS_72) {
+        router.push('/discover');
+      }
+    } catch { /* ignore */ }
+  }, [status, router]);
+
   const handleFollow = useCallback((characterId: string, following: boolean) => {
     setRelationships(prev => {
       const next = new Map(prev);
@@ -1844,6 +1905,11 @@ export default function ExplorePage() {
           {/* HERO section — only on no search/filter */}
           {!searchQuery && selectedCategory === 'すべて' && (
             <div className="py-6">
+              {/* TinderUI発見バナー（常時表示・最上部） */}
+              <FadeSection delay={0}>
+                <DiscoverBanner />
+              </FadeSection>
+
               {/* 今日のひとこと */}
               <TodayGreetingSection characters={characters} relationships={relationships} />
 
@@ -2251,6 +2317,7 @@ export default function ExplorePage() {
                           onFollow={handleFollow}
                           onClick={() => router.push(`/profile/${character.id}`)}
                           proactiveMessage={proactiveUnreadMap.get(character.id) ?? null}
+                          showChatButton={true}
                         />
                       ))}
                     </div>

@@ -14,6 +14,25 @@ interface DiscoverCharacter {
   description: string | null;
 }
 
+const SKIPPED_KEY = 'aniva_skipped_chars';
+
+function getSkippedSlugs(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(SKIPPED_KEY) ?? '[]');
+  } catch { return []; }
+}
+
+function addSkippedSlug(slug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getSkippedSlugs();
+    if (!current.includes(slug)) {
+      localStorage.setItem(SKIPPED_KEY, JSON.stringify([...current, slug]));
+    }
+  } catch { /* ignore */ }
+}
+
 export default function DiscoverPage() {
   const router = useRouter();
   const [characters, setCharacters] = useState<DiscoverCharacter[]>([]);
@@ -28,11 +47,15 @@ export default function DiscoverPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/characters?limit=10&random=1');
+        const res = await fetch('/api/characters?limit=50&random=1');
         if (res.ok) {
           const data = await res.json();
-          // Shuffle for variety
-          const chars = (data.characters ?? []).sort(() => Math.random() - 0.5).slice(0, 10);
+          const skipped = getSkippedSlugs();
+          // Filter out skipped chars, then shuffle and limit
+          const chars = (data.characters ?? [])
+            .filter((c: DiscoverCharacter) => !skipped.includes(c.slug))
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 20);
           setCharacters(chars);
         }
       } catch { /* ignore */ }
@@ -45,6 +68,11 @@ export default function DiscoverPage() {
     setIsAnimating(true);
     setSwipeDirection(direction);
     setSwipeX(direction === 'left' ? -500 : 500);
+
+    // Save skipped slug on left swipe
+    if (direction === 'left' && characters[currentIndex]) {
+      addSkippedSlug(characters[currentIndex].slug);
+    }
 
     setTimeout(() => {
       if (direction === 'right' && characters[currentIndex]) {
@@ -133,6 +161,13 @@ export default function DiscoverPage() {
   }
 
   return (
+    <>
+    <style>{`
+      @keyframes cardEnter {
+        from { opacity: 0; transform: scale(0.93); }
+        to { opacity: 1; transform: scale(1); }
+      }
+    `}</style>
     <div className="fixed inset-0 bg-gray-950 z-50 overflow-hidden select-none">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pt-12 pb-3">
@@ -187,10 +222,15 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Current card */}
+      {/* Current card — wrapper triggers enter animation on each new card */}
+      <div
+        key={`card-enter-${currentIndex}`}
+        className="absolute inset-0 z-10"
+        style={{ animation: 'cardEnter 0.35s cubic-bezier(0.22,1,0.36,1)' }}
+      >
       <div
         ref={cardRef}
-        className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing"
         style={{
           transform: `translateX(${swipeX}px) rotate(${rotation}deg)`,
           transition: isAnimating ? 'transform 0.35s ease-out' : 'none',
@@ -246,6 +286,7 @@ export default function DiscoverPage() {
           ) : null}
         </div>
       </div>
+      </div>{/* end card-enter wrapper */}
 
       {/* Bottom action buttons */}
       <div className="absolute bottom-8 left-0 right-0 z-30 flex items-center justify-center gap-8 px-6 pb-4">
@@ -275,9 +316,11 @@ export default function DiscoverPage() {
         {/* Skip button (right) — follow */}
         <button
           onClick={() => {
-            // Follow then skip
+            // Follow then send welcome message
             if (currentChar) {
               fetch(`/api/relationship/${currentChar.slug}/follow`, { method: 'POST' }).catch(() => {});
+              // Fire and forget: trigger welcome message from character
+              fetch(`/api/relationship/${currentChar.slug}/follow-welcome`, { method: 'POST' }).catch(() => {});
             }
             swipeOut('left');
           }}
@@ -295,5 +338,6 @@ export default function DiscoverPage() {
         <p className="text-white/25 text-[10px]">← スキップ ・ チャット開始 → </p>
       </div>
     </div>
+    </>
   );
 }
