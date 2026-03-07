@@ -1329,24 +1329,43 @@ export default function ProfilePage() {
         </div>
 
         {/* ══════════════ 基本情報カード（全キャラ対応） ══════════════ */}
-        {character && CHARACTER_PROFILES[character.slug] && (
-          <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/10 shadow-lg">
-            <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-4">
-              プロフィール
-            </p>
-            <div className="space-y-0">
-              {(Object.entries(CHARACTER_PROFILES[character.slug]) as [keyof CharacterProfile, string][]).map(([key, value]) => {
-                if (!value) return null;
-                return (
-                  <div key={key} className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5 last:border-0">
-                    <span className="text-gray-400 text-xs flex-shrink-0">{PROFILE_LABELS[key]}</span>
+        {character && (() => {
+          // ハードコードプロフィール（テスト用IPキャラ）
+          const hardcoded = CHARACTER_PROFILES[character.slug];
+          // DB駆動プロフィール（全キャラ対応）
+          const dbProfile: Record<string, string> = {};
+          if (character.birthday) dbProfile['誕生日'] = character.birthday;
+          if (character.franchise) dbProfile['作品'] = character.franchise;
+          if (character.catchphrases?.length) dbProfile['口癖'] = character.catchphrases.slice(0, 2).join(' / ');
+          if (character.personalityTraits?.length) {
+            const traits = Array.isArray(character.personalityTraits) ? character.personalityTraits : [];
+            if (traits.length) dbProfile['性格'] = traits.slice(0, 3).join('、');
+          }
+
+          const profileEntries = hardcoded
+            ? (Object.entries(hardcoded) as [keyof CharacterProfile, string][])
+                .filter(([, v]) => !!v)
+                .map(([key, value]) => ({ label: PROFILE_LABELS[key], value }))
+            : Object.entries(dbProfile).map(([label, value]) => ({ label, value }));
+
+          if (profileEntries.length === 0) return null;
+
+          return (
+            <div className="bg-gray-900/80 rounded-2xl p-5 border border-white/10 shadow-lg">
+              <p className="text-purple-400 text-xs font-semibold uppercase tracking-widest mb-4">
+                プロフィール
+              </p>
+              <div className="space-y-0">
+                {profileEntries.map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5 last:border-0">
+                    <span className="text-gray-400 text-xs flex-shrink-0">{label}</span>
                     <span className="text-white text-sm font-medium text-right">{value}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════ 紹介文 ══════════════ */}
         {character?.description && (

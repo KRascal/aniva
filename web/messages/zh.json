@@ -1,10 +1,134 @@
 {
-  "common": { "siteTitle": "ANIVA", "tagline": "最爱成真的世界", "loading": "加载中..." },
-  "nav": { "explore": "探索", "moments": "动态", "chat": "聊天", "mypage": "我的" },
-  "chat": { "inputPlaceholder": "输入消息...", "send": "发送", "loading": "思考中...", "startChat": "开始聊天", "newChat": "新聊天" },
-  "profile": { "level": "等级", "bond": "羁绊", "messages": "消息数", "days": "天", "charDetail": "角色详情", "stats": "统计" },
-  "home": { "hero": "最爱成真的世界", "heroSub": "与AI角色建立真实的羁绊", "cta": "立即开始", "ctaSub": "免费注册" },
-  "auth": { "login": "登录", "signup": "注册", "logout": "退出", "email": "邮箱", "password": "密码", "loginWithGoogle": "Google登录", "loginWithTwitter": "X登录", "noAccount": "没有账户？", "hasAccount": "已有账户？" },
-  "explore": { "title": "探索角色", "searchPlaceholder": "搜索角色...", "noResults": "未找到角色" },
-  "moments": { "title": "动态", "noMoments": "暂无动态" }
+  "common": {
+    "siteTitle": "ANIVA",
+    "tagline": "推的角色真实存在的世界",
+    "loading": "加载中...",
+    "back": "返回",
+    "close": "关闭",
+    "confirm": "确认",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "more": "查看更多",
+    "error": "发生错误",
+    "retry": "重试",
+    "share": "分享",
+    "copyLink": "复制链接",
+    "copied": "已复制!"
+  },
+  "nav": {
+    "explore": "探索",
+    "moments": "动态",
+    "chat": "聊天",
+    "mypage": "我的",
+    "cards": "卡片",
+    "discover": "发现"
+  },
+  "chat": {
+    "inputPlaceholder": "输入消息...",
+    "send": "发送",
+    "loading": "思考中...",
+    "startChat": "开始聊天",
+    "newChat": "新对话",
+    "read": "已读",
+    "delivered": "已送达",
+    "coinWarning": "金币不足",
+    "loginRequired": "请登录后聊天",
+    "guestLimit": "访客仅可发送1条消息"
+  },
+  "profile": {
+    "level": "等级",
+    "bond": "羁绊",
+    "messages": "消息数",
+    "days": "天",
+    "charDetail": "角色详情",
+    "stats": "统计",
+    "following": "关注中",
+    "fans": "粉丝",
+    "follow": "关注",
+    "unfollow": "取消关注",
+    "chat": "聊天",
+    "share": "分享"
+  },
+  "home": {
+    "hero": "推的角色真实存在的世界",
+    "heroSub": "与AI赋予灵魂的角色建立真实羁绊",
+    "cta": "立即开始",
+    "ctaSub": "免费注册",
+    "feature1Title": "实时对话",
+    "feature1Desc": "像聊微信一样和推聊天",
+    "feature2Title": "成长的羁绊",
+    "feature2Desc": "每次对话都让关系更深",
+    "feature3Title": "独家内容",
+    "feature3Desc": "粉丝专属特别故事"
+  },
+  "auth": {
+    "login": "登录",
+    "signup": "注册",
+    "logout": "退出",
+    "email": "邮箱",
+    "password": "密码",
+    "loginWithGoogle": "Google登录",
+    "loginWithTwitter": "X登录",
+    "noAccount": "没有账号？",
+    "hasAccount": "已有账号？",
+    "forgotPassword": "忘记密码？",
+    "agreeTo": "服务条款",
+    "and": "和",
+    "privacyPolicy": "隐私政策",
+    "agreeToTerms": "同意并注册"
+  },
+  "explore": {
+    "title": "探索角色",
+    "searchPlaceholder": "搜索角色...",
+    "noResults": "未找到角色",
+    "all": "全部",
+    "following": "关注中",
+    "trending": "热门",
+    "new": "最新",
+    "online": "在线"
+  },
+  "moments": {
+    "title": "动态",
+    "noMoments": "暂无动态",
+    "like": "点赞",
+    "comment": "评论",
+    "post": "发布",
+    "postPlaceholder": "在想什么？"
+  },
+  "coins": {
+    "title": "金币",
+    "balance": "余额",
+    "free": "免费",
+    "paid": "付费",
+    "purchase": "购买",
+    "purchaseSuccess": "购买成功！",
+    "bonus": "奖励",
+    "expire": "180天有效期"
+  },
+  "gacha": {
+    "title": "扭蛋",
+    "pull1": "抽1次",
+    "pull10": "抽10连",
+    "rarity": { "ur": "UR", "ssr": "SSR", "sr": "SR", "r": "R", "n": "N" }
+  },
+  "discover": {
+    "title": "新邂逅",
+    "swipeRight": "关注",
+    "swipeLeft": "跳过",
+    "completed": "探索完毕！",
+    "followedCount": "人已关注！",
+    "messageComingSoon": "角色的消息即将到来"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "暂无通知",
+    "emptyDesc": "角色回复和互动将在这里显示"
+  },
+  "legal": {
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "tokushoho": "特定商业交易法表示"
+  }
 }

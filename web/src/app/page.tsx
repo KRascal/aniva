@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ParticleField from '@/components/onboarding/ParticleField';
 import CharacterSearchInput from '@/components/onboarding/CharacterSearchInput';
 import { GuestChatDemo } from '@/components/lp/GuestChatDemo';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 interface CharacterItem {
   id: string;
@@ -199,6 +200,8 @@ export default function TheDoor() {
   const [characters, setCharacters] = useState<CharacterItem[]>([]);
   const router = useRouter();
 
+  useScrollReveal();
+
   useEffect(() => {
     const timer = setTimeout(() => setPhase('main'), 800);
     return () => clearTimeout(timer);
@@ -307,6 +310,7 @@ export default function TheDoor() {
 
       {/* 特徴セクション */}
       <section
+        data-reveal="slide-up"
         className="relative z-10 px-5 py-10 mt-4"
         style={{
           opacity: phase === 'main' ? 1 : 0,
@@ -358,7 +362,7 @@ export default function TheDoor() {
         </div>
 
         {/* ゲストチャットデモ — 今すぐ推しと話せる */}
-        <div className="max-w-sm mx-auto mt-10 mb-2">
+        <div data-reveal="slide-up" data-reveal-delay="200" className="max-w-sm mx-auto mt-10 mb-2">
           <div className="text-center mb-4">
             <span className="inline-block px-3 py-1 rounded-full text-[10px] font-semibold bg-pink-900/50 text-pink-300 border border-pink-700/40 tracking-widest uppercase">
               Try it now

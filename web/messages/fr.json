@@ -1,10 +1,134 @@
 {
-  "common": { "siteTitle": "ANIVA", "tagline": "Là où vos favoris prennent vie", "loading": "Chargement..." },
-  "nav": { "explore": "Explorer", "moments": "Timeline", "chat": "Chat", "mypage": "Mon Profil" },
-  "chat": { "inputPlaceholder": "Écrire un message...", "send": "Envoyer", "loading": "Réflexion...", "startChat": "Commencer le chat", "newChat": "Nouveau chat" },
-  "profile": { "level": "Niveau", "bond": "Lien", "messages": "Messages", "days": "Jours", "charDetail": "Détails du personnage", "stats": "Statistiques" },
-  "home": { "hero": "Là où vos favoris prennent vie", "heroSub": "Créez de vrais liens avec des personnages IA", "cta": "Commencer gratuitement", "ctaSub": "Inscription gratuite" },
-  "auth": { "login": "Se connecter", "signup": "S'inscrire", "logout": "Se déconnecter", "email": "E-mail", "password": "Mot de passe", "loginWithGoogle": "Connexion avec Google", "loginWithTwitter": "Connexion avec X", "noAccount": "Pas de compte ?", "hasAccount": "Déjà un compte ?" },
-  "explore": { "title": "Explorer les personnages", "searchPlaceholder": "Rechercher des personnages...", "noResults": "Aucun personnage trouvé" },
-  "moments": { "title": "Timeline", "noMoments": "Pas encore de moments" }
+  "common": {
+    "siteTitle": "ANIVA",
+    "tagline": "Un monde où vos favoris prennent vie",
+    "loading": "Chargement...",
+    "back": "Retour",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "more": "Voir plus",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "share": "Partager",
+    "copyLink": "Copier le lien",
+    "copied": "Copié !"
+  },
+  "nav": {
+    "explore": "Explorer",
+    "moments": "Fil",
+    "chat": "Chat",
+    "mypage": "Mon profil",
+    "cards": "Cartes",
+    "discover": "Découvrir"
+  },
+  "chat": {
+    "inputPlaceholder": "Écrivez un message...",
+    "send": "Envoyer",
+    "loading": "Réflexion...",
+    "startChat": "Démarrer le chat",
+    "newChat": "Nouveau chat",
+    "read": "Lu",
+    "delivered": "Envoyé",
+    "coinWarning": "Vous manquez de pièces",
+    "loginRequired": "Connectez-vous pour chatter",
+    "guestLimit": "Les invités ne peuvent envoyer qu'un message"
+  },
+  "profile": {
+    "level": "Niveau",
+    "bond": "Lien",
+    "messages": "Messages",
+    "days": "Jours",
+    "charDetail": "Détails du personnage",
+    "stats": "Statistiques",
+    "following": "Abonnements",
+    "fans": "Fans",
+    "follow": "Suivre",
+    "unfollow": "Ne plus suivre",
+    "chat": "Chat",
+    "share": "Partager"
+  },
+  "home": {
+    "hero": "Un monde où vos favoris prennent vie",
+    "heroSub": "Créez de vrais liens avec des personnages animés par l'IA",
+    "cta": "Commencer",
+    "ctaSub": "Inscription gratuite",
+    "feature1Title": "Chat en temps réel",
+    "feature1Desc": "Chattez avec vos favoris comme avec un ami",
+    "feature2Title": "Liens grandissants",
+    "feature2Desc": "Chaque conversation approfondit la relation",
+    "feature3Title": "Contenu exclusif",
+    "feature3Desc": "Histoires spéciales réservées aux fans"
+  },
+  "auth": {
+    "login": "Connexion",
+    "signup": "Inscription",
+    "logout": "Déconnexion",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "loginWithGoogle": "Se connecter avec Google",
+    "loginWithTwitter": "Se connecter avec X",
+    "noAccount": "Pas de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "forgotPassword": "Mot de passe oublié ?",
+    "agreeTo": "Conditions d'utilisation",
+    "and": "et",
+    "privacyPolicy": "Politique de confidentialité",
+    "agreeToTerms": "J'accepte les"
+  },
+  "explore": {
+    "title": "Explorer les personnages",
+    "searchPlaceholder": "Rechercher...",
+    "noResults": "Aucun personnage trouvé",
+    "all": "Tous",
+    "following": "Abonnements",
+    "trending": "Tendance",
+    "new": "Nouveau",
+    "online": "En ligne"
+  },
+  "moments": {
+    "title": "Fil d'actualité",
+    "noMoments": "Pas encore de moments",
+    "like": "J'aime",
+    "comment": "Commenter",
+    "post": "Publier",
+    "postPlaceholder": "À quoi pensez-vous ?"
+  },
+  "coins": {
+    "title": "Pièces",
+    "balance": "Solde",
+    "free": "Gratuit",
+    "paid": "Payé",
+    "purchase": "Acheter",
+    "purchaseSuccess": "Achat réussi !",
+    "bonus": "Bonus",
+    "expire": "Valable 180 jours"
+  },
+  "gacha": {
+    "title": "Gacha",
+    "pull1": "1 tirage",
+    "pull10": "10 tirages",
+    "rarity": { "ur": "UR", "ssr": "SSR", "sr": "SR", "r": "R", "n": "N" }
+  },
+  "discover": {
+    "title": "Nouvelles rencontres",
+    "swipeRight": "Suivre",
+    "swipeLeft": "Passer",
+    "completed": "Exploration terminée !",
+    "followedCount": " suivi(s) !",
+    "messageComingSoon": "Des messages de vos nouveaux abonnements arrivent bientôt"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Pas de notifications",
+    "emptyDesc": "Les réponses et interactions apparaîtront ici"
+  },
+  "legal": {
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "tokushoho": "Mentions légales commerciales"
+  }
 }
