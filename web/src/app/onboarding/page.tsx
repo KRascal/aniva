@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useOnboarding, type CharacterData, type ChatMessage, type OnboardingPhase } from '@/hooks/useOnboarding';
 import PhaseWelcome from '@/components/onboarding/PhaseWelcome';
 import CharacterSelect from '@/components/onboarding/CharacterSelect';
+import TinderSwipe from '@/components/onboarding/TinderSwipe';
 import PhaseNickname from '@/components/onboarding/PhaseNickname';
 import PhaseApproval from '@/components/onboarding/PhaseApproval';
 import PhaseFirstChat from '@/components/onboarding/PhaseFirstChat';
@@ -306,6 +307,7 @@ function OnboardingInner() {
   // ── キャラクターリビール演出 ────────────────
   const [showCharacterReveal, setShowCharacterReveal] = useState(false);
   const [revealShown, setRevealShown] = useState(false);
+  const [swipeFollowedIds, setSwipeFollowedIds] = useState<string[]>([]);
 
   const {
     state,
@@ -562,6 +564,34 @@ function OnboardingInner() {
     }
   };
 
+  // Tinderスワイプ完了: フォローしたキャラIDを保存して次のフェーズへ
+  const handleTinderSwipeComplete = async (followedIds: string[]) => {
+    setSwipeFollowedIds(followedIds);
+    // 最初のフォローしたキャラを「選択キャラ」にする（キャラリビール演出用）
+    if (followedIds.length > 0) {
+      try {
+        const res = await fetch(`/api/characters/id/${followedIds[0]}`);
+        if (res.ok) {
+          const data = await res.json();
+          const c = data.character ?? data;
+          const char: CharacterData = {
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            avatarUrl: c.avatarUrl ?? null,
+            franchise: c.franchise ?? '',
+          };
+          await selectCharacter(char);
+        }
+      } catch {
+        // fallback: 何もなくても次へ進む
+        advance();
+      }
+    } else {
+      advance();
+    }
+  };
+
   const handleNicknameComplete = async (nickname: string) => {
     setIsSavingNickname(true);
     try {
@@ -572,9 +602,25 @@ function OnboardingInner() {
   };
 
   const handleApprovalComplete = async () => {
-    // hook（プッシュ通知許可）フェーズ削除: approval完了後に直接オンボーディング完了
-    // プッシュ通知許可はチャット画面で別途表示する（Keisuke指示 2026-03-05）
     track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
+
+    // ── フォロー + キャラからメッセージ送信 ──
+    // Tinderスワイプで選んだキャラ + 最初に会話したキャラをフォロー
+    const allFollowIds = [...new Set([
+      ...swipeFollowedIds,
+      ...(state.selectedCharacter?.id ? [state.selectedCharacter.id] : []),
+      ...(deeplinkCharacter?.id ? [deeplinkCharacter.id] : []),
+    ])];
+
+    // バックグラウンドでフォロー + メッセージ送信（完了を待たない）
+    if (allFollowIds.length > 0) {
+      fetch('/api/onboarding/follow-and-greet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterIds: allFollowIds }),
+      }).catch(() => {});
+    }
+
     const redirectTo = await completeOnboarding(null);
     await update();
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -655,9 +701,9 @@ function OnboardingInner() {
         )}
 
         {phase === 'character_select' && (
-          <CharacterSelect
+          <TinderSwipe
             key="character_select"
-            onSelect={handleCharacterSelectComplete}
+            onComplete={handleTinderSwipeComplete}
             isLoading={isSelectingCharacter}
           />
         )}
