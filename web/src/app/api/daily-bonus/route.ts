@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 const BASE_COINS = 10;
 const STREAK_MULTIPLIERS: Record<number, number> = {
@@ -55,6 +56,10 @@ export async function POST() {
     }
 
     const userId = (session.user as { id: string }).id;
+
+    const rl = await apiLimiter.check(userId)
+    if (!rl.success) return rateLimitResponse(rl)
+
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 

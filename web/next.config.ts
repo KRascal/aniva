@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -25,4 +26,13 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default withNextIntl(nextConfig);
+export default withSentryConfig(withNextIntl(nextConfig), {
+  // Sentry設定
+  org: process.env.SENTRY_ORG || '',
+  project: process.env.SENTRY_PROJECT || '',
+  silent: true, // ビルド時のログ抑制
+  disableLogger: true,
+  // Source maps（本番のみ）
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+});

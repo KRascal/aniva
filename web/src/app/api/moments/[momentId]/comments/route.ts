@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 interface RouteParams {
   params: Promise<{ momentId: string }>;
@@ -69,6 +70,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = await apiLimiter.check(session.user.id)
+  if (!rl.success) return rateLimitResponse(rl)
+
   const body = await req.json().catch(() => ({}));
   const content = (body.content ?? '').trim();
   if (!content || content.length > 500) {

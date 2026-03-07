@@ -13,7 +13,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { characterEngine } from '@/lib/character-engine';
 import { auth } from '@/lib/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { chatLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
@@ -43,14 +43,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate Limit
-    const rl = checkRateLimit(`chat:${userId}`, 30, 60_000);
-    if (!rl.allowed) {
-      return new Response(
-        JSON.stringify({ error: 'Too many requests' }),
-        { status: 429 },
-      );
-    }
+    // Rate Limit: chatLimiter (20req/min per user)
+    const rl = await chatLimiter.check(userId)
+    if (!rl.success) return rateLimitResponse(rl)
 
     const body = await req.json();
     const { characterId: rawCharacterId, message, locale = 'ja' } = body;

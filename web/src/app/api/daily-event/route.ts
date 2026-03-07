@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { rollDailyEvent } from '@/lib/variable-reward-system';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
 import { prisma } from '@/lib/prisma';
@@ -55,6 +56,9 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const rl = await apiLimiter.check(userId)
+    if (!rl.success) return rateLimitResponse(rl)
 
     // キャラクターID取得（クエリパラメータ or 最後に会話したキャラ）
     const { searchParams } = new URL(request.url);

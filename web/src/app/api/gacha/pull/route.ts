@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { gachaLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { pullGacha, getFreeGachaAvailable } from '@/lib/gacha-system';
 
@@ -17,6 +18,9 @@ export async function POST(req: Request) {
   const session = await auth();
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await gachaLimiter.check(userId)
+  if (!rl.success) return rateLimitResponse(rl)
 
   const body = await req.json();
   const { bannerId, count, free } = body as { bannerId: string; count: 1 | 10; free?: boolean };

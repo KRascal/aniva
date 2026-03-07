@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { paymentLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || 'anon'
+  const rl = await paymentLimiter.check(ip)
+  if (!rl.success) return rateLimitResponse(rl)
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature')!;
   
