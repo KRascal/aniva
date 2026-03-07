@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Rate Limit
-    const rl = checkRateLimit(`group-chat:${userId}`, 10, 60_000);
+    const rl = await checkRateLimit(`group-chat:${userId}`, 10, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many requests', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },

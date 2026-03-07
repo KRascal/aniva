@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limiting
-    const rl = checkRateLimit(`guest_chat:${guestSessionId}`, 10, 300_000);
+    const rl = await checkRateLimit(`guest_chat:${guestSessionId}`, 10, 300_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
     }

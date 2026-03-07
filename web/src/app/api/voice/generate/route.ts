@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate Limit: 5req/min per user
-    const rl = checkRateLimit(`voice:${userId}`, 5, 60_000);
+    const rl = await checkRateLimit(`voice:${userId}`, 5, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many requests', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
