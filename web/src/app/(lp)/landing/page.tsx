@@ -1115,7 +1115,7 @@ export default function LandingPage() {
             <span>·</span>
             <Link href="/about" className="hover:text-purple-400 transition-colors">サービス概要</Link>
             <span>·</span>
-            <a href="mailto:support@aniva-project.com" className="hover:text-purple-400 transition-colors">お問い合わせ</a>
+            <a href="mailto:info@k-rascal.win" className="hover:text-purple-400 transition-colors">お問い合わせ</a>
           </div>
 
           <p className="text-gray-800 text-xs text-center">

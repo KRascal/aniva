@@ -295,7 +295,7 @@ export default function PrivacyPage() {
               </div>
               <div className="flex gap-2">
                 <dt className="text-gray-500 w-28 shrink-0">お問い合わせ</dt>
-                <dd>support@aniva-project.com<br />個人情報の開示・訂正・削除・利用停止の請求も同様にご連絡ください。</dd>
+                <dd>info@k-rascal.win<br />個人情報の開示・訂正・削除・利用停止の請求も同様にご連絡ください。</dd>
               </div>
             </dl>
           </section>

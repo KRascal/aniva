@@ -331,7 +331,7 @@ export default function TermsPage() {
               </div>
               <div className="flex gap-2">
                 <dt className="text-gray-500 w-20 shrink-0">お問い合わせ</dt>
-                <dd>support@aniva-project.com</dd>
+                <dd>info@k-rascal.win</dd>
               </div>
             </dl>
           </section>

@@ -50,7 +50,7 @@ export default function TokushohoPage() {
           </Section>
 
           <Section title="メールアドレス">
-            <p>support@aniva-project.com</p>
+            <p>info@k-rascal.win</p>
           </Section>
 
           <Section title="販売URL">
