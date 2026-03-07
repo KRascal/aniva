@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { GiftPanel } from './GiftPanel';
 
 interface CallModalProps {
@@ -352,10 +353,9 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
             }`}
             style={{ borderRadius: '50%', margin: '-8px' }}
           />
-          <div className="w-36 h-36 rounded-full overflow-hidden shadow-2xl border-2 border-white/10">
+          <div className="w-36 h-36 rounded-full overflow-hidden shadow-2xl border-2 border-white/10 relative">
             {characterAvatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={characterAvatar} alt={characterName} className="w-full h-full object-cover" />
+              <Image src={characterAvatar} alt={characterName} fill className="object-cover" unoptimized />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-5xl">
                 🏴‍☠️

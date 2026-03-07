@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { vibrateEmotion } from '@/lib/sound-effects';
 
@@ -292,12 +293,16 @@ export function ChatMessageList({
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
           onClick={() => setFullscreenImage(null)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={fullscreenImage}
             alt="画像"
+            width={0}
+            height={0}
+            sizes="100vw"
             className="max-w-full max-h-full object-contain rounded-lg"
+            style={{ width: 'auto', height: 'auto' }}
             onClick={(e) => e.stopPropagation()}
+            unoptimized
           />
           <button
             className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors"
@@ -472,10 +477,9 @@ export function ChatMessageList({
               >
                 {/* キャラクターアバター */}
                 {!isUser && (
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-opacity ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-opacity relative ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
                     {character?.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+                      <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
                         🏴‍☠️
@@ -562,12 +566,14 @@ export function ChatMessageList({
                     >
                       {/* スタンプ表示 */}
                       {msg.metadata?.stickerUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
+                        <Image
                           src={msg.metadata.stickerUrl}
                           alt="スタンプ"
+                          width={120}
+                          height={120}
                           className="rounded-xl"
-                          style={{ width: 120, height: 120, objectFit: 'contain' }}
+                          style={{ objectFit: 'contain' }}
+                          unoptimized
                         />
                       ) : /* 画像メッセージ表示 */
                       msg.metadata?.imageUrl ? (
@@ -576,12 +582,15 @@ export function ChatMessageList({
                           onClick={() => setFullscreenImage(msg.metadata!.imageUrl!)}
                           aria-label="画像を拡大表示"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={msg.metadata.imageUrl}
                             alt="送信した画像"
+                            width={0}
+                            height={0}
+                            sizes="250px"
                             className="rounded-xl object-cover"
-                            style={{ maxWidth: 250, maxHeight: 300 }}
+                            style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
+                            unoptimized
                           />
                         </button>
                       ) : (
@@ -654,10 +663,9 @@ export function ChatMessageList({
         {/* タイピングインジケーター */}
         {isSending && (
           <div className="flex justify-start items-end gap-2 msg-animate">
-            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1">
+            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 relative">
               {character?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={character.avatarUrl} alt={character?.name ?? ''} className="w-full h-full object-cover" />
+                <Image src={character.avatarUrl} alt={character?.name ?? ''} fill className="object-cover" unoptimized />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
                   🏴‍☠️

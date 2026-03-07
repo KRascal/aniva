@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Image from 'next/image';
 
 interface RealtimeCallModalProps {
   characterId: string;
@@ -290,7 +291,7 @@ export function RealtimeCallModal({
         {/* アバター */}
         <div className={`relative ${isSpeaking ? 'animate-pulse' : ''}`}>
           <div
-            className="w-28 h-28 rounded-full overflow-hidden border-2"
+            className="w-28 h-28 rounded-full overflow-hidden border-2 relative"
             style={{
               borderColor: callState === 'connected'
                 ? isSpeaking ? '#a855f7' : '#22c55e'
@@ -300,8 +301,7 @@ export function RealtimeCallModal({
             }}
           >
             {characterAvatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={characterAvatar} alt={characterName} className="w-full h-full object-cover" />
+              <Image src={characterAvatar} alt={characterName} fill className="object-cover" unoptimized />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-3xl">
                 🎭

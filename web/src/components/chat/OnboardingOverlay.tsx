@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface OnboardingOverlayProps {
   character: { name: string; franchise: string; avatarUrl?: string | null };
@@ -176,10 +177,9 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
             <div className="flex flex-col items-center gap-6 px-6 py-10 onboarding-enter">
               {/* アバター or 絵文字 */}
               <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.5)] relative">
                   {character.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+                    <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-5xl">
                       🏴☠️
@@ -295,8 +295,7 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
               <div className="w-full bg-gradient-to-r from-purple-900/40 to-pink-900/30 rounded-2xl border border-purple-500/20 p-4 flex gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/40">
                   {character.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+                    <Image src={character.avatarUrl} alt={character.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">🏴☠️</div>
                   )}

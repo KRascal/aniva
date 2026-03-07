@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface WelcomeBackModalProps {
   characterName: string;
@@ -313,7 +314,7 @@ export function WelcomeBackModal({ characterName, characterAvatar, characterSlug
                 }}
               >
                 {characterAvatar ? (
-                  <img src={characterAvatar} alt={characterName} className="w-full h-full object-cover" />
+                  <Image src={characterAvatar} alt={characterName} fill className="object-cover" unoptimized />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-3xl">💜</div>
                 )}

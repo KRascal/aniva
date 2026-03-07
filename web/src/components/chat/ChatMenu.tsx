@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { MemoryTimeline } from '@/components/chat/MemoryTimeline';
 
 interface Character {
@@ -224,10 +225,9 @@ export function ChatMenu({
         {/* ヘッダー */}
         <div className="flex items-center gap-3 px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-4 border-b border-white/8">
           {/* アバター */}
-          <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-500/30 flex-shrink-0">
+          <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-500/30 flex-shrink-0 relative">
             {character?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={character.avatarUrl} alt={character?.name} className="w-full h-full object-cover" />
+              <Image src={character.avatarUrl} alt={character?.name ?? ''} fill className="object-cover" unoptimized />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg">🏴‍☠️</div>
             )}
