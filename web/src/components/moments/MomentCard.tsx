@@ -20,6 +20,8 @@ export interface MomentComment {
   user?: { id: string; name: string | null; email: string; displayName?: string | null; nickname?: string | null; image?: string | null } | null;
   parentCommentId?: string | null;
   replies?: MomentComment[];
+  likeCount?: number;
+  userHasLiked?: boolean;
 }
 
 export interface Moment {
@@ -324,6 +326,24 @@ function CommentRow({
   onDelete: (commentId: string) => void;
   parentDisplayName?: string;
 }) {
+  const [commentLiked, setCommentLiked] = useState(comment.userHasLiked ?? false);
+  const [commentLikeCount, setCommentLikeCount] = useState(comment.likeCount ?? 0);
+
+  const handleCommentLike = async () => {
+    if (!currentUserId) return;
+    // optimistic update
+    setCommentLiked((prev) => !prev);
+    setCommentLikeCount((prev) => commentLiked ? prev - 1 : prev + 1);
+    try {
+      const res = await fetch(`/api/moments/${momentId}/comments/${comment.id}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setCommentLiked(data.liked);
+        setCommentLikeCount(data.likeCount);
+      }
+    } catch { /* revert on error handled by optimistic */ }
+  };
+
   const charName = comment.character?.name;
   const displayLabel =
     comment.user?.displayName ||
@@ -371,10 +391,14 @@ function CommentRow({
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </button>
-          <button className="flex items-center gap-1 text-white/30 hover:text-red-400 transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <button
+            className={`flex items-center gap-1 transition-colors ${commentLiked ? 'text-red-400' : 'text-white/30 hover:text-red-400'}`}
+            onClick={handleCommentLike}
+          >
+            <svg className="w-3.5 h-3.5" fill={commentLiked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
+            {commentLikeCount > 0 && <span className="text-[11px]">{commentLikeCount}</span>}
           </button>
         </div>
         {replyingToId === comment.id && (
@@ -617,7 +641,13 @@ export function MomentCard({
       const res = await fetch(`/api/moments/${moment.id}/comments`);
       if (res.ok) {
         const data = await res.json();
-        setComments(data.comments ?? []);
+        // API returns likedByMe, map to userHasLiked for frontend
+        const mapComment = (c: MomentComment & { likedByMe?: boolean }): MomentComment => ({
+          ...c,
+          userHasLiked: c.likedByMe ?? c.userHasLiked ?? false,
+          replies: (c.replies ?? []).map((r) => mapComment(r as MomentComment & { likedByMe?: boolean })),
+        });
+        setComments((data.comments ?? []).map(mapComment));
       }
     } catch { /* ignore */ } finally {
       setLoadingComments(false);

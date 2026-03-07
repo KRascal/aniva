@@ -31,6 +31,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           include: {
             user: { select: { id: true, name: true, email: true, displayName: true, nickname: true, image: true } },
             character: { select: { name: true, slug: true, avatarUrl: true } },
+            likes: userId
+              ? { where: { userId }, select: { id: true } }
+              : false,
             _count: { select: { likes: true } },
           },
         },
@@ -48,7 +51,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         ...r,
         parentCommentId: r.parentCommentId ?? null,
         likeCount: r._count.likes,
-        likedByMe: false,
+        likedByMe: userId ? ((r as unknown as { likes: { id: string }[] }).likes ?? []).length > 0 : false,
+        likes: undefined,
         _count: undefined,
       })),
     }));
