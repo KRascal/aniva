@@ -1820,7 +1820,11 @@ export default function ExplorePage() {
         (c.nameEn?.toLowerCase().includes(searchQuery.toLowerCase())) ||
         c.franchise.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesCategory = selectedCategory === 'すべて' || c.franchise === selectedCategory;
+      // 「アニメ」はスーパーカテゴリ（franchiseが'アニメ'でないキャラも含む = 全アニメキャラ）
+      // 'アニメ' franchise自体ではなく、DBの既存franchise全てをアニメとして扱う
+      const matchesCategory = selectedCategory === 'すべて'
+        || c.franchise === selectedCategory
+        || selectedCategory === 'アニメ'; // アニメカテゴリ = 全キャラ表示（= すべてと同じ動作）
 
       return matchesSearch && matchesCategory;
     })

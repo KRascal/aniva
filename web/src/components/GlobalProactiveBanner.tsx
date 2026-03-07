@@ -36,23 +36,11 @@ export function GlobalProactiveBanner() {
         const res = await fetch('/api/proactive-messages');
         if (!res.ok) return;
         const data = await res.json();
-        const msgs: Array<{
-          id: string;
-          content: string;
-          character: { id: string; name: string; avatarUrl: string | null; slug: string };
-        }> = data.messages ?? [];
-        if (msgs.length > 0 && !banner) {
-          const m = msgs[0];
-          setBanner({
-            id: m.id,
-            characterId: m.character.id,
-            characterName: m.character.name,
-            characterAvatarUrl: m.character.avatarUrl,
-            characterSlug: m.character.slug,
-            content: m.content,
-            expiresAt: '',
-            isRead: false,
-          });
+        const msgs: ProactiveMsg[] = data.messages ?? [];
+        // 未読のみバナー表示
+        const unread = msgs.filter((m) => !m.isRead);
+        if (unread.length > 0 && !banner) {
+          setBanner(unread[0]);
           setVisible(true);
           // 8秒後に自動消去
           setTimeout(() => setVisible(false), 8000);

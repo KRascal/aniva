@@ -16,10 +16,11 @@ export async function GET() {
   const now = new Date();
 
   try {
-    const messages = await prisma.characterProactiveMessage.findMany({
+    const rawMessages = await prisma.characterProactiveMessage.findMany({
       where: {
         userId: session.user.id,
         expiresAt: { gt: now },
+        isExpired: false,
       },
       include: {
         character: {
@@ -36,9 +37,23 @@ export async function GET() {
       take: 20,
     });
 
-    return NextResponse.json({ messages });
+    const messages = rawMessages.map((m) => ({
+      id: m.id,
+      characterId: m.characterId,
+      characterName: m.character.name,
+      characterAvatarUrl: m.character.avatarUrl,
+      characterSlug: m.character.slug,
+      content: m.content,
+      expiresAt: m.expiresAt.toISOString(),
+      remainingMs: m.expiresAt.getTime() - now.getTime(),
+      isRead: m.isRead,
+      createdAt: m.createdAt.toISOString(),
+    }));
+
+    const unreadCount = messages.filter((m) => !m.isRead).length;
+
+    return NextResponse.json({ messages, unreadCount });
   } catch {
-    // DB migration pending
-    return NextResponse.json({ messages: [] });
+    return NextResponse.json({ messages: [], unreadCount: 0 });
   }
 }
