@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
+import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';
 import { playSound } from '@/lib/sound-effects';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -277,6 +278,7 @@ export default function GachaPage() {
   const [userCards, setUserCards] = useState<UserCard[]>([]);
   const [collectionLoaded, setCollectionLoaded] = useState(false);
   const [allCardCount, setAllCardCount] = useState(0);
+  const [showPackOpening, setShowPackOpening] = useState(false);
 
   // Load banners
   useEffect(() => {
@@ -359,8 +361,6 @@ export default function GachaPage() {
 
       const results: PullResult[] = data.results ?? [];
       setPullResults(results);
-      // SE: ガチャプル演出音
-      playSound('gacha-pull');
       setFlippedCards(new Array(results.length).fill(false));
       const bestRarity = results.reduce((best, r) => {
         const order = ['N', 'R', 'SR', 'SSR', 'UR'];
@@ -372,23 +372,8 @@ export default function GachaPage() {
       if (data.freeGachaAvailable === false) setFreeAvailable(false);
       if (data.pityProgress) setPityProgress(data.pityProgress);
 
-      // Check high rarity for particles
-      const hasHighRarity = results.some(r => r.rarity === 'SR' || r.rarity === 'SSR' || r.rarity === 'UR');
-      if (hasHighRarity) {
-        setTimeout(() => setShowParticles(true), 300);
-        setTimeout(() => setShowParticles(false), 3500);
-      }
-
-      // Auto flip all after delay
-      results.forEach((_, i) => {
-        setTimeout(() => {
-          setFlippedCards(prev => {
-            const next = [...prev];
-            next[i] = true;
-            return next;
-          });
-        }, 300 + i * 200);
-      });
+      // パック開封演出を起動
+      setShowPackOpening(true);
 
       // Reset collection loaded to refresh
       setCollectionLoaded(false);
@@ -417,6 +402,24 @@ export default function GachaPage() {
     setFlippedCards(prev => prev.map(() => true));
   };
 
+  // パック開封演出完了 → カード結果表示（全フリップ）
+  const handlePackOpeningComplete = useCallback(() => {
+    setShowPackOpening(false);
+    // 全カードをフリップ済みにして結果表示
+    setFlippedCards(prev => prev.map(() => true));
+    // パーティクル表示
+    const hasHighRarity = pullResults.some(r => r.rarity === 'SR' || r.rarity === 'SSR' || r.rarity === 'UR');
+    if (hasHighRarity) {
+      setShowParticles(true);
+      setTimeout(() => setShowParticles(false), 3500);
+    }
+  }, [pullResults]);
+
+  const handlePackOpeningSkip = useCallback(() => {
+    setShowPackOpening(false);
+    setFlippedCards(prev => prev.map(() => true));
+  }, []);
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -429,6 +432,15 @@ export default function GachaPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 pb-24">
+      {/* パック開封演出 */}
+      {showPackOpening && pullResults.length > 0 && (
+        <GachaPackOpening
+          cards={pullResults}
+          onComplete={handlePackOpeningComplete}
+          onSkip={handlePackOpeningSkip}
+        />
+      )}
+
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-purple-600/15 blur-3xl" />
