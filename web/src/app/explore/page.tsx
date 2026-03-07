@@ -1523,7 +1523,7 @@ function MissionProgressSection({
             📋 今日のミッション
           </h3>
           <button
-            onClick={() => router.push('/mypage#daily-missions')}
+            onClick={() => { router.push('/mypage'); setTimeout(() => { const el = document.getElementById('daily-missions'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 500); }}
             className="text-xs font-semibold"
             style={{ color: 'rgba(167,139,250,0.85)' }}
           >
@@ -2403,7 +2403,8 @@ export default function ExplorePage() {
                         : '1px solid rgba(168,85,247,0.2)',
                     }}
                     onClick={() => {
-                      window.location.href = '/mypage#daily-missions';
+                      router.push('/mypage');
+                      setTimeout(() => { const el = document.getElementById('daily-missions'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 500);
                     }}
                   >
                     <span className="text-2xl flex-shrink-0">{incompleteMissions <= 2 ? '⚡' : '📋'}</span>

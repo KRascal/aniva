@@ -593,10 +593,17 @@ export default function ChatCharacterPage() {
 
   useEffect(() => {
     if (!characterId) return;
-    fetch(`/api/characters/id/${characterId}`)
-      .then((res) => res.json())
-      .then((data) => { if (data.character) setCharacter(data.character); })
-      .catch(console.error);
+    let retries = 0;
+    const fetchChar = () => {
+      fetch(`/api/characters/id/${characterId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.character) setCharacter(data.character);
+          else if (retries < 2) { retries++; setTimeout(fetchChar, 1000); }
+        })
+        .catch(() => { if (retries < 2) { retries++; setTimeout(fetchChar, 1000); } });
+    };
+    fetchChar();
   }, [characterId]);
 
   // チャット画面を開いた時刻をlocalStorageに記録（未読バッジのクリア用）
@@ -653,6 +660,24 @@ export default function ChatCharacterPage() {
         const relData = await relRes.json();
         setRelationship(relData);
         prevXpRef.current = relData?.xp ?? 0;
+        // relationship から character 情報を補完（character fetch が遅い/失敗した場合のフォールバック）
+        if (!character && relData?.character) {
+          const rc = relData.character;
+          setCharacter({
+            id: rc.id ?? characterId,
+            name: rc.name ?? '',
+            nameEn: rc.nameEn ?? null,
+            slug: rc.slug ?? '',
+            franchise: rc.franchise ?? '',
+            franchiseEn: rc.franchiseEn ?? null,
+            description: rc.description ?? null,
+            avatarUrl: rc.avatarUrl ?? null,
+            coverUrl: rc.coverUrl ?? null,
+            catchphrases: rc.catchphrases ?? [],
+            personalityTraits: rc.personalityTraits ?? [],
+            hasVoice: !!(rc.voiceModelId && rc.voiceModelId.trim() !== ''),
+          });
+        }
         // 復帰時演出チェック
         if (relData.lastMessageAt) {
           const lastDate = new Date(relData.lastMessageAt);
