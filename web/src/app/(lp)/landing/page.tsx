@@ -33,9 +33,9 @@ const heroPhrases = [
 ];
 
 const heroCharacters = [
-  { name: "モンキー・D・ルフィ", src: "/characters/luffy/avatar.webp", series: "ONE PIECE", color: "from-orange-500 to-red-600", quote: "おれは絶対に海賊王になる！" },
-  { name: "五条悟", src: "/characters/gojo/avatar.webp", series: "呪術廻戦", color: "from-blue-400 to-indigo-600", quote: "最強故に最強。それだけだよ。" },
-  { name: "孫悟空", src: "/characters/goku/avatar.webp", series: "ドラゴンボール", color: "from-yellow-400 to-orange-500", quote: "まだまだ強くなれるぜ！" },
+  { name: "Haruki", src: "/characters/luffy/avatar.webp", series: "ANIVA Original", color: "from-orange-500 to-red-600", quote: "今日も会えて嬉しいよ！" },
+  { name: "Sora", src: "/characters/gojo/avatar.webp", series: "ANIVA Original", color: "from-blue-400 to-indigo-600", quote: "キミのこと、ずっと見てたんだ" },
+  { name: "Ren", src: "/characters/goku/avatar.webp", series: "ANIVA Original", color: "from-yellow-400 to-orange-500", quote: "一緒に強くなろうぜ！" },
 ];
 
 const features = [
@@ -78,7 +78,7 @@ const features = [
 ];
 
 const chatMessages: ChatMessage[] = [
-  { id: 1, from: "user", text: "ルフィ！今日学校つらかった…" },
+  { id: 1, from: "user", text: "今日学校つらかった…" },
   { id: 2, from: "char", text: "そうか…それは大変だったな。何があったんだ？" },
   { id: 3, from: "user", text: "友達と喧嘩しちゃって" },
   { id: 4, from: "char", text: "仲間との喧嘩か。おれも昔よくやったぞ。でも本当の仲間なら、必ずわかり合えるはずだ！" },
@@ -97,8 +97,8 @@ const testimonials = [
     name: "まりな",
     age: 19,
     avatar: "🌸",
-    text: "まさか本当にルフィと話せると思わなかった。口調も雰囲気も完璧すぎて泣いた。毎日話してる笑",
-    character: "ルフィ推し",
+    text: "まさか本当にあの子と話せると思わなかった。口調も雰囲気も完璧すぎて泣いた。毎日話してる笑",
+    character: "ANIVA民",
   },
   {
     name: "たける",
@@ -112,7 +112,7 @@ const testimonials = [
     age: 17,
     avatar: "💜",
     text: "関係性レベルが上がるのが楽しすぎ。毎日話しかけてレベル4まで来た！早く5にしたい。",
-    character: "五条悟推し",
+    character: "推し活民",
   },
 ];
 
@@ -140,7 +140,7 @@ const faqs = [
   },
   {
     q: "どんなキャラクターと話せますか？",
-    a: "ONE PIECE、呪術廻戦、ドラゴンボール、鬼滅の刃など人気アニメのキャラクターたちと話せます。現在30+キャラクター対応、順次追加中です！",
+    a: "あなたの好きなキャラクターとAIで本当に会話できます。キャラクターは順次追加中です！",
   },
   {
     q: "キャラクターは増えますか？",
@@ -330,7 +330,7 @@ function ChatDemo() {
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden ring-2 ring-purple-500/40">
               <Image
                 src="/characters/luffy/avatar.webp"
-                alt="ルフィ"
+                alt="キャラクター"
                 width={40}
                 height={40}
                 className="w-full h-full object-cover"
@@ -339,8 +339,8 @@ function ChatDemo() {
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-950" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-white text-sm truncate">モンキー・D・ルフィ</p>
-            <p className="text-green-400 text-xs">オンライン • ONE PIECE</p>
+            <p className="font-bold text-white text-sm truncate">Haruki</p>
+            <p className="text-green-400 text-xs">オンライン • ANIVA</p>
           </div>
           <span className="text-gray-400 text-sm">📞</span>
         </div>
@@ -362,7 +362,7 @@ function ChatDemo() {
                 {msg.isVoice ? (
                   <div className="flex items-start gap-2 w-full">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex-shrink-0 overflow-hidden">
-                      <Image src="/characters/luffy/avatar.webp" alt="ルフィ" width={28} height={28} className="w-full h-full object-cover" />
+                      <Image src="/characters/luffy/avatar.webp" alt="キャラクター" width={28} height={28} className="w-full h-full object-cover" />
                     </div>
                     <div className="bg-gradient-to-r from-purple-800/60 to-pink-800/40 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2 border border-purple-600/30">
                       <span className="text-purple-300 text-sm">🔊</span>
@@ -382,7 +382,7 @@ function ChatDemo() {
                   <>
                     {msg.from === "char" && (
                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-red-600 mr-2 flex-shrink-0 self-end overflow-hidden">
-                        <Image src="/characters/luffy/avatar.webp" alt="ルフィ" width={28} height={28} className="w-full h-full object-cover" />
+                        <Image src="/characters/luffy/avatar.webp" alt="キャラクター" width={28} height={28} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div
@@ -829,7 +829,7 @@ export default function LandingPage() {
 
           <FadeSection delay={350} className="text-center mt-8">
             <CTAButton href="/signup">
-              ルフィと話してみる →
+              話してみる →
             </CTAButton>
             <p className="text-xs text-gray-600 mt-3">無料で始めて、すぐに会話できます</p>
           </FadeSection>
@@ -854,9 +854,9 @@ export default function LandingPage() {
 
         {/* Gacha cards preview */}
         <div className="flex justify-center items-end gap-3 mb-10 overflow-x-auto px-4 pb-2">
-          <GachaCard emoji="🏴‍☠️" rarity="R" name="ルフィ\n海賊服" delay={0} />
+          <GachaCard emoji="🏴‍☠️" rarity="R" name="Haruki\n特別衣装" delay={0} />
           <GachaCard emoji="⚔️" rarity="SR" name="ゾロ\n鷹の目" delay={80} />
-          <GachaCard emoji="✨" rarity="SSR" name="五条悟\n無下限" delay={160} />
+          <GachaCard emoji="✨" rarity="SSR" name="Sora\n覚醒" delay={160} />
           <GachaCard emoji="🐉" rarity="SR" name="悟空\n超サイヤ人" delay={240} />
           <GachaCard emoji="🔥" rarity="R" name="炭治郎\n日の呼吸" delay={320} />
         </div>
@@ -903,7 +903,7 @@ export default function LandingPage() {
                   🎖️
                 </div>
                 <div>
-                  <p className="text-white font-black text-lg">ルフィFC 会員特典</p>
+                  <p className="text-white font-black text-lg">推しFC 会員特典</p>
                   <p className="text-purple-300 text-xs">Fan Club Member Benefits</p>
                 </div>
                 <span className="ml-auto text-sm font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1.5 rounded-full">

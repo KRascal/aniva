@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 // Link removed — DM button deleted
 
 /* ────────────────────────────────── 型定義 ── */
@@ -122,10 +123,9 @@ export function Avatar({
 
   return (
     <div className={`relative flex-shrink-0 ${sizeClass}`}>
-      <div className={`${sizeClass} rounded-full overflow-hidden ${ringClass}`}>
+      <div className={`${sizeClass} rounded-full overflow-hidden ${ringClass} relative`}>
         {character.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+          <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
             {character.name.charAt(0)}
@@ -202,8 +202,7 @@ export function MediaPlaceholder({
           className="relative overflow-hidden mb-3 bg-gray-800 cursor-pointer"
           onClick={handleTap}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mediaUrl} alt="" className="w-full object-cover" style={{ maxHeight: 360 }} />
+            <Image src={mediaUrl} alt="" width={0} height={0} sizes="100vw" className="w-full object-cover" style={{ height: 'auto', maxHeight: 360 }} unoptimized />
           {showLikeHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <span
@@ -280,8 +279,7 @@ function CommentAvatar({ comment }: { comment: MomentComment }) {
 
   if (comment.characterId && comment.character) {
     return comment.character.avatarUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={comment.character.avatarUrl} alt={charName ?? ''} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+      <Image src={comment.character.avatarUrl} alt={charName ?? ''} width={32} height={32} className="rounded-full object-cover flex-shrink-0" unoptimized />
     ) : (
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
         {charName?.charAt(0) ?? '?'}
@@ -289,8 +287,7 @@ function CommentAvatar({ comment }: { comment: MomentComment }) {
     );
   }
   if (comment.user?.id && userAvatar) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={userAvatar} alt={displayLabel ?? ''} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />;
+    return <Image src={userAvatar} alt={displayLabel ?? ''} width={32} height={32} className="rounded-full object-cover flex-shrink-0" unoptimized />;
   }
   return (
     <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white/60 text-xs font-bold flex-shrink-0">
