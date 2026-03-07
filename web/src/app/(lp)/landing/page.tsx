@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { GuestChatDemo } from "@/components/lp/GuestChatDemo";
 import { motion, AnimatePresence, useInView as useFramerInView } from "framer-motion";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -758,6 +759,25 @@ export default function LandingPage() {
           <span>scroll</span>
           <span>↓</span>
         </div>
+      </section>
+
+      {/* ── Guest Chat Demo — 最初の5秒体験 ── */}
+      <section className="py-16 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/10 to-transparent pointer-events-none" />
+        <FadeSection className="text-center mb-8">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-pink-900/50 text-pink-300 border border-pink-700/40 mb-4 tracking-widest uppercase">
+            Try it now
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            今すぐ、話してみて
+          </h2>
+          <p className="text-gray-400 text-sm">
+            ログイン不要。推しがあなたを待ってる
+          </p>
+        </FadeSection>
+        <FadeSection delay={200}>
+          <GuestChatDemo />
+        </FadeSection>
       </section>
 
       {/* ── Stats ── */}
