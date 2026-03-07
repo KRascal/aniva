@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 
 // ---- Types ----
 export type GachaRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
@@ -98,8 +98,32 @@ export function GachaFlipCard({
   const style = RARITY_STYLES[rarity] ?? RARITY_STYLES.N;
   const isHighRarity = rarity === 'SSR' || rarity === 'UR';
 
+  // ---- ホロエフェクト用の状態 ----
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMouse({
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height,
+    });
+  };
+
+  // レアリティ別エフェクト判定
+  const isHolo = ['SR', 'SSR', 'UR'].includes(rarity);
+  const isSSRPlus = ['SSR', 'UR'].includes(rarity);
+  const isUR = rarity === 'UR';
+
+  // 3D傾き量 (最大15度)
+  const rotX = isHovering ? (mouse.y - 0.5) * -15 : 0;
+  const rotY = isHovering ? (mouse.x - 0.5) * 15 : 0;
+
   // フレームボーダースタイル
   const frameStyle: React.CSSProperties = (() => {
+    if (isUR) return {}; // URはCSS animationで対応
     if (frameType === 'gold') return { borderColor: '#f59e0b', borderWidth: '3px' };
     if (frameType === 'rainbow') return {
       borderImage: 'linear-gradient(135deg, #ff0000, #ff7700, #ffff00, #00ff00, #0077ff, #8800ff) 1',
@@ -108,6 +132,14 @@ export function GachaFlipCard({
     };
     return {};
   })();
+
+  // カード厚み感のbox-shadow
+  const thicknessShadow = [
+    '0 0 0 1px rgba(255,255,255,0.1)',
+    '0 4px 8px rgba(0,0,0,0.4)',
+    '0 8px 16px rgba(0,0,0,0.3)',
+    '0 16px 32px rgba(0,0,0,0.2)',
+  ].join(', ');
 
   return (
     <>
@@ -178,100 +210,204 @@ export function GachaFlipCard({
           background-size: 400% 400%;
           animation: gfcRainbow 3s ease infinite;
         }
+
+        /* フリップ時のカラーフラッシュ（めくれる感） */
+        @keyframes gfcFlipFlash {
+          0%   { opacity: 0.7; }
+          100% { opacity: 0; }
+        }
+        .gacha-flip-inner.flipped .gacha-flip-front::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(200,180,255,0.6) 50%, transparent 80%);
+          border-radius: 12px;
+          animation: gfcFlipFlash 0.7s ease-out forwards;
+          pointer-events: none;
+          z-index: 50;
+        }
+
+        /* URレインボーボーダー */
+        @keyframes gfcURBorder {
+          0%   { border-color: #ff0080; box-shadow: 0 0 12px #ff0080, inset 0 0 8px rgba(255,0,128,0.2); }
+          25%  { border-color: #ff8c00; box-shadow: 0 0 12px #ff8c00, inset 0 0 8px rgba(255,140,0,0.2); }
+          50%  { border-color: #40e0d0; box-shadow: 0 0 12px #40e0d0, inset 0 0 8px rgba(64,224,208,0.2); }
+          75%  { border-color: #8800ff; box-shadow: 0 0 12px #8800ff, inset 0 0 8px rgba(136,0,255,0.2); }
+          100% { border-color: #ff0080; box-shadow: 0 0 12px #ff0080, inset 0 0 8px rgba(255,0,128,0.2); }
+        }
+        .gfc-ur-border-anim {
+          animation: gfcURBorder 2s linear infinite;
+          border-width: 3px !important;
+        }
       `}</style>
 
-      <div className="gacha-flip-scene" style={{ height: '200px' }}>
-        <div className={`gacha-flip-inner ${isFlipped ? 'flipped' : ''}`}>
+      {/* 3D傾きラッパー */}
+      <div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => { setIsHovering(false); setMouse({ x: 0.5, y: 0.5 }); }}
+        style={{
+          transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+          transition: isHovering ? 'transform 0.08s ease' : 'transform 0.6s ease',
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
+          boxShadow: thicknessShadow,
+          borderRadius: '12px',
+          display: 'inline-block',
+          width: '100%',
+        }}
+      >
+        <div className="gacha-flip-scene" style={{ height: '200px' }}>
+          <div className={`gacha-flip-inner ${isFlipped ? 'flipped' : ''}`}>
 
-          {/* ===== カード裏面（未公開） ===== */}
-          <div
-            className="gacha-flip-face gacha-flip-back"
-            style={{
-              background: rarity === 'UR' ? undefined : style.backBg,
-              borderColor: style.backBorder,
-              boxShadow: `0 0 16px ${style.backGlow}`,
-            }}
-            onClick={() => !isFlipped && onFlip()}
-          >
-            {/* UR は rainbow クラスで動的グラデーション */}
-            {rarity === 'UR' && (
-              <div className="gfc-ur-back-rainbow absolute inset-0 rounded-xl" />
-            )}
-
-            <div className="relative flex flex-col items-center gap-2 select-none z-10">
-              {/* レアリティマーク */}
-              <div className="text-4xl">{style.backMark}</div>
-              {/* ? テキスト */}
-              <div
-                className="text-2xl font-black"
-                style={{
-                  color: style.backBorder,
-                  textShadow: `0 0 12px ${style.backGlow}`,
-                  fontFamily: 'serif',
-                }}
-              >
-                ？
-              </div>
-              <span className="text-xs font-medium" style={{ color: style.backBorder }}>
-                タップでめくる
-              </span>
-            </div>
-            <div className="gfc-back-shimmer absolute inset-0 rounded-xl pointer-events-none" />
-          </div>
-
-          {/* ===== カード表面（公開後） ===== */}
-          <div className="gacha-flip-face gacha-flip-front">
+            {/* ===== カード裏面（未公開） ===== */}
             <div
-              className={`relative w-full h-full border-2 p-3 flex flex-col ${style.bg} ${style.border} ${
-                isFlipped && rarity === 'SSR' ? 'gfc-ssr-glow' : ''
-              } ${
-                isFlipped && rarity === 'UR' ? 'gfc-ur-glow' : ''
-              }`}
-              style={{ borderRadius: '12px', ...frameStyle }}
+              className="gacha-flip-face gacha-flip-back"
+              style={{
+                background: rarity === 'UR' ? undefined : style.backBg,
+                borderColor: style.backBorder,
+                boxShadow: `0 0 16px ${style.backGlow}`,
+              }}
+              onClick={() => !isFlipped && onFlip()}
             >
-              {/* NEW バッジ */}
-              {isNew && (
-                <div className="gfc-new-badge absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold z-10">
-                  ✨ NEW
+              {/* UR は rainbow クラスで動的グラデーション */}
+              {rarity === 'UR' && (
+                <div className="gfc-ur-back-rainbow absolute inset-0 rounded-xl" />
+              )}
+
+              <div className="relative flex flex-col items-center gap-2 select-none z-10">
+                {/* レアリティマーク */}
+                <div className="text-4xl">{style.backMark}</div>
+                {/* ? テキスト */}
+                <div
+                  className="text-2xl font-black"
+                  style={{
+                    color: style.backBorder,
+                    textShadow: `0 0 12px ${style.backGlow}`,
+                    fontFamily: 'serif',
+                  }}
+                >
+                  ？
                 </div>
-              )}
-
-              {/* シマーエフェクト（SSR/UR） */}
-              {isHighRarity && isFlipped && (
-                <div className="gfc-shimmer-bg absolute inset-0 pointer-events-none rounded-xl z-0" />
-              )}
-
-              {/* キャラクター画像 */}
-              {characterAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={characterAvatarUrl}
-                  alt={characterName}
-                  className="w-full flex-1 object-cover rounded-lg mb-2 min-h-0 relative z-10"
-                />
-              ) : (
-                <div className="w-full flex-1 rounded-lg mb-2 flex items-center justify-center bg-black/30 text-4xl min-h-0 relative z-10">
-                  🃏
-                </div>
-              )}
-
-              {/* レアリティラベル */}
-              <div className={`text-xs font-bold mb-0.5 relative z-10 ${style.text}`}>
-                {style.label}
+                <span className="text-xs font-medium" style={{ color: style.backBorder }}>
+                  タップでめくる
+                </span>
               </div>
-
-              {/* アイテム名 */}
-              <div className="text-sm font-semibold truncate text-white relative z-10">
-                {itemName}
-              </div>
-
-              {/* フランチャイズ */}
-              {franchise && (
-                <div className="text-xs text-gray-300 truncate relative z-10">{franchise}</div>
-              )}
+              <div className="gfc-back-shimmer absolute inset-0 rounded-xl pointer-events-none" />
             </div>
-          </div>
 
+            {/* ===== カード表面（公開後） ===== */}
+            <div className="gacha-flip-face gacha-flip-front">
+              <div
+                className={`relative w-full h-full border-2 p-3 flex flex-col ${style.bg} ${style.border} ${
+                  isFlipped && rarity === 'SSR' ? 'gfc-ssr-glow' : ''
+                } ${
+                  isFlipped && rarity === 'UR' ? 'gfc-ur-glow gfc-ur-border-anim' : ''
+                }`}
+                style={{ borderRadius: '12px', ...frameStyle }}
+              >
+                {/* NEW バッジ */}
+                {isNew && (
+                  <div className="gfc-new-badge absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold z-10">
+                    ✨ NEW
+                  </div>
+                )}
+
+                {/* シマーエフェクト（SSR/UR） */}
+                {isHighRarity && isFlipped && (
+                  <div className="gfc-shimmer-bg absolute inset-0 pointer-events-none rounded-xl z-0" />
+                )}
+
+                {/* キャラクター画像 */}
+                {characterAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={characterAvatarUrl}
+                    alt={characterName}
+                    className="w-full flex-1 object-cover rounded-lg mb-2 min-h-0 relative z-10"
+                  />
+                ) : (
+                  <div className="w-full flex-1 rounded-lg mb-2 flex items-center justify-center bg-black/30 text-4xl min-h-0 relative z-10">
+                    🃏
+                  </div>
+                )}
+
+                {/* レアリティラベル */}
+                <div className={`text-xs font-bold mb-0.5 relative z-10 ${style.text}`}>
+                  {style.label}
+                </div>
+
+                {/* アイテム名 */}
+                <div className="text-sm font-semibold truncate text-white relative z-10">
+                  {itemName}
+                </div>
+
+                {/* フランチャイズ */}
+                {franchise && (
+                  <div className="text-xs text-gray-300 truncate relative z-10">{franchise}</div>
+                )}
+
+                {/* ===== ホログラムオーバーレイ（SR以上） ===== */}
+                {isHolo && isFlipped && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '12px',
+                      background: `conic-gradient(from ${mouse.x * 360}deg, #ff0080, #ff8c00, #40e0d0, #0080ff, #8800ff, #ff0080)`,
+                      opacity: isUR ? (isHovering ? 0.5 : 0.2) : (isHovering ? 0.35 : 0.12),
+                      mixBlendMode: 'color-dodge',
+                      transition: isHovering ? 'opacity 0.2s ease' : 'opacity 0.4s ease',
+                      pointerEvents: 'none',
+                      zIndex: 20,
+                    }}
+                  />
+                )}
+
+                {/* ===== マウス追従ライトハイライト（全カード） ===== */}
+                {isFlipped && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '12px',
+                      background: `radial-gradient(circle at ${mouse.x * 100}% ${mouse.y * 100}%, rgba(255,255,255,0.18) 0%, transparent 55%)`,
+                      pointerEvents: 'none',
+                      zIndex: 19,
+                      transition: isHovering ? 'none' : 'background 0.6s ease',
+                    }}
+                  />
+                )}
+
+                {/* ===== キラキラ星（SSR/UR） ===== */}
+                {isSSRPlus && isFlipped && Array.from({ length: 10 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      width: i % 3 === 0 ? 5 : 3,
+                      height: i % 3 === 0 ? 5 : 3,
+                      borderRadius: '50%',
+                      background: 'white',
+                      left: `${8 + i * 9}%`,
+                      top: `${12 + Math.sin(i * 1.1) * 38 + Math.cos(i * 0.7) * 15}%`,
+                      opacity: isHovering ? (i % 2 === 0 ? 0.95 : 0.7) : 0.25,
+                      boxShadow: isUR
+                        ? '0 0 8px 2px rgba(255,200,50,0.8), 0 0 16px rgba(255,180,0,0.5)'
+                        : '0 0 6px white, 0 0 12px rgba(255,255,255,0.6)',
+                      transform: `translate(${(mouse.x - 0.5) * 12}px, ${(mouse.y - 0.5) * 12}px)`,
+                      transition: isHovering ? 'transform 0.08s ease, opacity 0.2s ease' : 'all 0.6s ease',
+                      pointerEvents: 'none',
+                      zIndex: 21,
+                    }}
+                  />
+                ))}
+
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </>
