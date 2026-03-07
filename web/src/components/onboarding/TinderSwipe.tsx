@@ -209,12 +209,30 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-white text-xl font-black mb-2">フォローしたキャラ</h2>
-        <p className="text-white/40 text-sm mb-8">
+        <motion.div
+          className="text-4xl mb-4"
+          initial={{ scale: 0 }}
+          animate={{ scale: [0, 1.3, 1] }}
+          transition={{ duration: 0.5, times: [0, 0.6, 1] }}
+        >
+          💌
+        </motion.div>
+        <h2 className="text-white text-xl font-black mb-1">フォロー完了！</h2>
+        <p className="text-white/50 text-sm mb-2">
           {followedChars.length > 0
-            ? `${followedChars.length}キャラをフォロー！`
-            : 'まだ誰もフォローしていません'}
+            ? `${followedChars.length}人のキャラがあなたを待ってる`
+            : 'あとからフォローもできます'}
         </p>
+        {followedChars.length > 0 && (
+          <motion.p
+            className="text-purple-400 text-xs mb-6 font-medium"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            ✉️ まもなくキャラからメッセージが届きます
+          </motion.p>
+        )}
 
         {followedChars.length > 0 ? (
           <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-sm">
