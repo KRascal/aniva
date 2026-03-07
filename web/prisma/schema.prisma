@@ -52,6 +52,7 @@ model User {
   proactiveMessages      CharacterProactiveMessage[]
   limitedScenarioReads   LimitedScenarioRead[]
   storyPollVotes         StoryPollVote[]
+  notifications          Notification[]
 }
 
 model PushSubscription {
@@ -248,8 +249,9 @@ model Moment {
   publishedAt   DateTime?
   createdAt     DateTime        @default(now())
   character     Character       @relation(fields: [characterId], references: [id])
-  reactions     Reaction[]
-  comments      MomentComment[]
+  reactions      Reaction[]
+  comments       MomentComment[]
+  notifications  Notification[]
 
   @@index([characterId, locale])
 }
@@ -781,4 +783,25 @@ model StoryPollVote {
   poll     StoryPoll @relation(fields: [pollId], references: [id])
 
   @@unique([userId, pollId])
+}
+
+// ── タイムライン通知 ──
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  type        String    // 'moment_like' | 'moment_comment' | 'character_reply' | 'character_comment' | 'follow'
+  title       String
+  body        String
+  momentId    String?
+  characterId String?
+  actorName   String?
+  actorAvatar String?
+  targetUrl   String?
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moment      Moment?   @relation(fields: [momentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }

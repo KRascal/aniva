@@ -15,8 +15,17 @@ export async function POST(
     }
 
     const { momentId } = await params;
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const type = body?.type ?? 'like';
+
+    // momentが存在するか確認
+    const moment = await prisma.moment.findUnique({
+      where: { id: momentId },
+      select: { id: true, characterId: true, character: { select: { name: true, avatarUrl: true } } },
+    });
+    if (!moment) {
+      return NextResponse.json({ error: 'Moment not found' }, { status: 404 });
+    }
 
     // 既存のreactionを確認
     const existing = await prisma.reaction.findUnique({
@@ -37,6 +46,9 @@ export async function POST(
         data: { momentId, userId, type },
       });
       liked = true;
+
+      // ユーザー自身の投稿以外はNotificationに記録しない（キャラの投稿なので不要）
+      // ただし将来的にユーザー投稿もあれば記録する
     }
 
     const reactionCount = await prisma.reaction.count({

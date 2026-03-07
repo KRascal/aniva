@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     }
 
     const generated: Array<{ momentId: string; commenterName: string; content: string; isReply?: boolean; parentCommentId?: string }> = [];
-    const MAX_COMMENTS = 5;
+    const MAX_COMMENTS = 10;
 
     // ──────────────────────────────────────────────────
     // Phase 1: 既存ロジック — ランダムに1体がコメント

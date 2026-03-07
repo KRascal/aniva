@@ -61,7 +61,12 @@ function GachaBannerSection({ freeAvailable }: { freeAvailable: boolean }) {
           }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
-            <span className="text-2xl flex-shrink-0">🎰</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 22V12M3.27 6.96L12 12.01l8.73-5.05"/>
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-yellow-400 text-[10px] font-black tracking-widest uppercase">
@@ -150,7 +155,10 @@ function DiaryPreviewSection() {
       <div className="mb-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            📔 今日の日記
+            <svg className="w-4 h-4 text-purple-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            今日の日記
           </h3>
           <button
             onClick={() => router.push('/diary')}
@@ -215,7 +223,7 @@ function DiaryPreviewSection() {
             color: 'rgba(167,139,250,0.85)',
           }}
         >
-          📔 日記をもっと見る →
+          日記をもっと見る →
         </button>
       </div>
     </FadeSection>
@@ -252,7 +260,11 @@ function PollBannerSection() {
           }}
         >
           <div className="px-4 py-3 flex items-center gap-3">
-            <span className="text-2xl flex-shrink-0">🗳</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
+              <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">
@@ -313,7 +325,11 @@ function ContentLinksSection({ activePollCount }: { activePollCount: number }) {
             }}
           >
             <div className="px-4 py-3 flex items-center gap-3">
-              <span className="text-2xl flex-shrink-0">📚</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.3)' }}>
+                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 016.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/>
+                </svg>
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm leading-tight">思い出のアルバム</p>
                 <p className="text-white/50 text-xs mt-0.5">推しとの大切な時間を振り返ろう</p>
@@ -333,7 +349,11 @@ function ContentLinksSection({ activePollCount }: { activePollCount: number }) {
             }}
           >
             <div className="px-4 py-3 flex items-center gap-3">
-              <span className="text-2xl flex-shrink-0">📖</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(236,72,153,0.2)', border: '1px solid rgba(236,72,153,0.3)' }}>
+                <svg className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="text-white font-bold text-sm leading-tight">みんなで作るストーリー</p>
@@ -1109,16 +1129,64 @@ function CharacterVerticalCard({
   const isFollowing = relationship?.isFollowing ?? false;
   const isFanclub = relationship?.isFanclub ?? false;
   const [hovered, setHovered] = useState(false);
+  const [mouseX, setMouseX] = useState(0.5);
+  const [mouseY, setMouseY] = useState(0.5);
+
+  // Franchise-based rarity for hologram effect
+  const GOLD_HOLO_FRANCHISES = ['ONE PIECE', '呪術廻戦', '鬼滅の刃'];
+  const SILVER_HOLO_FRANCHISES = ['ドラゴンボール', 'NARUTO'];
+  const franchise = character.franchise ?? '';
+  const cardRarity = GOLD_HOLO_FRANCHISES.some((f) => franchise.includes(f))
+    ? 'gold'
+    : SILVER_HOLO_FRANCHISES.some((f) => franchise.includes(f))
+    ? 'silver'
+    : 'normal';
+
+  const holoGradient =
+    cardRarity === 'gold'
+      ? `radial-gradient(circle at ${mouseX * 100}% ${mouseY * 100}%, rgba(255,215,0,0.65) 0%, rgba(255,140,0,0.45) 15%, rgba(255,105,180,0.35) 30%, rgba(138,43,226,0.25) 50%, transparent 70%)`
+      : cardRarity === 'silver'
+      ? `radial-gradient(circle at ${mouseX * 100}% ${mouseY * 100}%, rgba(220,230,255,0.7) 0%, rgba(100,180,255,0.45) 20%, rgba(160,120,255,0.3) 40%, transparent 70%)`
+      : `radial-gradient(circle at ${mouseX * 100}% ${mouseY * 100}%, rgba(255,255,255,0.45) 0%, rgba(100,200,255,0.25) 20%, rgba(200,100,255,0.2) 40%, transparent 70%)`;
+
+  const tiltX = hovered ? (mouseY - 0.5) * -30 : 0;
+  const tiltY = hovered ? (mouseX - 0.5) * 30 : 0;
+
+  const depthShadow =
+    cardRarity === 'gold'
+      ? `0 ${20 + tiltX * 0.5}px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,180,0,0.35), 0 0 15px rgba(255,215,0,0.2)`
+      : cardRarity === 'silver'
+      ? `0 ${20 + tiltX * 0.5}px 60px rgba(0,0,0,0.7), 0 0 40px rgba(100,180,255,0.35), 0 0 15px rgba(200,220,255,0.2)`
+      : `0 ${20 + tiltX * 0.5}px 60px rgba(0,0,0,0.6), 0 0 30px rgba(139,92,246,0.3)`;
 
   return (
     <div
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setMouseX(0.5); setMouseY(0.5); }}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMouseX((e.clientX - rect.left) / rect.width);
+        setMouseY((e.clientY - rect.top) / rect.height);
+      }}
+      onTouchStart={() => setHovered(true)}
+      onTouchMove={(e) => {
+        const touch = e.touches[0];
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMouseX((touch.clientX - rect.left) / rect.width);
+        setMouseY((touch.clientY - rect.top) / rect.height);
+      }}
+      onTouchEnd={() => { setHovered(false); setMouseX(0.5); setMouseY(0.5); }}
       className="relative flex-shrink-0 w-44 cursor-pointer"
       style={{
-        transform: hovered ? 'translateY(-8px)' : 'translateY(0)',
-        transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',
+        transform: hovered
+          ? `perspective(600px) translateY(-8px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`
+          : 'perspective(600px) translateY(0) rotateX(0deg) rotateY(0deg)',
+        transition: hovered
+          ? 'transform 0.08s ease-out'
+          : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
       }}
     >
       {/* Glow shadow on hover */}
@@ -1135,9 +1203,7 @@ function CharacterVerticalCard({
       <div
         className="relative h-64 rounded-2xl overflow-hidden"
         style={{
-          boxShadow: hovered
-            ? '0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(139,92,246,0.3)'
-            : '0 8px 32px rgba(0,0,0,0.4)',
+          boxShadow: hovered ? depthShadow : '0 8px 32px rgba(0,0,0,0.4)',
           transition: 'box-shadow 0.35s ease',
         }}
       >
@@ -1177,6 +1243,31 @@ function CharacterVerticalCard({
             background: 'linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(236,72,153,0.4) 50%, rgba(251,146,60,0.3) 100%)',
           }}
         />
+
+        {/* Hologram gloss overlay — cursor-tracking rainbow sheen */}
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            opacity: hovered ? (cardRarity === 'normal' ? 0.4 : 0.55) : 0,
+            background: holoGradient,
+            transition: hovered ? 'opacity 0.15s ease, background 0.06s ease' : 'opacity 0.3s ease',
+            mixBlendMode: 'screen',
+          }}
+        />
+        {/* Rainbow shimmer stripe for gold/silver rarity */}
+        {cardRarity !== 'normal' && (
+          <div
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{
+              opacity: hovered ? 0.25 : 0,
+              background: cardRarity === 'gold'
+                ? `linear-gradient(${mouseX * 180}deg, rgba(255,0,128,0.4) 0%, rgba(255,165,0,0.4) 25%, rgba(0,255,128,0.3) 50%, rgba(0,128,255,0.4) 75%, rgba(255,0,255,0.4) 100%)`
+                : `linear-gradient(${mouseX * 180}deg, rgba(200,220,255,0.5) 0%, rgba(100,200,255,0.4) 25%, rgba(180,160,255,0.3) 50%, rgba(220,240,255,0.4) 75%, rgba(150,180,255,0.5) 100%)`,
+              transition: hovered ? 'opacity 0.15s ease, background 0.1s ease' : 'opacity 0.3s ease',
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
 
         {/* オンラインドット */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 bg-black/50 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
@@ -2126,7 +2217,11 @@ export default function ExplorePage() {
                     }}
                   >
                     <div className="px-4 py-3 flex items-center gap-3">
-                      <span className="text-2xl flex-shrink-0">👥</span>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
+                        <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">

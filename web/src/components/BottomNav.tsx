@@ -56,6 +56,7 @@ export function BottomNav() {
   const t = useTranslations('nav');
   const [unreadLetters, setUnreadLetters] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [notifUnreadCount, setNotifUnreadCount] = useState(0);
 
   useEffect(() => {
     // 未読レター数を取得（30秒ごとにポーリング）
@@ -120,6 +121,22 @@ export function BottomNav() {
     return () => clearInterval(interval);
   }, []);
 
+  // 通知未読数ポーリング
+  useEffect(() => {
+    const fetchNotifUnread = async () => {
+      try {
+        const res = await fetch('/api/notifications/unread-count');
+        if (res.ok) {
+          const data = await res.json();
+          setNotifUnreadCount(data.count ?? 0);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchNotifUnread();
+    const interval = setInterval(fetchNotifUnread, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (HIDDEN_PATHS.includes(pathname)) return null;
   if (pathname.startsWith('/c/')) return null;
 
@@ -173,6 +190,11 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {isTimeline && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
+              {notifUnreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full leading-none border border-gray-950">
+                  {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
+                </span>
+              )}
             </div>
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>

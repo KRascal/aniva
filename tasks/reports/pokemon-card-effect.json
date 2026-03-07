@@ -1,0 +1,7 @@
+{
+  "task": "pokemon-card-effect",
+  "status": "success",
+  "summary": "CharacterVerticalCardにポケモンポケット風3Dカードエフェクト実装完了（傾き/ホログラム/厚みシャドウ/レア度別光沢/モバイル対応）",
+  "files_changed": ["src/app/explore/page.tsx"],
+  "lines_changed": 121
+}
