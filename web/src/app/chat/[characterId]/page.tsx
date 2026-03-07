@@ -364,6 +364,7 @@ export default function ChatCharacterPage() {
   const [showCall, setShowCall] = useState(false);
   const [showGift, setShowGift] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
+  const [showComingSoonToast, setShowComingSoonToast] = useState(false);
   const [showMemoryPeek, setShowMemoryPeek] = useState(false);
   const [memoryData, setMemoryData] = useState<{
     factMemory: { fact: string; source: string; confidence: number; updatedAt: string }[];
@@ -1577,6 +1578,15 @@ export default function ChatCharacterPage() {
         </div>
       )}
 
+      {/* 📞 準備中トースト */}
+      {showComingSoonToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm font-medium shadow-xl"
+          style={{ background: 'rgba(30,20,60,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(139,92,246,0.4)' }}>
+          <span>📞</span>
+          <span>通話機能は近日公開予定です</span>
+        </div>
+      )}
+
       {/* 📞 通話選択モーダル */}
       {/* 📞 通話選択モーダル — フルスクリーン グラスモーフィズム */}
       {showCallModal && (
@@ -1831,7 +1841,10 @@ export default function ChatCharacterPage() {
         characterId={characterId}
         isLateNight={isLateNight}
         onBack={() => router.push('/chat')}
-        onCallClick={() => setShowCallModal(true)}
+        onCallClick={() => {
+          setShowComingSoonToast(true);
+          setTimeout(() => setShowComingSoonToast(false), 2500);
+        }}
         onMenuClick={() => setShowMenu(true)}
         onMemoryClick={openMemoryPeek}
         onProfileClick={() => router.push(`/profile/${characterId}`)}
