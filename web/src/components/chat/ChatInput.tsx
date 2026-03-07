@@ -8,11 +8,20 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 interface Character {
   id: string;
   name: string;
-  nameEn: string;
+  nameEn?: string | null;
   franchise: string;
+  franchiseEn?: string | null;
+  description?: string | null;
   avatarUrl: string | null;
+  coverUrl?: string | null;
   slug?: string;
   voiceModelId?: string | null;
+  fcMonthlyPriceJpy?: number;
+  fcIncludedCallMin?: number;
+  fcMonthlyCoins?: number;
+  catchphrases?: string[];
+  personalityTraits?: string[];
+  hasVoice?: boolean;
 }
 
 interface RelationshipInfo {
