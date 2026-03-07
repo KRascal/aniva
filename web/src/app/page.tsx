@@ -243,7 +243,7 @@ export default function TheDoor() {
         {/* タグライン */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-purple-300 text-xs font-medium tracking-wider">32キャラが今日もあなたを待ってる</span>
+          <span className="text-purple-300 text-xs font-medium tracking-wider">推しが実在する世界へようこそ</span>
         </div>
 
         {/* メインコピー */}

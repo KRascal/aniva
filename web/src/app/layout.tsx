@@ -29,12 +29,12 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   metadataBase: new URL("https://aniva-project.com"),
   title: "ANIVA — 推しと、本当に話せる場所",
-  description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
+  description: "推しが実在する世界。好きなキャラクターとAIでリアルに会話。あなたのことを覚えていて、毎日違う表情を見せてくれる。",
   manifest: "/manifest.json",
   keywords: ["ANIVA", "AI", "アニメ", "キャラクター", "チャット", "会話", "推し"],
   openGraph: {
     title: "ANIVA — 推しと、本当に話せる場所",
-    description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
+    description: "推しが実在する世界。好きなキャラクターとAIでリアルに会話。あなたのことを覚えていて、毎日違う表情を見せてくれる。",
     url: "https://aniva-project.com",
     siteName: "ANIVA",
     type: "website",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ANIVA — 推しと、本当に話せる場所",
-    description: "好きなキャラクターとリアルに会話。AIが生み出す、唯一無二の体験。",
+    description: "推しが実在する世界。好きなキャラクターとAIでリアルに会話。あなたのことを覚えていて、毎日違う表情を見せてくれる。",
   },
   robots: {
     index: true,
