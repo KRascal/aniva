@@ -63,28 +63,31 @@ export default function DiscoverPage() {
     })();
   }, []);
 
+  const [followedIds, setFollowedIds] = useState<string[]>([]);
+
   const swipeOut = useCallback((direction: 'left' | 'right') => {
     if (isAnimating) return;
     setIsAnimating(true);
     setSwipeDirection(direction);
     setSwipeX(direction === 'left' ? -500 : 500);
 
-    // Save skipped slug on left swipe
-    if (direction === 'left' && characters[currentIndex]) {
-      addSkippedSlug(characters[currentIndex].slug);
+    const char = characters[currentIndex];
+    if (direction === 'left' && char) {
+      addSkippedSlug(char.slug);
+    }
+    // 右スワイプ = フォロー（チャットに飛ばない）
+    if (direction === 'right' && char) {
+      setFollowedIds(prev => [...prev, char.id]);
+      fetch(`/api/relationship/${char.slug}/follow`, { method: 'POST' }).catch(() => {});
     }
 
     setTimeout(() => {
-      if (direction === 'right' && characters[currentIndex]) {
-        router.push(`/chat/${characters[currentIndex].slug}`);
-        return;
-      }
       setCurrentIndex(prev => prev + 1);
       setSwipeX(0);
       setSwipeDirection(null);
       setIsAnimating(false);
     }, 350);
-  }, [isAnimating, characters, currentIndex, router]);
+  }, [isAnimating, characters, currentIndex]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isAnimating) return;
@@ -146,13 +149,51 @@ export default function DiscoverPage() {
     );
   }
 
-  if (!currentChar || currentIndex >= characters.length) {
+  // グリーティング送信（完了時）
+  const isComplete = !currentChar || currentIndex >= characters.length;
+  const greetSentRef = useRef(false);
+  useEffect(() => {
+    if (isComplete && followedIds.length > 0 && !greetSentRef.current) {
+      greetSentRef.current = true;
+      fetch('/api/onboarding/follow-and-greet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterIds: followedIds }),
+      }).catch(() => {});
+    }
+  }, [isComplete, followedIds]);
+
+  if (isComplete) {
+    const followedChars = characters.filter(c => followedIds.includes(c.id));
     return (
       <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center z-50 px-6">
-        <p className="text-white/50 text-lg mb-4">すべてのキャラを見ました！</p>
+        <div className="text-4xl mb-4">💌</div>
+        <h2 className="text-white text-xl font-black mb-2">
+          {followedChars.length > 0 ? `${followedChars.length}人をフォロー！` : '探索完了！'}
+        </h2>
+        {followedChars.length > 0 && (
+          <>
+            <p className="text-purple-400 text-xs mb-4 font-medium">まもなくキャラからメッセージが届きます</p>
+            <div className="flex flex-wrap justify-center gap-3 mb-6 max-w-sm">
+              {followedChars.map(c => (
+                <div key={c.id} className="flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-purple-500/50">
+                    {c.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-purple-900 flex items-center justify-center">✨</div>
+                    )}
+                  </div>
+                  <span className="text-white/70 text-[10px] font-medium">{c.name}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         <button
           onClick={() => router.push('/explore')}
-          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold"
+          className="px-7 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-bold text-sm"
         >
           探すに戻る
         </button>
@@ -190,7 +231,7 @@ export default function DiscoverPage() {
         <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
           <div className="absolute top-1/3 left-8 transform -rotate-12 border-4 border-green-400 rounded-xl px-6 py-3"
             style={{ opacity: Math.min(1, swipeX / 150) }}>
-            <span className="text-green-400 text-3xl font-black tracking-wider">CHAT</span>
+            <span className="text-green-400 text-3xl font-black tracking-wider">FOLLOW</span>
           </div>
         </div>
       )}
@@ -301,41 +342,36 @@ export default function DiscoverPage() {
           </svg>
         </button>
 
-        {/* Chat button */}
+        {/* Follow button (center) */}
         <button
           onClick={() => swipeOut('right')}
           disabled={isAnimating}
-          className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-xl shadow-purple-900/40 active:scale-90 transition-transform border-2 border-white/20"
+          className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-green-900/40 active:scale-90 transition-transform border-2 border-white/20"
         >
           <svg className="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
-            <path d="M7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/>
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
         </button>
 
-        {/* Skip button (right) — follow */}
+        {/* Chat button (right) */}
         <button
           onClick={() => {
-            // Follow then send welcome message
             if (currentChar) {
-              fetch(`/api/relationship/${currentChar.slug}/follow`, { method: 'POST' }).catch(() => {});
-              // Fire and forget: trigger welcome message from character
-              fetch(`/api/relationship/${currentChar.slug}/follow-welcome`, { method: 'POST' }).catch(() => {});
+              router.push(`/chat/${currentChar.slug}`);
             }
-            swipeOut('left');
           }}
           disabled={isAnimating}
           className="w-16 h-16 rounded-full bg-gray-800/80 border-2 border-blue-400/40 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
         >
-          <svg className="w-7 h-7 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </button>
       </div>
 
       {/* Instruction */}
       <div className="absolute bottom-2 left-0 right-0 z-30 text-center">
-        <p className="text-white/25 text-[10px]">← スキップ ・ チャット開始 → </p>
+        <p className="text-white/25 text-[10px]">← スキップ ・ フォロー → </p>
       </div>
     </div>
     </>

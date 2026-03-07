@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { playSound } from '@/lib/sound-effects';
 import { PackageDisplayItem } from './page';
 
 interface Props {
@@ -16,9 +17,67 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
   const [freeCoins, setFreeCoins] = useState(freeBalance);
   const [paidCoins, setPaidCoins] = useState(paidBalance);
   const [loading, setLoading] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(status === 'success');
   const [message, setMessage] = useState<string | null>(
     status === 'success' ? '購入が完了しました！' : status === 'cancel' ? '購入がキャンセルされました' : null
   );
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 紙吹雪パーティクル
+  const spawnConfetti = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#FFD700', '#FF6B9D', '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
+    const particles: { x: number; y: number; vx: number; vy: number; w: number; h: number; rot: number; rotV: number; color: string; alpha: number }[] = [];
+    for (let i = 0; i < 120; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * 200,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 3 + 2,
+        w: Math.random() * 8 + 4,
+        h: Math.random() * 12 + 6,
+        rot: Math.random() * 360,
+        rotV: (Math.random() - 0.5) * 10,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+      });
+    }
+    let frame = 0;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.rot += p.rotV;
+        if (frame > 60) p.alpha -= 0.008;
+        if (p.alpha <= 0 || p.y > canvas.height + 50) continue;
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      frame++;
+      if (alive) requestAnimationFrame(animate);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    requestAnimationFrame(animate);
+  }, []);
+
+  useEffect(() => {
+    if (showCelebration) {
+      playSound('coin-earn');
+      setTimeout(() => spawnConfetti(), 200);
+      setTimeout(() => setShowCelebration(false), 4000);
+    }
+  }, [showCelebration, spawnConfetti]);
 
   const handlePurchase = async (pkg: PackageDisplayItem) => {
     setLoading(pkg.id);
@@ -40,7 +99,8 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
       if (data.success && data.balance !== undefined) {
         setBalance(data.balance);
         setPaidCoins(prev => prev + pkg.coinAmount);
-        setMessage(`${pkg.coinAmount.toLocaleString()}コインを付与しました（デモモード）`);
+        setMessage(`${pkg.coinAmount.toLocaleString()}コインを付与しました`);
+        setShowCelebration(true);
         return;
       }
 
@@ -56,7 +116,20 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white relative">
+      {/* 紙吹雪Canvas */}
+      <canvas ref={canvasRef} className="fixed inset-0 z-[100] pointer-events-none" />
+
+      {/* 購入成功オーバーレイ */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-[99] flex items-center justify-center pointer-events-none">
+          <div className="text-center animate-bounce">
+            <div className="text-6xl mb-2">🎉</div>
+            <p className="text-2xl font-black text-yellow-300 drop-shadow-lg">購入完了！</p>
+          </div>
+        </div>
+      )}
+
       {/* 戻るボタン */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-white/5">
         <div className="max-w-2xl mx-auto px-4 h-12 flex items-center">
