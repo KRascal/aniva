@@ -1678,6 +1678,7 @@ export default function ExplorePage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [relationships, setRelationships] = useState<Map<string, RelationshipInfo>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('すべて');
   const [incompleteMissions, setIncompleteMissions] = useState(0);
@@ -1685,6 +1686,13 @@ export default function ExplorePage() {
   const [missionProgress, setMissionProgress] = useState<{ completed: number; total: number } | null>(null);
   const [freeGachaAvailable, setFreeGachaAvailable] = useState(false);
   const [exploreActivePollCount, setExploreActivePollCount] = useState(0);
+
+  // パララックススクロール検知
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // プロアクティブメッセージ（未読マップ: characterId → message）
   const { messages: proactiveMsgs } = useProactiveMessages();
@@ -1932,8 +1940,14 @@ export default function ExplorePage() {
         </div>
 
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-white/5"
-          style={{ background: 'rgb(3,7,18)' }}
+        <header className="sticky top-0 z-30 border-b border-white/5 transition-all duration-300"
+          style={{
+            background: scrollY > 40
+              ? 'rgba(3,7,18,0.85)'
+              : 'rgb(3,7,18)',
+            backdropFilter: scrollY > 40 ? 'blur(16px) saturate(180%)' : 'none',
+            WebkitBackdropFilter: scrollY > 40 ? 'blur(16px) saturate(180%)' : 'none',
+          }}
         >
           <div className="max-w-lg mx-auto px-4 pt-4 pb-3">
             <div className="flex items-center gap-3 mb-3">

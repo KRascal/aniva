@@ -398,6 +398,7 @@ export default function ChatCharacterPage() {
   // 感情エフェクト
   const [hungryEmojis, setHungryEmojis] = useState<{ id: number; x: number; delay: number }[]>([]);
   const [showStars, setShowStars] = useState(false);
+  const [heartEmojis, setHeartEmojis] = useState<{ id: number; x: number; delay: number; emoji: string }[]>([]);
   const [lastEmotionMsgId, setLastEmotionMsgId] = useState<string | null>(null);
   // Free plan 残りメッセージ（後方互換）
   const [userPlan, setUserPlan] = useState<string>('UNKNOWN');
@@ -833,6 +834,19 @@ export default function ChatCharacterPage() {
     setInputText('');
     setIsSending(true);
     vibrateSend(); // 送信時の軽い触覚フィードバック
+
+    // 「好き」系ワードでハート演出
+    const LOVE_WORDS = /好き|愛して|愛してる|大好き|最高|嬉しい|ありがとう|love|suki/i;
+    if (LOVE_WORDS.test(text)) {
+      const hearts = Array.from({ length: 6 }, (_, i) => ({
+        id: Date.now() + i,
+        x: 10 + i * 15,
+        delay: i * 0.2,
+        emoji: ['❤️','💕','💖','💗','✨','💓'][i],
+      }));
+      setHeartEmojis(hearts);
+      setTimeout(() => setHeartEmojis([]), 2500);
+    }
 
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
@@ -1900,6 +1914,7 @@ export default function ChatCharacterPage() {
         lastEmotionMsgId={lastEmotionMsgId}
         playingAudioId={playingAudioId}
         hungryEmojis={hungryEmojis}
+        heartEmojis={heartEmojis}
         showStars={showStars}
         messagesEndRef={messagesEndRef}
         onAudioToggle={handleAudioToggle}
@@ -1993,6 +2008,7 @@ export default function ChatCharacterPage() {
         relationship={relationship}
         inputRef={inputRef}
         isSendBouncing={isSendBouncing}
+        isLateNight={isLateNight}
         placeholderIndex={placeholderIndex}
         showPlusMenu={showPlusMenu}
         setShowPlusMenu={setShowPlusMenu}

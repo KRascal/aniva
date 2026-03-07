@@ -71,6 +71,15 @@ const BASE_PLACEHOLDERS = [
   (name: string) => `${name}の本音、聞けるかも…`,
 ];
 
+const LATE_NIGHT_PLACEHOLDERS = [
+  (name: string) => `${name}もまだ起きてるよ…`,
+  (_: string) => 'こんな時間に何考えてる？',
+  (name: string) => `${name}に夜の秘密話…`,
+  (_: string) => '眠れない夜は、ここにおいで',
+  (name: string) => `${name}と二人きりの時間…`,
+  (_: string) => '小さな声で話そうか…',
+];
+
 interface ChatInputProps {
   inputText: string;
   setInputText: (text: string) => void;
@@ -85,6 +94,7 @@ interface ChatInputProps {
   relationship: RelationshipInfo | null;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   isSendBouncing: boolean;
+  isLateNight?: boolean;
   placeholderIndex: number;
   showPlusMenu: boolean;
   setShowPlusMenu: React.Dispatch<React.SetStateAction<boolean>>;
@@ -108,6 +118,7 @@ export function ChatInput({
   relationship,
   inputRef,
   isSendBouncing,
+  isLateNight = false,
   placeholderIndex,
   showPlusMenu,
   setShowPlusMenu,
@@ -375,7 +386,7 @@ export function ChatInput({
             e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
           }}
           onKeyDown={handleKeyDown}
-          placeholder={isListening && interimText ? `🎤 ${interimText}` : isListening ? '🎤 聴いてるよ…' : BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
+          placeholder={isListening && interimText ? `🎤 ${interimText}` : isListening ? '🎤 聴いてるよ…' : isLateNight ? LATE_NIGHT_PLACEHOLDERS[placeholderIndex % LATE_NIGHT_PLACEHOLDERS.length](character?.name ?? 'キャラクター') : BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
           maxLength={2000}
           rows={1}
           disabled={isSending || isGreeting}

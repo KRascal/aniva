@@ -196,6 +196,7 @@ export interface ChatMessageListProps {
   lastEmotionMsgId: string | null;
   playingAudioId: string | null;
   hungryEmojis: { id: number; x: number; delay: number }[];
+  heartEmojis?: { id: number; x: number; delay: number; emoji: string }[];
   showStars: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onAudioToggle: (messageId: string, audioUrl: string) => void;
@@ -215,6 +216,7 @@ export function ChatMessageList({
   lastEmotionMsgId,
   playingAudioId,
   hungryEmojis,
+  heartEmojis = [],
   showStars,
   messagesEndRef,
   onAudioToggle,
@@ -349,6 +351,12 @@ export function ChatMessageList({
         .emotion-transition-shy   { animation: emotionRipplePink 0.7s ease-out; }
         .emotion-transition-sad   { animation: emotionFadeSad   0.7s ease-out; }
         .emotion-status-bar { animation: emotionStatusIn 0.3s ease-out forwards; }
+        @keyframes firstCharAppear {
+          0% { opacity: 0; transform: scale(0.85) translateY(16px); filter: blur(4px); }
+          60% { opacity: 1; transform: scale(1.03) translateY(-2px); filter: blur(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        .first-char-msg { animation: firstCharAppear 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
       `}</style>
 
       {/* 🍖 ハングリーエフェクト：浮かぶ肉絵文字 */}
@@ -359,6 +367,17 @@ export function ChatMessageList({
           style={{ left: `${e.x}%`, animationDelay: `${e.delay}s` }}
         >
           🍖
+        </div>
+      ))}
+
+      {/* ❤️ ラブエフェクト：ハートが舞い上がる */}
+      {heartEmojis.map((e) => (
+        <div
+          key={e.id}
+          className="absolute bottom-24 z-20 pointer-events-none float-meat text-2xl select-none"
+          style={{ left: `${e.x}%`, animationDelay: `${e.delay}s` }}
+        >
+          {e.emoji}
         </div>
       ))}
 
@@ -439,6 +458,7 @@ export function ChatMessageList({
           }
 
           const isUser = msg.role === 'USER';
+          const isFirstCharMsg = !isUser && idx === 0 && messages.filter(m => m.role === 'CHARACTER').length <= 2;
           const emotion = msg.metadata?.emotion;
           const prevCharEmotion = !isUser ? messages.slice(0, idx).reverse().find(m => m.role === 'CHARACTER')?.metadata?.emotion : undefined;
           const emotionEmoji = getEmotionEmoji(emotion);
@@ -472,7 +492,7 @@ export function ChatMessageList({
                 </div>
               )}
               <div
-                className={`msg-animate ${isUser ? 'aniva-msg-send' : 'aniva-msg-recv'} flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
+                className={`msg-animate ${isUser ? 'aniva-msg-send' : 'aniva-msg-recv'} ${isFirstCharMsg ? 'first-char-msg' : ''} flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
                 style={{ animationDelay: `${Math.min(idx * 30, 120)}ms` }}
               >
                 {/* キャラクターアバター */}
