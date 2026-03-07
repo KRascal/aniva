@@ -56,6 +56,9 @@ export async function GET(
       ? Date.now() - new Date(streakLastDate).getTime() < 48 * 60 * 60 * 1000
       : false;
 
+    // ユーザー設定（IKEA効果）
+    const preferences = (memo as { preferences?: { 呼び名?: string; 趣味?: string[] } }).preferences ?? null;
+
     return NextResponse.json({
       level: relationship.level,
       levelName: currentLevel.name,
@@ -70,9 +73,67 @@ export async function GET(
       sharedTopics, // 覚えてくれてる記憶の可視化
       streakDays: isStreakActive ? streakDays : 0,
       isStreakActive,
+      preferences, // あなただけの設定（IKEA効果）
     });
   } catch (error) {
     console.error('[relationship/characterId] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ characterId: string }> }
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
+
+    const body = await req.json();
+    const nickname = typeof body.nickname === 'string' ? body.nickname.trim().slice(0, 20) : undefined;
+    const interests = Array.isArray(body.interests) ? body.interests.slice(0, 15) : undefined;
+
+    // 既存 memorySummary を取得してプリファレンスをマージ
+    const existing = await prisma.relationship.findUnique({
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
+      select: { memorySummary: true },
+    });
+
+    const memo = (existing?.memorySummary ?? {}) as Record<string, unknown>;
+    const prevPrefs = (memo.preferences ?? {}) as Record<string, unknown>;
+
+    const updatedMemo = {
+      ...memo,
+      preferences: {
+        ...prevPrefs,
+        ...(nickname !== undefined ? { 呼び名: nickname } : {}),
+        ...(interests !== undefined ? { 趣味: interests } : {}),
+      },
+    };
+
+    await prisma.relationship.upsert({
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
+      update: { memorySummary: updatedMemo },
+      create: {
+        userId,
+        characterId,
+        locale: 'ja',
+        level: 1,
+        experiencePoints: 0,
+        totalMessages: 0,
+        memorySummary: updatedMemo,
+      },
+    });
+
+    return NextResponse.json({ success: true, preferences: updatedMemo.preferences });
+  } catch (error) {
+    console.error('[relationship/characterId PATCH] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

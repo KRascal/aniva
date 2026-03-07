@@ -158,7 +158,10 @@ interface RelationshipData {
   firstMessageAt?: string;
   lastMessageAt?: string;
   character?: { name: string; slug: string };
+  preferences?: { 呼び名?: string; 趣味?: string[] };
 }
+
+const PRESET_INTERESTS = ['アニメ', 'ゲーム', '音楽', 'スポーツ', '料理', '旅行', '読書', '映画', 'テクノロジー', 'アート'] as const;
 
 interface MilestoneWithAchieved {
   id: string;
@@ -347,6 +350,13 @@ export default function ProfilePage() {
   const [diaryPage, setDiaryPage] = useState(1);
   const [diaryTotalPages, setDiaryTotalPages] = useState(1);
 
+  // IKEA効果: ユーザーカスタマイズ
+  const [nickname, setNickname] = useState('');
+  const [interests, setInterests] = useState<string[]>([]);
+  const [customInterest, setCustomInterest] = useState('');
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   // 嫉妬メカニクス: ランキングデータ
   interface RankingEntry {
     rank: number;
@@ -415,6 +425,46 @@ export default function ProfilePage() {
     };
     load();
   }, [userId, characterId]);
+
+  // プリファレンスをrelationshipデータから読み込み
+  useEffect(() => {
+    if (relationship?.preferences) {
+      setNickname(relationship.preferences['呼び名'] ?? '');
+      setInterests(relationship.preferences['趣味'] ?? []);
+    }
+  }, [relationship]);
+
+  // カスタマイズ保存
+  const handleSaveCustomization = async () => {
+    if (saveLoading) return;
+    setSaveLoading(true);
+    try {
+      await fetch(`/api/relationship/${characterId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname, interests }),
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Customize save error:', err);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const toggleInterest = (interest: string) => {
+    setInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+    );
+  };
+
+  const addCustomInterest = () => {
+    const trimmed = customInterest.trim();
+    if (!trimmed || interests.includes(trimmed)) return;
+    setInterests((prev) => [...prev, trimmed]);
+    setCustomInterest('');
+  };
 
   const handleFollow = async () => {
     if (followLoading) return;
@@ -731,7 +781,9 @@ export default function ProfilePage() {
           onClick={() => router.push(`/memory-book/${characterId}`)}
           className="w-full py-2.5 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all flex items-center justify-center gap-2 bg-amber-900/40 border border-amber-700/40 text-amber-300 hover:bg-amber-900/60 mb-3"
         >
-          <span>📖</span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          </svg>
           思い出ブック
         </button>
 
@@ -786,7 +838,7 @@ export default function ProfilePage() {
           <div className="flex">
             {[
               { id: 'posts' as const, label: '投稿' },
-              { id: 'diary' as const, label: '📔 日記' },
+              { id: 'diary' as const, label: '日記' },
               { id: 'fc' as const, label: 'FC限定' },
               { id: 'dl' as const, label: 'DL' },
               { id: 'profile' as const, label: '関係値' },
@@ -863,7 +915,11 @@ export default function ProfilePage() {
               <div className="text-center py-12 text-white/30 text-sm">読み込み中...</div>
             ) : diaries.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-3">📔</div>
+                <div className="flex justify-center mb-3">
+                  <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm">まだ日記がありません</p>
               </div>
             ) : (
@@ -909,7 +965,9 @@ export default function ProfilePage() {
                               : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
                           }`}
                         >
-                          <span>{diary.isLiked ? '❤️' : '🤍'}</span>
+                          <svg className="w-3.5 h-3.5" fill={diary.isLiked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                          </svg>
                           <span>{diary.likes}</span>
                         </button>
                       </div>
@@ -982,7 +1040,7 @@ export default function ProfilePage() {
         {activeTab === 'dl' && (
           <div className="space-y-4 pt-2 pb-24">
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">
-              📥 限定ダウンロードコンテンツ
+              限定ダウンロードコンテンツ
             </p>
             {dlLoading ? (
               <div className="text-center py-10 text-white/30 text-sm">読み込み中...</div>
@@ -1010,8 +1068,16 @@ export default function ProfilePage() {
                         className={`w-full h-28 object-cover ${item.locked ? 'filter blur-sm opacity-50' : ''}`}
                       />
                     ) : (
-                      <div className={`w-full h-28 flex items-center justify-center text-3xl ${item.locked ? 'opacity-30' : 'bg-gray-800/50'}`}>
-                        {item.type === 'wallpaper' ? '🖼️' : item.type === 'voice_clip' ? '🎵' : item.type === 'special_art' ? '🎨' : '📦'}
+                      <div className={`w-full h-28 flex items-center justify-center ${item.locked ? 'opacity-30 bg-gray-800/30' : 'bg-gray-800/50'}`}>
+                        <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                          {item.type === 'wallpaper' || item.type === 'special_art' ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          ) : item.type === 'voice_clip' ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.75 7.5h16.5M12 3h.008v.008H12V3zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          )}
+                        </svg>
                       </div>
                     )}
 
@@ -1066,7 +1132,11 @@ export default function ProfilePage() {
         {/* ══════════════ 絆レベル表示（目立つ位置） ══════════════ */}
         <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-purple-900/50 to-pink-900/30 border border-purple-500/30 rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">💫</span>
+            <div className="w-8 h-8 rounded-full bg-purple-600/40 border border-purple-500/40 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+            </div>
             <div>
               <p className="text-xs text-purple-300 font-semibold">あなたの絆レベル</p>
               <p className="text-white font-black text-lg leading-tight">Lv.{level} <span className="text-purple-300 text-sm font-semibold">「{levelInfo?.name ?? '—'}」</span></p>
@@ -1078,11 +1148,119 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* ══════════════ あなただけの設定（IKEA効果） ══════════════ */}
+        <div className="bg-gray-900/60 rounded-2xl p-4 border border-white/5 space-y-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+            </svg>
+            <p className="text-white font-semibold text-sm">あなただけの設定</p>
+          </div>
+
+          {/* 呼び名 */}
+          <div className="space-y-1.5">
+            <label className="text-gray-400 text-xs">呼び名（キャラがあなたをどう呼ぶか）</label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="例: 太郎くん"
+              className="w-full bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/60 transition-colors"
+              maxLength={20}
+            />
+          </div>
+
+          {/* 共通の趣味 */}
+          <div className="space-y-2">
+            <label className="text-gray-400 text-xs">共通の趣味（会話の話題に影響します）</label>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_INTERESTS.map((interest) => (
+                <button
+                  key={interest}
+                  onClick={() => toggleInterest(interest)}
+                  className={`text-sm px-3 py-1 rounded-full border transition-all ${
+                    interests.includes(interest)
+                      ? 'bg-purple-600 text-white border-purple-500'
+                      : 'bg-purple-600/20 text-purple-300 border-purple-500/30 hover:bg-purple-600/30'
+                  }`}
+                >
+                  {interest}
+                </button>
+              ))}
+            </div>
+            {/* カスタム入力 */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customInterest}
+                onChange={(e) => setCustomInterest(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') addCustomInterest(); }}
+                placeholder="カスタム追加..."
+                className="flex-1 bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/60 transition-colors"
+                maxLength={15}
+              />
+              <button
+                onClick={addCustomInterest}
+                disabled={!customInterest.trim()}
+                className="px-3 py-2 rounded-xl bg-gray-700 text-gray-300 text-sm hover:bg-gray-600 disabled:opacity-40 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+            </div>
+            {/* カスタムタグ（プリセット外） */}
+            {interests.filter((i) => !(PRESET_INTERESTS as readonly string[]).includes(i)).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {interests.filter((i) => !(PRESET_INTERESTS as readonly string[]).includes(i)).map((interest) => (
+                  <button
+                    key={interest}
+                    onClick={() => toggleInterest(interest)}
+                    className="text-sm px-3 py-1 rounded-full border bg-purple-600 text-white border-purple-500 flex items-center gap-1"
+                  >
+                    {interest}
+                    <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 保存ボタン */}
+          <button
+            onClick={handleSaveCustomization}
+            disabled={saveLoading}
+            className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              saveSuccess
+                ? 'bg-green-600/80 text-white'
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            } ${saveLoading ? 'opacity-60' : ''}`}
+          >
+            {saveLoading ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : saveSuccess ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                設定を保存しました
+              </>
+            ) : (
+              '保存する'
+            )}
+          </button>
+        </div>
+
         {/* ══════════════ 今週のTOP3ランキング（嫉妬メカニクス） ══════════════ */}
         <div>
-          <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
-            🏆 今週の親密度TOP3
-          </p>
+          <div className="flex items-center gap-1.5 mb-3 px-1">
+            <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">今週の親密度TOP3</p>
+          </div>
           <div className="bg-gray-900/80 rounded-2xl border border-white/8 overflow-hidden">
             {rankingLoading ? (
               <div className="py-8 text-center text-white/30 text-sm">読み込み中…</div>
@@ -1091,7 +1269,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 {ranking.slice(0, 3).map((entry) => {
-                  const medals = ['🥇', '🥈', '🥉'];
+                  const medalColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600'];
                   return (
                     <div
                       key={entry.rank}
@@ -1099,7 +1277,9 @@ export default function ProfilePage() {
                         entry.isMe ? 'bg-purple-900/30' : ''
                       }`}
                     >
-                      <span className="text-xl w-6 text-center flex-shrink-0">{medals[entry.rank - 1] ?? `#${entry.rank}`}</span>
+                      <span className={`text-sm font-black w-6 text-center flex-shrink-0 ${medalColors[entry.rank - 1] ?? 'text-white/40'}`}>
+                        {entry.rank <= 3 ? `#${entry.rank}` : `#${entry.rank}`}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-semibold truncate ${entry.isMe ? 'text-purple-200' : 'text-white/80'}`}>
                           {entry.maskedName}
@@ -1118,7 +1298,11 @@ export default function ProfilePage() {
                 {myRank !== null && myRank > 3 && (
                   <div className="px-4 py-3 bg-orange-950/20 border-t border-orange-500/20">
                     <div className="flex items-center gap-2">
-                      <span className="text-base">😤</span>
+                      <div className="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3 h-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                        </svg>
+                      </div>
                       <div>
                         <p className="text-orange-300 text-xs font-semibold">あなたは現在 {myRank}位</p>
                         <p className="text-gray-400 text-xs mt-0.5">
@@ -1132,7 +1316,7 @@ export default function ProfilePage() {
                 {/* 自分が1位の場合の特別表示 */}
                 {myRank === 1 && (
                   <div className="px-4 py-2 bg-yellow-950/20 border-t border-yellow-500/20 text-center">
-                    <p className="text-yellow-300 text-xs font-semibold">✨ あなたが最も親しい存在です！</p>
+                    <p className="text-yellow-300 text-xs font-semibold">あなたが最も親しい存在です</p>
                   </div>
                 )}
               </>

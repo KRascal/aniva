@@ -17,7 +17,9 @@ class TabErrorBoundary extends Component<{ children: ReactNode; fallback?: React
     if (this.state.hasError) {
       return this.props.fallback ?? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
-          <p className="text-4xl mb-3">😵</p>
+          <svg className="w-12 h-12 text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
           <p className="text-white/60 text-sm mb-2">読み込みエラーが発生しました</p>
           <p className="text-red-400/60 text-[10px] mb-3 break-all">{this.state.error?.message}</p>
           <button onClick={() => { this.setState({ hasError: false }); window.location.reload(); }} className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold">再読み込み</button>
@@ -260,7 +262,11 @@ function CardCollectionTab() {
       {/* Stats */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🃏</span>
+          <div className="w-9 h-9 rounded-xl bg-purple-900/40 border border-purple-700/30 flex items-center justify-center">
+            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3h10.5a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0117.25 21H6.75A2.25 2.25 0 014.5 18.75V5.25A2.25 2.25 0 016.75 3zm0 0V21m10.5-18V21M3 8.25h18M3 15.75h18" />
+            </svg>
+          </div>
           <div>
             <p className="text-white font-bold text-lg">{cards.length}<span className="text-white/40 text-sm font-normal">/{totalCards}</span></p>
             <p className="text-white/40 text-[10px]">コレクション</p>
@@ -308,7 +314,11 @@ function CardCollectionTab() {
       {/* Card Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-5xl mb-4">🎴</p>
+          <div className="flex justify-center mb-4">
+            <svg className="w-14 h-14 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3h10.5a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0117.25 21H6.75A2.25 2.25 0 014.5 18.75V5.25A2.25 2.25 0 016.75 3zm0 0V21m10.5-18V21M3 8.25h18M3 15.75h18" />
+            </svg>
+          </div>
           <p className="text-white/60 text-sm">カードがまだありません</p>
           <p className="text-white/30 text-xs mt-1">ガチャを引いてコレクションを始めよう！</p>
         </div>
@@ -520,7 +530,9 @@ function GachaTab() {
       {/* Coin balance */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 bg-gray-800/80 rounded-full px-3 py-1.5">
-          <span className="text-lg">🪙</span>
+          <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" />
+          </svg>
           <span className="text-yellow-300 font-bold">{coinBalance.toLocaleString()}</span>
         </div>
         {/* Pity progress */}
@@ -603,9 +615,16 @@ function GachaTab() {
           <button
             onClick={() => doPull('free')}
             disabled={pulling}
-            className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-gray-900 rounded-2xl py-4 font-black text-lg shadow-lg shadow-amber-500/30 active:scale-[0.97] transition-transform disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-gray-900 rounded-2xl py-4 font-black text-lg shadow-lg shadow-amber-500/30 active:scale-[0.97] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {pulling ? '...' : '🎁 無料1回'}
+            {pulling ? '...' : (
+              <>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
+                無料1回
+              </>
+            )}
           </button>
         )}
         <div className="flex gap-3">
@@ -614,23 +633,27 @@ function GachaTab() {
             disabled={pulling || !selectedBanner}
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl py-3.5 font-bold text-base shadow-lg shadow-purple-500/30 active:scale-[0.97] transition-transform disabled:opacity-50"
           >
-            {pulling ? '...' : `1回 🪙${selectedBanner?.costCoins ?? 100}`}
+            {pulling ? '...' : `1回 · ${selectedBanner?.costCoins ?? 100}コイン`}
           </button>
           <button
             onClick={() => doPull(10)}
             disabled={pulling || !selectedBanner}
             className="flex-1 bg-gradient-to-r from-purple-700 to-pink-700 text-white rounded-2xl py-3.5 font-bold text-base shadow-lg shadow-purple-500/30 active:scale-[0.97] transition-transform disabled:opacity-50 border border-purple-400/30"
           >
-            {pulling ? '...' : `10連 🪙${selectedBanner?.cost10Coins ?? 900}`}
+            {pulling ? '...' : `10連 · ${selectedBanner?.cost10Coins ?? 900}コイン`}
           </button>
         </div>
       </div>
 
       {banners.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-5xl mb-4">🎰</p>
+          <div className="flex justify-center mb-4">
+            <svg className="w-14 h-14 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+            </svg>
+          </div>
           <p className="text-white/60 text-sm">現在開催中のガチャはありません</p>
-          <p className="text-white/30 text-xs mt-1">次回のバナーをお楽しみに！</p>
+          <p className="text-white/30 text-xs mt-1">次回のバナーをお楽しみに</p>
         </div>
       )}
     </div>
@@ -674,7 +697,10 @@ export default function CardsPage() {
       <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-md border-b border-white/5">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            🃏 カード
+            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3h10.5a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0117.25 21H6.75A2.25 2.25 0 014.5 18.75V5.25A2.25 2.25 0 016.75 3zm0 0V21m10.5-18V21M3 8.25h18M3 15.75h18" />
+            </svg>
+            カード
           </h1>
         </div>
 
