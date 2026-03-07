@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { PushSetup } from "@/components/PushSetup";
 import { BottomNav } from "@/components/BottomNav";
 import { LoginBonusPopup } from "@/components/LoginBonusPopup";
+import { GlobalProactiveBanner } from "@/components/GlobalProactiveBanner";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -93,6 +94,7 @@ export default async function RootLayout({
             <PostHogProvider>
               <PushSetup />
               <LoginBonusPopup />
+              <GlobalProactiveBanner />
               {children}
               <BottomNav />
             </PostHogProvider>
