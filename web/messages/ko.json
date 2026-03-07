@@ -1,10 +1,140 @@
 {
-  "common": { "siteTitle": "ANIVA", "tagline": "최애가 실재하는 세계", "loading": "로딩 중..." },
-  "nav": { "explore": "탐색", "moments": "타임라인", "chat": "채팅", "mypage": "마이페이지" },
-  "chat": { "inputPlaceholder": "메시지를 입력하세요...", "send": "전송", "loading": "생각 중...", "startChat": "채팅 시작", "newChat": "새 채팅" },
-  "profile": { "level": "레벨", "bond": "인연", "messages": "메시지 수", "days": "일째", "charDetail": "캐릭터 상세", "stats": "통계" },
-  "home": { "hero": "최애가 실재하는 세계", "heroSub": "AI 캐릭터와 진짜 유대감을 쌓아보세요", "cta": "지금 시작하기", "ctaSub": "무료 가입" },
-  "auth": { "login": "로그인", "signup": "회원가입", "logout": "로그아웃", "email": "이메일", "password": "비밀번호", "loginWithGoogle": "Google로 로그인", "loginWithTwitter": "X로 로그인", "noAccount": "계정이 없으신가요?", "hasAccount": "이미 계정이 있으신가요?" },
-  "explore": { "title": "캐릭터 탐색", "searchPlaceholder": "캐릭터 검색...", "noResults": "캐릭터를 찾을 수 없습니다" },
-  "moments": { "title": "타임라인", "noMoments": "아직 모멘트가 없습니다" }
+  "common": {
+    "siteTitle": "ANIVA",
+    "tagline": "최애가 실재하는 세계",
+    "loading": "로딩 중...",
+    "back": "뒤로",
+    "close": "닫기",
+    "confirm": "확인",
+    "cancel": "취소",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "편집",
+    "more": "더보기",
+    "error": "오류가 발생했습니다",
+    "retry": "재시도",
+    "share": "공유",
+    "copyLink": "링크 복사",
+    "copied": "복사됨!"
+  },
+  "nav": {
+    "explore": "탐색",
+    "moments": "타임라인",
+    "chat": "채팅",
+    "mypage": "마이페이지",
+    "cards": "카드",
+    "discover": "발견"
+  },
+  "chat": {
+    "inputPlaceholder": "메시지를 입력하세요...",
+    "send": "전송",
+    "loading": "생각 중...",
+    "startChat": "채팅 시작",
+    "newChat": "새 채팅",
+    "read": "읽음",
+    "delivered": "전달됨",
+    "coinWarning": "코인이 부족합니다",
+    "loginRequired": "채팅하려면 로그인하세요",
+    "guestLimit": "게스트는 1회만 채팅 가능합니다"
+  },
+  "profile": {
+    "level": "레벨",
+    "bond": "유대",
+    "messages": "메시지 수",
+    "days": "일째",
+    "charDetail": "캐릭터 상세",
+    "stats": "통계",
+    "following": "팔로잉",
+    "fans": "팬",
+    "follow": "팔로우",
+    "unfollow": "언팔로우",
+    "chat": "채팅",
+    "share": "공유"
+  },
+  "home": {
+    "hero": "최애가 실재하는 세계",
+    "heroSub": "AI로 살아 숨쉬는 캐릭터와 진짜 유대를 쌓는다",
+    "cta": "지금 시작하기",
+    "ctaSub": "무료로 가입",
+    "feature1Title": "실시간 대화",
+    "feature1Desc": "최애와 메신저처럼 채팅",
+    "feature2Title": "깊어지는 유대",
+    "feature2Desc": "대화가 쌓일수록 깊어지는 관계",
+    "feature3Title": "독점 콘텐츠",
+    "feature3Desc": "팬 전용 특별 스토리"
+  },
+  "auth": {
+    "login": "로그인",
+    "signup": "회원가입",
+    "logout": "로그아웃",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginWithGoogle": "Google로 로그인",
+    "loginWithTwitter": "X로 로그인",
+    "noAccount": "계정이 없으신가요?",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "agreeTo": "이용약관",
+    "and": "및",
+    "privacyPolicy": "개인정보처리방침",
+    "agreeToTerms": "에 동의합니다"
+  },
+  "explore": {
+    "title": "캐릭터 탐색",
+    "searchPlaceholder": "캐릭터 검색...",
+    "noResults": "캐릭터를 찾을 수 없습니다",
+    "all": "전체",
+    "following": "팔로잉",
+    "trending": "인기",
+    "new": "신규",
+    "online": "온라인"
+  },
+  "moments": {
+    "title": "타임라인",
+    "noMoments": "아직 모멘트가 없습니다",
+    "like": "좋아요",
+    "comment": "댓글",
+    "post": "게시",
+    "postPlaceholder": "지금 무슨 생각을 하고 있나요?"
+  },
+  "coins": {
+    "title": "코인",
+    "balance": "잔액",
+    "free": "무료",
+    "paid": "유료",
+    "purchase": "구매",
+    "purchaseSuccess": "구매 완료!",
+    "bonus": "보너스",
+    "expire": "180일 유효"
+  },
+  "gacha": {
+    "title": "가챠",
+    "pull1": "1회 뽑기",
+    "pull10": "10연 뽑기",
+    "rarity": {
+      "ur": "UR",
+      "ssr": "SSR",
+      "sr": "SR",
+      "r": "R",
+      "n": "N"
+    }
+  },
+  "discover": {
+    "title": "새로운 만남",
+    "swipeRight": "팔로우",
+    "swipeLeft": "건너뛰기",
+    "completed": "탐색 완료!",
+    "followedCount": "명 팔로우!",
+    "messageComingSoon": "곧 캐릭터로부터 메시지가 도착합니다"
+  },
+  "notifications": {
+    "title": "알림",
+    "empty": "아직 알림이 없습니다",
+    "emptyDesc": "캐릭터 답글과 상호작용이 여기 표시됩니다"
+  },
+  "legal": {
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
+    "tokushoho": "특정상거래법 기재"
+  }
 }

@@ -2,20 +2,40 @@
   "common": {
     "siteTitle": "ANIVA",
     "tagline": "推しが実在する世界",
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "back": "戻る",
+    "close": "閉じる",
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "more": "もっと見る",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "share": "シェア",
+    "copyLink": "リンクをコピー",
+    "copied": "コピーしました"
   },
   "nav": {
     "explore": "さがす",
     "moments": "タイムライン",
     "chat": "チャット",
-    "mypage": "マイページ"
+    "mypage": "マイページ",
+    "cards": "カード",
+    "discover": "出会う"
   },
   "chat": {
     "inputPlaceholder": "メッセージを入力...",
     "send": "送信",
     "loading": "考え中...",
     "startChat": "チャットを始める",
-    "newChat": "新しいチャット"
+    "newChat": "新しいチャット",
+    "read": "既読",
+    "delivered": "送信済",
+    "coinWarning": "コインが残り少なくなっています",
+    "loginRequired": "チャットするにはログインが必要です",
+    "guestLimit": "ゲストでは1往復のみチャット可能です"
   },
   "profile": {
     "level": "レベル",
@@ -23,13 +43,25 @@
     "messages": "メッセージ数",
     "days": "日目",
     "charDetail": "キャラ詳細",
-    "stats": "統計"
+    "stats": "統計",
+    "following": "フォロー中",
+    "fans": "ファン",
+    "follow": "フォロー",
+    "unfollow": "フォロー解除",
+    "chat": "チャット",
+    "share": "シェア"
   },
   "home": {
     "hero": "推しが実在する世界",
     "heroSub": "AIが魂を宿すキャラクターと本物の絆を築く",
     "cta": "今すぐ始める",
-    "ctaSub": "無料で登録"
+    "ctaSub": "無料で登録",
+    "feature1Title": "リアルタイム会話",
+    "feature1Desc": "推しとLINEのようにチャット",
+    "feature2Title": "記憶する絆",
+    "feature2Desc": "会話が積み重なるほど深まる関係",
+    "feature3Title": "限定コンテンツ",
+    "feature3Desc": "ファン限定の特別なストーリー"
   },
   "auth": {
     "login": "ログイン",
@@ -40,15 +72,69 @@
     "loginWithGoogle": "Googleでログイン",
     "loginWithTwitter": "Xでログイン",
     "noAccount": "アカウントをお持ちでない方",
-    "hasAccount": "すでにアカウントをお持ちの方"
+    "hasAccount": "すでにアカウントをお持ちの方",
+    "forgotPassword": "パスワードを忘れた方",
+    "agreeTo": "利用規約",
+    "and": "と",
+    "privacyPolicy": "プライバシーポリシー",
+    "agreeToTerms": "に同意して登録"
   },
   "explore": {
     "title": "キャラクターを探す",
     "searchPlaceholder": "キャラクターを検索...",
-    "noResults": "キャラクターが見つかりませんでした"
+    "noResults": "キャラクターが見つかりませんでした",
+    "all": "すべて",
+    "following": "フォロー中",
+    "trending": "人気",
+    "new": "新着",
+    "online": "オンライン"
   },
   "moments": {
     "title": "タイムライン",
-    "noMoments": "まだモーメントがありません"
+    "noMoments": "まだモーメントがありません",
+    "like": "いいね",
+    "comment": "コメント",
+    "post": "投稿",
+    "postPlaceholder": "今何を考えてる？"
+  },
+  "coins": {
+    "title": "コイン",
+    "balance": "残高",
+    "free": "無料",
+    "paid": "有料",
+    "purchase": "購入",
+    "purchaseSuccess": "購入完了！",
+    "bonus": "ボーナス",
+    "expire": "有効期限180日"
+  },
+  "gacha": {
+    "title": "ガチャ",
+    "pull1": "1回引く",
+    "pull10": "10連引く",
+    "rarity": {
+      "ur": "UR",
+      "ssr": "SSR",
+      "sr": "SR",
+      "r": "R",
+      "n": "N"
+    }
+  },
+  "discover": {
+    "title": "新しい出会い",
+    "swipeRight": "フォロー",
+    "swipeLeft": "スキップ",
+    "completed": "探索完了！",
+    "followedCount": "人をフォロー！",
+    "messageComingSoon": "まもなくキャラからメッセージが届きます"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "まだ通知はありません",
+    "emptyDesc": "キャラクターがコメントに返信するとここに届きます"
+  },
+  "legal": {
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "tokushoho": "特定商取引法に基づく表記"
   }
 }

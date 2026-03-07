@@ -2,20 +2,40 @@
   "common": {
     "siteTitle": "ANIVA",
     "tagline": "Where your favorites come to life",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "more": "More",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "share": "Share",
+    "copyLink": "Copy link",
+    "copied": "Copied!"
   },
   "nav": {
     "explore": "Explore",
     "moments": "Timeline",
     "chat": "Chat",
-    "mypage": "My Page"
+    "mypage": "My Page",
+    "cards": "Cards",
+    "discover": "Discover"
   },
   "chat": {
     "inputPlaceholder": "Type a message...",
     "send": "Send",
     "loading": "Thinking...",
     "startChat": "Start chatting",
-    "newChat": "New chat"
+    "newChat": "New chat",
+    "read": "Read",
+    "delivered": "Delivered",
+    "coinWarning": "You're running low on coins",
+    "loginRequired": "Please log in to chat",
+    "guestLimit": "Guests can only send 1 message"
   },
   "profile": {
     "level": "Level",
@@ -23,13 +43,25 @@
     "messages": "Messages",
     "days": "Days",
     "charDetail": "Character Details",
-    "stats": "Stats"
+    "stats": "Stats",
+    "following": "Following",
+    "fans": "Fans",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "chat": "Chat",
+    "share": "Share"
   },
   "home": {
     "hero": "Where your favorites come to life",
     "heroSub": "Build real bonds with AI-powered characters",
     "cta": "Get Started",
-    "ctaSub": "Free to join"
+    "ctaSub": "Free to join",
+    "feature1Title": "Real-time Chat",
+    "feature1Desc": "Chat with your favorites like messaging a friend",
+    "feature2Title": "Growing Bonds",
+    "feature2Desc": "Relationships deepen with every conversation",
+    "feature3Title": "Exclusive Content",
+    "feature3Desc": "Fan-only stories and special moments"
   },
   "auth": {
     "login": "Login",
@@ -40,15 +72,69 @@
     "loginWithGoogle": "Sign in with Google",
     "loginWithTwitter": "Sign in with X",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "agreeTo": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "agreeToTerms": "I agree to the"
   },
   "explore": {
     "title": "Explore Characters",
     "searchPlaceholder": "Search characters...",
-    "noResults": "No characters found"
+    "noResults": "No characters found",
+    "all": "All",
+    "following": "Following",
+    "trending": "Trending",
+    "new": "New",
+    "online": "Online"
   },
   "moments": {
     "title": "Timeline",
-    "noMoments": "No moments yet"
+    "noMoments": "No moments yet",
+    "like": "Like",
+    "comment": "Comment",
+    "post": "Post",
+    "postPlaceholder": "What's on your mind?"
+  },
+  "coins": {
+    "title": "Coins",
+    "balance": "Balance",
+    "free": "Free",
+    "paid": "Paid",
+    "purchase": "Purchase",
+    "purchaseSuccess": "Purchase complete!",
+    "bonus": "Bonus",
+    "expire": "Expires in 180 days"
+  },
+  "gacha": {
+    "title": "Gacha",
+    "pull1": "Pull 1",
+    "pull10": "Pull 10",
+    "rarity": {
+      "ur": "UR",
+      "ssr": "SSR",
+      "sr": "SR",
+      "r": "R",
+      "n": "N"
+    }
+  },
+  "discover": {
+    "title": "New Encounters",
+    "swipeRight": "Follow",
+    "swipeLeft": "Skip",
+    "completed": "All done!",
+    "followedCount": " followed!",
+    "messageComingSoon": "Messages from your new follows are on the way"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "emptyDesc": "Character replies and interactions will appear here"
+  },
+  "legal": {
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "tokushoho": "Specified Commercial Transactions"
   }
 }
