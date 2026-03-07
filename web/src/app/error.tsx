@@ -1,8 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+
+const ERROR_MESSAGES = [
+  '...ちょっと迷子になっちゃったみたい',
+  '...あれ？何かがおかしいかも',
+  '...ごめん、うまくいかなかった',
+  '...もう一回試してみよう？',
+];
 
 export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+  const [message] = useState(() =>
+    ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)]
+  );
+
   useEffect(() => {
     // Server Actionの不一致エラー → 自動リロードでキャッシュ更新
     if (
@@ -15,14 +27,71 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">エラーが発生しました</h2>
-        <p className="text-gray-400 mb-6">{error.message}</p>
-        <button onClick={reset} className="px-6 py-3 bg-purple-600 rounded-lg hover:bg-purple-700">
-          再試行
-        </button>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+      {/* 背景グロー */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-purple-900/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[200px] h-[200px] bg-pink-900/15 rounded-full blur-[100px]" />
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        className="relative z-10 text-center px-6 max-w-sm"
+      >
+        {/* アイコン */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
+          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-[var(--color-surface)] border border-white/5 flex items-center justify-center shadow-lg shadow-purple-900/20"
+        >
+          <span className="text-3xl">💫</span>
+        </motion.div>
+
+        {/* メッセージ */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-lg text-[var(--color-text)] font-medium mb-2"
+        >
+          {message}
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-sm text-[var(--color-muted)] mb-8"
+        >
+          心配しないで、もう一回やってみよう
+        </motion.p>
+
+        {/* ボタン */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="flex flex-col gap-3"
+        >
+          <button
+            onClick={reset}
+            className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium text-white 
+                       shadow-lg shadow-purple-900/30 active:scale-[0.97] transition-transform"
+          >
+            もう一度試す
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)]
+                       active:scale-[0.97] transition-transform"
+          >
+            ホームに戻る
+          </button>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
