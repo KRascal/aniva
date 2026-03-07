@@ -24,15 +24,16 @@ interface FanStats {
  * ファン統計パネル — 嫉妬メカニクス
  * 「他のファンの存在が見える」→ 負けたくない → 課金ドライバー
  */
-export function FanStatsPanel({ characterId }: { characterId: string }) {
+export function FanStatsPanel({ characterSlug }: { characterSlug: string }) {
   const [stats, setStats] = useState<FanStats | null>(null);
 
   useEffect(() => {
-    fetch(`/api/characters/${characterId}/fan-stats`)
+    if (!characterSlug) return;
+    fetch(`/api/characters/${characterSlug}/fan-stats`)
       .then(r => r.ok ? r.json() : null)
       .then(setStats)
       .catch(() => null);
-  }, [characterId]);
+  }, [characterSlug]);
 
   if (!stats || (stats.totalTodayMessages === 0 && stats.fcMemberCount === 0)) return null;
 

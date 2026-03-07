@@ -777,7 +777,7 @@ export default function ProfilePage() {
         )}
 
         {/* ファン統計パネル — 嫉妬メカニクス */}
-        <FanStatsPanel characterId={characterId as string} />
+        {character?.slug && <FanStatsPanel characterSlug={character.slug} />}
 
         {/* ══════════════ アクションボタン ══════════════ */}
         {/* 思い出ブックボタン */}
