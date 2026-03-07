@@ -1,6 +1,7 @@
 import webpush from 'web-push';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
 
 // 全キャラクターのプロアクティブメッセージ
 const CHARACTER_MESSAGES: Record<string, Record<'morning' | 'afternoon' | 'evening', string[]>> = {
@@ -146,6 +147,16 @@ export async function POST(req: NextRequest) {
     const totalResults: Record<string, { success: number; failed: number }> = {};
     const failedEndpoints: string[] = [];
 
+    // 天気取得（朝のpushで天気連動メッセージ追加）
+    let weatherSuffix = '';
+    if (timeOfDay === 'morning') {
+      const weather = await getCurrentWeather();
+      if (weather) {
+        const reaction = getWeatherReaction(weather);
+        if (reaction) weatherSuffix = ` ${reaction}`;
+      }
+    }
+
     // 全キャラクターを取得
     const characters = await prisma.character.findMany({
       where: { isActive: true },
@@ -157,7 +168,11 @@ export async function POST(req: NextRequest) {
       const messages = CHARACTER_MESSAGES[slug];
       if (!messages) continue;
 
-      const messageBody = pickRandom(messages[timeOfDay]);
+      let messageBody = pickRandom(messages[timeOfDay]);
+      // 朝のpushに30%の確率で天気メッセージを追加
+      if (weatherSuffix && Math.random() < 0.3) {
+        messageBody += weatherSuffix;
+      }
       const charName = CHARACTER_NAMES[slug] || slug;
 
       // このキャラのフォロワー（isFollowingまたはisFanclub）のpush subscriptionを取得

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FcMembershipSection } from '@/components/FcMembershipSection';
 import { MomentCard as SharedMomentCard, MOMENT_CARD_STYLES, type Moment as SharedMoment } from '@/components/moments/MomentCard';
+import { FanStatsPanel } from '@/components/character/FanStatsPanel';
 
 /* ───────────────────────── Luffy 固定データ ───────────────────────── */
 /* ───────────────────────── キャラクター情報データ ───────────────────────── */
@@ -774,6 +775,9 @@ export default function ProfilePage() {
             <p className="text-gray-300 text-sm leading-relaxed">{character.description}</p>
           </div>
         )}
+
+        {/* ファン統計パネル — 嫉妬メカニクス */}
+        <FanStatsPanel characterId={characterId as string} />
 
         {/* ══════════════ アクションボタン ══════════════ */}
         {/* 思い出ブックボタン */}

@@ -247,8 +247,16 @@ export async function POST(req: NextRequest) {
       100: '100通の絆！',
       200: '200通…本物だ',
       500: '伝説の500通',
+      1000: '千の言葉を超えて',
+      2500: 'かけがえのない二人',
+      5000: '永遠の絆',
     };
     const msgMilestone = MILESTONES[totalMsgCount] ?? null;
+
+    // 思い出カード自動生成（マイルストーン達成時）
+    import('@/lib/memory-card').then(({ checkAndCreateMemoryCard }) => {
+      checkAndCreateMemoryCard(userId, characterId, totalMsgCount).catch(() => {});
+    }).catch(() => {});
 
     // コイン残高取得（UI表示用）
     const latestBalance = await prisma.coinBalance.findUnique({ where: { userId } });

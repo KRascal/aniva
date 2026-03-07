@@ -8,12 +8,22 @@ import { auth } from '@/lib/auth';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ characterId: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { characterId } = await params;
+    const { slug } = await params;
     const session = await auth();
     const userId = session?.user?.id;
+
+    // slugからキャラクターIDを取得
+    const character = await prisma.character.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!character) {
+      return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+    }
+    const characterId = character.id;
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

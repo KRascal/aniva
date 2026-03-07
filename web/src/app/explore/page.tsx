@@ -887,19 +887,23 @@ function TodayGreetingSection({
           <div className="px-4 py-3 flex items-start gap-3">
             {/* アバター */}
             <div className="flex-shrink-0 mt-0.5">
-              {char.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={char.avatarUrl}
-                  alt={char.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                  style={{ boxShadow: '0 0 0 2px rgba(139,92,246,0.45)' }}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
-                  {char.name.charAt(0)}
-                </div>
-              )}
+              <div className="relative">
+                {char.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={char.avatarUrl}
+                    alt={char.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                    style={{ boxShadow: '0 0 0 2px rgba(139,92,246,0.45)' }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                    {char.name.charAt(0)}
+                  </div>
+                )}
+                {/* オンラインインジケーター */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[var(--color-bg)] animate-pulse" />
+              </div>
             </div>
 
             {/* 吹き出し風テキスト */}
