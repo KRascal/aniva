@@ -198,7 +198,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-1 text-gray-400">
               <li><strong className="text-white">アカウント情報：</strong>アカウント削除の申請後、30日以内に削除します。</li>
               <li><strong className="text-white">会話履歴：</strong>アカウント削除後90日以内に削除します（バックアップからの完全削除には最大180日かかる場合があります）。</li>
-              <li><strong className="text-white">決済・購入履歴：</strong>税務・会計上の義務により、最終取引から7年間保持します。</li>
+              <li><strong className="text-white">決済・購入履歴：</strong>税務・会計上の義務により、最終取引から7年間保持します。コイン（前払式支払手段）の有効期限は購入日から180日間です。</li>
               <li><strong className="text-white">アクセスログ：</strong>セキュリティ目的で最大90日間保持します。</li>
               <li>法令に基づく保存義務がある情報は、当該期間中は削除できません。</li>
             </ul>

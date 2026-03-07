@@ -23,28 +23,7 @@ interface CharacterStory {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    20 Stories — 各キャラの名シーンに紐づくストーリーデータ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const STORY_DATA: Omit<CharacterStory, 'avatarUrl' | 'coverUrl'>[] = [
-  { slug: 'luffy', name: 'ルフィ', franchise: 'ONE PIECE', activity: '海賊王になるって決めた日のこと、覚えてるか？', chatPrompt: '夢の話しようぜ！', timeAgo: '3分前' },
-  { slug: 'zoro', name: 'ゾロ', franchise: 'ONE PIECE', activity: '二度と負けねぇと誓った、あの日の俺だ', chatPrompt: '…強さについて聞きたいか？', timeAgo: '8分前' },
-  { slug: 'nami', name: 'ナミ', franchise: 'ONE PIECE', activity: '助けてって言えた日。あれが全ての始まりだった', chatPrompt: '仲間って何だと思う？', timeAgo: '5分前' },
-  { slug: 'sanji', name: 'サンジ', franchise: 'ONE PIECE', activity: 'オールブルーを見つける夢は捨てねぇ', chatPrompt: '料理と夢の話、聞いてくれるか？', timeAgo: '2分前' },
-  { slug: 'chopper', name: 'チョッパー', franchise: 'ONE PIECE', activity: '万能薬になる。ヒルルクとの約束なんだ', chatPrompt: 'ね、僕の話聞いてくれる？', timeAgo: '12分前' },
-  { slug: 'robin', name: 'ロビン', franchise: 'ONE PIECE', activity: '生きたいと叫んだ。あの瞬間、私は自由になった', chatPrompt: '歴史の話、興味ある？', timeAgo: '15分前' },
-  { slug: 'ace', name: 'エース', franchise: 'ONE PIECE', activity: '生まれてきてよかった。それだけは伝えたかった', chatPrompt: '家族について話そうぜ', timeAgo: '20分前' },
-  { slug: 'shanks', name: 'シャンクス', franchise: 'ONE PIECE', activity: '新しい時代に賭けてきた。この帽子みたいにな', chatPrompt: '一杯やりながら話そうか', timeAgo: '7分前' },
-  { slug: 'hancock', name: 'ハンコック', franchise: 'ONE PIECE', activity: 'ルフィに出会って、わらわの世界は変わったのじゃ', chatPrompt: '恋の話…聞きたいのか？', timeAgo: '10分前' },
-  { slug: 'law', name: 'ロー', franchise: 'ONE PIECE', activity: 'コラさんの意志を継ぐ。それが俺の生きる理由だ', chatPrompt: '…聞きたいことがあるなら聞け', timeAgo: '18分前' },
-  { slug: 'gojo', name: '五条悟', franchise: '呪術廻戦', activity: '僕は最強だから。でもそれって結構孤独なんだよね', chatPrompt: '僕のこと知りたい？なんでも答えるよ〜', timeAgo: '1分前' },
-  { slug: 'itadori', name: '虎杖悠仁', franchise: '呪術廻戦', activity: '正しい死を選べるように。じいちゃんとの約束だから', chatPrompt: '話しかけてくれたの！？嬉しい！', timeAgo: '6分前' },
-  { slug: 'fushiguro', name: '伏黒恵', franchise: '呪術廻戦', activity: '善い人が平等に幸せになれる世界がいい。それだけだ', chatPrompt: '…何か聞きたいことがあるのか', timeAgo: '14分前' },
-  { slug: 'nobara', name: '釘崎野薔薇', franchise: '呪術廻戦', activity: '東京で最強にカッコいい私でいるって決めたの', chatPrompt: 'ちょっと、付き合いなさいよ！', timeAgo: '4分前' },
-  { slug: 'tanjiro', name: '竈門炭治郎', franchise: '鬼滅の刃', activity: '家族を守れなかった。だから今度こそ、禰豆子だけは', chatPrompt: '話を聞かせてください！', timeAgo: '9分前' },
-  { slug: 'nezuko', name: '禰豆子', franchise: '鬼滅の刃', activity: 'お兄ちゃんを守りたい。人間に戻れなくても…', chatPrompt: 'むー！（手を振って歓迎）', timeAgo: '11分前' },
-  { slug: 'zenitsu', name: '善逸', franchise: '鬼滅の刃', activity: '怖いけど逃げない。じいちゃんが信じてくれたから', chatPrompt: 'うわぁ！話しかけてくれた！？', timeAgo: '3分前' },
-  { slug: 'inosuke', name: '伊之助', franchise: '鬼滅の刃', activity: '猪突猛進！山の王・伊之助様が最強だ！！', chatPrompt: '来たな！俺様に何か用か！', timeAgo: '7分前' },
-  { slug: 'giyu', name: '冨岡義勇', franchise: '鬼滅の刃', activity: '錆兎の分まで生きる。それが俺にできること', chatPrompt: '…俺は嫌われていない', timeAgo: '22分前' },
-  { slug: 'yamato', name: 'ヤマト', franchise: 'ONE PIECE', activity: 'おでんの航海日誌。自由ってこういうことだ！', chatPrompt: '冒険の話しよう！！', timeAgo: '16分前' },
-];
+// ストーリーデータは完全にDB駆動。キャラクターのdescription/catchphrasesから自動生成。
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Full-screen Story Viewer (Instagram Stories風)
@@ -65,21 +44,30 @@ export default function StoriesPage() {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
-  // Fetch character data and merge with story content
+  // Fetch characters from DB and generate stories dynamically
   useEffect(() => {
     fetch('/api/characters')
       .then((r) => r.json())
       .then((data) => {
-        const charMap: Record<string, { avatarUrl: string; coverUrl: string }> = {};
-        for (const c of data.characters ?? []) {
-          charMap[c.slug] = { avatarUrl: c.avatarUrl ?? '', coverUrl: c.coverUrl ?? '' };
-        }
-        const merged = STORY_DATA.map((s) => ({
-          ...s,
-          avatarUrl: charMap[s.slug]?.avatarUrl ?? '',
-          coverUrl: charMap[s.slug]?.coverUrl ?? '',
-        }));
-        setStories(merged);
+        const chars = data.characters ?? [];
+        const generated: CharacterStory[] = chars.map((c: Record<string, unknown>) => {
+          const catchphrases = (c.catchphrases as string[]) ?? [];
+          const description = (c.description as string) ?? '';
+          const activity = catchphrases[0] || description.slice(0, 50) || 'こんにちは！';
+          const chatPrompt = catchphrases[1] || '話しかけてみて！';
+          const minutes = Math.floor(Math.random() * 30) + 1;
+          return {
+            slug: c.slug as string,
+            name: c.name as string,
+            franchise: c.franchise as string,
+            activity,
+            chatPrompt,
+            timeAgo: `${minutes}分前`,
+            avatarUrl: (c.avatarUrl as string) ?? '',
+            coverUrl: (c.coverUrl as string) ?? '',
+          };
+        });
+        setStories(generated);
         setLoading(false);
       })
       .catch(() => setLoading(false));
