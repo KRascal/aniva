@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
     // Phase 2: キャラ同士の返信チェーン
     // 24h以内のMomentsから、キャラコメントが2件以上あるものを取得
     // ──────────────────────────────────────────────────
-    const MAX_REPLIES = 3;
+    const MAX_REPLIES = 8;
     let replyCount = 0;
 
     try {
@@ -376,12 +376,90 @@ export async function GET(req: NextRequest) {
       console.error('Phase 2.5 owner reply error:', err);
     }
 
+    // ──────────────────────────────────────────────────
+    // Phase 3: 盛り上がり演出 — 既にコメントがあるMomentに別キャラが乗っかり
+    // Phase 1でコメントが入ったMomentに対して、確率50%で別キャラが乱入
+    // ──────────────────────────────────────────────────
+    const MAX_CRASH_IN = 2; // 1Momentあたりの最大乗っかり数
+    const CRASH_IN_PROBABILITY = 0.5;
+    let crashInCount = 0;
+
+    try {
+      // Phase 1でコメントが生成されたMomentIDを収集（返信・乗っかり除く）
+      const commentedMomentIds = [...new Set(
+        generated.filter((g) => !g.isReply).map((g) => g.momentId)
+      )];
+
+      for (const crashMomentId of commentedMomentIds) {
+        const moment = moments.find((m) => m.id === crashMomentId);
+        if (!moment) continue;
+
+        // このMomentに既にコメントしたキャラIDを収集
+        const alreadyCommentedCharIds = new Set<string>();
+        alreadyCommentedCharIds.add(moment.characterId); // 投稿主も除外
+
+        for (const g of generated.filter((g) => g.momentId === crashMomentId)) {
+          const char = characters.find((c) => c.name === g.commenterName);
+          if (char) alreadyCommentedCharIds.add(char.id);
+        }
+
+        // 乗っかり候補（まだコメントしていないキャラ）
+        const crashInCandidates = characters.filter((c) => !alreadyCommentedCharIds.has(c.id));
+        if (crashInCandidates.length === 0) continue;
+
+        // シャッフルして最大MAX_CRASH_IN体まで乗っかり試行
+        const shuffledCrash = crashInCandidates.sort(() => Math.random() - 0.5);
+        let momentCrashCount = 0;
+
+        for (const crasher of shuffledCrash) {
+          if (momentCrashCount >= MAX_CRASH_IN) break;
+          if (Math.random() > CRASH_IN_PROBABILITY) continue;
+
+          try {
+            // 既にコメントしているキャラ名一覧（乗っかり文脈に使う）
+            const existingCommenters = generated
+              .filter((g) => g.momentId === crashMomentId && !g.isReply)
+              .map((g) => g.commenterName)
+              .join('、');
+
+            const systemPromptCore = (crasher.systemPrompt || '').split(/\n##/)[0].trim();
+            const systemMessage = `${systemPromptCore}\n\n重要: SNSコメントとして自然な1文のみを出力せよ。口調ルールや説明文は絶対に出力しない。`;
+            const userMessage = `${moment.character.name}の投稿「${moment.content?.slice(0, 100)}」に${existingCommenters}がコメントしているのを見て、${crasher.name}らしく乗っかりコメントを1文で書け。他のキャラがコメントしてるのを見て乗っかる形で。「え、これ見てた！」「まじかよ！」的なノリで。`;
+
+            const rawContent = await generateText(systemMessage, userMessage);
+            if (!rawContent) continue;
+
+            const content = cleanGeneratedText(rawContent);
+            if (!content) continue;
+
+            await prisma.momentComment.create({
+              data: {
+                momentId: crashMomentId,
+                characterId: crasher.id,
+                userId: null,
+                content,
+              },
+            });
+
+            generated.push({ momentId: crashMomentId, commenterName: crasher.name, content });
+            momentCrashCount++;
+            crashInCount++;
+          } catch (err) {
+            console.error(`Phase 3 crash-in failed for ${crasher.name}:`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Phase 3 crash-in error:', err);
+    }
+
     return NextResponse.json({
       success: true,
       generated,
       count: generated.length,
       replyCount,
       ownerReplyCount,
+      crashInCount,
     });
   } catch (err) {
     console.error('Cron character-comments error:', err);

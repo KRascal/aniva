@@ -125,21 +125,102 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }, 0);
   }
 
-  setTimeout(() => {
-    fetch(`${baseUrl}/api/chat/comment-reply`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-secret': process.env.CRON_SECRET || '',
-      },
-      body: JSON.stringify({
-        momentId,
-        triggerCommentId: comment.id,
-        triggerContent: content,
-        triggerUserName: userDisplay,
-      }),
-    }).catch(() => {});
-  }, 0);
+  // fire & forget — ユーザー返答してすぐ、非同期でキャラが返信
+  const triggerCharacterReply = async () => {
+    try {
+      // momentの情報と投稿主キャラを取得
+      const momentWithChar = await prisma.moment.findUnique({
+        where: { id: momentId },
+        select: {
+          id: true,
+          content: true,
+          character: { select: { id: true, name: true, systemPrompt: true } },
+        },
+      });
+      if (!momentWithChar?.character) return;
+
+      const ownerChar = momentWithChar.character;
+      const userName = session.user.name || 'ユーザー';
+
+      // LLMでキャラ返信を生成
+      const xaiKey = process.env.XAI_API_KEY;
+      const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+      let replyContent = '';
+      if (xaiKey) {
+        const res = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: process.env.LLM_MODEL || 'grok-3-mini',
+            messages: [
+              { role: 'system', content: `${(ownerChar.systemPrompt || '').split(/\n##/)[0].trim()}\n\n重要: 自分の投稿へのコメントへの返信として自然な1〜2文のみ出力。口調ルールは出力しない。` },
+              { role: 'user', content: `${userName}が「${content.slice(0, 100)}」とコメントしてくれた。${ownerChar.name}らしく短く返信してください。` },
+            ],
+            max_tokens: 100,
+            temperature: 0.9,
+          }),
+        });
+        const data = await res.json();
+        replyContent = data.choices?.[0]?.message?.content?.trim() || '';
+      } else if (anthropicKey) {
+        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const client = new Anthropic({ apiKey: anthropicKey });
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 100,
+          system: `${(ownerChar.systemPrompt || '').split(/\n##/)[0].trim()}\n\n重要: 投稿へのコメントへの返信として自然な1〜2文のみ出力。`,
+          messages: [{ role: 'user', content: `${userName}が「${content.slice(0, 100)}」とコメントしてくれた。${ownerChar.name}らしく短く返信してください。` }],
+        });
+        replyContent = (response.content[0] as { text: string }).text?.trim() || '';
+      }
+
+      if (!replyContent) return;
+
+      // 3-10秒ランダム遅延（自然に見せる）
+      const delay = 3000 + Math.random() * 7000;
+      await new Promise(r => setTimeout(r, delay));
+
+      await prisma.momentComment.create({
+        data: {
+          momentId,
+          characterId: ownerChar.id,
+          userId: null,
+          content: replyContent.slice(0, 200),
+          parentCommentId: comment.id,
+        },
+      });
+
+      // Notificationに記録
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          type: 'character_reply',
+          title: `${ownerChar.name}があなたのコメントに返信しました`,
+          body: replyContent.slice(0, 80),
+          momentId,
+          characterId: ownerChar.id,
+          actorName: ownerChar.name,
+          targetUrl: `/moments`,
+        },
+      });
+
+      // push通知
+      fetch(`${baseUrl}/api/push/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_SECRET || '' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          title: `${ownerChar.name}が返信しました`,
+          body: replyContent.slice(0, 80),
+          url: '/moments',
+        }),
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Character auto-reply error:', err);
+    }
+  };
+  triggerCharacterReply(); // fire & forget
 
   return NextResponse.json({
     comment: { ...comment, parentCommentId: comment.parentCommentId ?? null, likeCount: 0, likedByMe: false },
