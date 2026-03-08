@@ -61,7 +61,12 @@ export default function NotificationsPage() {
   }, [fetchNotifs]);
 
   const handleTap = (notif: Notif) => {
-    if (notif.targetUrl) router.push(notif.targetUrl);
+    // targetUrlが /moments のみでmomentIdがある場合、highlight付きで遷移
+    if (notif.targetUrl === '/moments' && notif.momentId) {
+      router.push(`/moments?highlight=${notif.momentId}`);
+    } else if (notif.targetUrl) {
+      router.push(notif.targetUrl);
+    }
   };
 
   return (

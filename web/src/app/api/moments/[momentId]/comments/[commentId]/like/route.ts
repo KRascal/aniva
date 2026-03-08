@@ -50,7 +50,7 @@ export async function POST(
             body: comment.content?.slice(0, 80) || '',
             momentId,
             actorName: userName,
-            targetUrl: '/moments',
+            targetUrl: `/moments?highlight=${momentId}`,
           },
         }).catch(() => {});
 

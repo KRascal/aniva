@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { MomentCard, MOMENT_CARD_STYLES, type Moment, type MomentCharacter } from '@/components/moments/MomentCard';
 
@@ -290,6 +290,8 @@ type TabMode = 'recommend' | 'following';
 export default function MomentsPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightMomentId = searchParams.get('highlight');
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<TabMode>('recommend');
@@ -324,6 +326,26 @@ export default function MomentsPage() {
       .then((d) => setStories(d.stories || []))
       .catch(() => {});
   }, []);
+
+  // 通知からのハイライトスクロール
+  useEffect(() => {
+    if (!highlightMomentId || recommendLoading) return;
+    // モーメントリスト読み込み後に該当要素にスクロール
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`moment-${highlightMomentId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // ハイライト演出（1.5秒間光らせる）
+        el.style.transition = 'box-shadow 0.3s ease';
+        el.style.boxShadow = '0 0 0 2px rgba(168,85,247,0.6), 0 0 20px rgba(168,85,247,0.3)';
+        el.style.borderRadius = '16px';
+        setTimeout(() => {
+          el.style.boxShadow = 'none';
+        }, 2000);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [highlightMomentId, recommendLoading]);
 
   // スワイプ検知
   const touchStartX = useRef<number | null>(null);
@@ -728,17 +750,18 @@ export default function MomentsPage() {
           ) : (
             <>
               {filteredMoments.map((moment) => (
-                <MomentCard
-                  key={moment.id}
-                  moment={moment}
-                  onLike={handleLike}
-                  currentUserId={(session?.user as { id?: string })?.id}
-                  showFollowButton={activeTab === 'recommend'}
-                  isFollowing={moment.isFollowing}
-                  onFollowChange={handleFollowChange}
-                  showQuickChat={activeTab === 'recommend'}
-                  onQuickChat={handleQuickChat}
-                />
+                <div key={moment.id} id={`moment-${moment.id}`}>
+                  <MomentCard
+                    moment={moment}
+                    onLike={handleLike}
+                    currentUserId={(session?.user as { id?: string })?.id}
+                    showFollowButton={activeTab === 'recommend'}
+                    isFollowing={moment.isFollowing}
+                    onFollowChange={handleFollowChange}
+                    showQuickChat={activeTab === 'recommend'}
+                    onQuickChat={handleQuickChat}
+                  />
+                </div>
               ))}
               {activeCharacterId && filteredMoments.length === 0 && (
                 <div className="text-center py-16">

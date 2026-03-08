@@ -153,7 +153,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               momentId,
               actorName: replierName,
               actorAvatar: comment.character?.avatarUrl ?? null,
-              targetUrl: '/moments',
+              targetUrl: `/moments?highlight=${momentId}`,
             },
           }).catch(() => {});
           // push通知
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               userId: parentComment.userId,
               title: `${replierName}があなたのコメントに返信しました`,
               body: content.slice(0, 80),
-              url: `/moments`,
+              url: `/moments?highlight=${momentId}`,
             }),
           }).catch(() => {});
         }
@@ -260,7 +260,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           characterId: ownerChar.id,
           actorName: ownerChar.name,
           actorAvatar: ownerChar.avatarUrl,
-          targetUrl: `/moments`,
+          targetUrl: `/moments?highlight=${momentId}`,
         },
       });
 
@@ -272,7 +272,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           userId: session.user.id,
           title: `${ownerChar.name}が返信しました`,
           body: replyContent.slice(0, 80),
-          url: '/moments',
+          url: `/moments?highlight=${momentId}`,
         }),
       }).catch(() => {});
     } catch (err) {
