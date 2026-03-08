@@ -28,7 +28,7 @@ rsync -a --delete \
 
 echo "📦 Installing dependencies in staging..."
 cd "$STAGING_DIR/web"
-pnpm install --frozen-lockfile
+pnpm install --no-frozen-lockfile
 
 echo "🔨 Running prisma generate..."
 npx prisma generate
