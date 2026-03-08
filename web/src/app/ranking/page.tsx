@@ -52,8 +52,8 @@ interface Character {
 // ---- Constants ----
 const USER_TABS: { type: RankingType; label: string; icon: string; desc: string }[] = [
   { type: 'coins', icon: '❤️‍🔥', label: '推し貢献度', desc: '推しに使ったコイン数で競う' },
-  { type: 'streak', icon: '🔥', label: '連続ログイン', desc: '毎日ログインした連続日数' },
   { type: 'messages', icon: '💬', label: 'トーク数', desc: '推しに送ったメッセージ数' },
+  { type: 'streak', icon: '🔥', label: '連続ログイン', desc: '毎日ログインした連続日数' },
 ];
 
 const CHAR_TABS: { type: CharRankingType; label: string; icon: string; desc: string }[] = [
@@ -94,7 +94,7 @@ function getTauntText(myRank: RankEntry | null): { emoji: string; text: string }
 // ---- Component ----
 export default function RankingPage() {
   const router = useRouter();
-  const [mainTab, setMainTab] = useState<MainTab>('users');
+  const [mainTab, setMainTab] = useState<MainTab>('characters');
 
   // ユーザーランキング state
   const [tab, setTab] = useState<RankingType>('coins');
@@ -118,9 +118,13 @@ export default function RankingPage() {
       .then(d => {
         const chars: Character[] = Array.isArray(d) ? d : d.characters ?? [];
         setCharacters(chars);
+        // フォロー中の最初のキャラをデフォルト選択（推し貢献度/トーク数はフォロー中キャラのみ表示）
+        if (chars.length > 0 && !selectedChar) {
+          setSelectedChar(chars[0].id);
+        }
       })
       .catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ユーザーランキングを取得
   const fetchRanking = useCallback(async (type: RankingType, charId: string, p: PeriodType) => {
@@ -202,16 +206,6 @@ export default function RankingPage() {
         {/* メインタブ（ユーザー / キャラクター） */}
         <div className="max-w-lg mx-auto px-4 flex gap-1 pb-2">
           <button
-            onClick={() => setMainTab('users')}
-            className={`flex-1 py-2 rounded-xl text-sm font-bold transition border ${
-              mainTab === 'users'
-                ? 'bg-purple-600/30 border-purple-500/40 text-purple-200'
-                : 'border-white/10 text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            👤 ユーザーランキング
-          </button>
-          <button
             onClick={() => setMainTab('characters')}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition border ${
               mainTab === 'characters'
@@ -220,6 +214,16 @@ export default function RankingPage() {
             }`}
           >
             ⭐ キャラランキング
+          </button>
+          <button
+            onClick={() => setMainTab('users')}
+            className={`flex-1 py-2 rounded-xl text-sm font-bold transition border ${
+              mainTab === 'users'
+                ? 'bg-purple-600/30 border-purple-500/40 text-purple-200'
+                : 'border-white/10 text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            👤 ユーザーランキング
           </button>
         </div>
 
