@@ -26,14 +26,14 @@ export default function NotFound() {
             className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium inline-block text-center
                        shadow-lg shadow-purple-900/30 active:scale-[0.97] transition-transform"
           >
-            探しに行く
+            キャラを探しに行く
           </Link>
           <Link
-            href="/explore"
+            href="/"
             className="w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)] inline-block text-center
                        active:scale-[0.97] transition-transform"
           >
-            探すに戻る
+            トップに戻る
           </Link>
         </div>
       </div>
