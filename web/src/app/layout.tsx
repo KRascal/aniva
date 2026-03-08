@@ -86,15 +86,19 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-        {/* Unregister all ServiceWorkers and clear caches to prevent stale chunk issues */}
+        {/* Service Worker: offline-first v7 */}
         <script dangerouslySetInnerHTML={{ __html: `
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){r.unregister()});
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').then(function(reg){
+      // Listen for SW messages (NAVIGATE from push notification tap)
+      navigator.serviceWorker.addEventListener('message', function(e){
+        if(e.data && e.data.type === 'NAVIGATE' && e.data.url){
+          window.location.href = e.data.url;
+        }
+      });
+    });
   });
-  if(typeof caches!=='undefined'){
-    caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k)})});
-  }
 }
         `}} />
       </head>

@@ -746,9 +746,36 @@ export default function ChatCharacterPage() {
     if (userId && characterId) loadRelationshipAndHistory();
   }, [userId, characterId, loadRelationshipAndHistory]);
 
+  // 自動スクロール — ストリーミング中は100msごとにボトムスクロール
+  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    const hasStreaming = messages.some(m => m.metadata?.isStreaming);
+    if (hasStreaming) {
+      // ストリーミング中は100msごとにスクロール
+      if (!scrollIntervalRef.current) {
+        scrollIntervalRef.current = setInterval(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
+      }
+    } else {
+      // ストリーミング終了 — interval停止
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+  }, [messages]);
 
   /* ── Farewell（離脱検知 → ピークエンドの法則） ── */
   useEffect(() => {
@@ -920,7 +947,7 @@ export default function ChatCharacterPage() {
       let streamingText = '';
       const streamMsgId = `stream-${Date.now()}`;
 
-      // ストリーミング中のキャラメッセージを仮追加
+      // ストリーミング中のキャラメッセージを仮追加（最初の2秒はタイピング演出）
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== tempUserMsg.id),
         { ...tempUserMsg, id: tempUserMsg.id }, // keep user msg
@@ -929,9 +956,20 @@ export default function ChatCharacterPage() {
           role: 'CHARACTER',
           content: '',
           createdAt: new Date().toISOString(),
-          metadata: { isStreaming: true },
+          metadata: { isStreaming: true, isTyping: true },
         },
       ]);
+
+      // 2秒後にタイピング演出を解除してストリーミングテキスト表示に切替
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamMsgId && m.metadata?.isTyping
+              ? { ...m, metadata: { ...m.metadata, isTyping: false } }
+              : m
+          )
+        );
+      }, 2000);
 
       let finalCharMsgId = '';
       let finalEmotion = 'neutral';
@@ -1365,7 +1403,7 @@ export default function ChatCharacterPage() {
 
   return (
     <div
-      className={`flex flex-col h-[calc(100dvh-4rem)] max-w-lg mx-auto relative chat-bg ${isNightMode ? 'night-mode' : ''}`}
+      className={`flex flex-col h-[calc(100dvh-4rem)] min-h-dvh max-w-lg mx-auto relative chat-bg ${isNightMode ? 'night-mode' : ''}`}
       style={{
         background: charBgGradient ? `radial-gradient(ellipse at top, ${bgTheme}), ${charBgGradient}` : `radial-gradient(ellipse at top, ${bgTheme}), #111827`,
         ...(isNightMode ? { filter: 'brightness(0.85) saturate(0.9)', transition: 'filter 0.5s ease' } : {}),

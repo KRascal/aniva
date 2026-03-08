@@ -363,8 +363,8 @@ export async function GET(req: NextRequest) {
             },
             body: JSON.stringify({
               userId: targetComment.userId,
-              title: `${ownerChar.name}があなたのコメントに返信しました`,
-              body: content.slice(0, 80),
+              title: `【${ownerChar.name}】が投稿にコメントしました ✨`,
+              body: `「${content.slice(0, 60)}」`,
               url: `/moments`,
             }),
           }).catch(() => {});

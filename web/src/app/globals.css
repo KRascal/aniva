@@ -61,6 +61,15 @@ html {
   overscroll-behavior: none;
 }
 
+/* Typing dot bounce animation (global) */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+.typing-dot {
+  animation: typingBounce 1.2s infinite;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

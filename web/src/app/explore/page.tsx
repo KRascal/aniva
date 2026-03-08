@@ -13,6 +13,7 @@ import { useProactiveMessages } from '@/hooks/useProactiveMessages';
 import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 import { useTutorial } from '@/hooks/useTutorial';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 // ── TinderUI発見バナー ──
 function DiscoverBanner() {

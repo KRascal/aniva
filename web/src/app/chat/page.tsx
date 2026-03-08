@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { getDailyState } from '@/lib/character-daily-state';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 
 interface Character {
   id: string;
@@ -650,16 +651,19 @@ export default function ChatPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950">
-        <div className="relative w-16 h-16 mb-6">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 animate-ping opacity-40" />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+      <div className="min-h-screen bg-gray-950">
+        {/* Header skeleton */}
+        <header className="sticky top-0 z-20 bg-gray-950 border-b border-white/5 px-4 py-3">
+          <div className="max-w-lg mx-auto flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gray-800 animate-pulse" />
+            <div className="h-5 w-16 bg-gray-800 rounded-full animate-pulse" />
           </div>
+        </header>
+        <div className="max-w-lg mx-auto py-2 space-y-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
-        <p className="text-white/60 text-sm animate-pulse">推しを呼んでいます…</p>
       </div>
     );
   }

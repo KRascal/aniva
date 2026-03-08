@@ -590,8 +590,15 @@ export function ChatMessageList({
                       onMouseLeave={!isUser ? handleLongPressEnd : undefined}
                       onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
                     >
-                      {/* スタンプ表示 */}
-                      {msg.metadata?.stickerUrl ? (
+                      {/* タイピング中演出（ストリーミング開始直後の2秒間） */}
+                      {msg.metadata?.isTyping ? (
+                        <div className="aniva-typing-indicator">
+                          <span className="aniva-dot" />
+                          <span className="aniva-dot" />
+                          <span className="aniva-dot" />
+                        </div>
+                      ) : /* スタンプ表示 */
+                      msg.metadata?.stickerUrl ? (
                         <Image
                           src={msg.metadata.stickerUrl}
                           alt="スタンプ"
@@ -686,8 +693,9 @@ export function ChatMessageList({
           );
         })}
 
-        {/* タイピングインジケーター */}
-        {isSending && (
+        {/* タイピングインジケーター — isSending中でストリーミングメッセージがまだない場合、
+            またはストリーミングメッセージがisTyping中の場合に表示 */}
+        {(isSending && !messages.some(m => m.metadata?.isStreaming)) && (
           <div className="flex justify-start items-end gap-2 msg-animate">
             <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 relative">
               {character?.avatarUrl ? (

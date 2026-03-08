@@ -24,7 +24,7 @@ export async function GET() {
     include: {
       card: {
         include: {
-          character: { select: { id: true, name: true, avatarUrl: true } },
+          character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
         },
       },
     },

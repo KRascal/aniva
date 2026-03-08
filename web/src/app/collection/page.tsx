@@ -14,7 +14,7 @@ interface CardInfo {
     imageUrl: string | null;
     rarity: string;
     category: string;
-    character: { id: string; name: string; avatarUrl: string | null };
+    character: { id: string; slug?: string; name: string; avatarUrl: string | null };
   };
 }
 
@@ -262,27 +262,24 @@ export default function CollectionPage() {
                     <div className={`text-xs font-bold ${style.labelColor} mb-1`}>{style.label}</div>
 
                     {/* カード画像orアバター */}
-                    {uc.card.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={uc.card.imageUrl}
-                        alt={uc.card.name}
-                        className="w-full aspect-square object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-full aspect-square rounded-lg bg-gray-700 flex items-center justify-center text-3xl">
-                        {uc.card.character.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={uc.card.character.avatarUrl}
-                            alt={uc.card.character.name}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          '🃏'
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const imgSrc = uc.card.imageUrl
+                        || uc.card.character.avatarUrl
+                        || (uc.card.character.slug ? `/characters/${uc.card.character.slug}/avatar.webp` : null);
+                      return imgSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imgSrc}
+                          alt={uc.card.name}
+                          className="w-full aspect-square object-cover rounded-lg"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full aspect-square rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 flex items-center justify-center">
+                          <span className="text-4xl font-bold text-gray-400">{uc.card.character.name?.[0] ?? '?'}</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* カード名 */}
                     <p className="mt-2 text-xs leading-tight line-clamp-2 text-gray-200 font-medium">{uc.card.name}</p>
@@ -328,15 +325,19 @@ export default function CollectionPage() {
 
                     {/* 画像 */}
                     <div className={`mx-auto w-48 h-48 rounded-2xl overflow-hidden mb-4 border-2 ${style.border} shadow-lg ${style.glow}`}>
-                      {selectedCard.card.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={selectedCard.card.imageUrl} alt={selectedCard.card.name} className="w-full h-full object-cover" />
-                      ) : selectedCard.card.character.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={selectedCard.card.character.avatarUrl} alt={selectedCard.card.character.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-6xl bg-gray-800">🃏</div>
-                      )}
+                      {(() => {
+                        const imgSrc = selectedCard.card.imageUrl
+                          || selectedCard.card.character.avatarUrl
+                          || (selectedCard.card.character.slug ? `/characters/${selectedCard.card.character.slug}/avatar.webp` : null);
+                        return imgSrc ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imgSrc} alt={selectedCard.card.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-gray-700 to-gray-800">
+                            <span className="text-5xl font-bold text-gray-400">{selectedCard.card.character.name?.[0] ?? '?'}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* カード名・キャラ */}

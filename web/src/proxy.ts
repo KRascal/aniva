@@ -89,7 +89,7 @@ export default async function proxy(req: NextRequest) {
   const cookieName = hasSecureCookie
     ? '__Secure-authjs.session-token'
     : 'authjs.session-token';
-  let token: { onboardingStep?: string | null; sub?: string } | null = null;
+  let token: { onboardingStep?: string | null; sub?: string; email?: string | null } | null = null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     token = await getToken({ req, secret, cookieName }) as any;
@@ -153,13 +153,23 @@ export default async function proxy(req: NextRequest) {
     return withSecurityHeaders(NextResponse.next(), req);
   }
 
-  // Admin paths
+  // Admin paths — require login AND admin email
   if (isAdminPath) {
     if (!isLoggedIn) {
       if (pathname.startsWith('/api/admin')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       return NextResponse.redirect(new URL('/login', req.url));
+    }
+    // Check admin email authorization
+    const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase());
+    const userEmail = (token?.email ?? '').toLowerCase();
+    const isAdmin = adminEmails.length > 0 && userEmail && adminEmails.includes(userEmail);
+    if (!isAdmin) {
+      if (pathname.startsWith('/api/admin')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL('/', req.url));
     }
     return withSecurityHeaders(NextResponse.next(), req);
   }

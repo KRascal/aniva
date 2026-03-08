@@ -195,7 +195,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 pb-3 relative">
+    <div className="flex-shrink-0 border-t border-white/8 bg-gray-950 px-4 py-3 relative" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
       {/* スタンプピッカー */}
       <StickerPicker
         characterSlug={character?.slug || ''}
