@@ -14,8 +14,58 @@ function detectLocale(req: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
+// ─── セキュリティヘッダー付きレスポンス生成 ───
+function withSecurityHeaders(res: NextResponse, req: NextRequest): NextResponse {
+  // CSP
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https: http:",
+    "media-src 'self' blob: https: http:",
+    "connect-src 'self' https://api.stripe.com https://api.x.ai https://api.elevenlabs.io https://us.i.posthog.com https://accounts.google.com wss:",
+    "frame-src https://js.stripe.com https://accounts.google.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+
+  res.headers.set('Content-Security-Policy', csp);
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('X-Frame-Options', 'DENY');
+  res.headers.set('X-XSS-Protection', '1; mode=block');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
+
+  // CORS（API routes のみ）
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    const origin = req.headers.get('origin');
+    const allowedOrigins = [
+      'https://aniva-project.com',
+      'https://demo.aniva-project.com',
+      'http://localhost:3050',
+      'http://localhost:3061',
+    ];
+    if (origin && allowedOrigins.includes(origin)) {
+      res.headers.set('Access-Control-Allow-Origin', origin);
+      res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-cron-secret');
+      res.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+
+  return res;
+}
+
 export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+
+  // CORS preflight
+  if (req.method === 'OPTIONS' && pathname.startsWith('/api/')) {
+    const res = new NextResponse(null, { status: 200 });
+    return withSecurityHeaders(res, req);
+  }
 
   // ── Server Action 不正リクエスト防御 ──
   // ボット/スキャナーが "x" 等の無効なAction IDを送信 → 500エラー抑止
@@ -94,12 +144,12 @@ export default async function proxy(req: NextRequest) {
 
   // 常に通過: api/auth, health, public api, /_next
   if (isApiAuth || isHealthCheck || isPublicApi || isNextPath) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   // /c/[slug] はServer Componentで認証・onboarding・リダイレクト処理を一元管理
   if (isDeeplinkPath) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   // Admin paths
@@ -110,7 +160,7 @@ export default async function proxy(req: NextRequest) {
       }
       return NextResponse.redirect(new URL('/login', req.url));
     }
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   // Demo mode: block signup unless invite code
@@ -135,13 +185,13 @@ export default async function proxy(req: NextRequest) {
       }
       return NextResponse.redirect(new URL('/explore', req.url));
     }
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   // 未認証: 公開ページは通過、APIは401、その他は/loginへ
   if (!isLoggedIn) {
     if (isPublicPage) {
-      return NextResponse.next();
+      return withSecurityHeaders(NextResponse.next(), req);
     }
     if (isApiPath) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -154,16 +204,16 @@ export default async function proxy(req: NextRequest) {
     if (onboardingStep === 'completed') {
       return NextResponse.redirect(new URL('/explore', req.url));
     }
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   if (isApiPath) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), req);
   }
 
   if (onboardingStep !== 'completed') {
     if (isPublicPage) {
-      return NextResponse.next();
+      return withSecurityHeaders(NextResponse.next(), req);
     }
     const isProtectedButAllowed =
       pathname.startsWith('/explore') ||
@@ -171,12 +221,12 @@ export default async function proxy(req: NextRequest) {
       pathname.startsWith('/timeline') ||
       pathname.startsWith('/mypage');
     if (isProtectedButAllowed) {
-      return NextResponse.next();
+      return withSecurityHeaders(NextResponse.next(), req);
     }
     return NextResponse.redirect(new URL('/onboarding', req.url));
   }
 
-  return NextResponse.next();
+  return withSecurityHeaders(NextResponse.next(), req);
 }
 
 export const config = {
