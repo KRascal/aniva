@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useCallback } from 'react';
@@ -66,16 +66,26 @@ export function BottomNav() {
     }).catch(() => {});
   }, []);
 
+  const router = useRouter();
+
   // ナビゲーション前にBuild IDチェック（不一致ならフルリロード）
+  // 先にpreventDefaultしてから非同期判定
   const handleNavClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (!initialBuildId) return; // チェック不可なら通常ナビ
+    e.preventDefault();
     fetch('/api/build-id').then(r => r.json()).then(d => {
       if (d.buildId && d.buildId !== initialBuildId) {
-        e.preventDefault();
+        // Build IDが変わった → フルリロード
         window.location.href = href;
+      } else {
+        // Build ID一致 → クライアントルーティング
+        router.push(href);
       }
-    }).catch(() => {});
-  }, [initialBuildId]);
+    }).catch(() => {
+      // fetch失敗 → フルリロードにフォールバック
+      window.location.href = href;
+    });
+  }, [initialBuildId, router]);
 
   useEffect(() => {
     // 未読レター数を取得（30秒ごとにポーリング）
