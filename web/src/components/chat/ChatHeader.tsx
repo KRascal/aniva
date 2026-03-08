@@ -194,21 +194,27 @@ export function ChatHeader({
             )}
           </div>
 
-          {/* 通話ボタン */}
-          <button
-            onClick={onCallClick}
-            className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-green-400 hover:bg-green-900/30 transition-colors"
-            aria-label="通話する"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-              />
-            </svg>
-          </button>
+          {/* 通話ボタン（近日公開） */}
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={onCallClick}
+              className="p-2 rounded-full text-gray-600 cursor-not-allowed opacity-50"
+              aria-label="通話機能（近日公開）"
+              title="通話機能は近日公開予定"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                />
+              </svg>
+            </button>
+            <span className="absolute -top-1 -right-1 text-[9px] font-bold bg-purple-600/80 text-white px-1 rounded-full leading-4">
+              近日
+            </span>
+          </div>
 
           {/* メニューボタン */}
           <button
