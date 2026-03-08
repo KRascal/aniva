@@ -109,8 +109,7 @@ JSON形式: {"title":"10文字以内","synopsis":"100-200文字","triggerPrompt"
             id: `boot-m-${characterId}-${Date.now()}-${i}`,
             characterId,
             content,
-            mediaType: 'TEXT',
-            isActive: true,
+            type: 'TEXT',
           },
         });
         created++;
@@ -136,8 +135,8 @@ JSON形式: {"title":"10文字以内","synopsis":"100-200文字","triggerPrompt"
             id: `boot-sc-${characterId}-${Date.now()}-${i}`,
             characterId,
             type,
+            title: type === 'backstory' ? '裏話' : type === 'special_message' ? 'スペシャルメッセージ' : 'トピック',
             content: text.slice(0, 200),
-            isActive: true,
           },
         });
         created++;
@@ -190,7 +189,7 @@ JSON形式: {"title":"10文字以内","synopsis":"100-200文字","triggerPrompt"
           characterId,
           mood: 'happy',
           content: text.slice(0, 300),
-          date: new Date(),
+          date: new Date().toISOString().slice(0, 10),
         },
       });
       results.diary = { count: 1 };
@@ -201,32 +200,8 @@ JSON形式: {"title":"10文字以内","synopsis":"100-200文字","triggerPrompt"
     results.diary = { count: 0, error: err instanceof Error ? err.message : 'unknown' };
   }
 
-  // 6. ProactiveMessage 3件
-  try {
-    const existingCount = await prisma.characterProactiveMessage.count({ where: { characterId } });
-    let created = 0;
-    if (existingCount < 3) {
-      const triggers = ['morning', 'evening', 'random'];
-      for (let i = existingCount; i < 3; i++) {
-        const trigger = triggers[i];
-        const prompt = `「${character.name}」がユーザーに送る${trigger === 'morning' ? '朝の' : trigger === 'evening' ? '夕方の' : ''}プッシュ通知メッセージを1つ書け。キャラの口調で30-80文字。`;
-        const text = await llmGenerate(prompt, 100);
-        await prisma.characterProactiveMessage.create({
-          data: {
-            characterId,
-            content: text.slice(0, 150),
-            triggerType: trigger,
-            isActive: true,
-            priority: 5,
-          },
-        });
-        created++;
-      }
-    }
-    results.proactiveMessages = { count: created };
-  } catch (err) {
-    results.proactiveMessages = { count: 0, error: err instanceof Error ? err.message : 'unknown' };
-  }
+  // 6. ProactiveMessage - requires userId, skip in bootstrap
+  results.proactiveMessages = { count: 0, error: 'skipped: requires userId' };
 
   return NextResponse.json({
     message: `Bootstrap complete for ${character.name}`,
