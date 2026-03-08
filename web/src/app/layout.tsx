@@ -86,30 +86,16 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-        {/* Safari Basic Auth URL credentials fix — must run before any JS fetches */}
+        {/* Unregister all ServiceWorkers and clear caches to prevent stale chunk issues */}
         <script dangerouslySetInnerHTML={{ __html: `
-(function(){
-  var of=window.fetch;
-  function strip(u){
-    if(typeof u==='string'){
-      if(u.charAt(0)==='/')return location.origin+u;
-      try{var o=new URL(u);if(o.username||o.password){o.username='';o.password='';return o.toString()}}catch(e){}
-    }
-    return u;
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){r.unregister()});
+  });
+  if(typeof caches!=='undefined'){
+    caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k)})});
   }
-  window.fetch=function(i,init){
-    if(i instanceof Request){
-      try{var o=new URL(i.url);if(o.username||o.password){o.username='';o.password='';i=new Request(o.toString(),i)}}catch(e){}
-    }else{i=strip(i)}
-    return of.call(this,i,init);
-  };
-  var OR=window.Request;
-  window.Request=function(i,init){
-    return new OR(strip(i),init);
-  };
-  window.Request.prototype=OR.prototype;
-  Object.keys(OR).forEach(function(k){window.Request[k]=OR[k]});
-})();
+}
         `}} />
       </head>
       <body

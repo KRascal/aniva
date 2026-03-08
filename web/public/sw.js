@@ -1,46 +1,29 @@
-// ANIVA Service Worker v2 — lightweight cache strategy
-const CACHE_NAME = 'aniva-v5';
-const PRECACHE = ['/offline.html'];
+// ANIVA Service Worker v6 — self-destruct: clear all caches and unregister
+// This ensures stale caches from previous versions are completely purged.
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+      Promise.all(keys.map((k) => caches.delete(k)))
+    ).then(() => {
+      // Unregister this service worker after clearing caches
+      return self.registration.unregister();
+    }).then(() => {
+      // Force all clients to reload with no SW
+      return self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UNREGISTERED' });
+        });
+      });
+    })
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Skip non-GET, API calls, auth, and Next.js internals
-  if (
-    event.request.method !== 'GET' ||
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/_next/') ||
-    url.pathname.includes('auth')
-  ) {
-    return;
-  }
-
-  // Network-first for HTML pages, cache-first for static assets
-  if (event.request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return res;
-        })
-        .catch(() => caches.match(event.request).then((r) => r || caches.match('/offline.html')))
-    );
-  }
+// Don't intercept any requests — let everything go to network
+self.addEventListener('fetch', () => {
+  // no-op: pass through to network
 });
