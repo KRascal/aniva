@@ -92,7 +92,7 @@ describe('POST /api/gacha/pull', () => {
 
   // 未認証 ──────────────────────────────────────────────────────────────────
   it('未認証 → 401', async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as any);
     const req = makeRequest({ bannerId: 'banner1', count: 1 });
     const res = await POST(req);
     expect(res.status).toBe(401);

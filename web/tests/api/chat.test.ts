@@ -162,7 +162,7 @@ describe('POST /api/chat/send', () => {
 
   // 未認証 ──────────────────────────────────────────────────────────────────
   it('未認証 → 401', async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as any);
     const req = makeRequest({ characterId: 'char1', message: 'Hello' });
     const res = await POST(req);
     expect(res.status).toBe(401);

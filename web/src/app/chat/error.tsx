@@ -23,7 +23,7 @@ export default function ChatError({ error, reset }: { error: Error & { digest?: 
             });
           }).catch(() => window.location.reload());
         } else {
-          window.location.reload();
+          globalThis.location.reload();
         }
         return;
       }

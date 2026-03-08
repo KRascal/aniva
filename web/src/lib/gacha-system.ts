@@ -29,6 +29,7 @@ export interface PullResult {
     characterId: string;
     characterSlug?: string | null;
     franchise?: string | null;
+    character?: { id: string; name: string; avatarUrl: string | null } | null;
   };
   isNew: boolean;
   rarity: GachaRarity;
