@@ -805,3 +805,14 @@ model Notification {
   @@index([userId, isRead])
   @@index([userId, createdAt])
 }
+
+model SemanticMemory {
+  id          String                      @id @default(uuid())
+  userId      String
+  characterId String
+  embedding   Unsupported("vector(512)")?
+  content     String
+  createdAt   DateTime                    @default(now())
+
+  @@index([userId, characterId])
+}
