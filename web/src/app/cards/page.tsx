@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, Component, type ErrorInfo, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
@@ -498,9 +499,10 @@ function CardCollectionTab() {
         </div>
       )}
 
-      {/* Card Detail Modal — 3Dインタラクティブ */}
-      {selectedCard && (
-        <CardDetailModal card={selectedCard} onClose={() => setSelectedCard(null)} />
+      {/* Card Detail Modal — Portal経由でbodyに直接レンダリング（transform親のcontaining block問題回避） */}
+      {selectedCard && typeof document !== 'undefined' && createPortal(
+        <CardDetailModal card={selectedCard} onClose={() => setSelectedCard(null)} />,
+        document.body
       )}
     </div>
   );
@@ -732,8 +734,8 @@ function GachaTab() {
 
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-50" />
 
-      {/* ── フラッシュ演出（SSR/UR時） ── */}
-      {showFlash && (
+      {/* ── フラッシュ演出（SSR/UR時） — Portal経由 ── */}
+      {showFlash && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 300,
@@ -741,11 +743,12 @@ function GachaTab() {
             animation: 'flashFade 0.5s ease-out forwards',
             pointerEvents: 'none',
           }}
-        />
+        />,
+        document.body
       )}
 
-      {/* ── パック開封フェーズ ── */}
-      {openingPhase === 'pack' && (
+      {/* ── パック開封フェーズ — Portal経由 ── */}
+      {openingPhase === 'pack' && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 200,
@@ -809,11 +812,12 @@ function GachaTab() {
           <p style={{ color: 'rgba(255,255,255,0.35)', marginTop: 8, fontSize: 13 }}>
             2秒後に自動開封
           </p>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ── カードリビールフェーズ ── */}
-      {openingPhase === 'reveal' && (
+      {/* ── カードリビールフェーズ — Portal経由 ── */}
+      {openingPhase === 'reveal' && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 190,
@@ -852,7 +856,8 @@ function GachaTab() {
               </div>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Coin balance */}
