@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+
+      - name: Prisma generate
+        run: npx prisma generate
+        working-directory: web
+
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+        working-directory: web
+
+      - name: Run tests
+        run: pnpm test --run
+        working-directory: web
+
+      - name: Build
+        run: pnpm build
+        working-directory: web
+        env:
+          NEXT_TURBOPACK: "0"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Dummy env vars for build (not used at build time but required by code)
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/dummy"
+          NEXTAUTH_SECRET: "dummy-secret-for-ci-build"
+          AUTH_SECRET: "dummy-secret-for-ci-build"
+          NEXTAUTH_URL: "http://localhost:3000"

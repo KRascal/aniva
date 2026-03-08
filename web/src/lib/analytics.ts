@@ -64,6 +64,23 @@ export const EVENTS = {
   TAB_SWITCHED: 'tab_switched',
   DISCOVER_VIEWED: 'discover_viewed',
   TINDER_SWIPE: 'tinder_swipe',
+
+  // ファネル分析 (KPI計測用)
+  FIRST_CHAT_SENT: 'first_chat_sent',           // 初回メッセージ送信
+  SECOND_SESSION_CHAT: 'second_session_chat',    // 2回目セッションでチャット
+  FC_CTA_CLICKED: 'fc_cta_clicked',             // FC加入CTA表示→クリック
+  FC_CHECKOUT_COMPLETED: 'fc_checkout_completed', // FC決済完了
+  RETENTION_DAY1: 'retention_day1',              // 翌日リテンション
+  RETENTION_DAY7: 'retention_day7',              // 7日リテンション
+
+  // エラー/UX問題検知
+  API_ERROR: 'api_error',                        // APIエラー発生
+  PAGE_ERROR: 'page_error',                      // error boundary発動
+  SLOW_RESPONSE: 'slow_response',                // AI応答3秒以上
+
+  // オフライン
+  OFFLINE_DETECTED: 'offline_detected',
+  ONLINE_RESTORED: 'online_restored',
 } as const
 
 type EventName = (typeof EVENTS)[keyof typeof EVENTS]

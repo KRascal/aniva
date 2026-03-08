@@ -214,7 +214,8 @@ export default function LettersPage() {
         {letters.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-7xl mb-4 animate-bounce">💌</p>
-            <p className="text-gray-300 font-medium">まだ手紙はありません</p>
+            <p className="text-gray-300 font-medium">推しからの手紙はまだ届いていません</p>
+            <p className="text-gray-500 text-xs mt-1">キャラとの絆を深めると、毎月特別な手紙が届くよ</p>
             <p className="text-gray-600 text-sm mt-2">FC会員になると毎月キャラクターから届きます</p>
           </div>
         ) : (

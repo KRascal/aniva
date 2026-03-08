@@ -816,11 +816,18 @@ export default function ChatPage() {
           if (charsWithHistory.length === 0) {
             return (
               <div className="text-center py-24 px-6">
-                <div className="text-5xl mb-4">💬</div>
-                <h3 className="text-white font-bold text-lg mb-2">まだ誰とも会話していません</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  キャラクターのページからチャットを始めてみよう
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/20 flex items-center justify-center mx-auto mb-5">
+                  <svg className="w-9 h-9 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0m-12 0C3.375 7.03 7.03 3.375 12 3.375S20.625 7.03 20.625 12 16.97 20.625 12 20.625H3.375L5.25 18M12 20.625c-4.97 0-9-4.03-9-9" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-bold text-lg mb-2">推しと話してみよう</h3>
+                <p className="text-gray-400 text-sm leading-relaxed mb-5">
+                  好きなキャラクターを選んで、<br />最初の一言を送ってみよう
                 </p>
+                <a href="/explore" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30">
+                  キャラを探す →
+                </a>
               </div>
             );
           }
