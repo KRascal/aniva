@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { MomentCard, MOMENT_CARD_STYLES, type Moment, type MomentCharacter } from '@/components/moments/MomentCard';
+import { track, EVENTS } from '@/lib/analytics';
 
 /* ── Instagram風ストーリーズバー ── */
 
@@ -36,7 +37,6 @@ function InstaStoriesBar({ onOpenStory, activeTab, stories }: { onOpenStory: (in
       .then((data) => {
         const chars = data.characters ?? [];
         const slugs = new Set<string>(chars.map((c: { slug: string }) => c.slug));
-        console.log('[StoriesBar] following slugs:', [...slugs], 'count:', slugs.size);
         setFollowingSlugs(slugs);
       })
       .catch(() => setFollowingSlugs(new Set()));
@@ -496,6 +496,7 @@ export default function MomentsPage() {
   /* ── like ── */
   const handleLike = (momentId: string) => {
     if (!session?.user) return;
+    track(EVENTS.MOMENT_LIKED, { momentId, tab: activeTab });
     const updater = (prev: Moment[]) =>
       prev.map((m) => {
         if (m.id !== momentId) return m;
@@ -634,7 +635,7 @@ export default function MomentsPage() {
             {(['recommend', 'following'] as TabMode[]).map((tab) => (
               <button
                 key={tab}
-                onClick={() => { setActiveTab(tab); setActiveCharacterId(null); }}
+                onClick={() => { setActiveTab(tab); setActiveCharacterId(null); track(EVENTS.TAB_SWITCHED, { tab, page: 'moments' }); }}
                 className={`flex-1 py-3 text-sm font-semibold transition-colors relative ${
                   activeTab === tab ? 'text-white' : 'text-white/40 hover:text-white/70'
                 }`}

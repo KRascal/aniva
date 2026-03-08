@@ -570,16 +570,13 @@ export default function ChatPage() {
 
   const loadChatList = useCallback(async () => {
     if (status === 'loading') return; // まだセッション確認中
-    console.log('[ChatPage] loadChatList starting, auth status:', status);
 
     try {
       // Characters (public API)
       const charRes = await fetch('/api/characters');
-      console.log('[ChatPage] /api/characters status:', charRes.status);
       if (charRes.ok) {
         const charData = await charRes.json();
         setCharacters(charData.characters || []);
-        console.log('[ChatPage] characters loaded:', (charData.characters || []).length);
       }
     } catch (err) {
       console.error('[ChatPage] characters fetch error:', err);
@@ -588,7 +585,6 @@ export default function ChatPage() {
     try {
       // Relationships (requires auth)
       const relRes = await fetch('/api/relationship/all');
-      console.log('[ChatPage] /api/relationship/all status:', relRes.status);
       if (relRes.ok) {
         const relData = await relRes.json();
         if (relData.relationships) {
@@ -600,7 +596,6 @@ export default function ChatPage() {
           }
           setRelationships(map);
           setTotalMessages(msgs);
-          console.log('[ChatPage] relationships loaded:', relData.relationships.length, 'total msgs:', msgs);
         }
       } else {
         console.error('[ChatPage] relationship/all failed:', relRes.status, await relRes.text().catch(() => ''));
