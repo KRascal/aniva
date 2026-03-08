@@ -24,7 +24,7 @@ echo "🔨 Running prisma generate..."
 npx prisma generate
 
 echo "🗄️ Pushing schema to production DB..."
-npx prisma db push --skip-generate
+npx prisma db push
 
 echo "🏗️ Building..."
 pnpm build
