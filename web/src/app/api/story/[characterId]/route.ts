@@ -116,6 +116,7 @@ export async function GET(
     if (chapterCount === 0 && character.slug === 'luffy') {
       await prisma.storyChapter.createMany({
         data: LUFFY_DEFAULT_CHAPTERS.map((ch) => ({ characterId, ...ch })),
+        skipDuplicates: true,
       });
     }
 

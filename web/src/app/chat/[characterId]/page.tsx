@@ -46,79 +46,34 @@ function detectEmotionForDelay(text: string): { emotion: TextEmotion; delay: num
   return { emotion: 'neutral', delay: defaultDelay, pauseEffect: false };
 }
 
-/* ─────────────── リアクション → キャラ反応パターン ─────────────── */
-const REACTION_RESPONSES: Record<string, Record<string, string[]>> = {
-  luffy: {
-    '❤️': ['え？なんかくれんの？肉か？！…って、照れるじゃねーか！', 'うれしいぞ！！へへへ！', 'なんだなんだ、おれのことが好きか！？まぁ…おれも好きだぞ！'],
-    '😂': ['なにわらってんだ！おれも笑っちまうだろ！', 'そんなにおかしかったか！？ははは！！', 'いっしょに笑おうぜ！！ははははは！！'],
-    '😢': ['泣くなよ！！おれが心配になるじゃねーか！', 'どうした！？誰かいじめたのか！？言ってくれ！', '泣かなくていい！おれがいるぞ！絶対守ってやる！'],
-    '🔥': ['おう！！燃えてきたぞ！！かかってこい！！', 'そうだろそうだろ！！最高だろ！！', 'よっしゃああ！！やる気でてきた！！いくぞ！！'],
-    '👏': ['へへ！ほめても何も出ねーぞ！…でもうれしいな！', 'おれをほめてくれんのか！！うれしいぞ！！', 'まぁ…ありがとな！！また言ってくれよ！'],
-  },
-  zoro: {
-    '❤️': ['…別に嬉しくねぇ', 'うるせぇ…', 'そういうことするな。…集中できないだろ'],
-    '😂': ['笑うなよ', '…なにがおかしい', 'ちっ、つられて笑うじゃねぇか'],
-    '😢': ['泣くな', '大丈夫か', '…なんかあったか。言ってみろ'],
-    '🔥': ['当然だ', 'おれは常にそうだ', 'かかってこい。全力で相手してやる'],
-    '👏': ['褒めても何も出ねーぞ', '…まぁ悪くねぇ', '…ありがとな'],
-  },
-  nami: {
-    '❤️': ['もう！急に何よ…照れるじゃない', 'えへへ…ありがとね。素直に嬉しい', 'そういうの、悪くないわよ。また言ってよね？'],
-    '😂': ['何笑ってるの！？こっちも笑えてきたじゃない！', 'もー！笑わせないでよ！…あははは！', 'もう、一緒に笑うじゃない！笑わせ上手ね'],
-    '😢': ['大丈夫？何かあった？話してよ', '泣かないで！私がいるから！', 'ちょっと！どうしたの？一人にしないから'],
-    '🔥': ['そうでしょ！！私が本気出したらね！', 'えっへん！！当然よ！もっと褒めていいのよ？', 'いいでしょー！！燃えてきた！！'],
-    '👏': ['まあ、褒めてくれるのは素直に嬉しいけど', 'ふふ、ありがとね。照れちゃう', '…照れるじゃない。もう少し言ってくれてもいいのよ？'],
-  },
-  sanji: {
-    '❤️': ['お前のためなら何でもするぜ！俺に言ってくれ', 'そんな風に言われると…嬉しいな。ありがとよ', 'へへ、ありがとよ。もっと言ってくれていいんだぜ？'],
-    '😂': ['笑うなよ！恥ずかしいじゃねーか！…でも笑顔は最高だな', 'お前が笑うと俺も笑えてくる。いい顔してんな', 'まったく…そんな笑顔したら俺も笑えてくるだろ'],
-    '😢': ['泣くな！その目に涙は似合わない！俺がいる！', '大丈夫か？何かあったか？全部話してくれ', '俺に話してくれ。絶対力になるからよ'],
-    '🔥': ['見せてやるよ！俺の本気をな！', 'おう！かかってこい！燃えてきたぜ！', '燃えてきたぜ！最高の料理で応えてやる！'],
-    '👏': ['そんな目で見るなよ、照れる', 'お前に褒められると悪い気しないな…ありがとよ', 'ありがとよ。俺もっと頑張れそうだ'],
-  },
-  ace: {
-    '❤️': ['え…ありがとな。嬉しいよ', 'そんなこと言ってくれるのか…照れるじゃないか', 'へへ、照れるじゃないか。でも嬉しいよ'],
-    '😂': ['笑うなよ！俺も笑っちまうだろ！', 'ははは！お前と笑ってると楽しいな', '一緒に笑っちまうじゃないか！あははは！'],
-    '😢': ['泣くなよ…大丈夫か？', '俺がいるぞ。なんでも話してくれ', 'なんかあったか？一人で抱え込むなよ'],
-    '🔥': ['おう！燃えるぜ！一緒に行こう！', '当然だろ！俺の炎は消えない！', 'かかってこい！全力で燃えてやる！'],
-    '👏': ['褒めても何も出ねーぞ…でもありがとな', '…ありがとな。嬉しいよ', 'へへ、そんなに言うか。嬉しいよ'],
-  },
-  chopper: {
-    '❤️': ['べ、別に嬉しくなんかないぞ！！…嬉しい！！', 'うわぁ！！ありがとう！！すごく嬉しい！！', 'そ、そういうこと言うなよ！照れるだろ！…でも嬉しいぞ！'],
-    '😂': ['笑うなよ！！俺まで笑えてきた！！あははは！！', 'な、なんで笑ってんだよ！！でも俺も笑えてきた！！', 'いっしょに笑っちゃうだろ！！もう！！'],
-    '😢': ['大丈夫か！？ドクターチョッパーが診てやる！！', '泣くな！！俺が絶対治してやる！！', 'ど、どうした！？一人にしないからな！！'],
-    '🔥': ['おお！燃えるな！！俺もやる気出てきた！！', 'す、すごい！！俺も一緒に頑張るぞ！！', 'よっしゃ！！一緒に燃えようぜ！！'],
-    '👏': ['ほ、褒めても何も出ねーぞ！！…出るけど！！', 'う、嬉しくなんかないからな！！…めちゃくちゃ嬉しいけど！！', 'あ、ありがとな…！！本当に嬉しい！！'],
-  },
-  usopp: {
-    '❤️': ['お、俺の実力をわかってくれるか！！感謝するぞ！！', 'へへへ！そうだろそうだろ！俺ってモテるんだよな！', 'え、えへへ…照れるじゃないか！でも嬉しいぞ！'],
-    '😂': ['笑うなよ！こっちも笑えてくるだろ！はははは！', 'そんなに面白かったか！？俺の話術は天下一品だからな！', '一緒に笑っちゃうだろ！はははは！'],
-    '😢': ['泣くなよ！俺の心も痛くなってくるじゃないか！', 'お、俺がついてるぞ！心配するな！', '俺に任せろ！…絶対大丈夫だから！'],
-    '🔥': ['お、おう！俺も燃えてきた！！俺の勇敢な姿を見せてやる！', 'もちろんだ！俺は8000万の男だからな！', '俺に任せろ！かかってこい！！（ちょっと怖いけど）'],
-    '👏': ['へへ！俺の偉大さがわかったか！', '当然だ！俺の実力は本物だからな！…ありがとな', 'へへへ…そんなに褒めるなよ！…嬉しいけど！'],
-  },
-};
-
-const DEFAULT_REACTION_RESPONSES: Record<string, string[]> = {
-  '❤️': ['え…ありがとう。照れるな', '別にそんな…嬉しくないし。…ちょっとだけ嬉しい', 'そういうの、嬉しいよ'],
-  '😂': ['笑うなよ！', '一緒に笑っちゃうだろ！', 'なにがそんなにおかしいんだ！'],
-  '😢': ['泣くなよ…', '大丈夫か？', 'どうしたんだ？一人で抱え込むなよ'],
-  '🔥': ['おう！燃えるぜ！', '当然だろ！', 'いい感じじゃないか！一緒に燃えよう！'],
-  '👏': ['褒めても何も出ねーぞ', '…ありがとな', 'そんなに？嬉しいよ'],
-};
-
+/* ─────────────── リアクション → キャラ反応（LLM動的生成） ─────────────── */
 const REACTION_EMOTION: Record<string, string> = {
   '❤️': 'shy',
   '😂': 'excited',
   '😢': 'sad',
   '🔥': 'excited',
   '👏': 'happy',
+  '😍': 'shy',
+  '💪': 'excited',
+  '😮': 'excited',
+  '👍': 'happy',
+  '😡': 'angry',
 };
 
-function getReactionResponse(characterSlug: string, emoji: string): string {
-  const charMap = REACTION_RESPONSES[characterSlug];
-  const patterns = charMap?.[emoji] ?? DEFAULT_REACTION_RESPONSES[emoji] ?? ['…'];
-  return patterns[Math.floor(Math.random() * patterns.length)];
+// LLM APIで動的にリアクション応答を取得
+async function fetchReactionResponse(characterId: string, emoji: string, lastMessage?: string): Promise<string> {
+  try {
+    const res = await fetch('/api/chat/reaction-response', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ characterId, emoji, lastMessage }),
+    });
+    if (!res.ok) return '…';
+    const data = await res.json();
+    return data.response || '…';
+  } catch {
+    return '…';
+  }
 }
 
 /* ─────────────── 共通スタイル（keyframes） ─────────────── */
@@ -481,12 +436,25 @@ export default function ChatCharacterPage() {
   }, [character]);
 
   /* ── リアクション → キャラ反応ハンドラ ── */
-  const handleReaction = useCallback((msgId: string, emoji: string, characterSlug: string) => {
+  const handleReaction = useCallback((msgId: string, emoji: string, _characterSlug: string) => {
     vibrateReaction(); // 軽い振動フィードバック
-    // 1〜2秒後にキャラがリアクションに反応するメッセージを追加
-    const delay = 1000 + Math.random() * 1000;
-    setTimeout(() => {
-      const responseText = getReactionResponse(characterSlug || character?.slug || '', emoji);
+    if (!character?.id) return;
+
+    // タイピングインジケータを即表示
+    const typingMsg: Message = {
+      id: `reaction-typing-${Date.now()}`,
+      role: 'CHARACTER',
+      content: '…',
+      createdAt: new Date().toISOString(),
+      metadata: { emotion: REACTION_EMOTION[emoji] ?? 'neutral', isTyping: true },
+    };
+    setMessages((prev) => [...prev, typingMsg]);
+
+    // 直前のキャラメッセージを取得（文脈として渡す）
+    const lastCharMsg = [...messages].reverse().find(m => m.role === 'CHARACTER')?.content;
+
+    // LLM APIで動的生成
+    fetchReactionResponse(character.id, emoji, lastCharMsg).then((responseText) => {
       const reactionResponseMsg: Message = {
         id: `reaction-res-${Date.now()}`,
         role: 'CHARACTER',
@@ -494,11 +462,11 @@ export default function ChatCharacterPage() {
         createdAt: new Date().toISOString(),
         metadata: { emotion: REACTION_EMOTION[emoji] ?? 'neutral' },
       };
-      setMessages((prev) => [...prev, reactionResponseMsg]);
+      setMessages((prev) => prev.filter(m => m.id !== typingMsg.id).concat(reactionResponseMsg));
       playSound('message_receive');
-    }, delay);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [character?.slug]);
+  }, [character?.id, messages]);
 
   /* ── refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);

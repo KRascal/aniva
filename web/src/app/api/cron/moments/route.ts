@@ -65,12 +65,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ generated: [], message: 'No active characters' });
     }
 
-    // 1回の実行で最大3キャラに制限（タイムアウト防止）
-    // 時間帯でローテーション（4時間サイクル × 3キャラ = 全キャラを約15時間でカバー）
+    // Moment数が少ないキャラを優先して生成（偏り自動補正）
     const maxPerRun = 3;
-    const slotIndex = Math.floor(Date.now() / (4 * 60 * 60 * 1000)) % Math.ceil(characters.length / maxPerRun);
-    const start = slotIndex * maxPerRun;
-    const batchChars = characters.slice(start, start + maxPerRun);
+    const momentCounts = await prisma.moment.groupBy({
+      by: ['characterId'],
+      _count: { id: true },
+    });
+    const countMap = new Map(momentCounts.map(m => [m.characterId, m._count.id]));
+    
+    // Moment数の少ない順にソート（同数ならランダム）
+    const sorted = [...characters].sort((a, b) => {
+      const ca = countMap.get(a.id) ?? 0;
+      const cb = countMap.get(b.id) ?? 0;
+      return ca !== cb ? ca - cb : Math.random() - 0.5;
+    });
+    const batchChars = sorted.slice(0, maxPerRun);
 
     const timeOfDay = getTimeOfDay();
     const generated: Array<{ characterId: string; characterName: string; content: string }> = [];
@@ -127,7 +136,7 @@ ${recentTexts || '（なし）'}
       timeOfDay,
       generated,
       count: generated.length,
-      batch: `${start + 1}-${Math.min(start + maxPerRun, characters.length)} of ${characters.length}`,
+      batch: `${maxPerRun} lowest-moment chars of ${characters.length}`,
     });
   } catch (err) {
     console.error('Cron moments error:', err);
