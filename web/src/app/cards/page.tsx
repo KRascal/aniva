@@ -522,6 +522,12 @@ function GachaTab() {
   const [freeAvailable, setFreeAvailable] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // ── パック開封演出 ──────────────────────────────────────────
+  const [openingPhase, setOpeningPhase] = useState<'idle' | 'pack' | 'reveal' | 'done'>('idle');
+  const [showFlash, setShowFlash] = useState(false);
+  const [visibleCards, setVisibleCards] = useState(0);
+  const packTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Fetch banners + coins
   useEffect(() => {
     Promise.allSettled([
@@ -590,11 +596,54 @@ function GachaTab() {
     requestAnimationFrame(animate);
   }, []);
 
+  // パックを開封するハンドラ（タップ or 2秒タイマー）
+  const openPack = useCallback(() => {
+    if (packTimerRef.current) clearTimeout(packTimerRef.current);
+    const hasHighRarity = pullResults.some((c: PullResultCard) => ['SSR', 'UR'].includes(c.rarity));
+
+    // SR以上ならパーティクル発火
+    spawnParticles();
+
+    // SSR以上ならフラッシュ演出
+    if (hasHighRarity) {
+      setShowFlash(true);
+      setTimeout(() => setShowFlash(false), 600);
+    }
+
+    setOpeningPhase('reveal');
+    const startDelay = hasHighRarity ? 420 : 0;
+
+    // カードを1枚ずつ100ms遅延で表示
+    pullResults.forEach((_: PullResultCard, i: number) => {
+      setTimeout(() => {
+        setVisibleCards(i + 1);
+      }, startDelay + i * 100);
+    });
+
+    // 全カード表示後にdoneへ
+    setTimeout(() => {
+      setOpeningPhase('done');
+    }, startDelay + pullResults.length * 100 + 300);
+  }, [pullResults, spawnParticles]);
+
+  // パック開封フェーズ: 2秒で自動開封
+  useEffect(() => {
+    if (openingPhase === 'pack') {
+      packTimerRef.current = setTimeout(openPack, 2000);
+    }
+    return () => {
+      if (packTimerRef.current) clearTimeout(packTimerRef.current);
+    };
+  }, [openingPhase, openPack]);
+
   const doPull = async (count: 1 | 10 | 'free') => {
     if (!selectedBanner || pulling) return;
     setPulling(true);
     setPullResults([]);
     setFlippedCards(new Set());
+    setOpeningPhase('idle');
+    setVisibleCards(0);
+    setShowFlash(false);
     try {
       const res = await fetch('/api/gacha/pull', {
         method: 'POST',
@@ -630,6 +679,7 @@ function GachaTab() {
         };
       });
       setPullResults(mappedCards);
+      setOpeningPhase('pack'); // パック開封フェーズへ
       setCoinBalance(Number(data.coinBalance ?? data.remainingCoins) || coinBalance);
       // pityProgress from pull response
       const pp = data.pityProgress;
@@ -639,10 +689,6 @@ function GachaTab() {
         setPityProgress(ceil > 0 ? (cur / ceil) * 100 : 0);
       }
       if (count === 'free') setFreeAvailable(false);
-      // SR以上ならパーティクル
-      if (mappedCards.some((c: PullResultCard) => ['SR', 'SSR', 'UR'].includes(c.rarity))) {
-        setTimeout(spawnParticles, 300);
-      }
     } catch {}
     finally { setPulling(false); }
   };
@@ -657,7 +703,157 @@ function GachaTab() {
 
   return (
     <div className="px-4 py-4 relative">
+      {/* CSS keyframes for opening animations */}
+      <style>{`
+        @keyframes packShine {
+          0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
+          10%  { opacity: 0.8; }
+          90%  { opacity: 0.8; }
+          100% { transform: translateX(320%) skewX(-20deg); opacity: 0; }
+        }
+        @keyframes packPulse {
+          0%, 100% { box-shadow: 0 0 24px rgba(168,85,247,0.6), 0 0 48px rgba(168,85,247,0.3); }
+          50%       { box-shadow: 0 0 48px rgba(168,85,247,1),   0 0 96px rgba(236,72,153,0.6), 0 0 140px rgba(168,85,247,0.4); }
+        }
+        @keyframes cardDropIn {
+          0%   { transform: translateY(-80px) scale(0.75); opacity: 0; }
+          65%  { transform: translateY(6px)   scale(1.04); opacity: 1; }
+          100% { transform: translateY(0)     scale(1);    opacity: 1; }
+        }
+        @keyframes flashFade {
+          0%   { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes packFloat {
+          0%, 100% { transform: translateY(0px) rotate(-1deg); }
+          50%       { transform: translateY(-10px) rotate(1deg); }
+        }
+      `}</style>
+
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-50" />
+
+      {/* ── フラッシュ演出（SSR/UR時） ── */}
+      {showFlash && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 300,
+            background: 'white',
+            animation: 'flashFade 0.5s ease-out forwards',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* ── パック開封フェーズ ── */}
+      {openingPhase === 'pack' && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.96)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          onClick={openPack}
+        >
+          {/* パックカード */}
+          <div
+            style={{
+              width: 190, height: 252,
+              borderRadius: 22,
+              background: 'linear-gradient(135deg, #6d28d9 0%, #a855f7 35%, #ec4899 65%, #f59e0b 100%)',
+              position: 'relative', overflow: 'hidden',
+              border: '2px solid rgba(255,255,255,0.35)',
+              animation: 'packPulse 1.6s ease-in-out infinite, packFloat 3s ease-in-out infinite',
+            }}
+          >
+            {/* 光のライン */}
+            <div
+              style={{
+                position: 'absolute', top: 0, bottom: 0, width: 50,
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent)',
+                animation: 'packShine 1.8s ease-in-out infinite',
+                pointerEvents: 'none',
+              }}
+            />
+            {/* 中央アイコン */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                width: 68, height: 68, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                border: '2px solid rgba(255,255,255,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(255,255,255,0.3)',
+              }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
+              </div>
+            </div>
+            {/* コーナーの星 */}
+            {[{t:'8%',l:'8%'},{t:'8%',r:'8%'},{b:'8%',l:'8%'},{b:'8%',r:'8%'}].map((pos, i) => (
+              <div key={i} style={{
+                position: 'absolute', ...pos,
+                width: 8, height: 8, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.7)',
+                boxShadow: '0 0 8px rgba(255,255,255,0.9)',
+              }} />
+            ))}
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.9)', marginTop: 28, fontSize: 17, fontWeight: 'bold', letterSpacing: 1 }}>
+            タップして開封
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.35)', marginTop: 8, fontSize: 13 }}>
+            2秒後に自動開封
+          </p>
+        </div>
+      )}
+
+      {/* ── カードリビールフェーズ ── */}
+      {openingPhase === 'reveal' && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 190,
+            background: 'rgba(3,7,18,0.97)',
+            padding: '24px 16px 80px',
+            overflowY: 'auto',
+          }}
+        >
+          <p style={{ color: 'rgba(255,255,255,0.55)', textAlign: 'center', fontSize: 14, marginBottom: 16 }}>
+            タップしてカードをめくろう！
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: pullResults.length > 1 ? 'repeat(5, 1fr)' : '1fr',
+              gap: 8,
+              maxWidth: pullResults.length === 1 ? 200 : 'none',
+              margin: '0 auto',
+            }}
+          >
+            {pullResults.slice(0, visibleCards).map((card: PullResultCard, i: number) => (
+              <div
+                key={`reveal-${card.id}-${i}`}
+                style={{ animation: 'cardDropIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}
+              >
+                <GachaFlipCard
+                  rarity={card.rarity}
+                  characterName={card.character?.name ?? '???'}
+                  characterAvatarUrl={card.character?.avatarUrl ?? null}
+                  itemName={card.name}
+                  isFlipped={flippedCards.has(i)}
+                  onFlip={() => setFlippedCards(prev => new Set(prev).add(i))}
+                  isNew={card.isNew}
+                  frameType={card.frameType}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Coin balance */}
       <div className="flex items-center justify-between mb-4">
@@ -719,8 +915,8 @@ function GachaTab() {
         </div>
       )}
 
-      {/* Pull Results */}
-      {pullResults.length > 0 && (
+      {/* Pull Results — done フェーズのみ表示 */}
+      {openingPhase === 'done' && pullResults.length > 0 && (
         <div className="mb-6">
           <p className="text-white/60 text-sm mb-3 text-center">タップしてカードをめくろう！</p>
           <div className={`grid ${pullResults.length > 1 ? 'grid-cols-5' : 'grid-cols-1 max-w-[200px] mx-auto'} gap-2`}>

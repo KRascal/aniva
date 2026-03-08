@@ -568,11 +568,8 @@ export default function ChatPage() {
   }, [status, router]);
 
   const loadChatList = useCallback(async () => {
-    if (status !== 'authenticated') {
-      console.log('[ChatPage] loadChatList skipped: status =', status);
-      return;
-    }
-    console.log('[ChatPage] loadChatList starting...');
+    if (status === 'loading') return; // まだセッション確認中
+    console.log('[ChatPage] loadChatList starting, auth status:', status);
 
     try {
       // Characters (public API)
