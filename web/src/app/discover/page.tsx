@@ -308,7 +308,7 @@ export default function DiscoverPage() {
               <img
                 src={currentChar.avatarUrl}
                 alt={currentChar.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-white/20 shadow-xl flex-shrink-0"
+                className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-xl flex-shrink-0"
               />
             )}
             <div>

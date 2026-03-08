@@ -353,11 +353,11 @@ export default function ScenarioPage() {
                 <img
                   src={scenario.character.avatarUrl}
                   alt={scenario.character.name}
-                  className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 grayscale opacity-70"
+                  className="w-16 h-16 rounded-full object-cover flex-shrink-0 grayscale opacity-70"
                   style={{ boxShadow: '0 0 0 2px rgba(139,92,246,0.3), 0 4px 16px rgba(0,0,0,0.5)' }}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 opacity-70">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 opacity-70">
                   {scenario.character.name.charAt(0)}
                 </div>
               )}
@@ -380,11 +380,11 @@ export default function ScenarioPage() {
                 <img
                   src={scenario.character.avatarUrl}
                   alt={scenario.character.name}
-                  className="w-16 h-16 rounded-2xl object-cover flex-shrink-0"
+                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                   style={{ boxShadow: '0 0 0 2px rgba(239,68,68,0.4), 0 4px 16px rgba(0,0,0,0.5)' }}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-pink-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-600 to-pink-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                   {scenario.character.name.charAt(0)}
                 </div>
               )}

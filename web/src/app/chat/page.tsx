@@ -567,34 +567,67 @@ export default function ChatPage() {
     }
   }, [status, router]);
 
-  const loadChatList = useCallback(() => {
-    if (status !== 'authenticated') return;
+  const loadChatList = useCallback(async () => {
+    if (status !== 'authenticated') {
+      console.log('[ChatPage] loadChatList skipped: status =', status);
+      return;
+    }
+    console.log('[ChatPage] loadChatList starting...');
 
-    fetch('/api/characters').then(r => r.json()).then(charData => {
-      setCharacters(charData.characters || []);
-    }).catch(err => console.error('Failed to fetch characters:', err));
-
-    fetch('/api/relationship/all').then(r => r.json()).then(relData => {
-      if (relData.relationships) {
-        const map = new Map<string, RelationshipInfo>();
-        let msgs = 0;
-        for (const rel of relData.relationships as RelationshipInfo[]) {
-          map.set(rel.characterId, rel);
-          msgs += rel.totalMessages;
-        }
-        setRelationships(map);
-        setTotalMessages(msgs);
+    try {
+      // Characters (public API)
+      const charRes = await fetch('/api/characters');
+      console.log('[ChatPage] /api/characters status:', charRes.status);
+      if (charRes.ok) {
+        const charData = await charRes.json();
+        setCharacters(charData.characters || []);
+        console.log('[ChatPage] characters loaded:', (charData.characters || []).length);
       }
-    }).catch(err => console.error('Failed to fetch relationships:', err))
-      .finally(() => setIsLoading(false));
+    } catch (err) {
+      console.error('[ChatPage] characters fetch error:', err);
+    }
 
-    fetch('/api/character-messages').then(r => r.json()).then(msgs => {
-      if (Array.isArray(msgs)) setCharMessages(msgs);
-    }).catch(() => {});
+    try {
+      // Relationships (requires auth)
+      const relRes = await fetch('/api/relationship/all');
+      console.log('[ChatPage] /api/relationship/all status:', relRes.status);
+      if (relRes.ok) {
+        const relData = await relRes.json();
+        if (relData.relationships) {
+          const map = new Map<string, RelationshipInfo>();
+          let msgs = 0;
+          for (const rel of relData.relationships as RelationshipInfo[]) {
+            map.set(rel.characterId, rel);
+            msgs += rel.totalMessages;
+          }
+          setRelationships(map);
+          setTotalMessages(msgs);
+          console.log('[ChatPage] relationships loaded:', relData.relationships.length, 'total msgs:', msgs);
+        }
+      } else {
+        console.error('[ChatPage] relationship/all failed:', relRes.status, await relRes.text().catch(() => ''));
+      }
+    } catch (err) {
+      console.error('[ChatPage] relationships fetch error:', err);
+    }
 
-    fetch('/api/proactive-messages').then(r => r.json()).then(data => {
-      if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
-    }).catch(() => {});
+    try {
+      const msgRes = await fetch('/api/character-messages');
+      if (msgRes.ok) {
+        const msgs = await msgRes.json();
+        if (Array.isArray(msgs)) setCharMessages(msgs);
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const proRes = await fetch('/api/proactive-messages');
+      if (proRes.ok) {
+        const data = await proRes.json();
+        if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
+      }
+    } catch { /* ignore */ }
+
+    setIsLoading(false);
   }, [status]);
 
   // 初回ロード

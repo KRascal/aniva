@@ -1,93 +1,58 @@
 'use client';
 
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 
-export default function ChatError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function ChatCharacterError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const reloadAttempted = useRef(false);
+
   useEffect(() => {
-    console.error(error);
-    // Server Actionの不一致エラー → 自動リロードでキャッシュ更新
-    if (
-      error.message?.includes('Failed to find Server Action') ||
-      error.message?.includes('older or newer deployment') ||
-      error.message?.includes('module factory')
-    ) {
-      window.location.reload();
+    console.error('[ChatCharacterError]', error.message, error.stack);
+    
+    if (!reloadAttempted.current) {
+      reloadAttempted.current = true;
+      const key = 'aniva_chat_char_reload';
+      const last = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!last || now - parseInt(last) > 10000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+        return;
+      }
     }
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
-      {/* 背景グロー */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-purple-900/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[200px] h-[200px] bg-pink-900/15 rounded-full blur-[100px]" />
+    <div style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', padding: '2rem',
+      background: '#030712', color: 'white', textAlign: 'center',
+    }}>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, opacity: 0.8 }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-        className="relative z-10 text-center px-6 max-w-sm"
-      >
-        {/* アイコン */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
-          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-[var(--color-surface)] border border-white/5 flex items-center justify-center shadow-lg shadow-purple-900/20"
+      <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8 }}>チャットの読み込みに失敗しました</h2>
+      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8, maxWidth: 300, wordBreak: 'break-all' }}>
+        {error.message}
+      </p>
+      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 24, maxWidth: 280 }}>
+        ネットワーク接続を確認して再試行してください
+      </p>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button
+          onClick={() => reset()}
+          style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)', color: 'white', border: 'none', borderRadius: 12, padding: '12px 28px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
         >
-          <span className="text-3xl">💬</span>
-        </motion.div>
-
-        {/* メッセージ */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-lg text-[var(--color-text)] font-medium mb-2"
+          再試行
+        </button>
+        <button
+          onClick={() => window.location.href = '/chat'}
+          style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, padding: '12px 28px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
         >
-          ...ちょっと接続が乱れちゃった
-        </motion.p>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-sm text-[var(--color-muted)] mb-8"
-        >
-          もう一回タップすれば繋がるよ
-        </motion.p>
-
-        {/* ボタン */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col gap-3"
-        >
-          <button
-            onClick={reset}
-            className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium text-white 
-                       shadow-lg shadow-purple-900/30 active:scale-[0.97] transition-transform"
-          >
-            もう一度試す
-          </button>
-          <a
-            href="/chat"
-            className="block w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)]
-                       active:scale-[0.97] transition-transform"
-          >
-            キャラ選択に戻る
-          </a>
-        </motion.div>
-      </motion.div>
+          チャット一覧
+        </button>
+      </div>
     </div>
   );
 }

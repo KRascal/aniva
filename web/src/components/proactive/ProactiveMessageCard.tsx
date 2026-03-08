@@ -52,11 +52,9 @@ export function ProactiveMessageCard({ message, onRead }: ProactiveMessageCardPr
     if (isOpening || isExpired) return;
     setIsOpening(true);
     const chatUrl = await onRead(message.id);
-    if (chatUrl) {
-      router.push(chatUrl);
-    } else {
-      setIsOpening(false);
-    }
+    // chatUrlがあればそこへ、なければslugベースでチャットページへ
+    const target = chatUrl || `/chat/${message.characterSlug}`;
+    router.push(target);
   };
 
   // 消滅済み表示

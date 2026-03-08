@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { LoginBonusPopup } from "@/components/LoginBonusPopup";
 import { GlobalProactiveBanner } from "@/components/GlobalProactiveBanner";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import { BuildIdChecker } from "@/components/BuildIdChecker";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -85,6 +86,31 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+        {/* Safari Basic Auth URL credentials fix — must run before any JS fetches */}
+        <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var of=window.fetch;
+  function strip(u){
+    if(typeof u==='string'){
+      if(u.charAt(0)==='/')return location.origin+u;
+      try{var o=new URL(u);if(o.username||o.password){o.username='';o.password='';return o.toString()}}catch(e){}
+    }
+    return u;
+  }
+  window.fetch=function(i,init){
+    if(i instanceof Request){
+      try{var o=new URL(i.url);if(o.username||o.password){o.username='';o.password='';i=new Request(o.toString(),i)}}catch(e){}
+    }else{i=strip(i)}
+    return of.call(this,i,init);
+  };
+  var OR=window.Request;
+  window.Request=function(i,init){
+    return new OR(strip(i),init);
+  };
+  window.Request.prototype=OR.prototype;
+  Object.keys(OR).forEach(function(k){window.Request[k]=OR[k]});
+})();
+        `}} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSansJP.variable} antialiased bg-black text-white`}
@@ -92,6 +118,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <PostHogProvider>
+              <BuildIdChecker />
               <PushSetup />
               <LoginBonusPopup />
               <GlobalProactiveBanner />

@@ -806,10 +806,16 @@ export default function CardsPage() {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
   const handleTouchEnd = (e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 80) {
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    // 水平スワイプ150px以上 & 垂直移動より水平移動が大きい場合のみタブ切替
+    if (Math.abs(dx) > 150 && Math.abs(dx) > Math.abs(dy) * 2) {
       if (dx < 0 && activeTab === 'collection') setActiveTab('gacha');
       else if (dx > 0 && activeTab === 'gacha') setActiveTab('collection');
     }

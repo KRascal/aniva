@@ -1437,7 +1437,7 @@ function CharacterHorizontalCard({
           <img
             src={character.avatarUrl}
             alt={character.name}
-            className="w-16 h-16 rounded-xl object-cover"
+            className="w-16 h-16 rounded-full object-cover"
             style={{
               transform: hovered ? 'scale(1.06)' : 'scale(1)',
               transition: 'transform 0.3s ease',
@@ -1445,7 +1445,7 @@ function CharacterHorizontalCard({
             }}
           />
         ) : (
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl font-bold text-white`}>
+          <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xl font-bold text-white`}>
             {character.name.charAt(0)}
           </div>
         )}
@@ -1875,7 +1875,7 @@ export default function ExplorePage() {
           <div className="space-y-3 mt-3">
             {[0,1,2,3].map(i => (
               <div key={i} className="flex items-center gap-4 bg-white/[0.04] rounded-2xl p-4" style={{ animationDelay: `${i * 80}ms` }}>
-                <div className="w-16 h-16 rounded-xl bg-white/8 animate-pulse flex-shrink-0" />
+                <div className="w-16 h-16 rounded-full bg-white/8 animate-pulse flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-white/8 rounded-full animate-pulse w-24" />
                   <div className="h-3 bg-white/5 rounded-full animate-pulse w-16" />

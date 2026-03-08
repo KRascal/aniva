@@ -272,6 +272,7 @@ export default function ChatCharacterPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; milestone?: Milestone } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [shouldAutoGreet, setShouldAutoGreet] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [daysSinceLastChat, setDaysSinceLastChat] = useState(0);
   const [showStreakBreak, setShowStreakBreak] = useState(false);
@@ -689,13 +690,25 @@ export default function ChatCharacterPage() {
         } catch (e) {
           console.error('Auto-follow failed:', e);
         }
-        // ストーリーから来た場合はオンボーディングスキップ
+        // 診断は初回チャットのみ（localStorage管理）
+        // 2人目以降のキャラは診断スキップして直接greeting送信
+        const hasCompletedDiagnosis = typeof window !== 'undefined' && localStorage.getItem('aniva_diagnosis_done');
         if (!searchParams.get('fromStory')) {
-          setShowOnboarding(true);
+          if (!hasCompletedDiagnosis) {
+            setShowOnboarding(true);
+          } else {
+            // 診断済み: オンボーディングなしで直接greeting
+            setShouldAutoGreet(true);
+          }
         }
       } else if (data.messages?.length === 0) {
+        const hasCompletedDiagnosis = typeof window !== 'undefined' && localStorage.getItem('aniva_diagnosis_done');
         if (!searchParams.get('fromStory')) {
-          setShowOnboarding(true);
+          if (!hasCompletedDiagnosis) {
+            setShowOnboarding(true);
+          } else {
+            setShouldAutoGreet(true);
+          }
         }
       }
 
@@ -1284,7 +1297,19 @@ export default function ChatCharacterPage() {
 
   /* ─────────── handleStartChat ─────────── */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // 診断済みユーザーへの自動greeting（2キャラ目以降）
+  useEffect(() => {
+    if (!shouldAutoGreet) return;
+    setShouldAutoGreet(false);
+    handleStartChat();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoGreet]);
+
   const handleStartChat = async (_userProfile?: UserProfile) => {
+    // 診断完了フラグを保存（2回目以降はスキップ）
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aniva_diagnosis_done', '1');
+    }
     setShowOnboarding(false);
     setIsGreeting(true);
     // キャラが「打ち始めてる」演出: 1.2秒TypingIndicator表示後にグリーティング

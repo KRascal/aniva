@@ -97,7 +97,7 @@ export async function pullGacha(
   }
   const allCards = await prisma.gachaCard.findMany({
     where: cardWhere,
-    include: { character: { select: { slug: true } } },
+    include: { character: { select: { id: true, slug: true, name: true, avatarUrl: true } } },
   });
 
   if (allCards.length === 0) {
@@ -169,6 +169,7 @@ export async function pullGacha(
         characterId: card.characterId,
         characterSlug: card.character?.slug ?? null,
         franchise: card.franchise,
+        character: card.character ? { id: card.character.id, name: card.character.name, avatarUrl: card.character.avatarUrl } : null,
       },
       isNew,
       rarity: card.rarity as GachaRarity,

@@ -1,5 +1,5 @@
 // ANIVA Service Worker v2 — lightweight cache strategy
-const CACHE_NAME = 'aniva-v2';
+const CACHE_NAME = 'aniva-v5';
 const PRECACHE = ['/offline.html'];
 
 self.addEventListener('install', (event) => {

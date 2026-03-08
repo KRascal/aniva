@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 
@@ -57,6 +57,25 @@ export function BottomNav() {
   const [unreadLetters, setUnreadLetters] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
+  const [initialBuildId, setInitialBuildId] = useState<string | null>(null);
+
+  // ページ読み込み時のBuild IDを記録
+  useEffect(() => {
+    fetch('/api/build-id').then(r => r.json()).then(d => {
+      if (d.buildId) setInitialBuildId(d.buildId);
+    }).catch(() => {});
+  }, []);
+
+  // ナビゲーション前にBuild IDチェック（不一致ならフルリロード）
+  const handleNavClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (!initialBuildId) return; // チェック不可なら通常ナビ
+    fetch('/api/build-id').then(r => r.json()).then(d => {
+      if (d.buildId && d.buildId !== initialBuildId) {
+        e.preventDefault();
+        window.location.href = href;
+      }
+    }).catch(() => {});
+  }, [initialBuildId]);
 
   useEffect(() => {
     // 未読レター数を取得（30秒ごとにポーリング）
@@ -136,6 +155,7 @@ export function BottomNav() {
           {/* 1. さがす */}
           <Link
             href="/explore"
+            onClick={(e) => handleNavClick(e, '/explore')}
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isHome ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
@@ -152,6 +172,7 @@ export function BottomNav() {
           {/* 2. タイムライン */}
           <Link
             href="/moments"
+            onClick={(e) => handleNavClick(e, '/moments')}
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isTimeline ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
@@ -173,6 +194,7 @@ export function BottomNav() {
           {/* 3. チャット（中央・特別強調） */}
           <Link
             href="/chat"
+            onClick={(e) => handleNavClick(e, '/chat')}
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isChat ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
@@ -197,6 +219,7 @@ export function BottomNav() {
           {/* 4. カード */}
           <Link
             href="/cards"
+            onClick={(e) => handleNavClick(e, '/cards')}
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isCards ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}
@@ -214,6 +237,7 @@ export function BottomNav() {
           {/* 5. マイページ */}
           <Link
             href="/mypage"
+            onClick={(e) => handleNavClick(e, '/mypage')}
             className={`flex flex-col items-center justify-center gap-1 flex-1 min-h-[44px] transition-all rounded-xl mx-1 ${
               isMypage ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300 active:text-gray-200'
             }`}

@@ -30,8 +30,15 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
+    // キャラクターのslugを取得してchatUrl生成
+    const character = await prisma.character.findUnique({
+      where: { id: message.characterId },
+      select: { slug: true },
+    });
+    const chatUrl = character?.slug ? `/chat/${character.slug}` : null;
+
     if (message.isRead) {
-      return NextResponse.json({ ok: true, alreadyRead: true });
+      return NextResponse.json({ ok: true, alreadyRead: true, chatUrl });
     }
 
     const updated = await prisma.characterProactiveMessage.update({
@@ -42,7 +49,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ ok: true, message: updated });
+    return NextResponse.json({ ok: true, message: updated, chatUrl });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

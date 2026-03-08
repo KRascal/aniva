@@ -1,42 +1,29 @@
 import Link from 'next/link';
 
+/**
+ * 404 page — server component, no framer-motion or client-side dependencies
+ * to avoid chunk loading failures on stale cache
+ */
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
-      {/* 背景グロー */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-purple-900/15 rounded-full blur-[120px]" />
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gray-950 text-white text-center">
+      <div className="relative mb-8">
+        <span className="text-[120px] font-black tracking-tighter bg-gradient-to-b from-white/20 to-transparent bg-clip-text text-transparent select-none leading-none">
+          404
+        </span>
       </div>
-
-      <div className="relative z-10 text-center max-w-sm">
-        {/* アイコン */}
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-[var(--color-surface)] border border-white/5 flex items-center justify-center shadow-lg shadow-purple-900/20">
-          <span className="text-3xl">🌙</span>
-        </div>
-
-        <h1 className="text-5xl font-bold text-[var(--color-text)] mb-3 tracking-tight">404</h1>
-        <p className="text-[var(--color-text)] font-medium mb-1">ここには何もないみたい</p>
-        <p className="text-sm text-[var(--color-muted)] mb-8">
-          探してるページは別の場所にあるのかも
-        </p>
-
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/explore"
-            className="w-full px-6 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium inline-block text-center
-                       shadow-lg shadow-purple-900/30 active:scale-[0.97] transition-transform"
-          >
-            キャラを探しに行く
-          </Link>
-          <Link
-            href="/"
-            className="w-full px-6 py-3.5 bg-[var(--color-surface)] border border-white/5 rounded-xl font-medium text-[var(--color-muted)] inline-block text-center
-                       active:scale-[0.97] transition-transform"
-          >
-            トップに戻る
-          </Link>
-        </div>
-      </div>
+      <h1 className="text-xl font-bold mb-2 tracking-tight">
+        ページが見つかりません
+      </h1>
+      <p className="text-sm text-white/50 mb-8 max-w-xs leading-relaxed">
+        お探しのページは存在しないか、移動した可能性があります
+      </p>
+      <Link
+        href="/explore"
+        className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full px-7 py-3 text-sm font-bold hover:brightness-110 active:scale-95 transition-all"
+      >
+        ホームへ戻る
+      </Link>
     </div>
   );
 }

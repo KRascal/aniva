@@ -63,26 +63,26 @@ export function GlobalProactiveBanner() {
     fetch(`/api/proactive-messages/${banner.id}`, {
       method: 'DELETE',
     }).catch(() => {});
-    router.push(`/chat/${banner.characterId}`);
+    router.push(`/chat/${banner.characterSlug}`);
   };
 
   if (!visible || !banner) return null;
 
   return (
     <div
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[calc(100%-24px)]"
+      className="fixed top-3 left-3 right-3 z-[9999] max-w-sm mx-auto"
       style={{
         animation: visible ? 'bannerSlideIn 0.4s cubic-bezier(0.22,1,0.36,1) forwards' : 'bannerSlideOut 0.3s ease-in forwards',
       }}
     >
       <style>{`
         @keyframes bannerSlideIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.95); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+          from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+          to   { opacity: 1; transform: translateY(0)     scale(1); }
         }
         @keyframes bannerSlideOut {
-          from { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
-          to   { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.95); }
+          from { opacity: 1; transform: translateY(0)     scale(1); }
+          to   { opacity: 0; transform: translateY(-10px) scale(0.95); }
         }
       `}</style>
       <button
@@ -97,7 +97,7 @@ export function GlobalProactiveBanner() {
       >
         {/* アバター */}
         <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden">
+          <div className="w-10 h-10 rounded-full overflow-hidden relative">
             {banner.characterAvatarUrl ? (
               <Image src={banner.characterAvatarUrl} alt={banner.characterName} fill className="object-cover" unoptimized />
             ) : (

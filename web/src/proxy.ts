@@ -19,12 +19,12 @@ function withSecurityHeaders(res: NextResponse, req: NextRequest): NextResponse 
   // CSP
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com https://us-assets.i.posthog.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https: http:",
     "media-src 'self' blob: https: http:",
-    "connect-src 'self' https://api.stripe.com https://api.x.ai https://api.elevenlabs.io https://us.i.posthog.com https://accounts.google.com wss:",
+    "connect-src 'self' https://api.stripe.com https://api.x.ai https://api.elevenlabs.io https://us.i.posthog.com https://us-assets.i.posthog.com https://accounts.google.com wss:",
     "frame-src https://js.stripe.com https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -133,7 +133,8 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith('/api/geoip') ||
     pathname.startsWith('/api/og') ||
     pathname.startsWith('/api/events') ||
-    pathname.startsWith('/api/stories');
+    pathname.startsWith('/api/stories') ||
+    pathname === '/api/build-id';
 
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
