@@ -13,8 +13,10 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   useEffect(() => {
     console.error('[GlobalError]', error.message, error.stack);
 
-    // Auto-reload once on ChunkLoadError
-    if (!reloadAttempted.current && error.message?.includes('ChunkLoadError')) {
+    // Auto-reload once on ChunkLoadError or Server Action mismatch
+    const isChunkError = error.message?.includes('ChunkLoadError');
+    const isServerActionError = error.message?.includes('Failed to find Server Action') || error.digest?.includes('NotFoundError');
+    if (!reloadAttempted.current && (isChunkError || isServerActionError)) {
       reloadAttempted.current = true;
       const key = 'aniva_global_reload';
       const last = sessionStorage.getItem(key);
