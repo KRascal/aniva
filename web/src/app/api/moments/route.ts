@@ -134,7 +134,9 @@ export async function GET(req: NextRequest) {
         characterId: moment.characterId,
         character: moment.character,
         type: moment.type,
-        content: isLocked ? null : moment.content,
+        content: isLocked
+          ? (moment.isFcOnly ? 'FC限定コンテンツです。ファンクラブに加入すると閲覧できます。' : null)
+          : moment.content,
         mediaUrl: isLocked ? null : moment.mediaUrl,
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,

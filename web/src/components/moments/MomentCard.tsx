@@ -39,6 +39,7 @@ export interface Moment {
   reactionCount: number;
   userHasLiked: boolean;
   isLocked: boolean;
+  isFcOnly?: boolean;
   commentCount?: number;
   isFollowing?: boolean;
 }
@@ -828,9 +829,16 @@ export function MomentCard({
               />
             )}
             {moment.content && (
-              <p className={`text-gray-100 text-sm leading-relaxed mb-3 ${moment.type === 'IMAGE' ? 'px-4' : ''}`}>
+              <p className={`text-gray-100 text-sm leading-relaxed mb-3 ${moment.type === 'IMAGE' ? 'px-4' : ''} ${moment.isFcOnly && moment.isLocked ? 'blur-sm select-none' : ''}`}>
                 {moment.content}
               </p>
+            )}
+            {moment.isFcOnly && moment.isLocked && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-900/30 to-pink-900/20 rounded-xl border border-purple-500/20 mx-4 mb-3">
+                <span className="text-sm">👑</span>
+                <span className="text-xs text-purple-300 font-medium">FC限定コンテンツ</span>
+                <span className="text-[10px] text-purple-400/60 ml-auto">FC会員になると見れます</span>
+              </div>
             )}
           </>
         )}
