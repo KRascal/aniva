@@ -1804,8 +1804,15 @@ export default function ExplorePage() {
   }, [status]);
 
   // 新規ユーザー / 久しぶりユーザー (72時間以上) を /discover にリダイレクト
+  // ※ ログイン直後の遷移時はスキップ（discoverループ防止）
   useEffect(() => {
     if (status !== 'authenticated') return;
+    // ログイン直後やdiscoverから戻った場合はリダイレクトしない
+    const fromLogin = typeof window !== 'undefined' && sessionStorage.getItem('aniva_just_logged_in');
+    if (fromLogin) {
+      sessionStorage.removeItem('aniva_just_logged_in');
+      return;
+    }
     const LAST_VISIT_KEY = 'aniva_last_explore_visit';
     const HOURS_72 = 72 * 60 * 60 * 1000;
     try {

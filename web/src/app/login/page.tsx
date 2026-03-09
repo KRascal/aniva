@@ -63,7 +63,7 @@ function LoginForm() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const errorParam = searchParams.get('error');
-  const callbackUrl = searchParams.get('callbackUrl') || '/chat';
+  const callbackUrl = searchParams.get('callbackUrl') || '/explore';
 
   // 既にログイン済みならリダイレクト
   useEffect(() => {
@@ -71,6 +71,10 @@ function LoginForm() {
       if (!session.user.onboardingStep || session.user.onboardingStep !== 'completed') {
         router.replace('/onboarding');
       } else {
+        // ログイン直後フラグ（explore側のdiscoverリダイレクトをスキップするため）
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('aniva_just_logged_in', '1');
+        }
         router.replace(callbackUrl);
       }
     }
