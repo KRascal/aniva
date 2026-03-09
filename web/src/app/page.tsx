@@ -163,7 +163,7 @@ function CharacterCarousel({ characters, onSelect }: { characters: CharacterItem
                 style={{
                   height: '160px',
                   background: char.avatarUrl
-                    ? `url(${char.avatarUrl}) center/cover`
+                    ? `url(${char.avatarUrl}) top center/cover`
                     : `linear-gradient(135deg, ${c1}44, ${c2}44)`,
                 }}
               >
