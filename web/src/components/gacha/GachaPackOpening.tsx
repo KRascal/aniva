@@ -14,6 +14,7 @@ interface PackCard {
     illustrationUrl: string | null;
     franchise: string | null;
     frameType: string | null;
+    character?: { avatarUrl: string | null };
   };
   isNew: boolean;
 }
@@ -109,7 +110,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
 
   const currentCard = cards[revealIndex];
   const currentColors = currentCard ? (RARITY_COLORS[currentCard.rarity] ?? RARITY_COLORS.N) : RARITY_COLORS.N;
-  const currentImg = currentCard?.card.cardImageUrl ?? currentCard?.card.imageUrl ?? currentCard?.card.illustrationUrl;
+  const currentImg = currentCard?.card.cardImageUrl ?? currentCard?.card.imageUrl ?? currentCard?.card.illustrationUrl ?? currentCard?.card.character?.avatarUrl;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.95)' }}>

@@ -36,6 +36,7 @@ interface PullResultCard {
   characterId: string;
   characterSlug: string | null;
   franchise: string | null;
+  character?: { id: string; name: string; avatarUrl: string | null };
 }
 
 interface PullResult {
@@ -698,7 +699,7 @@ export default function GachaPage() {
                             <GachaFlipCard
                               rarity={result.rarity}
                               characterName={result.card.franchise ?? 'キャラクター'}
-                              characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl}
+                              characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl ?? result.card.character?.avatarUrl}
                               itemName={result.card.name}
                               isFlipped={flippedCards[i] ?? false}
                               onFlip={() => flipCard(i)}
