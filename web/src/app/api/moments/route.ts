@@ -101,6 +101,7 @@ export async function GET(req: NextRequest) {
       mediaUrl: string | null;
       visibility: string;
       levelRequired: number;
+      isFcOnly: boolean;
       publishedAt: Date | null;
       reactions: { userId: string; type: string }[];
       _count: { comments: number };
@@ -123,6 +124,10 @@ export async function GET(req: NextRequest) {
         const userLevel = userRelationships[moment.characterId] ?? 0;
         isLocked = userLevel < moment.levelRequired;
       }
+      // FC限定コンテンツ（isFcOnly=true はFC会員のみ）
+      if (moment.isFcOnly && !fcSubscribedCharacterIds.has(moment.characterId)) {
+        isLocked = true;
+      }
 
       return {
         id: moment.id,
@@ -133,6 +138,7 @@ export async function GET(req: NextRequest) {
         mediaUrl: isLocked ? null : moment.mediaUrl,
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,
+        isFcOnly: moment.isFcOnly,
         publishedAt: moment.publishedAt!.toISOString(),
         reactionCount,
         userHasLiked,
