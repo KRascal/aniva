@@ -1016,23 +1016,31 @@ export default function BiblePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <a
-          href="/admin/characters"
-          className="text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </a>
-        <div>
-          <h1 className="text-xl font-bold text-white">
-            {charMeta ? `${charMeta.name} — Bible` : 'Character Bible'}
-          </h1>
-          {charMeta && (
-            <p className="text-gray-500 text-xs mt-0.5">{charMeta.slug}</p>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <a
+            href="/admin/characters"
+            className="text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </a>
+          <div>
+            <h1 className="text-xl font-bold text-white">
+              {charMeta ? `${charMeta.name} — Bible` : 'Character Bible'}
+            </h1>
+            {charMeta && (
+              <p className="text-gray-500 text-xs mt-0.5">{charMeta.slug}</p>
+            )}
+          </div>
         </div>
+        <a
+          href={`/admin/characters/${characterId}/test-chat`}
+          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-purple-400 hover:text-purple-300 rounded-xl text-sm font-medium transition-colors"
+        >
+          🧪 テストチャット
+        </a>
       </div>
 
       {/* Tab navigation */}
