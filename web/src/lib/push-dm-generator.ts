@@ -26,6 +26,8 @@ export interface PushDmInput {
   recentMessages: Array<{ role: string; content: string }>;
   /** 時間帯 */
   timeSlot: TimeSlot;
+  /** SemanticMemoryから取得した個人的記憶（オプション） */
+  personalMemories?: string;
 }
 
 export interface PushDmResult {
@@ -82,6 +84,7 @@ export async function generatePushDmMessage(input: PushDmInput): Promise<PushDmR
     memorySummary,
     recentMessages,
     timeSlot,
+    personalMemories,
   } = input;
 
   const levelHint = getLevelHint(level);
@@ -109,7 +112,7 @@ export async function generatePushDmMessage(input: PushDmInput): Promise<PushDmR
 - ユーザーとの最近の会話（参考）:
 ${recentConvText}
 - ユーザーの記憶サマリー: ${memorySummaryText}
-- 現在の時間帯: ${timeSlotLabel}
+- 現在の時間帯: ${timeSlotLabel}${personalMemories ? `\n- ユーザーとの個人的な思い出:\n${personalMemories}` : ''}
 
 [ルール]
 - 1〜2文。キャラの口調を完全に守る

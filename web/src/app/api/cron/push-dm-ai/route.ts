@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generatePushDmMessage, getCurrentTimeSlot } from '@/lib/push-dm-generator';
 import { sendPushNotification } from '@/lib/web-push-sender';
+import { getRelevantMemories } from '@/lib/semantic-memory';
 
 const MAX_PER_RUN = 50;
 const DAILY_LIMIT = 3;
@@ -129,7 +130,13 @@ export async function POST(req: NextRequest) {
         ? ((rel.memorySummary as Record<string, unknown>).userName as string) ?? 'あなた'
         : 'あなた');
 
-    // 5. AI生成
+    // 5. SemanticMemoryから個人的記憶を取得（パーソナライズ強化）
+    let personalMemories = '';
+    try {
+      personalMemories = await getRelevantMemories(rel.user.id, rel.character.id, `${userName}への挨拶`);
+    } catch { /* SemanticMemory未設定時は空で続行 */ }
+
+    // 6. AI生成
     let dmResult: { content: string; timeSlot: typeof timeSlot };
     try {
       dmResult = await generatePushDmMessage({
@@ -140,6 +147,7 @@ export async function POST(req: NextRequest) {
         memorySummary: rel.memorySummary,
         recentMessages,
         timeSlot,
+        personalMemories,
       });
     } catch (e) {
       console.error('[push-dm-ai] LLM error:', e);

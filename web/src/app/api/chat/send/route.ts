@@ -6,6 +6,7 @@ import { chatLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
 import { addChatScore } from '@/lib/ranking-system';
+import { analyzeImage, imageAnalysisToPromptHint } from '@/lib/image-analysis';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
@@ -24,7 +25,12 @@ export async function POST(req: NextRequest) {
     const rl = await chatLimiter.check(userId)
     if (!rl.success) return rateLimitResponse(rl)
 
-    const { characterId: rawCharacterId, message, locale } = await req.json();
+    const { characterId: rawCharacterId, message, locale, imageUrl } = await req.json() as {
+      characterId: string;
+      message: string;
+      locale?: string;
+      imageUrl?: string;
+    };
 
     if (!rawCharacterId || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -171,12 +177,23 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Character Engine で応答生成（FC会員は高品質モデル使用）
+    // 4. 画像解析（画像が送られた場合）
+    let enrichedMessage = message;
+    if (imageUrl) {
+      try {
+        const analysis = await analyzeImage(imageUrl);
+        if (analysis) {
+          enrichedMessage = `${message}\n\n${imageAnalysisToPromptHint(analysis)}`;
+        }
+      } catch { /* 画像解析失敗は無視 */ }
+    }
+
+    // 5. Character Engine で応答生成（FC会員は高品質モデル使用）
     const isFcMember = consumed === 'FC_UNLIMITED';
     const response = await characterEngine.generateResponse(
       characterId,
       relationship.id,
-      message,
+      enrichedMessage,
       typeof locale === 'string' ? locale : 'ja',
       { isFcMember },
     );
