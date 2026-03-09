@@ -20,6 +20,8 @@ const NAV_ITEMS = [
   { href: '/admin/stories', label: 'ストーリーズ', icon: '📖' },
   { href: '/admin/coins', label: 'コインパッケージ', icon: '🪙' },
   { href: '/admin/notifications', label: '通知配信', icon: '🔔' },
+  { href: '/admin/lore', label: 'ローアブック', icon: '📚' },
+  { href: '/admin/feedback', label: 'フィードバック', icon: '💬' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
