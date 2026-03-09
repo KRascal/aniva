@@ -14,6 +14,7 @@ import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 import { useTutorial } from '@/hooks/useTutorial';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { SwipeModal } from '@/components/discover/SwipeModal';
 
 // ── TinderUI発見バナー ──
 function DiscoverBanner() {
@@ -1803,15 +1804,15 @@ export default function ExplorePage() {
     }
   }, [status]);
 
-  // 新規ユーザー / 久しぶりユーザー (72時間以上) を /discover にリダイレクト
-  // ※ ログイン直後の遷移時はスキップ（discoverループ防止）
+  // 久しぶりユーザー (72時間以上) にはexplore内でスワイプモーダル表示
+  // ※ 新規ユーザーは /discover（フルスクリーンオンボーディング）
+  // ※ 既存ユーザーはモーダル（名前入力なし、アンダーバー見える）
+  const [showSwipeModal, setShowSwipeModal] = useState(false);
   useEffect(() => {
     if (status !== 'authenticated') return;
-    // ログイン直後やdiscoverから戻った場合はリダイレクトしない
     const fromLogin = typeof window !== 'undefined' && sessionStorage.getItem('aniva_just_logged_in');
     if (fromLogin) {
       sessionStorage.removeItem('aniva_just_logged_in');
-      return;
     }
     const LAST_VISIT_KEY = 'aniva_last_explore_visit';
     const HOURS_72 = 72 * 60 * 60 * 1000;
@@ -1820,10 +1821,17 @@ export default function ExplorePage() {
       const now = Date.now();
       localStorage.setItem(LAST_VISIT_KEY, String(now));
       if (!lastVisit || now - parseInt(lastVisit, 10) > HOURS_72) {
-        router.push('/discover');
+        // 既存ユーザー（onboardingStep === 'completed'）→ モーダル
+        // 新規ユーザー（onboardingStep !== 'completed'）→ /discover
+        const step = session?.user?.onboardingStep;
+        if (step === 'completed') {
+          setShowSwipeModal(true);
+        } else {
+          router.push('/discover');
+        }
       }
     } catch { /* ignore */ }
-  }, [status, router]);
+  }, [status, session, router]);
 
   const handleFollow = useCallback((characterId: string, following: boolean) => {
     setRelationships(prev => {
@@ -1943,6 +1951,11 @@ export default function ExplorePage() {
     <>
       {/* デイリーログインボーナス */}
       <DailyBonus />
+
+      {/* 久しぶりユーザー用スワイプモーダル（アンダーバー上に表示） */}
+      {showSwipeModal && (
+        <SwipeModal onClose={() => setShowSwipeModal(false)} />
+      )}
 
       {/* ポストオンボーディング・チュートリアル */}
       {tutorialInitialized && tutorialState.step >= 1 && tutorialState.step <= 5 && (
