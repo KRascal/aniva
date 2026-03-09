@@ -48,7 +48,7 @@ export default function LettersPage() {
 
     // 既読にする
     if (!letter.isRead) {
-      await fetch(`/api/letters/${letter.id}/read`, { method: 'POST' }).catch(() => {});
+      await fetch(`/api/letters/${letter.letterId}/read`, { method: 'POST' }).catch(() => {});
       setLetters(prev => prev.map(l => l.id === letter.id ? { ...l, isRead: true } : l));
     }
   };
