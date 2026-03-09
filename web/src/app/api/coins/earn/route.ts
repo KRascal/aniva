@@ -3,18 +3,15 @@
  * ランダムイベント等でコインをユーザーに付与する（上限: 1日50コインまで）
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 
 const DAILY_EARN_LIMIT = 50; // 1日の上限
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieName = req.cookies.has('authjs.session-token')
-      ? 'authjs.session-token'
-      : 'next-auth.session-token';
-    const token = await getToken({ req, cookieName, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET });
-    if (!token?.sub) {
+    const userId = await getVerifiedUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,8 +19,6 @@ export async function POST(req: NextRequest) {
     if (!amount || amount <= 0 || amount > 50) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
-
-    const userId = token.sub;
 
     // 今日付与済みのコイン数を確認（ランダムイベント経由のみカウント）
     const todayStart = new Date();

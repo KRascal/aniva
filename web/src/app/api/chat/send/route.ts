@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ユーザー存在チェック（削除済みユーザーのセッション悪用防止）
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     // Rate Limit: chatLimiter (20req/min per user)
     const rl = await chatLimiter.check(userId)
     if (!rl.success) return rateLimitResponse(rl)

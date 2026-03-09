@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { rollDailyEvent } from '@/lib/variable-reward-system';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
@@ -51,8 +51,7 @@ function generateEventGreeting(
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    const userId = (session?.user as { id?: string })?.id;
+    const userId = await getVerifiedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { recoverStreak } from '@/lib/streak-system';
 
 const RECOVERY_COST = 50; // コイン
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token?.sub) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'relationshipId required' }, { status: 400 });
   }
 
-  const result = await recoverStreak(relationshipId, token.sub, RECOVERY_COST);
+  const result = await recoverStreak(relationshipId, userId, RECOVERY_COST);
 
   if (!result.success) {
     const statusMap: Record<string, number> = {
