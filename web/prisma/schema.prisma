@@ -915,7 +915,7 @@ model LoreEntry {
   content      String         @db.Text // 本文
   category     String         @default("event") // event|character|location|ability|item|relationship
   keywords     String[]       // キーワードトリガー
-  embedding    Unsupported("vector(512)")? // pgvector
+  embedding    Unsupported("vector(1536)")? // pgvector
   importance   Int            @default(5) // 1-10
   spoilerLevel Int            @default(0) // 0=なし, 1=軽微, 2=重大
   createdAt    DateTime       @default(now())
