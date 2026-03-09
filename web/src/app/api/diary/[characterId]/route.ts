@@ -42,12 +42,12 @@ export async function GET(
           imageUrl: true,
           likes: true,
           createdAt: true,
-          diaryLikes: userId
-            ? {
-                where: { userId },
-                select: { id: true },
-              }
-            : false,
+          ...(userId ? {
+            diaryLikes: {
+              where: { userId },
+              select: { id: true },
+            }
+          } : {}),
         },
       }),
       prisma.characterDiary.count({ where: { characterId } }),
@@ -62,7 +62,7 @@ export async function GET(
       imageUrl: d.imageUrl,
       likes: d.likes,
       createdAt: d.createdAt,
-      isLiked: Array.isArray(d.diaryLikes) ? d.diaryLikes.length > 0 : false,
+      isLiked: Array.isArray((d as { diaryLikes?: { id: string }[] }).diaryLikes) ? ((d as { diaryLikes?: { id: string }[] }).diaryLikes?.length ?? 0) > 0 : false,
     }));
 
     return NextResponse.json({
