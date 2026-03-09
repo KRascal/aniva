@@ -2018,6 +2018,7 @@ export default function ChatCharacterPage() {
         onCtxMenu={(msgId, content) => setCtxMenu({ msgId, content })}
         onFcClick={() => setShowFcModal(true)}
         onReaction={handleReaction}
+        currentEmotion={currentEmotion}
       />
 
       {/* ══════════════ エンディングメッセージ（ピークエンドの法則） ══════════════ */}

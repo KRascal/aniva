@@ -212,6 +212,8 @@ export interface ChatMessageListProps {
   onFcClick: () => void;
   /** リアクション送信コールバック（キャラ反応生成のため） */
   onReaction: (msgId: string, emoji: string, characterSlug: string) => void;
+  /** 現在の感情（感情連動アバター） */
+  currentEmotion?: string;
 }
 
 /* ─────────────── ChatMessageList コンポーネント ─────────────── */
@@ -231,6 +233,7 @@ export function ChatMessageList({
   onCtxMenu,
   onFcClick,
   onReaction,
+  currentEmotion = 'neutral',
 }: ChatMessageListProps) {
   /* ── リアクション内部 state ── */
   const [reactions, setReactions] = useState<Record<string, ReactionEmoji>>({});
@@ -503,9 +506,14 @@ export function ChatMessageList({
               >
                 {/* キャラクターアバター */}
                 {!isUser && (
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-opacity relative ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-all duration-300 relative ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
                     {character?.avatarUrl ? (
-                      <Image src={character.avatarUrl} alt={character.name} fill className="object-cover" unoptimized />
+                      <img
+                        src={isLast && character.slug ? `/characters/${character.slug}/emotions/${currentEmotion}.webp` : character.avatarUrl}
+                        alt={character.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = character.avatarUrl!; }}
+                      />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm">
                         🏴‍☠️
