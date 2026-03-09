@@ -281,7 +281,7 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
     );
   }
 
-  // --- SSR: 虹色の走査線 + 画面フラッシュ + パーティクル — 3段演出 ---
+  // --- SSR: 金色フラッシュ + 放射線 + SUPER RARE テキスト + 金色パルス — 3段演出 ---
   if (rarity === 'SSR') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90">
@@ -311,7 +311,31 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
             80%  { opacity: 0.8; }
             100% { transform: translateX(100%); opacity: 0; }
           }
+          @keyframes ssrGoldFlash {
+            0%   { opacity: 0; }
+            15%  { opacity: 1; }
+            40%  { opacity: 0.7; }
+            100% { opacity: 0; }
+          }
+          @keyframes ssrGoldPulse {
+            0%,100% { opacity: 0.3; transform: scale(1); }
+            50%     { opacity: 0.7; transform: scale(1.05); }
+          }
+          @keyframes ssrSuperIn {
+            0%   { opacity: 0; transform: scale(0.3) translateY(30px); letter-spacing: 0.5em; }
+            60%  { opacity: 1; transform: scale(1.1) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); letter-spacing: 0.3em; }
+          }
         `}</style>
+
+        {/* 金色グラデーションのパルス背景 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(251,191,36,0.5) 0%, rgba(245,158,11,0.3) 40%, rgba(161,108,15,0.15) 70%, transparent 100%)',
+            animation: 'ssrGoldPulse 1.5s ease-in-out infinite',
+          }}
+        />
 
         {/* 背景グロー */}
         <div
@@ -322,15 +346,26 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
           }}
         />
 
-        {/* 放射線 8本 */}
+        {/* 金色フラッシュ（白→金色） */}
+        {phase >= 1 && (
+          <div
+            className="absolute inset-0 z-30 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(251,191,36,0.8) 30%, rgba(245,158,11,0.5) 60%, transparent 85%)',
+              animation: 'ssrGoldFlash 0.6s ease-out forwards',
+            }}
+          />
+        )}
+
+        {/* 放射線 12本（増量） */}
         {phase >= 1 &&
-          Array.from({ length: 8 }, (_, i) => (
+          Array.from({ length: 12 }, (_, i) => (
             <div
               key={i}
               className="absolute pointer-events-none"
               style={
                 {
-                  '--ray-angle': `${i * 45}deg`,
+                  '--ray-angle': `${i * 30}deg`,
                   width: '3px',
                   height: '150vh',
                   top: '50%',
@@ -338,10 +373,10 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
                   marginLeft: '-1.5px',
                   marginTop: '-75vh',
                   background:
-                    'linear-gradient(to bottom, transparent, rgba(255,255,255,0.7) 50%, transparent)',
+                    'linear-gradient(to bottom, transparent, rgba(251,191,36,0.8) 50%, transparent)',
                   transformOrigin: 'center 75vh',
-                  transform: `rotate(${i * 45}deg)`,
-                  animation: `ssrRay 2.5s ${i * 0.1}s ease-out forwards`,
+                  transform: `rotate(${i * 30}deg)`,
+                  animation: `ssrRay 2.5s ${i * 0.08}s ease-out forwards`,
                 } as React.CSSProperties
               }
             />
@@ -361,22 +396,34 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
           />
         )}
 
-        {/* SSR テキスト */}
+        {/* ✨ SUPER RARE ✨ テキスト */}
         {phase >= 1 && (
           <div
             className="absolute text-center z-10"
-            style={{ animation: 'ssrTitleIn 0.6s ease-out 0.6s both' }}
+            style={{ animation: 'ssrSuperIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.4s both' }}
           >
             <div
-              className="text-6xl font-black tracking-widest"
               style={{
-                color: '#fde68a',
+                fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+                fontWeight: 900,
+                background: 'linear-gradient(135deg, #fde68a, #fbbf24, #f59e0b, #fde68a)',
+                backgroundSize: '200% 200%',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
                 animation: 'ssrShine 1s ease-in-out 0.8s infinite',
+                letterSpacing: '0.3em',
               }}
             >
-              S·S·RARE
+              ✨ SUPER RARE ✨
             </div>
-            <div className="text-yellow-400 text-sm mt-2 font-medium tracking-widest">
+            <div style={{
+              color: '#fbbf24',
+              fontSize: '0.875rem',
+              marginTop: '0.5rem',
+              fontWeight: 500,
+              letterSpacing: '0.4em',
+            }}>
               ✦ ULTRA PULL ✦
             </div>
           </div>
@@ -389,7 +436,7 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
     );
   }
 
-  // --- UR: 暗転→金の亀裂→爆発 — 5段演出 ---
+  // --- UR: 暗転→金の亀裂→虹色爆発→光の柱 — ソシャゲ級5段演出 ---
   const urBgByPhase: Record<number, string> = {
     1: `radial-gradient(ellipse at center, ${themeColor} 0%, ${themeColor}88 60%, transparent 100%)`,
     2: 'rgba(255,255,255,0.95)',
@@ -419,6 +466,35 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
         }
         @keyframes urFadeOut { to { opacity: 0; } }
         @keyframes urDarken  { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes urRainbowRingSpin {
+          0%   { transform: translate(-50%, -50%) rotate(0deg); opacity: 0; }
+          20%  { opacity: 1; }
+          100% { transform: translate(-50%, -50%) rotate(360deg); opacity: 0.8; }
+        }
+        @keyframes urRainbowPulse {
+          0%,100% { opacity: 0.15; filter: hue-rotate(0deg); }
+          25%     { opacity: 0.35; filter: hue-rotate(90deg); }
+          50%     { opacity: 0.25; filter: hue-rotate(180deg); }
+          75%     { opacity: 0.35; filter: hue-rotate(270deg); }
+        }
+        @keyframes urLightPillar {
+          0%   { transform: scaleY(0); opacity: 0; }
+          30%  { opacity: 1; }
+          60%  { transform: scaleY(1); opacity: 1; }
+          100% { transform: scaleY(1); opacity: 0; }
+        }
+        @keyframes urSubTextIn {
+          0%   { opacity: 0; transform: translateY(15px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes urSubTextPulse {
+          0%,100% { opacity: 0.8; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+          50%     { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.9), 0 0 60px rgba(251,191,36,0.5); }
+        }
+        @keyframes urRingGlow {
+          0%,100% { box-shadow: 0 0 40px 10px rgba(251,191,36,0.3), inset 0 0 40px 10px rgba(251,191,36,0.1); }
+          50%     { box-shadow: 0 0 80px 20px rgba(251,191,36,0.6), inset 0 0 60px 15px rgba(251,191,36,0.2); }
+        }
       `}</style>
 
       {/* フェーズ0: 初期暗転 */}
@@ -451,15 +527,24 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
         />
       )}
 
-      {/* フェーズ3: 虹色スウィープ */}
+      {/* フェーズ3: 虹色スウィープ + 全画面虹色パルス */}
       {phase === 3 && (
-        <div
-          className="absolute inset-0"
-          style={{
-            background: urBgByPhase[3],
-            animation: 'urRainbow 1s ease-in-out forwards',
-          }}
-        />
+        <>
+          <div
+            className="absolute inset-0"
+            style={{
+              background: urBgByPhase[3],
+              animation: 'urRainbow 1s ease-in-out forwards',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'conic-gradient(from 0deg, #ff0000, #ff7700, #ffff00, #00ff00, #00ffff, #0077ff, #8800ff, #ff00ff, #ff0000)',
+              animation: 'urRainbowPulse 2s ease-in-out infinite',
+            }}
+          />
+        </>
       )}
 
       {/* フェーズ4: フェードアウト */}
@@ -473,27 +558,135 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
         />
       )}
 
-      {/* ULTRA RARE テキスト */}
+      {/* レインボー回転リング */}
+      {phase >= 2 && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: 'min(80vw, 400px)',
+            height: 'min(80vw, 400px)',
+            top: '50%',
+            left: '50%',
+            borderRadius: '50%',
+            border: '4px solid transparent',
+            borderImage: 'conic-gradient(from 0deg, #ff0000, #ff7700, #ffff00, #00ff00, #00ffff, #0077ff, #8800ff, #ff00ff, #ff0000) 1',
+            animation: 'urRainbowRingSpin 3s linear infinite, urRingGlow 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      {/* 2重目の回転リング（逆回転・大きめ） */}
+      {phase >= 2 && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: 'min(95vw, 500px)',
+            height: 'min(95vw, 500px)',
+            top: '50%',
+            left: '50%',
+            borderRadius: '50%',
+            border: '2px solid transparent',
+            borderImage: 'conic-gradient(from 180deg, #ff00ff, #8800ff, #0077ff, #00ffff, #00ff00, #ffff00, #ff7700, #ff0000, #ff00ff) 1',
+            animation: 'urRainbowRingSpin 4s linear reverse infinite',
+            opacity: 0.6,
+          }}
+        />
+      )}
+
+      {/* 光の柱（亀裂エフェクト後に画面上部から降りてくる） */}
+      {phase >= 3 && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: '60px',
+            height: '100vh',
+            top: 0,
+            left: '50%',
+            marginLeft: '-30px',
+            transformOrigin: 'center top',
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(251,191,36,0.8) 20%, rgba(245,158,11,0.6) 50%, rgba(251,191,36,0.3) 80%, transparent 100%)',
+            boxShadow: '0 0 80px 30px rgba(251,191,36,0.5), 0 0 150px 60px rgba(255,255,255,0.3)',
+            animation: 'urLightPillar 1.8s ease-out forwards',
+          }}
+        />
+      )}
+      {/* サブ光の柱（左右） */}
+      {phase >= 3 && (
+        <>
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              width: '20px',
+              height: '100vh',
+              top: 0,
+              left: '30%',
+              transformOrigin: 'center top',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, rgba(251,191,36,0.4) 30%, transparent 80%)',
+              boxShadow: '0 0 40px 15px rgba(251,191,36,0.3)',
+              animation: 'urLightPillar 1.8s ease-out 0.2s forwards',
+              opacity: 0,
+            }}
+          />
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              width: '20px',
+              height: '100vh',
+              top: 0,
+              left: '70%',
+              transformOrigin: 'center top',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, rgba(251,191,36,0.4) 30%, transparent 80%)',
+              boxShadow: '0 0 40px 15px rgba(251,191,36,0.3)',
+              animation: 'urLightPillar 1.8s ease-out 0.35s forwards',
+              opacity: 0,
+            }}
+          />
+        </>
+      )}
+
+      {/* 🌟 ULTRA RARE 🌟 テキスト */}
       {phase >= 1 && (
         <div
           className="absolute text-center z-20"
           style={{ animation: 'urTitleIn 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
         >
           <div
-            className="font-black tracking-widest"
             style={{
+              fontWeight: 900,
+              letterSpacing: '0.15em',
               fontSize: 'clamp(2.5rem, 8vw, 5rem)',
               background:
-                'linear-gradient(135deg, #fde68a, #f59e0b, #ef4444, #ec4899, #8b5cf6)',
+                'linear-gradient(135deg, #fde68a, #f59e0b, #ef4444, #ec4899, #8b5cf6, #60a5fa, #34d399, #fde68a)',
+              backgroundSize: '300% 300%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               animation: 'urTitleShine 1s ease-in-out 0.3s infinite',
             }}
           >
-            ULTRA RARE
+            🌟 ULTRA RARE 🌟
           </div>
-          <div className="text-white text-xs mt-2 tracking-[0.4em] opacity-90">
+          {/* 「極めて希少なカードが！」サブテキスト */}
+          {phase >= 3 && (
+            <div
+              style={{
+                color: '#ffffff',
+                fontSize: 'clamp(0.875rem, 3vw, 1.25rem)',
+                marginTop: '0.75rem',
+                fontWeight: 600,
+                letterSpacing: '0.3em',
+                animation: 'urSubTextIn 0.6s ease-out forwards, urSubTextPulse 1.5s ease-in-out 0.6s infinite',
+              }}
+            >
+              極めて希少なカードが！
+            </div>
+          )}
+          <div style={{
+            color: '#ffffff',
+            fontSize: '0.75rem',
+            marginTop: '0.5rem',
+            letterSpacing: '0.4em',
+            opacity: 0.9,
+          }}>
             ✦ ✦ ✦&nbsp;&nbsp;LEGENDARY&nbsp;&nbsp;✦ ✦ ✦
           </div>
         </div>

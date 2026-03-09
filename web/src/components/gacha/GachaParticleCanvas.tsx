@@ -100,23 +100,31 @@ function createParticles(preset: ParticlePreset, w: number, h: number): Particle
     } satisfies Particle));
   }
 
-  // ur-explosion
-  return Array.from({ length: 60 }, () => {
+  // ur-explosion — ソシャゲ級: 180パーティクル、虹色/ゴールド/ホワイト、高速・高輝度
+  return Array.from({ length: 180 }, () => {
     const angle = rand(0, Math.PI * 2);
-    const speed = rand(120, 300);
+    const speed = rand(180, 480);
     return {
       x: cx,
       y: cy,
       vx: Math.cos(angle) * speed / 60,
-      vy: Math.sin(angle) * speed / 60 - rand(0.5, 1.5),
-      radius: rand(4, 16),
-      color: randColor(['#f59e0b', '#fde68a', '#ff6b6b', '#ec4899', '#a78bfa', '#ffffff']),
+      vy: Math.sin(angle) * speed / 60 - rand(1.0, 3.0),
+      radius: rand(4, 22),
+      color: randColor([
+        '#fde68a', '#fbbf24', '#f59e0b',   // ゴールド系
+        '#ffffff', '#fffde7', '#fff9c4',    // ホワイト/クリーム
+        '#ff6b6b', '#ec4899', '#f472b6',    // ピンク/レッド
+        '#a78bfa', '#8b5cf6', '#7c3aed',    // パープル
+        '#60a5fa', '#3b82f6',               // ブルー
+        '#34d399', '#10b981',               // グリーン
+        '#fb923c',                          // オレンジ
+      ]),
       alpha: 1,
       rotation: rand(0, Math.PI * 2),
-      rotationSpeed: rand(-0.15, 0.15),
+      rotationSpeed: rand(-0.2, 0.2),
       shape: (['circle', 'star', 'diamond'] as const)[Math.floor(rand(0, 3))],
       life: 1,
-      lifeDecay: 0.005,
+      lifeDecay: 0.003,
       trail: [],
     } satisfies Particle;
   });
