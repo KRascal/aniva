@@ -7,13 +7,24 @@ export async function GET(
   { params }: { params: Promise<{ characterId: string }> }
 ) {
   const session = await auth();
-  const { characterId } = await params;
+  const { characterId: characterIdOrSlug } = await params;
 
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') ?? '10', 10)));
   const skip = (page - 1) * limit;
   const userId = session?.user?.id;
+
+  // slugとidの両方に対応（exploreからslugで遷移する場合がある）
+  let characterId = characterIdOrSlug;
+  const isCuid = /^c[a-z0-9]{20,}$/i.test(characterIdOrSlug);
+  if (!isCuid) {
+    const char = await prisma.character.findFirst({
+      where: { slug: characterIdOrSlug, isActive: true },
+      select: { id: true },
+    });
+    if (char) characterId = char.id;
+  }
 
   try {
     const [diaries, total] = await Promise.all([

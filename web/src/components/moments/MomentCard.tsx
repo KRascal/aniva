@@ -723,10 +723,12 @@ export function MomentCard({
     <div className="bg-gray-900/70 backdrop-blur-sm border border-white/6 rounded-3xl overflow-hidden shadow-lg hover:border-white/12 transition-colors">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <Avatar character={moment.character} ring online />
+        <a href={`/profile/${moment.character.id}`} className="flex-shrink-0">
+          <Avatar character={moment.character} ring online />
+        </a>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-bold text-white text-sm leading-tight">{moment.character.name}</p>
+            <a href={`/profile/${moment.character.id}`} className="font-bold text-white text-sm leading-tight hover:text-purple-300 transition-colors">{moment.character.name}</a>
             {showFollowButton && (
               <button
                 onClick={handleFollow}

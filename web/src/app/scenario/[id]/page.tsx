@@ -376,21 +376,23 @@ export default function ScenarioPage() {
           <>
             {/* キャラアバター + 名前 */}
             <div className="flex items-center gap-4 mb-6">
-              {scenario.character.avatarUrl ? (
-                <img
-                  src={scenario.character.avatarUrl}
-                  alt={scenario.character.name}
-                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  style={{ boxShadow: '0 0 0 2px rgba(239,68,68,0.4), 0 4px 16px rgba(0,0,0,0.5)' }}
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-600 to-pink-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                  {scenario.character.name.charAt(0)}
-                </div>
-              )}
+              <a href={`/profile/${scenario.characterId}`} className="flex-shrink-0">
+                {scenario.character.avatarUrl ? (
+                  <img
+                    src={scenario.character.avatarUrl}
+                    alt={scenario.character.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                    style={{ boxShadow: '0 0 0 2px rgba(239,68,68,0.4), 0 4px 16px rgba(0,0,0,0.5)' }}
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-600 to-pink-600 flex items-center justify-center text-white text-xl font-bold">
+                    {scenario.character.name.charAt(0)}
+                  </div>
+                )}
+              </a>
               <div>
                 <p className="text-gray-400 text-xs">{scenario.character.franchise}</p>
-                <p className="text-white font-bold text-lg">{scenario.character.name}</p>
+                <a href={`/profile/${scenario.characterId}`} className="text-white font-bold text-lg hover:text-purple-300 transition-colors">{scenario.character.name}</a>
                 {scenario.description && (
                   <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{scenario.description}</p>
                 )}

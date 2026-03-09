@@ -29,6 +29,7 @@ export default function MemoryBookPage() {
   const characterId = params?.characterId as string;
   const [data, setData] = useState<MemoryBookData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,9 +39,12 @@ export default function MemoryBookPage() {
     if (!characterId || status !== 'authenticated') return;
 
     fetch(`/api/memory-book/${characterId}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(setData)
-      .catch(() => {})
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [characterId, status, router]);
 
@@ -48,6 +52,17 @@ export default function MemoryBookPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex items-center justify-center">
         <div className="aniva-shimmer w-12 h-12 rounded-full bg-gray-700" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex flex-col items-center justify-center gap-4 text-gray-400 p-8 text-center">
+        <p className="text-5xl">📖</p>
+        <p className="text-white/70 font-medium">思い出ブックを読み込めませんでした</p>
+        <button onClick={() => { setFetchError(false); setLoading(true); }} className="text-purple-400 text-sm underline">再試行</button>
+        <button onClick={() => router.back()} className="text-gray-500 text-sm">戻る</button>
       </div>
     );
   }
