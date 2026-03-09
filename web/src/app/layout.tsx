@@ -1,15 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
-import dynamic from 'next/dynamic';
 import { Providers } from "@/components/providers";
-// 初期レンダリング不要なコンポーネントをlazyロード（LCP改善）
-const PushSetup = dynamic(() => import("@/components/PushSetup").then(m => ({ default: m.PushSetup })), { ssr: false });
-const BottomNavDynamic = dynamic(() => import("@/components/BottomNav").then(m => ({ default: m.BottomNav })), { ssr: false });
-const LoginBonusPopup = dynamic(() => import("@/components/LoginBonusPopup").then(m => ({ default: m.LoginBonusPopup })), { ssr: false });
-const GlobalProactiveBanner = dynamic(() => import("@/components/GlobalProactiveBanner").then(m => ({ default: m.GlobalProactiveBanner })), { ssr: false });
+import { PushSetup } from "@/components/PushSetup";
+import { BottomNav } from "@/components/BottomNav";
+import { LoginBonusPopup } from "@/components/LoginBonusPopup";
+import { GlobalProactiveBanner } from "@/components/GlobalProactiveBanner";
 import { PostHogProvider } from "@/components/PostHogProvider";
-const BuildIdChecker = dynamic(() => import("@/components/BuildIdChecker").then(m => ({ default: m.BuildIdChecker })), { ssr: false });
+import { BuildIdChecker } from "@/components/BuildIdChecker";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -116,7 +114,7 @@ if('serviceWorker' in navigator){
               <LoginBonusPopup />
               <GlobalProactiveBanner />
               {children}
-              <BottomNavDynamic />
+              <BottomNav />
             </PostHogProvider>
           </Providers>
         </NextIntlClientProvider>
