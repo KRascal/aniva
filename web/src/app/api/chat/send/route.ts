@@ -291,6 +291,11 @@ export async function POST(req: NextRequest) {
       charMsg?.id,
     ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
 
+    // ランキングスコア加算（非同期、失敗しても無視）
+    import('@/lib/ranking-system').then(({ addChatScore }) => {
+      addChatScore(userId, characterId, isFcMember).catch(() => {});
+    }).catch(() => {});
+
     return NextResponse.json({
       userMessage: userMsg,
       characterMessage: charMsg,

@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
-        character: { select: { name: true, avatarUrl: true } },
+        character: { select: { id: true, name: true, avatarUrl: true } },
         reactions: { select: { userId: true, type: true } },
         _count: { select: { comments: true } },
       },
