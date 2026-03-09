@@ -231,8 +231,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 7d. ランキングスコア加算（FC会員のみ）
-    const isFcMember = access.type === 'FC_UNLIMITED' || relationship.isFanclub;
-    addChatScore(userId, characterId, isFcMember).catch(() => {}); // 非同期、エラーは無視
+    addChatScore(userId, characterId, isFcMember).catch(() => {});
 
     // 8. 更新後のrelationshipを再取得してleveledUpを判定
     const updatedRelationship = await prisma.relationship.findUnique({
@@ -290,9 +289,6 @@ export async function POST(req: NextRequest) {
       response.text,
       charMsg?.id,
     ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
-
-    // ランキングスコア加算（非同期、失敗しても無視）
-    addChatScore(userId, characterId, isFcMember).catch(() => {});
 
     return NextResponse.json({
       userMessage: userMsg,
