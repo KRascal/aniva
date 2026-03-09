@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 
 interface DiscoverCharacter {
   id: string;
@@ -45,6 +46,7 @@ export default function DiscoverPage() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    track(EVENTS.DISCOVER_VIEWED);
     (async () => {
       try {
         const res = await fetch('/api/characters?limit=50&random=1');
@@ -72,6 +74,7 @@ export default function DiscoverPage() {
     setSwipeX(direction === 'left' ? -500 : 500);
 
     const char = characters[currentIndex];
+    track(EVENTS.TINDER_SWIPE, { direction, characterId: char?.id, characterSlug: char?.slug });
     if (direction === 'left' && char) {
       addSkippedSlug(char.slug);
     }
@@ -140,17 +143,9 @@ export default function DiscoverPage() {
   const nextChar = characters[currentIndex + 1];
   const rotation = swipeX * 0.08;
   const opacity = Math.max(0, 1 - Math.abs(swipeX) / 500);
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-50">
-        <div className="animate-pulse text-white/40 text-lg">読み込み中...</div>
-      </div>
-    );
-  }
-
-  // グリーティング送信（完了時）
   const isComplete = !currentChar || currentIndex >= characters.length;
+
+  // グリーティング送信（完了時）— hooksはearly returnの前に配置必須
   const greetSentRef = useRef(false);
   useEffect(() => {
     if (isComplete && followedIds.length > 0 && !greetSentRef.current) {
@@ -162,6 +157,14 @@ export default function DiscoverPage() {
       }).catch(() => {});
     }
   }, [isComplete, followedIds]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-50">
+        <div className="animate-pulse text-white/40 text-lg">読み込み中...</div>
+      </div>
+    );
+  }
 
   if (isComplete) {
     const followedChars = characters.filter(c => followedIds.includes(c.id));
