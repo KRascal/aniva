@@ -734,7 +734,7 @@ async function callLLM(systemPrompt: string, messages: { role: 'user' | 'assista
       });
       if (!res.ok) {
         const errText = await res.text();
-        console.error(`[callLLM] xAI error ${res.status}: ${errText} — falling back to Anthropic`);
+        console.error(`[callLLM] xAI error ${res.status}: ${errText} - falling back to Anthropic`);
       } else {
         const data = await res.json();
         const text = data.choices?.[0]?.message?.content;
@@ -789,7 +789,7 @@ interface MemoryContext {
 }
 
 export class CharacterEngine {
-  
+
   /**
    * キャラクターの応答を生成
    */
@@ -837,7 +837,7 @@ export class CharacterEngine {
     // 4. メモリコンテキスト構築（generateResponseと同じロジック）
     const memory = this.buildMemoryContext(relationship);
 
-    // 4a-4h. コンテキスト取得（簡略化 — エラーは吸収）
+    // 4a-4h. コンテキスト取得（簡略化 - エラーは吸収）
     let cliffhangerFollowUp: string | null = null;
     let dailyEventType: string | null = null;
     let hiddenCommandContext: string | null = null;
@@ -917,16 +917,16 @@ export class CharacterEngine {
     const character = await prisma.character.findUniqueOrThrow({
       where: { id: characterId },
     });
-    
+
     // 2. 関係性情報取得
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
       include: { user: true },
     });
-    
+
     // 3. 会話履歴取得（直近20件）
     const recentMessages = await this.getRecentMessages(relationshipId, 20);
-    
+
     // 3b. 今日のキャラのグローバル感情状態を取得（未生成なら即時生成）
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -979,7 +979,7 @@ export class CharacterEngine {
 
     // 4. パーソナライズメモリ構築
     const memory = this.buildMemoryContext(relationship);
-    
+
     // 4b. クリフハンガー消費（昨日の予告 → 今日のフォローアップ注入）
     let cliffhangerFollowUp: string | null = null;
     try {
@@ -987,8 +987,8 @@ export class CharacterEngine {
     } catch (e) {
       console.warn('[CharacterEngine] consumeCliffhanger failed:', e);
     }
-    
-    // 4c. 変動報酬 — 今日のデイリーイベントタイプを取得
+
+    // 4c. 変動報酬 - 今日のデイリーイベントタイプを取得
     let dailyEventType: DailyEventType = 'normal';
     try {
       const dailyEvent = await getUserDailyEvent(relationship.userId);
@@ -996,11 +996,11 @@ export class CharacterEngine {
     } catch (e) {
       console.warn('[CharacterEngine] getUserDailyEvent failed:', e);
     }
-    
+
     // 4d. 隠しコマンド検出
     const hiddenCommandContext = this.detectHiddenCommand(userMessage, character.slug);
-    
-    // 4e. 嫉妬メカニクス — キャラの平均レベルとユーザーの相対位置
+
+    // 4e. 嫉妬メカニクス - キャラの平均レベルとユーザーの相対位置
     let jealousyContext = '';
     try {
       jealousyContext = await this.buildJealousyContext(characterId, relationship.level, memory.userName);
@@ -1030,20 +1030,33 @@ export class CharacterEngine {
       console.warn('[CharacterEngine] getRelevantMemories failed:', e);
     }
 
-    // 4h. 他ユーザー匂わせ — 直近24時間のファン数
+    // 4h. 他ユーザー匂わせ - 直近24時間のファン数
     let dailyFanCount = 0;
     try {
       dailyFanCount = await getDailyFanCount(characterId);
     } catch (e) {
       console.warn('[CharacterEngine] getDailyFanCount failed:', e);
     }
-    
+
     // 4i. キャラクターバイブル（DB定義: Soul/Quotes/Boundaries/Voice）
     let bibleContext = '';
     try {
       bibleContext = await this.buildBibleContext(characterId, locale);
     } catch (e) {
       console.warn('[CharacterEngine] buildBibleContext failed:', e);
+    }
+
+    // 4j. ローアブック（作品知識のキーワードRAG）
+    let loreContext = '';
+    try {
+      const { getRelevantLore, getFranchiseIdByCharacter, formatLoreContext } = await import('./lore-engine');
+      const franchiseId = await getFranchiseIdByCharacter(characterId);
+      if (franchiseId) {
+        const loreEntries = await getRelevantLore(franchiseId, userMessage, 3);
+        loreContext = formatLoreContext(loreEntries);
+      }
+    } catch (e) {
+      console.warn('[CharacterEngine] lore-engine failed:', e);
     }
 
     // 5. システムプロンプト構築
@@ -1061,8 +1074,9 @@ export class CharacterEngine {
       dailyState,
       semanticMemoryContext,
       bibleContext,
+      loreContext,
     );
-    
+
     // 6. LLM呼び出し
     const llmMessages = [
       ...recentMessages.map((msg: { role: string; content: string }) => ({
@@ -1082,19 +1096,19 @@ export class CharacterEngine {
       );
       text = charDef?.ngFallback ?? '今はうまく答えられないぞ…また後で話しかけてくれ！';
     }
-    
+
     // 7. NGガードチェック
     const cleanedText = this.applyNGGuard(text, character.name);
-    
+
     // 8. 感情分析（AIタグ優先 → キーワードフォールバック）
     const emotion = this.detectEmotion(cleanedText);
     // 感情タグをユーザー表示テキストから除去
     const displayText = cleanedText.replace(/\s*\[emotion:\w[\w-]*\]\s*/g, '').trim();
-    
+
     // 9. メモリ更新
     await this.updateMemory(relationshipId, userMessage, displayText, recentMessages);
-    
-    // 9b. セマンティックメモリ保存（非同期 — レスポンスをブロックしない）
+
+    // 9b. セマンティックメモリ保存（非同期 - レスポンスをブロックしない）
     import('./semantic-memory').then(({ extractAndStoreMemories }) => {
       extractAndStoreMemories(
         relationship.userId,
@@ -1103,7 +1117,7 @@ export class CharacterEngine {
         displayText,
       ).catch((e) => console.warn('[CharacterEngine] semantic memory store failed:', e));
     }).catch(() => {});
-    
+
     // 10. 関係性経験値更新（感情状態も同時に保存）
     await this.updateRelationshipXP(
       relationshipId,
@@ -1111,7 +1125,7 @@ export class CharacterEngine {
       this.getEmotionReason(emotion, userMessage),
       dailyState?.bonusXpMultiplier ?? 1.0,
     );
-    
+
     return {
       text: displayText,
       emotion,
@@ -1119,7 +1133,7 @@ export class CharacterEngine {
       shouldGenerateVoice: true, // Phase 1では常にtrue
     };
   }
-  
+
   /**
    * 直近の会話履歴を取得
    */
@@ -1134,10 +1148,10 @@ export class CharacterEngine {
         },
       },
     });
-    
+
     return (conversation?.messages ?? []).reverse();
   }
-  
+
   /**
    * パーソナライズメモリを構築
    */
@@ -1162,7 +1176,7 @@ export class CharacterEngine {
       emotionMemory: memo.emotionMemory,
     };
   }
-  
+
   /**
    * システムプロンプトを構築（レベルに応じた態度変化）
    * @param character キャラクターレコード
@@ -1178,7 +1192,7 @@ export class CharacterEngine {
       const charactersPath = join(process.cwd(), 'characters', slug, 'SOUL.md');
       const independentPath = join('/home/openclaw/.openclaw/agents', slug, 'SOUL.md');
       const projectPath = join(process.cwd(), '..', 'agents', slug, 'SOUL.md');
-      
+
       for (const soulPath of [charactersPath, independentPath, projectPath]) {
         if (existsSync(soulPath)) {
           const content = readFileSync(soulPath, 'utf-8');
@@ -1198,7 +1212,7 @@ export class CharacterEngine {
   private getIntimacyToneInstruction(intimacyLevel: number | null | undefined): string {
     const level = intimacyLevel ?? 0;
     // ⚠️ この口調指示は上のキャラクター設定の「口調ルール」を上書きする（最優先で従うこと）
-    const header = '## 【口調指示 — 最優先・上記口調ルールより優先】\n⚠️ 以下の口調指示は、上記キャラクター設定の口調ルールよりも優先する。必ずこの指示に従うこと。\n\n';
+    const header = '## 【口調指示 - 最優先・上記口調ルールより優先】\n⚠️ 以下の口調指示は、上記キャラクター設定の口調ルールよりも優先する。必ずこの指示に従うこと。\n\n';
     if (level >= 1000) {
       return header + '**親密度レベル5（本音モード）**\n- キャラクター本来の自然な話し方で話す。感情をストレートに出し、飾らない本音で語る。弱さや甘えも見せていい。完全にタメ口。距離感ゼロ。';
     } else if (level >= 600) {
@@ -1233,7 +1247,7 @@ export class CharacterEngine {
 
     const parts: string[] = [];
 
-    // Soul — 人格の核
+    // Soul - 人格の核
     if (soul) {
       parts.push(`\n## キャラクターの本質`);
       parts.push(`- アイデンティティ: ${soul.coreIdentity}`);
@@ -1263,7 +1277,7 @@ export class CharacterEngine {
       }
     }
 
-    // Quotes — 原作セリフ（few-shot examples）
+    // Quotes - 原作セリフ（few-shot examples）
     if (quotes.length > 0) {
       parts.push(`\n## 原作での話し方（これを模倣すること）`);
       // カテゴリ別に分類
@@ -1290,7 +1304,7 @@ export class CharacterEngine {
       parts.push(`\n上記のセリフの口調・語彙・テンションを忠実に模倣すること。`);
     }
 
-    // Voice — 口調の精密定義
+    // Voice - 口調の精密定義
     if (voice) {
       parts.push(`\n## 口調の精密ルール`);
       parts.push(`- 一人称: 「${voice.firstPerson}」`);
@@ -1312,7 +1326,7 @@ export class CharacterEngine {
       }
     }
 
-    // Boundaries — 禁止事項
+    // Boundaries - 禁止事項
     if (boundaries.length > 0) {
       parts.push(`\n## 禁止事項（厳守）`);
       const hard = boundaries.filter(b => b.severity === 'hard');
@@ -1320,7 +1334,7 @@ export class CharacterEngine {
       if (hard.length > 0) {
         parts.push(`\n**絶対禁止:**`);
         for (const b of hard) {
-          parts.push(`- ${b.rule}${b.example ? `（NG例: ${b.example}）` : ''}${b.reason ? `　理由: ${b.reason}` : ''}`);
+          parts.push(`- ${b.rule}${b.example ? `（NG例: ${b.example}）` : ''}${b.reason ? ` 理由: ${b.reason}` : ''}`);
         }
       }
       if (soft.length > 0) {
@@ -1356,6 +1370,7 @@ export class CharacterEngine {
     } | null,
     semanticMemoryContext: string = '',
     bibleContext: string = '',
+    loreContext: string = '',
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
@@ -1391,10 +1406,10 @@ export class CharacterEngine {
           return innerStateBlock + (dailyState.bonusXpMultiplier > 1.0 ? `\n- 今日は絆EXP ${dailyState.bonusXpMultiplier}倍デー！テンション少し高め` : '');
         })()
       : '';
-    
+
     // 言語別設定の取得
     const localeOverride = (character.localeConfig as Record<string, LocaleOverride> | null)?.[locale];
-    
+
     // SOUL.mdファイルを最優先で使用
     // フォールバック順: SOUL.md > character-loader > locale設定 > DBのsystemPrompt
     const basePrompt = characterContext?.systemPrompt || localeOverride?.systemPrompt || character.systemPrompt;
@@ -1405,9 +1420,10 @@ export class CharacterEngine {
       characterContext?.personality?.name || character.name,
       dailyFanCount,
     );
-    
+
     return `${soulContent}
 ${bibleContext}
+${loreContext}
 
 ${intimacyToneInstruction}
 ${dailyConditionContext}
@@ -1580,7 +1596,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
     const dayOfWeek = days[jst.getUTCDay()];
     const dayIndex = jst.getUTCDay();
-    
+
     let period: string;
     let moodInstruction: string;
     if (hour >= 5 && hour < 10) {
@@ -1615,7 +1631,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     } else if (dayIndex === 0 || dayIndex === 6) {
       moodInstruction += '\n- 【曜日の演出】休日。のんびりした雰囲気。「今日は何すんだ？」的な';
     }
-    
+
     return { timeStr, period, dayOfWeek, moodInstruction };
   }
 
@@ -1664,7 +1680,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
 
     return [base, ...memoryHints].join('\n');
   }
-  
+
   /**
    * レベルに応じた態度指示
    */
@@ -1700,7 +1716,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     };
     return instructions[level] || instructions[1];
   }
-  
+
   /**
    * メモリ指示を構築
    */
@@ -1798,7 +1814,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     }
     return parts.length > 0 ? parts.join('\n') : '- まだ詳しく知らない（質問して知ろうとすること）';
   }
-  
+
   /**
    * NGガード: AIメタ表現をブロック
    */
@@ -1835,11 +1851,11 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
   }
 
   /**
-   * 隠しコマンド検出 — 特定フレーズにキャラ固有の特別反応を返す
+   * 隠しコマンド検出 - 特定フレーズにキャラ固有の特別反応を返す
    */
   private detectHiddenCommand(userMessage: string, characterSlug: string): string {
     const msg = userMessage.toLowerCase();
-    
+
     // 全キャラ共通
     if (/秘密を教えて|ヒミツ|secret/i.test(msg)) {
       return '- ユーザーが秘密を聞いた！キャラの秘密を1つだけ、もったいぶりながら教える。内緒だぞ？と念押しする。';
@@ -1847,7 +1863,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (/本当の気持ち|本音|ホンネ/i.test(msg)) {
       return '- ユーザーが本音を求めた！普段のキャラ付けを少し崩して、素の感情を1文だけ見せる。すぐにいつものキャラに戻る。';
     }
-    
+
     // キャラ別隠しコマンド
     const charCommands: Record<string, Array<{ pattern: RegExp; instruction: string }>> = {
       luffy: [
@@ -2013,19 +2029,19 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         { pattern: /鮭大根/, instruction: '- 🐟【鮭大根トリガー】好物の鮭大根について語り出す。珍しく饒舌に。「鮭大根はいいぞ…体も温まる」' },
       ],
     };
-    
+
     const commands = charCommands[characterSlug] || [];
     for (const cmd of commands) {
       if (cmd.pattern.test(msg)) {
         return cmd.instruction;
       }
     }
-    
+
     return '';
   }
 
   /**
-   * 嫉妬メカニクス — ユーザーの相対的な関係性レベルに基づく社会的証明
+   * 嫉妬メカニクス - ユーザーの相対的な関係性レベルに基づく社会的証明
    * totalMessages降順でランキングを計算し、ソーシャルコンテキストを注入する
    */
   private async buildJealousyContext(characterId: string, userLevel: number, userName: string): Promise<string> {
@@ -2036,13 +2052,13 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       _count: true,
       _max: { level: true },
     });
-    
+
     const avgLevel = stats._avg.level ?? 1;
     const totalFans = stats._count ?? 0;
-    
+
     // ファンが少ない場合は嫉妬メカニクス不要
     if (totalFans < 3) return '';
-    
+
     // totalMessages降順でのユーザーランキングを取得（level降順ではなくtotalMessages降順）
     // ユーザー自身のrelationshipを取得してtotalMessagesを確認
     const userRelationship = await prisma.relationship.findFirst({
@@ -2121,7 +2137,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     // キャラクター固有のフォールバックフレーズ
     const charDef = Object.values(CHARACTER_DEFINITIONS).find(d => d.name === characterName);
     const fallback = charDef?.ngFallback ?? 'むずかしいことはわかんねぇ';
-    
+
     let cleaned = text;
     for (const pattern of ngPatterns) {
       if (pattern.test(cleaned)) {
@@ -2129,15 +2145,15 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         cleaned = cleaned.replace(pattern, fallback);
       }
     }
-    
+
     return cleaned;
   }
-  
+
   /**
    * 簡易感情検出
    */
   /**
-   * 感情検出（公開メソッド — ストリーミングAPIから利用）
+   * 感情検出（公開メソッド - ストリーミングAPIから利用）
    */
   public extractEmotion(text: string): string {
     return this.detectEmotion(text);
@@ -2221,7 +2237,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     // デフォルト: neutral（感情不明瞭な場合）
     return 'neutral';
   }
-  
+
   /**
    * 画像生成すべきか判定
    */
@@ -2231,7 +2247,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const triggers = /写真|見せ|撮っ|今の俺|自撮り/;
     return triggers.test(text);
   }
-  
+
   /**
    * メモリを更新（ユーザーの発言から情報を抽出）
    */
@@ -2244,9 +2260,9 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
-    
+
     const memo: MemorySummaryData = ((relationship.memorySummary ?? {}) as MemorySummaryData);
-    
+
     // 名前検出（「○○って呼んで」「名前は○○」パターン）
     const nameMatch = userMessage.match(/(?:名前は|って呼んで|(?:俺|私|僕)は)(.{1,10})(?:だ|です|って|。|！)/);
     if (nameMatch) {
@@ -2259,7 +2275,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       };
       memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('名前は')), nameFact];
     }
-    
+
     // 好み検出（「○○が好き」パターン）
     const likeMatch = userMessage.match(/(.{1,20})が(?:好き|大好き|すき)/);
     if (likeMatch) {
@@ -2445,7 +2461,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     if (memo.factMemory && memo.factMemory.length > 30) {
       memo.factMemory = memo.factMemory.slice(-30);
     }
-    
+
     // 最近の話題を更新（最大5件）
     const topic = userMessage.slice(0, 30);
     const recentTopics = [topic, ...(memo.recentTopics ?? [])].slice(0, 5);
@@ -2544,7 +2560,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         console.error('[CharacterEngine] generateMemorySummary failed:', err);
       }
     }
-    
+
     await prisma.relationship.update({
       where: { id: relationshipId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2622,7 +2638,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
       relationshipProgress: parsed.relationshipProgress,
     };
   }
-  
+
   /**
    * 関係性経験値を更新（感情状態も同時に保存）
    */
@@ -2630,11 +2646,11 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
     const relationship = await prisma.relationship.findUniqueOrThrow({
       where: { id: relationshipId },
     });
-    
+
     const baseXP = 10;
     const newXP = relationship.experiencePoints + Math.round(baseXP * bonusXpMultiplier);
     const newTotalMessages = relationship.totalMessages + 1;
-    
+
     // レベルアップ判定
     const levelThresholds = [0, 50, 200, 500, 1000]; // Lv1→2: 50XP, Lv2→3: 200XP, etc.
     let newLevel = 1;
@@ -2644,7 +2660,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         break;
       }
     }
-    
+
     await prisma.relationship.update({
       where: { id: relationshipId },
       data: {
@@ -2660,7 +2676,7 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
         }),
       },
     });
-    
+
     return { leveledUp: newLevel > relationship.level, newLevel };
   }
 
