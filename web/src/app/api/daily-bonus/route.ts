@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 const BASE_COINS = 10;
@@ -163,11 +164,20 @@ export async function POST() {
     const coins = Math.round(BASE_COINS * multiplier);
 
     // コイン付与（freeBalanceに加算 — 無料コイン扱い）
-    const balance = await prisma.coinBalance.upsert({
-      where: { userId },
-      create: { userId, balance: coins, freeBalance: coins, paidBalance: 0 },
-      update: { balance: { increment: coins }, freeBalance: { increment: coins } },
-    });
+    let balance;
+    try {
+      balance = await prisma.coinBalance.upsert({
+        where: { userId },
+        create: { userId, balance: coins, freeBalance: coins, paidBalance: 0 },
+        update: { balance: { increment: coins }, freeBalance: { increment: coins } },
+      });
+    } catch (e: unknown) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
+        // ユーザーが存在しない（削除済みセッション残骸）
+        return NextResponse.json({ error: 'User not found' }, { status: 401 });
+      }
+      throw e;
+    }
 
     await prisma.coinTransaction.create({
       data: {
