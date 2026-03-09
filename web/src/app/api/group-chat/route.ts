@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
 【グループチャット設定】
 ${groupContext}
-${char.personalityTraits ? `性格: ${char.personalityTraits.join(', ')}` : ''}
+${char.personalityTraits && Array.isArray(char.personalityTraits) ? `性格: ${(char.personalityTraits as string[]).join(', ')}` : ''}
 
 [ルール]
 - 1〜2文で返す

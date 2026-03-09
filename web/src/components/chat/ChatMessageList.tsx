@@ -509,7 +509,7 @@ export function ChatMessageList({
                   <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 transition-all duration-300 relative ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
                     {character?.avatarUrl ? (
                       <img
-                        src={isLast && character.slug ? `/characters/${character.slug}/emotions/${currentEmotion}.webp` : character.avatarUrl}
+                        src={showAvatar && character.slug && currentEmotion ? `/characters/${character.slug}/emotions/${currentEmotion}.webp` : character.avatarUrl}
                         alt={character.name}
                         className="absolute inset-0 w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).src = character.avatarUrl!; }}
