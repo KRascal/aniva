@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth } from '@/lib/auth';
 
 type EmotionKey = 'happy' | 'excited' | 'sad' | 'angry' | 'embarrassed' | 'love' | 'neutral';
 
