@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = { periodType, period };
     if (characterId) where.characterId = characterId;
 
-    const rankings = await prisma.rankingScore.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rankings = await (prisma as any).rankingScore.findMany({
       where,
       orderBy: { totalScore: 'desc' },
       take: limit,
@@ -98,7 +99,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      rankings: rankings.map((r, i) => ({ ...r, rank: i + 1 })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rankings: (rankings as any[]).map((r: any, i: number) => ({ ...r, rank: i + 1 })),
       period,
       periodType,
     });

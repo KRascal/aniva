@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
     const fcCharacterIds = new Set(fcSubs.map(s => s.characterId));
 
     // 手紙取得（FC会員のキャラ or 非FC公開手紙）
-    const deliveries = await prisma.letterDelivery.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deliveries = await (prisma as any).letterDelivery.findMany({
       where: {
         userId,
         ...(characterId ? { letter: { characterId } } : {}),
@@ -44,12 +45,14 @@ export async function GET(req: NextRequest) {
     });
 
     // FC未加入者には isFcOnly=true の手紙は届かないが、一応フィルター
-    const filtered = deliveries.filter(d =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filtered = (deliveries as any[]).filter((d: any) =>
       !d.letter.isFcOnly || fcCharacterIds.has(d.letter.characterId)
     );
 
     return NextResponse.json({
-      letters: filtered.map(d => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      letters: filtered.map((d: any) => ({
         id: d.id,
         letterId: d.letter.id,
         character: d.letter.character,
@@ -62,7 +65,8 @@ export async function GET(req: NextRequest) {
         readAt: d.readAt,
         createdAt: d.createdAt,
       })),
-      unreadCount: filtered.filter(d => !d.isRead).length,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      unreadCount: filtered.filter((d: any) => !d.isRead).length,
     });
   } catch (error) {
     console.error('[letters] error:', error);

@@ -21,13 +21,13 @@ export async function POST(
 
   const { id } = await params;
   const body = await req.json().catch(() => ({})) as { section?: string };
-  const section = body.section ?? 'all'; // 'voice' | 'personality' | 'boundary' | 'all'
+  const section = body.section ?? 'all';
 
   const character = await prisma.character.findUnique({
     where: { id },
     include: {
       voice: true,
-      boundaries: { where: { isActive: true } },
+      boundaries: true,
     },
   });
 
@@ -36,7 +36,18 @@ export async function POST(
   const XAI_API_KEY = process.env.XAI_API_KEY;
   if (!XAI_API_KEY) return NextResponse.json({ error: 'XAI_API_KEY not configured' }, { status: 503 });
 
-  const prompt = buildEnrichPrompt(character, section);
+  const traits = Array.isArray(character.personalityTraits)
+    ? (character.personalityTraits as string[]).join(', ')
+    : '未設定';
+
+  const prompt = buildEnrichPrompt({
+    name: character.name,
+    description: character.description,
+    traits,
+    franchise: character.franchise,
+    toneNotes: character.voice?.toneNotes ?? null,
+    firstPerson: character.voice?.firstPerson ?? '俺',
+  }, section);
 
   try {
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -46,7 +57,7 @@ export async function POST(
         'Authorization': `Bearer ${XAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'grok-3',
+        model: 'grok-3-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 2000,
@@ -61,18 +72,15 @@ export async function POST(
     const data = await response.json() as { choices: { message: { content: string } }[] };
     const content = data.choices[0]?.message?.content ?? '';
 
-    // JSONパース試行
     let enriched: Record<string, unknown> = {};
     try {
       const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/);
       const jsonStr = jsonMatch ? jsonMatch[1] : content;
       enriched = JSON.parse(jsonStr);
     } catch {
-      // JSONでなければテキストとして返す
       return NextResponse.json({ success: true, rawContent: content, parsed: false });
     }
 
-    // DB反映（承認なしで即反映 - 管理者が確認後に呼ぶ想定）
     const updates: Promise<unknown>[] = [];
 
     if (section === 'all' || section === 'voice') {
@@ -82,10 +90,12 @@ export async function POST(
           prisma.characterVoice.update({
             where: { characterId: id },
             data: {
-              description: voiceData.description as string ?? character.voice.description,
-              speechStyle: voiceData.speechStyle as string ?? character.voice.speechStyle,
-              firstPerson: voiceData.firstPerson as string ?? character.voice.firstPerson,
-              secondPerson: voiceData.secondPerson as string ?? character.voice.secondPerson,
+              toneNotes: (voiceData.toneNotes as string) ?? character.voice.toneNotes,
+              firstPerson: (voiceData.firstPerson as string) ?? character.voice.firstPerson,
+              secondPerson: (voiceData.secondPerson as string) ?? character.voice.secondPerson,
+              laughStyle: (voiceData.laughStyle as string) ?? character.voice.laughStyle,
+              angryStyle: (voiceData.angryStyle as string) ?? character.voice.angryStyle,
+              sadStyle: (voiceData.sadStyle as string) ?? character.voice.sadStyle,
             },
           })
         );
@@ -99,8 +109,10 @@ export async function POST(
           prisma.character.update({
             where: { id },
             data: {
-              description: personalityData.description as string ?? character.description,
-              personality: personalityData.traits as string ?? character.personality,
+              description: (personalityData.description as string) ?? character.description,
+              personalityTraits: personalityData.traits
+                ? (personalityData.traits as string).split(',').map((t: string) => t.trim())
+                : (character.personalityTraits as string[]),
             },
           })
         );
@@ -108,7 +120,6 @@ export async function POST(
     }
 
     await Promise.all(updates);
-
     return NextResponse.json({ success: true, enriched, applied: updates.length > 0 });
   } catch (error) {
     console.error('[ai-enrich] error:', error);
@@ -119,9 +130,10 @@ export async function POST(
 function buildEnrichPrompt(character: {
   name: string;
   description: string | null;
-  personality: string | null;
+  traits: string;
   franchise: string | null;
-  voice?: { speechStyle: string | null; firstPerson: string | null; description: string | null } | null;
+  toneNotes: string | null;
+  firstPerson: string;
 }, section: string): string {
   return `あなたはANIVAというキャラクターAIプラットフォームの設定エキスパートです。
 以下のキャラクター情報を元に、${section === 'all' ? '人格・音声・境界設定' : section}を深掘りして、より精密なキャラクター設定を生成してください。
@@ -130,9 +142,9 @@ function buildEnrichPrompt(character: {
 - 名前: ${character.name}
 - 作品: ${character.franchise ?? '不明'}
 - 説明: ${character.description ?? '未設定'}
-- 性格: ${character.personality ?? '未設定'}
-- 現在の口調: ${character.voice?.speechStyle ?? '未設定'}
-- 一人称: ${character.voice?.firstPerson ?? '未設定'}
+- 性格特性: ${character.traits}
+- 現在のトーンメモ: ${character.toneNotes ?? '未設定'}
+- 一人称: ${character.firstPerson}
 
 ## 生成指示
 以下のJSON形式で、キャラクターの設定を深掘りしてください。
@@ -148,22 +160,12 @@ function buildEnrichPrompt(character: {
     "dreams": "夢・目標"
   },
   "voice": {
-    "description": "話し方の詳細説明（100文字以上）",
-    "speechStyle": "口調の特徴（例: 荒々しく豪快、敬語使わない）",
-    "firstPerson": "一人称（俺/私/僕など）",
-    "secondPerson": "二人称（お前/あなた/君など）",
-    "bannedPhrases": ["絶対使わない表現1", "絶対使わない表現2"],
-    "typicalPhrases": ["よく使う口癖1", "よく使う口癖2", "よく使う口癖3"],
-    "emotionExpressions": {
-      "happy": "喜んだ時の典型的な表現",
-      "sad": "悲しんだ時の典型的な表現",
-      "angry": "怒った時の典型的な表現",
-      "embarrassed": "照れた時の典型的な表現"
-    }
-  },
-  "knowledge": {
-    "canTalkAbout": ["話せること1", "話せること2"],
-    "cannotTalkAbout": ["話せないこと1（例: 原作未公開情報）"]
+    "toneNotes": "話し方の総合的なトーン指示（100文字以上）",
+    "firstPerson": "一人称",
+    "secondPerson": "二人称",
+    "laughStyle": "笑い方",
+    "angryStyle": "怒った時の表現",
+    "sadStyle": "悲しんだ時の表現"
   },
   "boundaries": {
     "hardLimits": ["絶対にやらないこと1", "絶対にやらないこと2"],

@@ -40,7 +40,8 @@ async function upsertScore(
   const total = (delta.chat ?? 0) + (delta.call ?? 0) + (delta.gift ?? 0);
   if (total === 0) return;
 
-  await prisma.rankingScore.upsert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma as any).rankingScore.upsert({
     where: { userId_characterId_period_periodType: { userId, characterId, period, periodType } },
     create: {
       userId,

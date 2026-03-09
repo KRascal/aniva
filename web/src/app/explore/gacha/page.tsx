@@ -699,7 +699,7 @@ export default function GachaPage() {
                             <GachaFlipCard
                               rarity={result.rarity}
                               characterName={result.card.franchise ?? 'キャラクター'}
-                              characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl ?? result.card.character?.avatarUrl}
+                              characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl ?? result.card.character?.avatarUrl ?? null}
                               itemName={result.card.name}
                               isFlipped={flippedCards[i] ?? false}
                               onFlip={() => flipCard(i)}

@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
       reactions: { userId: string; type: string }[];
       _count: { comments: number };
     };
-    const result = (moments as MomentWithRelations[]).map((moment) => {
+    const result = (moments as unknown as MomentWithRelations[]).map((moment) => {
       const reactionCount = moment.reactions.filter((r) => r.type === 'like').length;
       const userHasLiked = userId
         ? moment.reactions.some((r) => r.userId === userId && r.type === 'like')

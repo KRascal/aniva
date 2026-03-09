@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const characterId = url.searchParams.get('characterId');
 
-  const letters = await prisma.characterLetter.findMany({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const letters = await (prisma as any).characterLetter.findMany({
     where: characterId ? { characterId } : {},
     include: {
       character: { select: { name: true, slug: true } },
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
 
   try {
     // 手紙作成
-    const letter = await prisma.characterLetter.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const letter = await (prisma as any).characterLetter.create({
       data: { characterId, title, content, imageUrl, type, isFcOnly },
     });
 
@@ -85,7 +87,8 @@ export async function POST(req: NextRequest) {
 
       // LetterDelivery一括作成
       if (userIds.length > 0) {
-        await prisma.letterDelivery.createMany({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (prisma as any).letterDelivery.createMany({
           data: userIds.map(userId => ({ letterId: letter.id, userId })),
           skipDuplicates: true,
         });

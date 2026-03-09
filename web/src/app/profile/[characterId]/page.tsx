@@ -487,11 +487,28 @@ export default function ProfilePage() {
     if (fanclubLoading) return;
     setFanclubLoading(true);
     try {
+      // Stripe Checkout経由でFC加入
+      const stripeRes = await fetch('/api/fc/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId }),
+      });
+      const stripeData = await stripeRes.json() as { checkoutUrl?: string; error?: string };
+
+      if (stripeData.checkoutUrl) {
+        window.location.href = stripeData.checkoutUrl;
+        return;
+      }
+      if (stripeData.error === 'Already subscribed') {
+        setIsFanclub(true);
+        return;
+      }
+
+      // フォールバック: DEMOモードAPI
       const res = await fetch(`/api/relationship/${characterId}/fanclub`, { method: 'POST' });
       const data = await res.json();
       if (data.requiresPayment) {
-        // 課金が必要（DEMO_MODE=false の本番環境）
-        alert(`月額¥${data.monthlyPrice.toLocaleString()}の課金が必要です（現在デモのため無料で開放中）`);
+        router.push(`/chat/${characterId}?openFc=1`);
         return;
       }
       setIsFanclub(data.isFanclub);

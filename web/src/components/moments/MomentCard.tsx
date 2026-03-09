@@ -8,6 +8,7 @@ import { track, EVENTS } from '@/lib/analytics';
 /* ────────────────────────────────── 型定義 ── */
 
 export interface MomentCharacter {
+  id?: string;
   name: string;
   avatarUrl: string | null;
 }

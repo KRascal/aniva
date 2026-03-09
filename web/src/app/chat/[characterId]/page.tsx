@@ -512,11 +512,14 @@ export default function ChatCharacterPage() {
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
-  /* FC決済完了後のお祝いモーダル表示 */
+  /* FC決済完了後のお祝いモーダル表示 / プロフィールからのFC加入リダイレクト */
   useEffect(() => {
     if (searchParams.get('fc_success') === '1') {
       setShowFcSuccess(true);
-      // URLからパラメータを除去
+      router.replace(`/chat/${characterId}`);
+    }
+    if (searchParams.get('openFc') === '1') {
+      setShowFcModal(true);
       router.replace(`/chat/${characterId}`);
     }
   }, [searchParams, characterId, router]);
@@ -672,12 +675,11 @@ export default function ChatCharacterPage() {
             }
           }
         }
-        // FC誘導: 50通以上 & FC未加入 → セッションで1日1回
+        // FC誘導: 50通以上 & FC未加入 → 1日1回（15秒遅延で表示）
         if (relData.totalMessages >= 50 && !relData.isFanclub) {
           const fcPromptKey = `fcPrompt_${characterId}_${new Date().toDateString()}`;
           if (!sessionStorage.getItem(fcPromptKey)) {
-            // 5秒遅延で表示（会話の邪魔にならないよう）
-            setTimeout(() => setShowFcModal(true), 5000);
+            setTimeout(() => setShowFcModal(true), 15000);
             sessionStorage.setItem(fcPromptKey, '1');
           }
         }
@@ -687,20 +689,6 @@ export default function ChatCharacterPage() {
           if (!sessionStorage.getItem(streakKey)) {
             setShowStreakBreak(true);
             sessionStorage.setItem(streakKey, '1');
-          }
-        }
-
-        // FC誘導: 50通以上会話 && FC未加入 → 定期的にFC誘導
-        if (relData.totalMessages >= 50 && !relData.isFanclub) {
-          const fcPromptKey = `fc_prompt_${characterId}`;
-          const lastPrompt = parseInt(sessionStorage.getItem(fcPromptKey) ?? '0', 10);
-          const now = Date.now();
-          // 1セッションにつき1回のみ表示
-          if (!lastPrompt) {
-            setTimeout(() => {
-              setShowFcModal(true);
-              sessionStorage.setItem(fcPromptKey, String(now));
-            }, 15000); // 15秒後に表示（会話に没入してから）
           }
         }
       }

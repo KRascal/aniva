@@ -136,7 +136,7 @@ export function ChatHeader({
       {/* ══ ヘッダー本体 (max-height: 70px) ══ */}
       <header
         className="bg-gray-950 border-b border-white/8 px-3 pt-2 pb-1.5 z-10"
-        style={{ maxHeight: 70 }}
+        
       >
         {/* ── 1行目: 戻る / アバター / 名前 / ストリーク / 通話 / メニュー ── */}
         <div className="flex items-center gap-2">
