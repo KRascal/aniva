@@ -321,6 +321,17 @@ export function GachaFlipCard({
                 src={characterAvatarUrl}
                 alt={characterName}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={(e) => {
+                  const t = e.target as HTMLImageElement;
+                  t.style.display = 'none';
+                  const p = t.parentElement;
+                  if (p) {
+                    const fb = document.createElement('div');
+                    fb.style.cssText = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(0,0,0,0.6), ${config.glowColor}30);`;
+                    fb.innerHTML = `<span style="font-size:2.5rem;font-weight:900;background:linear-gradient(135deg,${config.borderColor},white);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">${characterName?.[0] ?? '?'}</span>`;
+                    p.insertBefore(fb, t.nextSibling);
+                  }
+                }}
               />
             ) : (
               <div style={{

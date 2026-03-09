@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, playGachaRevealSound, vibrateGacha } from '@/lib/sound-effects';
 import { GachaRarityOverlay } from '@/components/gacha/GachaRarityOverlay';
 import { GachaFlipCard } from '@/components/gacha/GachaFlipCard';
+import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';
 import { GachaParticleCanvas, type ParticlePreset } from '@/components/gacha/GachaParticleCanvas';
 
 // ---- Types ----
@@ -53,7 +54,7 @@ interface CardResult {
   pityInfo?: PityInfo;
 }
 
-type View = 'banners' | 'gacha' | 'animating' | 'results';
+type View = 'banners' | 'gacha' | 'animating' | 'pack' | 'results';
 
 // ---- Constants ----
 const RARITY_ORDER: Record<string, number> = { N: 0, R: 1, SR: 2, SSR: 3, UR: 4 };
@@ -378,6 +379,10 @@ export default function GachaPage() {
 
   function onAnimationComplete() {
     setIsPulling(false);
+    setView('pack');
+  }
+
+  function onPackComplete() {
     setView('results');
     playSound('gacha_pull');
     // Auto-reveal for single pull or N/R
@@ -688,6 +693,26 @@ export default function GachaPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ===== PACK OPENING VIEW ===== */}
+        {view === 'pack' && results.length > 0 && (
+          <GachaPackOpening
+            cards={results.map(r => ({
+              rarity: r.rarity,
+              card: {
+                name: r.card.name,
+                imageUrl: r.card.imageUrl ?? null,
+                cardImageUrl: r.card.cardImageUrl ?? null,
+                illustrationUrl: r.card.illustrationUrl ?? null,
+                franchise: r.card.franchise ?? null,
+                frameType: r.card.frameType ?? null,
+              },
+              isNew: r.isNew,
+            }))}
+            onComplete={onPackComplete}
+            onSkip={onPackComplete}
+          />
+        )}
 
         {/* ===== RESULTS VIEW ===== */}
         <AnimatePresence>
