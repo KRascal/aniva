@@ -284,7 +284,7 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
   // --- SSR: 金色フラッシュ + 放射線 + SUPER RARE テキスト + 金色パルス — 3段演出 ---
   if (rarity === 'SSR') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90">
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90" style={phase >= 1 ? { animation: 'ssrScreenShake 0.4s ease-out' } : undefined}>
         <style>{`
           @keyframes ssrBgPulse {
             0%   { opacity: 0; }
@@ -325,6 +325,27 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
             0%   { opacity: 0; transform: scale(0.3) translateY(30px); letter-spacing: 0.5em; }
             60%  { opacity: 1; transform: scale(1.1) translateY(-5px); }
             100% { opacity: 1; transform: scale(1) translateY(0); letter-spacing: 0.3em; }
+          }
+          @keyframes ssrScreenShake {
+            0%, 100% { transform: translate(0); }
+            10% { transform: translate(-3px, 2px); }
+            20% { transform: translate(4px, -3px); }
+            30% { transform: translate(-2px, 4px); }
+            40% { transform: translate(3px, -2px); }
+            50% { transform: translate(-4px, 3px); }
+            60% { transform: translate(2px, -4px); }
+            70% { transform: translate(-3px, 2px); }
+            80% { transform: translate(3px, -1px); }
+            90% { transform: translate(-1px, 3px); }
+          }
+          @keyframes ssrGoldenRing {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            40% { opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+          }
+          @keyframes ssrGoldenRingSpin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
           }
         `}</style>
 
@@ -429,6 +450,24 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
           </div>
         )}
 
+        {/* 金色スピニングリング */}
+        {phase >= 2 && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              width: 'min(70vw, 350px)',
+              height: 'min(70vw, 350px)',
+              top: '50%',
+              left: '50%',
+              borderRadius: '50%',
+              border: '3px solid transparent',
+              borderImage: 'linear-gradient(135deg, #fde68a, #f59e0b, #fbbf24, #fde68a) 1',
+              animation: 'ssrGoldenRing 0.6s ease-out forwards, ssrGoldenRingSpin 3s linear 0.6s infinite',
+              boxShadow: '0 0 40px 10px rgba(251,191,36,0.3), inset 0 0 30px 8px rgba(251,191,36,0.15)',
+            }}
+          />
+        )}
+
         {showParticles && <GachaParticleCanvas preset="ssr-rise" />}
         {showCrack && <CrackOverlay color="rgba(255,235,100,0.9)" />}
         <SkipButton onSkip={handleSkip} />
@@ -445,7 +484,7 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style={phase >= 2 ? { animation: 'urScreenShake 0.5s ease-out' } : undefined}>
       <style>{`
         @keyframes urFlood  { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes urBurst  { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(3); } }
@@ -494,6 +533,26 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
         @keyframes urRingGlow {
           0%,100% { box-shadow: 0 0 40px 10px rgba(251,191,36,0.3), inset 0 0 40px 10px rgba(251,191,36,0.1); }
           50%     { box-shadow: 0 0 80px 20px rgba(251,191,36,0.6), inset 0 0 60px 15px rgba(251,191,36,0.2); }
+        }
+        @keyframes urScreenShake {
+          0%, 100% { transform: translate(0); }
+          5%  { transform: translate(-6px, 4px); }
+          10% { transform: translate(8px, -6px); }
+          15% { transform: translate(-5px, 7px); }
+          20% { transform: translate(7px, -4px); }
+          25% { transform: translate(-8px, 5px); }
+          30% { transform: translate(4px, -7px); }
+          35% { transform: translate(-6px, 3px); }
+          40% { transform: translate(5px, -3px); }
+          50% { transform: translate(-3px, 5px); }
+          60% { transform: translate(3px, -2px); }
+          70% { transform: translate(-2px, 2px); }
+          80% { transform: translate(1px, -1px); }
+        }
+        @keyframes urShockwave {
+          0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+          50%  { opacity: 0.4; }
+          100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
         }
       `}</style>
 
@@ -691,6 +750,24 @@ export function GachaRarityOverlay({ rarity, themeColor = '#6d28d9', onComplete 
           </div>
         </div>
       )}
+
+      {/* 衝撃波リング（phase 2以降、3連続） */}
+      {phase >= 2 && [0, 250, 500].map((delay, i) => (
+        <div
+          key={i}
+          className="absolute pointer-events-none"
+          style={{
+            width: '80px',
+            height: '80px',
+            top: '50%',
+            left: '50%',
+            borderRadius: '50%',
+            border: '3px solid rgba(255,220,80,0.9)',
+            animation: `urShockwave 1.2s ease-out ${delay}ms forwards`,
+            boxShadow: '0 0 20px 5px rgba(255,220,80,0.5)',
+          }}
+        />
+      ))}
 
       {showParticles && <GachaParticleCanvas preset="ur-explosion" delayMs={100} />}
       {showCrack && <CrackOverlay color="rgba(255,220,80,0.95)" />}
