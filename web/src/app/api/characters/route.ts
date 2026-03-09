@@ -20,9 +20,11 @@ export async function GET(req: NextRequest) {
 
     // フォロー中のみフィルタ
     if (followingOnly) {
-      const cookieName = req.cookies.has('authjs.session-token')
+      const cookieName = req.cookies.has('__Secure-authjs.session-token')
+        ? '__Secure-authjs.session-token'
+        : req.cookies.has('authjs.session-token')
         ? 'authjs.session-token'
-        : 'next-auth.session-token';
+        : '__Secure-next-auth.session-token';
       const token = await getToken({ req, cookieName });
       if (token?.sub) {
         where.relationships = {
