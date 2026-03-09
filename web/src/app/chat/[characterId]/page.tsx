@@ -712,30 +712,15 @@ export default function ChatCharacterPage() {
         } catch (e) {
           console.error('Auto-follow failed:', e);
         }
-        // 診断は初回オンボーディング後の最初のチャットのみ
-        // ?from=onboarding: オンボーディング完了直後 → 診断スキップして直接greeting
-        // 2人目以降のキャラ or 診断済み → 直接greeting
-        const fromOnboarding = searchParams.get('from') === 'onboarding';
-        const hasCompletedDiagnosis = typeof window !== 'undefined' && localStorage.getItem('aniva_diagnosis_done');
+        // ログイン済みユーザーは常にgreet直行（診断スキップ）
+        // 診断は /c/[slug] のゲストオンボーディングフローでのみ実施
         if (!searchParams.get('fromStory')) {
-          if (fromOnboarding || hasCompletedDiagnosis) {
-            // オンボーディング直後 or 診断済み: 直接greeting
-            setShouldAutoGreet(true);
-          } else {
-            // 初回チャット（診断未完）: 診断オーバーレイ表示
-            setShowOnboarding(true);
-          }
+          setShouldAutoGreet(true);
         }
       } else if (data.messages?.length === 0) {
-        // メッセージ0（過去に関係はあるが会話なし）
-        const fromOnboarding = searchParams.get('from') === 'onboarding';
-        const hasCompletedDiagnosis = typeof window !== 'undefined' && localStorage.getItem('aniva_diagnosis_done');
+        // メッセージ0（過去に関係はあるが会話なし）→ greet直行
         if (!searchParams.get('fromStory')) {
-          if (fromOnboarding || hasCompletedDiagnosis) {
-            setShouldAutoGreet(true);
-          } else {
-            setShowOnboarding(true);
-          }
+          setShouldAutoGreet(true);
         }
       }
 

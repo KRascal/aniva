@@ -63,7 +63,7 @@ function LoginForm() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const errorParam = searchParams.get('error');
-  const callbackUrl = searchParams.get('callbackUrl') || '/explore';
+  const callbackUrl = searchParams.get('callbackUrl') || '/chat';
 
   // 既にログイン済みならリダイレクト
   useEffect(() => {
