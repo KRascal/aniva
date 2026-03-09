@@ -1132,6 +1132,23 @@ export class CharacterEngine {
     // 旧NGガードも念のため適用（二重チェック）
     cleanedText = this.applyNGGuard(cleanedText, character.name);
 
+    // 7b. バリデーション結果をCharacterFeedbackに非同期ログ保存（品質トラッキング用）
+    // ※ レスポンスをブロックしない
+    try {
+      const { characterValidator: cv } = await import('./character-validator');
+      // 再バリデーション不要 — 上のvalidation結果を使いたいが、try-catchスコープ外なので
+      // 違反があった場合のみログ保存（正常時はスキップ）
+      if (cleanedText !== text) {
+        // 自動修正 or 再生成が発生した = 品質問題あり → ログ
+        prisma.$executeRaw`
+          INSERT INTO "CharacterFeedback" (id, "userId", "characterId", type, "aiResponse", "userMessage", status, "createdAt")
+          VALUES (${crypto.randomUUID()}, ${'system'}, ${characterId}, ${'auto_validation'}, ${text}, ${userMessage}, ${'auto_fixed'}, NOW())
+        `.catch((e: unknown) => console.warn('[CharacterEngine] Feedback log failed:', e));
+      }
+    } catch {
+      // ログ保存失敗はサイレントに無視
+    }
+
     // 8. 感情分析（AIタグ優先 → キーワードフォールバック）
     const emotion = this.detectEmotion(cleanedText);
     // 感情タグをユーザー表示テキストから除去

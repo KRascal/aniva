@@ -8,6 +8,25 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // パフォーマンス最適化
+  compress: true,
+  poweredByHeader: false,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30日
+    deviceSizes: [390, 768, 1080, 1920],
+    imageSizes: [64, 128, 256, 512],
+  },
+  experimental: {
+    optimizeCss: true,        // CSS最適化（未使用CSSを削除）
+    optimizePackageImports: [
+      'framer-motion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      'date-fns',
+      'react-hot-toast',
+    ],
+  },
   headers: async () => [
     {
       // /_next/static/ は content hash 付きで永続キャッシュOK

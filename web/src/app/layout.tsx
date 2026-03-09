@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import dynamic from 'next/dynamic';
 import { Providers } from "@/components/providers";
-import { PushSetup } from "@/components/PushSetup";
-import { BottomNav } from "@/components/BottomNav";
-import { LoginBonusPopup } from "@/components/LoginBonusPopup";
-import { GlobalProactiveBanner } from "@/components/GlobalProactiveBanner";
+// 初期レンダリング不要なコンポーネントをlazyロード（LCP改善）
+const PushSetup = dynamic(() => import("@/components/PushSetup").then(m => ({ default: m.PushSetup })), { ssr: false });
+const BottomNavDynamic = dynamic(() => import("@/components/BottomNav").then(m => ({ default: m.BottomNav })), { ssr: false });
+const LoginBonusPopup = dynamic(() => import("@/components/LoginBonusPopup").then(m => ({ default: m.LoginBonusPopup })), { ssr: false });
+const GlobalProactiveBanner = dynamic(() => import("@/components/GlobalProactiveBanner").then(m => ({ default: m.GlobalProactiveBanner })), { ssr: false });
 import { PostHogProvider } from "@/components/PostHogProvider";
-import { BuildIdChecker } from "@/components/BuildIdChecker";
+const BuildIdChecker = dynamic(() => import("@/components/BuildIdChecker").then(m => ({ default: m.BuildIdChecker })), { ssr: false });
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -24,8 +26,9 @@ const geistMono = Geist_Mono({
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],  // 500/600を削除（不要ウェイト削減）
   display: "swap",
+  preload: false,  // 日本語フォントは初期レンダリングをブロックしない
 });
 
 export const metadata: Metadata = {
@@ -113,7 +116,7 @@ if('serviceWorker' in navigator){
               <LoginBonusPopup />
               <GlobalProactiveBanner />
               {children}
-              <BottomNav />
+              <BottomNavDynamic />
             </PostHogProvider>
           </Providers>
         </NextIntlClientProvider>

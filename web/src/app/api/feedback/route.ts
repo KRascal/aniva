@@ -16,7 +16,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     // セッションからユーザー取得
-    const { auth } = await import('@/auth');
+    const { auth } = await import('@/lib/auth');
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
