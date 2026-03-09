@@ -91,7 +91,7 @@ export class VoiceEngine {
           },
           body: JSON.stringify({
             text,
-            model_id: 'eleven_multilingual_v2',
+            model_id: 'eleven_multilingual_v2', // multilingual v2が最高品質（turbo v2.5はレイテンシ重視）
             voice_settings: {
               stability: voiceSettings.stability,
               similarity_boost: voiceSettings.similarity_boost,
