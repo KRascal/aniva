@@ -1,4 +1,5 @@
 import { auth } from './auth';
+import { prisma } from './prisma';
 
 /**
  * Get authenticated user ID from session.
@@ -7,6 +8,24 @@ import { auth } from './auth';
 export async function getAuthUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id ?? null;
+}
+
+/**
+ * Get verified authenticated user ID.
+ * Returns null if not authenticated OR if user no longer exists in DB.
+ * Use this for any operation that writes to DB with userId as foreign key.
+ */
+export async function getVerifiedUserId(): Promise<string | null> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

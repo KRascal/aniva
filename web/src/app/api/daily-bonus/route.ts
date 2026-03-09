@@ -57,6 +57,12 @@ export async function POST() {
 
     const userId = (session.user as { id: string }).id;
 
+    // ユーザー存在チェック（セッション残骸対策）
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!userExists) {
+      return NextResponse.json({ error: 'User not found' }, { status: 401 });
+    }
+
     const rl = await apiLimiter.check(userId)
     if (!rl.success) return rateLimitResponse(rl)
 

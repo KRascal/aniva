@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 
 export async function GET() {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const userId = await getVerifiedUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const coinBalance = await prisma.coinBalance.upsert({
