@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { chatLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
+import { addChatScore } from '@/lib/ranking-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
@@ -228,6 +229,10 @@ export async function POST(req: NextRequest) {
     if (access.type === 'FREE') {
       await incrementMonthlyChat(userId, characterId);
     }
+
+    // 7d. ランキングスコア加算（FC会員のみ）
+    const isFcMember = access.type === 'FC_UNLIMITED' || relationship.isFanclub;
+    addChatScore(userId, characterId, isFcMember).catch(() => {}); // 非同期、エラーは無視
 
     // 8. 更新後のrelationshipを再取得してleveledUpを判定
     const updatedRelationship = await prisma.relationship.findUnique({
