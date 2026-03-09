@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const cookieName = req.cookies.has('authjs.session-token')
       ? 'authjs.session-token'
       : 'next-auth.session-token';
-    const token = await getToken({ req, cookieName });
+    const token = await getToken({ req, cookieName, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET });
     if (!token?.sub) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
