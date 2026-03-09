@@ -43,8 +43,8 @@ export default function SummoningEffect({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    canvas.width = canvas.offsetWidth || window.innerWidth;
+    canvas.height = canvas.offsetHeight || window.innerHeight;
 
     const W = canvas.width;
     const H = canvas.height;
@@ -115,6 +115,12 @@ export default function SummoningEffect({
     }
 
     startTimeRef.current = performance.now();
+
+    // フォールバック: 4秒後に強制完了（スタック防止）
+    const fallbackTimer = setTimeout(() => {
+      cancelAnimationFrame(animRef.current);
+      onCompleteRef.current();
+    }, 4200);
 
     function animate(now: number) {
       if (!ctx || !canvas) return;
@@ -192,6 +198,7 @@ export default function SummoningEffect({
 
     return () => {
       cancelAnimationFrame(animRef.current);
+      clearTimeout(fallbackTimer);
     };
   }, [characterColor]);
 

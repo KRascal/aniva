@@ -112,10 +112,12 @@ export function ChatHeader({
       .catch((err) => console.warn('[ChatHeader] daily-state fetch failed:', err));
   }, [characterId, character?.slug]);
 
-  // XP percentage
+  // XP percentage (relationshipがあれば常に表示、xp=0でも0%として表示)
   const xpPct =
-    relationship && relationship.nextLevelXp && relationship.nextLevelXp > 0
-      ? Math.min(Math.round((relationship.xp / relationship.nextLevelXp) * 100), 100)
+    relationship
+      ? relationship.nextLevelXp && relationship.nextLevelXp > 0
+        ? Math.min(Math.round((relationship.xp / relationship.nextLevelXp) * 100), 100)
+        : 0
       : null;
 
   // Mood / status line
@@ -228,23 +230,35 @@ export function ChatHeader({
           </button>
         </div>
 
-        {/* ── 2行目: Lv + XPバー + % ── */}
+        {/* ── 2行目: Lv + XPバー + 関係値 ── */}
         {xpPct !== null && relationship && (
-          <div className="flex items-center gap-1.5 mt-1 pl-[60px]">
-            <span className="text-[10px] font-bold text-purple-400 flex-shrink-0">
+          <div className="flex items-center gap-2 mt-1.5 pl-[60px]">
+            {/* Lvバッジ */}
+            <span
+              className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                color: 'white',
+                boxShadow: '0 0 6px rgba(139,92,246,0.5)',
+              }}
+            >
               Lv.{relationship.level}
             </span>
-            <div className="flex-1 h-[3px] rounded-full bg-white/8 overflow-hidden">
+            {/* XPバー */}
+            <div className="flex-1 h-[5px] rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full"
+                className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${xpPct}%`,
                   background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
-                  boxShadow: '0 0 4px rgba(139,92,246,0.6)',
+                  boxShadow: xpPct > 0 ? '0 0 6px rgba(139,92,246,0.7)' : 'none',
                 }}
               />
             </div>
-            <span className="text-[10px] text-white/40 flex-shrink-0">{xpPct}%</span>
+            {/* xp表示 */}
+            <span className="text-[10px] text-white/50 flex-shrink-0 font-medium">
+              {relationship.xp}<span className="text-white/25">/{relationship.nextLevelXp ?? '?'}</span>
+            </span>
           </div>
         )}
 

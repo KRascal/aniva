@@ -68,8 +68,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ディープリンク経由: /chat/{characterId}へ（/c/{slug}はゲストフローで再表示されてしまう）
+    // ?from=onboarding を付けて診断スキップ・直接greet
     const redirectTo = updatedUser.onboardingCharacterId
-      ? `/chat/${updatedUser.onboardingCharacterId}`
+      ? `/chat/${updatedUser.onboardingCharacterId}?from=onboarding`
       : '/explore';
 
     return NextResponse.json({
