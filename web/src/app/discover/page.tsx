@@ -249,7 +249,7 @@ export default function DiscoverPage() {
 
       {/* Card container — centered, 75% scale */}
       <div className="absolute inset-0 flex items-center justify-center" style={{ top: '60px', bottom: '120px' }}>
-        <div className="relative w-[75%] h-[75%] max-w-[360px]" style={{ maxHeight: '65vh' }}>
+        <div className="relative w-[82.5%] h-[82.5%] max-w-[396px]" style={{ maxHeight: '72vh' }}>
 
       {/* Next card (behind) */}
       {nextChar && (
@@ -341,7 +341,7 @@ export default function DiscoverPage() {
       </div>{/* end card container */}
 
       {/* Bottom action buttons */}
-      <div className="absolute bottom-8 left-0 right-0 z-30 flex items-center justify-center gap-8 px-6 pb-4">
+      <div className="absolute bottom-14 left-0 right-0 z-30 flex items-center justify-center gap-8 px-6 pb-4">
         {/* Skip button */}
         <button
           onClick={() => swipeOut('left')}
@@ -381,7 +381,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Instruction */}
-      <div className="absolute bottom-2 left-0 right-0 z-30 text-center">
+      <div className="absolute bottom-8 left-0 right-0 z-30 text-center">
         <p className="text-white/25 text-[10px]">← スキップ ・ フォロー → </p>
       </div>
     </div>
