@@ -63,9 +63,9 @@ export default function NotificationsPage() {
 
   const handleTap = (notif: Notif) => {
     track(EVENTS.NOTIFICATION_CLICKED, { notificationId: notif.id, type: notif.type, targetUrl: notif.targetUrl });
-    // targetUrlが /moments のみでmomentIdがある場合、highlight付きで遷移
-    if (notif.targetUrl === '/moments' && notif.momentId) {
-      router.push(`/moments?highlight=${notif.momentId}`);
+    // momentIdがある場合は必ずhighlight付きで遷移
+    if (notif.momentId) {
+      window.location.href = `/moments?highlight=${notif.momentId}`;
     } else if (notif.targetUrl) {
       router.push(notif.targetUrl);
     }

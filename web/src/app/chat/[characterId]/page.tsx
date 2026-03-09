@@ -680,6 +680,20 @@ export default function ChatCharacterPage() {
             sessionStorage.setItem(streakKey, '1');
           }
         }
+
+        // FC誘導: 50通以上会話 && FC未加入 → 定期的にFC誘導
+        if (relData.totalMessages >= 50 && !relData.isFanclub) {
+          const fcPromptKey = `fc_prompt_${characterId}`;
+          const lastPrompt = parseInt(sessionStorage.getItem(fcPromptKey) ?? '0', 10);
+          const now = Date.now();
+          // 1セッションにつき1回のみ表示
+          if (!lastPrompt) {
+            setTimeout(() => {
+              setShowFcModal(true);
+              sessionStorage.setItem(fcPromptKey, String(now));
+            }, 15000); // 15秒後に表示（会話に没入してから）
+          }
+        }
       }
       if (!data.relationship) {
         // 自動フォロー + オンボーディング完了: チャットページ到達 = このキャラと話したい意思表示
