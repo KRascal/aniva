@@ -131,25 +131,46 @@ export default function MomentsPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 text-sm px-4 py-3">キャラ</th>
-                <th className="text-left text-gray-400 text-sm px-4 py-3">内容</th>
-                <th className="text-left text-gray-400 text-sm px-4 py-3">種別</th>
-                <th className="text-left text-gray-400 text-sm px-4 py-3">公開状態</th>
-                <th className="text-left text-gray-400 text-sm px-4 py-3">日時</th>
-                <th className="text-right text-gray-400 text-sm px-4 py-3">リアクション</th>
-                <th className="text-right text-gray-400 text-sm px-4 py-3">操作</th>
+              <tr className="border-b border-gray-800 bg-gray-950/40">
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">キャラ</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">内容</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">種別</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">公開状態</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">日時</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">リアクション</th>
+                <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">操作</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">読み込み中...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    読み込み中...
+                  </div>
+                </td></tr>
               ) : moments.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">投稿がありません</td></tr>
               ) : (
                 moments.map((m) => (
-                  <tr key={m.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td className="px-4 py-3 text-white text-sm font-medium whitespace-nowrap">{m.character.name}</td>
+                  <tr key={m.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden shrink-0 border border-gray-600">
+                          {m.character.avatarUrl ? (
+                            <img src={m.character.avatarUrl} alt={m.character.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-bold">
+                              {m.character.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-white text-sm font-medium whitespace-nowrap">{m.character.name}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-300 text-sm max-w-[200px]">
                       <div className="truncate">{m.content || (m.mediaUrl ? '📷 メディア' : '—')}</div>
                     </td>
@@ -179,10 +200,23 @@ export default function MomentsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-800">
-            <button disabled={page === 1} onClick={() => setPage(page - 1)} className="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white rounded">←</button>
-            <span className="text-gray-400 text-sm">{page} / {totalPages}</span>
-            <button disabled={page === totalPages} onClick={() => setPage(page + 1)} className="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white rounded">→</button>
+          <div className="flex items-center justify-between p-4 border-t border-gray-800">
+            <span className="text-gray-500 text-sm">
+              {((page - 1) * 50) + 1}–{Math.min(page * 50, total)} / {total.toLocaleString()} 件
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white rounded-lg transition-colors"
+              >← 前</button>
+              <span className="text-gray-400 text-sm px-2">{page} / {totalPages}</span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white rounded-lg transition-colors"
+              >次 →</button>
+            </div>
           </div>
         )}
       </div>
