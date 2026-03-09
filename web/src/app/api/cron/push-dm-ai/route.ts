@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
         recentMessages,
         timeSlot,
         personalMemories,
+        birthdayHint,
       });
     } catch (e) {
       console.error('[push-dm-ai] LLM error:', e);
