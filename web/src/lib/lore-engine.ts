@@ -1,298 +1,371 @@
 /**
- * lore-engine.ts
- * ローアブック/World Info — キャラクター知識の動的注入
- *
- * 仕組み:
- * 1. ユーザーメッセージからキーワード抽出
- * 2. LoreEntryのkeywords配列とマッチング（高速）
- * 3. pgvectorセマンティック検索（精度補完）
- * 4. 上位N件をbuildSystemPromptに注入
+ * Lore Engine — ローアブック/World Info 検索エンジン
+ * 
+ * キャラクターの作品知識をLLMの訓練データに依存せず、
+ * DBから動的に注入するハイブリッド検索システム。
+ * 
+ * 検索フロー:
+ * 1. キーワードマッチ（PostgreSQL array overlap + ILIKE）
+ * 2. セマンティック検索（pgvector cosine similarity）
+ * 3. スコア統合 + 重要度ランキング
  */
 
 import { prisma } from './prisma';
+import { getEmbedding } from './semantic-memory';
 
-export interface LoreResult {
+// ============================================================
+// Types
+// ============================================================
+
+interface LoreSearchResult {
+  id: string;
   title: string;
   content: string;
   category: string;
+  keywords: string[];
   importance: number;
+  score: number;
   matchType: 'keyword' | 'semantic' | 'both';
 }
 
+interface LoreEntryRaw {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  keywords: string[];
+  importance: number;
+  score: number;
+  matchType: string;
+}
+
+// ============================================================
+// Franchise lookup
+// ============================================================
+
+// キャラクターslug → フランチャイズ slug マッピング
+const CHARACTER_FRANCHISE_MAP: Record<string, string> = {
+  // ONE PIECE
+  luffy: 'one-piece', zoro: 'one-piece', nami: 'one-piece', sanji: 'one-piece',
+  chopper: 'one-piece', robin: 'one-piece', usopp: 'one-piece', franky: 'one-piece',
+  brook: 'one-piece', jinbe: 'one-piece', law: 'one-piece', hancock: 'one-piece',
+  shanks: 'one-piece', yamato: 'one-piece', vivi: 'one-piece', ace: 'one-piece',
+  whitebeard: 'one-piece', blackbeard: 'one-piece', mihawk: 'one-piece',
+  crocodile: 'one-piece', perona: 'one-piece', kaido: 'one-piece',
+  // 鬼滅の刃
+  tanjiro: 'kimetsu', nezuko: 'kimetsu', zenitsu: 'kimetsu',
+  inosuke: 'kimetsu', giyu: 'kimetsu',
+  // 呪術廻戦
+  gojo: 'jujutsu-kaisen', itadori: 'jujutsu-kaisen', fushiguro: 'jujutsu-kaisen',
+  nobara: 'jujutsu-kaisen', maki: 'jujutsu-kaisen',
+  // アイシールド21
+  sena: 'eyeshield21', monta: 'eyeshield21', hiruma: 'eyeshield21',
+  mamori: 'eyeshield21', suzuna: 'eyeshield21', kurita: 'eyeshield21',
+  agon: 'eyeshield21', shin: 'eyeshield21',
+};
+
 /**
- * メッセージに関連するLoreEntryを検索して返す
- * @param franchiseId   フランチャイズID (ONE PIECE等)
- * @param userMessage   ユーザーの発言
- * @param maxEntries    最大返却件数（デフォルト3件）
- * @param minImportance 最低重要度フィルタ（デフォルト3）
+ * キャラクターIDからフランチャイズIDを取得
+ */
+export async function getFranchiseIdByCharacter(characterId: string): Promise<string | null> {
+  // まずCharacterテーブルからslugを取得
+  const character = await prisma.character.findUnique({
+    where: { id: characterId },
+    select: { slug: true },
+  });
+  if (!character) return null;
+
+  const franchiseName = CHARACTER_FRANCHISE_MAP[character.slug];
+  if (!franchiseName) return null;
+
+  // LoreFranchise をname(slug的に使用)で検索
+  const franchise = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "LoreFranchise" WHERE name = ${franchiseName} OR id = ${franchiseName} LIMIT 1
+  `;
+  return franchise[0]?.id ?? null;
+}
+
+// ============================================================
+// Keyword extraction
+// ============================================================
+
+/**
+ * テキストからキーワードを抽出（簡易版）
+ * カタカナ2文字以上、漢字2文字以上、英単語を抽出
+ */
+function extractKeywords(text: string): string[] {
+  const patterns = [
+    /[ァ-ヶー]{2,}/g,   // カタカナ
+    /[一-龥]{2,}/g,      // 漢字
+    /[A-Z][a-zA-Z]{2,}/g, // 英語固有名詞
+  ];
+  const keywords: string[] = [];
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) keywords.push(...matches);
+  }
+  return [...new Set(keywords)];
+}
+
+// ============================================================
+// Hybrid Search
+// ============================================================
+
+/**
+ * ローアブック検索（ハイブリッド: キーワード + セマンティック）
  */
 export async function getRelevantLore(
   franchiseId: string,
   userMessage: string,
-  maxEntries: number = 3,
-  minImportance: number = 3,
-): Promise<LoreResult[]> {
-  // メッセージを小文字・トークン化
-  const msgLower = userMessage.toLowerCase();
-  const msgTokens = msgLower.split(/[\s、。！？\n]+/).filter(t => t.length >= 2);
+  limit: number = 5,
+): Promise<LoreSearchResult[]> {
+  const keywords = extractKeywords(userMessage);
 
-  // 1. キーワードマッチング（高速・完全一致優先）
-  const allEntries = await prisma.loreEntry.findMany({
-    where: {
-      franchiseId,
-      importance: { gte: minImportance },
-    },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      category: true,
-      keywords: true,
-      importance: true,
-    },
-    orderBy: { importance: 'desc' },
-    take: 200, // 候補を広めに取得してからフィルタ
-  });
-
-  // キーワードスコアリング
-  const scored: Array<{ entry: typeof allEntries[0]; score: number; matchType: LoreResult['matchType'] }> = [];
-  for (const entry of allEntries) {
-    let score = 0;
-    for (const keyword of entry.keywords) {
-      const kw = keyword.toLowerCase();
-      if (msgLower.includes(kw)) {
-        // 完全一致は高スコア、長いキーワードほど高スコア
-        score += Math.max(1, kw.length * 2);
-      } else {
-        // 部分一致（トークンがキーワードに含まれる）
-        for (const token of msgTokens) {
-          if (kw.includes(token) || token.includes(kw)) {
-            score += 1;
-          }
-        }
-      }
-    }
-    if (score > 0) {
-      scored.push({ entry, score, matchType: 'keyword' });
+  // Phase 1: キーワードマッチ
+  let keywordResults: LoreEntryRaw[] = [];
+  if (keywords.length > 0) {
+    try {
+      keywordResults = await prisma.$queryRawUnsafe<LoreEntryRaw[]>(`
+        SELECT id, title, content, category, keywords, importance,
+               1.0::float as score, 'keyword' as "matchType"
+        FROM "LoreEntry"
+        WHERE "franchiseId" = $1
+          AND (
+            keywords && $2::text[]
+            OR title ILIKE ANY(ARRAY(SELECT '%' || unnest($2::text[]) || '%'))
+            OR content ILIKE ANY(ARRAY(SELECT '%' || unnest($2::text[]) || '%'))
+          )
+        ORDER BY importance DESC
+        LIMIT $3
+      `, franchiseId, keywords, limit * 2);
+    } catch (e) {
+      console.warn('[LoreEngine] Keyword search failed:', e);
     }
   }
 
-  // スコア降順でソート、上位N件を返却
-  scored.sort((a, b) => b.score - a.score || b.entry.importance - a.entry.importance);
-  const topEntries = scored.slice(0, maxEntries);
-
-  return topEntries.map(({ entry, matchType }) => ({
-    title: entry.title,
-    content: entry.content,
-    category: entry.category,
-    importance: entry.importance,
-    matchType,
-  }));
-}
-
-/**
- * フランチャイズIDをキャラクタースラッグから取得
- * ONE PIECE → ONE PIECEフランチャイズのID
- */
-export async function getFranchiseIdByCharacter(characterId: string): Promise<string | null> {
+  // Phase 2: セマンティック検索
+  let semanticResults: LoreEntryRaw[] = [];
   try {
-    const character = await prisma.character.findUnique({
-      where: { id: characterId },
-      select: { franchise: true },
-    });
-    if (!character) return null;
-
-    const franchise = await prisma.loreFranchise.findFirst({
-      where: {
-        OR: [
-          { name: character.franchise },
-          { nameEn: character.franchise },
-        ],
-      },
-      select: { id: true },
-    });
-    return franchise?.id ?? null;
-  } catch {
-    return null;
+    const embedding = await getEmbedding(userMessage);
+    if (embedding && embedding.length > 0) {
+      semanticResults = await prisma.$queryRawUnsafe<LoreEntryRaw[]>(`
+        SELECT id, title, content, category, keywords, importance,
+               (1 - (embedding <=> $1::vector))::float as score,
+               'semantic' as "matchType"
+        FROM "LoreEntry"
+        WHERE "franchiseId" = $2
+          AND embedding IS NOT NULL
+          AND (1 - (embedding <=> $1::vector)) > 0.60
+        ORDER BY score DESC
+        LIMIT $3
+      `, `[${embedding.join(',')}]`, franchiseId, limit * 2);
+    }
+  } catch (e) {
+    console.warn('[LoreEngine] Semantic search failed (falling back to keyword only):', e);
   }
+
+  // Phase 3: マージ + ランキング
+  return mergeAndRank(keywordResults, semanticResults, limit);
 }
 
 /**
- * ローアブックコンテキストをプロンプト用文字列に変換
- * buildSystemPrompt() に渡すための文字列を生成
+ * キーワード結果とセマンティック結果を統合してランキング
  */
-export function formatLoreContext(entries: LoreResult[]): string {
+function mergeAndRank(
+  keywordResults: LoreEntryRaw[],
+  semanticResults: LoreEntryRaw[],
+  limit: number,
+): LoreSearchResult[] {
+  const resultMap = new Map<string, LoreSearchResult>();
+
+  // キーワード結果を追加
+  for (const r of keywordResults) {
+    resultMap.set(r.id, {
+      id: r.id,
+      title: r.title,
+      content: r.content,
+      category: r.category,
+      keywords: r.keywords || [],
+      importance: r.importance,
+      score: 0.7 + (r.importance / 10) * 0.3, // importance加味
+      matchType: 'keyword',
+    });
+  }
+
+  // セマンティック結果を追加/マージ
+  for (const r of semanticResults) {
+    const existing = resultMap.get(r.id);
+    if (existing) {
+      // 両方にヒット → スコアブースト
+      existing.score = Math.min(1.0, existing.score * 1.3);
+      existing.matchType = 'both';
+    } else {
+      resultMap.set(r.id, {
+        id: r.id,
+        title: r.title,
+        content: r.content,
+        category: r.category,
+        keywords: r.keywords || [],
+        importance: r.importance,
+        score: r.score * 0.8 + (r.importance / 10) * 0.2,
+        matchType: 'semantic',
+      });
+    }
+  }
+
+  // スコア降順でソート、上位limit件を返す
+  return Array.from(resultMap.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+// ============================================================
+// Context formatting
+// ============================================================
+
+/**
+ * ローアエントリをプロンプト注入用テキストに整形
+ */
+export function formatLoreContext(entries: LoreSearchResult[]): string {
   if (entries.length === 0) return '';
 
-  const lines: string[] = ['\n## 作品知識（会話の参考に）'];
-  lines.push('以下の情報は作品の設定です。質問に関連する場合は正確に回答すること。');
+  const lines = entries.map(e => {
+    const categoryLabel = getCategoryLabel(e.category);
+    return `【${categoryLabel}】${e.title}\n${e.content}`;
+  });
 
-  for (const entry of entries) {
-    lines.push(`\n### ${entry.title}`);
-    // 長いcontentは300文字で切り捨て
-    const content = entry.content.length > 300
-      ? entry.content.slice(0, 300) + '...'
-      : entry.content;
-    lines.push(content);
-  }
+  return `\n=== 作品知識（会話に自然に織り込んでください）===\n${lines.join('\n\n')}\n`;
+}
 
-  return lines.join('\n');
+function getCategoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    event: '出来事',
+    character: 'キャラクター',
+    location: '場所',
+    ability: '能力・技',
+    item: 'アイテム',
+    relationship: '関係性',
+    timeline: '時系列',
+  };
+  return labels[category] || category;
+}
+
+// ============================================================
+// Admin API helpers
+// ============================================================
+
+/**
+ * フランチャイズ一覧取得
+ */
+export async function listFranchises() {
+  return prisma.$queryRaw<{ id: string; name: string; nameEn: string | null; entryCount: number }[]>`
+    SELECT f.id, f.name, f."nameEn",
+           (SELECT COUNT(*) FROM "LoreEntry" e WHERE e."franchiseId" = f.id)::int as "entryCount"
+    FROM "LoreFranchise" f
+    ORDER BY f.name
+  `;
 }
 
 /**
- * ONE PIECEのサンプルデータを投入するユーティリティ
- * 初期設定時に一度だけ実行する
+ * フランチャイズのエントリ一覧取得
  */
-export async function seedOnePieceLore(): Promise<{ created: number; franchiseId: string }> {
-  // フランチャイズを作成またはIDを取得
-  const franchise = await prisma.loreFranchise.upsert({
-    where: { name: 'ONE PIECE' },
-    create: {
-      name: 'ONE PIECE',
-      nameEn: 'ONE PIECE',
-      description: '尾田栄一郎原作の海賊冒険漫画。主人公モンキー・D・ルフィが海賊王を目指す物語。',
-    },
-    update: {},
-  });
-
-  const entries = [
-    {
-      title: 'ゴムゴムの実',
-      content: 'ルフィが幼少期に食べた悪魔の実。体全体がゴムになり、伸縮自在になる能力を得る。海に入ると溺れる（海楼石も苦手）。真の姿はヒトヒトの実・幻獣種・モデル太陽神ニカ。',
-      category: 'ability',
-      keywords: ['ゴムゴム', 'ゴムゴムの実', '悪魔の実', 'ニカ', '太陽神'],
-      importance: 9,
-    },
-    {
-      title: 'ギア4',
-      content: 'ルフィが体にゴムを送り込む技。バウンドマン・タンクマン・スネークマンの3形態がある。使用後は一定時間能力を使えなくなる。サンダーバガン等の強力な技が使える。',
-      category: 'ability',
-      keywords: ['ギア4', 'ギアフォース', 'バウンドマン', 'タンクマン', 'スネークマン', 'サンダーバガン'],
-      importance: 8,
-    },
-    {
-      title: 'ギア5',
-      content: 'ルフィの最強形態。太陽神ニカの能力が覚醒した状態。体が自由自在に変形し、周囲の人を「笑わせる」ことができる。白髪・白眉になり全身が白くなる。ルフィ自身は戦いを楽しんでいる。',
-      category: 'ability',
-      keywords: ['ギア5', 'ギアファイブ', 'ニカ', '覚醒', '太陽神ニカ'],
-      importance: 10,
-    },
-    {
-      title: '三刀流',
-      content: 'ゾロが使う剣術スタイル。口にも一本くわえて三本の刀で戦う。奥義「三千世界」「鬼切り」「虎狩り千両斬り」等。覇気を纏うことでさらに強化。',
-      category: 'ability',
-      keywords: ['三刀流', 'ゾロ', '三千世界', '鬼切り', '虎狩り'],
-      importance: 8,
-    },
-    {
-      title: '麦わらの一味',
-      content: '主人公ルフィを中心とした海賊団。メンバー: ルフィ(船長)・ゾロ(剣士)・ナミ(航海士)・ウソップ(狙撃手)・サンジ(コック)・チョッパー(船医)・ロビン(考古学者)・フランキー(大工)・ブルック(音楽家)・ジンベエ(操舵手)の10人。',
-      category: 'character',
-      keywords: ['麦わら', '一味', '麦わら海賊団', 'ストローハット'],
-      importance: 10,
-    },
-    {
-      title: 'マリンフォード頂上戦争',
-      content: 'エース救出を巡る大規模な戦争。白ひげ海賊団vs海軍の激突。エースは海軍に処刑された。白ひげも死亡。ルフィに大きなトラウマを与えた出来事。この後ルフィは2年間の修行をする。',
-      category: 'event',
-      keywords: ['マリンフォード', '頂上戦争', 'エース処刑', '白ひげ', '頂上決戦'],
-      importance: 9,
-    },
-    {
-      title: '悪魔の実',
-      content: '食べると特殊な能力を得られる謎の果実。食べると泳げなくなる。自然系・超人系・動物系の三種類。ひとつの実の能力者は世界に一人だけ。',
-      category: 'item',
-      keywords: ['悪魔の実', '能力者', '泳げない', '自然系', '超人系', '動物系'],
-      importance: 7,
-    },
-    {
-      title: '覇気',
-      content: '精神力・生命力を武器にする力。武装色(硬化)・見聞色(未来予知)・覇王色(相手を気絶させる)の三種類。鍛えることで強化できる。悪魔の実の能力者でも使える。',
-      category: 'ability',
-      keywords: ['覇気', '武装色', '見聞色', '覇王色', 'コーティング'],
-      importance: 8,
-    },
-    {
-      title: 'ドラム王国/サクラ王国',
-      content: 'チョッパーの故郷。チョッパーがヒルルクとくれはに育てられた島。かつてワポルに支配されていたがルフィたちが解放。チェリー(桜)の木が有名で、春になると雪の上に桜が咲く。',
-      category: 'location',
-      keywords: ['ドラム王国', 'サクラ王国', 'チョッパー', 'くれは', 'ヒルルク'],
-      importance: 6,
-    },
-    {
-      title: 'メラメラの実',
-      content: 'エースが持つ悪魔の実の能力。炎人間になれる。炎を生み出し、自在に操ることができる。「火拳」が代表技。エースの死後、能力はドフラミンゴ一味の誰かに渡り、後にサボが食べた。',
-      category: 'ability',
-      keywords: ['メラメラ', 'メラメラの実', '炎', '火拳', 'エース', '炎拳'],
-      importance: 8,
-    },
-    {
-      title: '白ひげ海賊団',
-      content: '「世界最強の男」と呼ばれたエドワード・ニューゲート(白ひげ)率いる海賊団。エースは2番隊隊長。白ひげはメンバーを「息子」と呼んでいた。マリンフォード戦争で白ひげ死亡後に解散。',
-      category: 'character',
-      keywords: ['白ひげ', '白ひげ海賊団', 'ニューゲート', '2番隊', '息子'],
-      importance: 8,
-    },
-    {
-      title: 'ワノ国',
-      content: '鎖国された侍の国。カイドウとオロチが支配していた。ルフィたちがカイドウを打倒。ゾロの先祖リューマの故郷でもある。錦えもんやモモの助が重要人物。',
-      category: 'location',
-      keywords: ['ワノ国', 'カイドウ', '侍', '鎖国', 'ヤマト'],
-      importance: 7,
-    },
-    {
-      title: 'ルフィの一族',
-      content: '父: モンキー・D・ドラゴン（革命軍首領）、祖父: モンキー・D・ガープ（海軍英雄）、実父の友人にゴール・D・ロジャー。ルフィ本人は血統に興味がなく、仲間を大切にする。',
-      category: 'character',
-      keywords: ['ドラゴン', 'ガープ', 'ロジャー', 'ルフィ', '血統', '家族'],
-      importance: 7,
-    },
-    {
-      title: '天候棒（クリマ・タクト）',
-      content: 'ナミが使う武器。大気中の水分や温度差を利用して気象現象を起こす。サニャン・パスポン（気球）、ランバ（電気雲）等の技がある。ウェザーエッグが核心。',
-      category: 'ability',
-      keywords: ['クリマ・タクト', '天候棒', 'ナミ', 'サニャン', 'ランバ'],
-      importance: 6,
-    },
-    {
-      title: 'ヒトヒトの実（チョッパー）',
-      content: 'チョッパーが食べた悪魔の実。動物系・人型。トナカイが食べたため人語を話し、二足歩行もできる。ランブルボールという薬を使うと複数の変形形態を使える（7形態）。',
-      category: 'ability',
-      keywords: ['ヒトヒト', 'チョッパー', 'ランブルボール', 'モンスターポイント', '変形'],
-      importance: 7,
-    },
-  ];
-
-  let created = 0;
-  for (const entry of entries) {
-    try {
-      await prisma.loreEntry.upsert({
-        where: {
-          // titleとfranchiseIdの組み合わせでupsert
-          // 複合ユニーク制約がないので、findFirst→create/update
-          id: `seed_${franchise.id}_${entry.title.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        },
-        create: {
-          id: `seed_${franchise.id}_${entry.title.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          franchiseId: franchise.id,
-          title: entry.title,
-          content: entry.content,
-          category: entry.category,
-          keywords: entry.keywords,
-          importance: entry.importance,
-          spoilerLevel: 0,
-        },
-        update: {
-          content: entry.content,
-          keywords: entry.keywords,
-          importance: entry.importance,
-        },
-      });
-      created++;
-    } catch {
-      // skip if exists
-    }
+export async function listLoreEntries(franchiseId: string, category?: string) {
+  if (category) {
+    return prisma.$queryRaw<LoreEntryRaw[]>`
+      SELECT id, title, content, category, keywords, importance, "spoilerLevel", "createdAt"
+      FROM "LoreEntry"
+      WHERE "franchiseId" = ${franchiseId} AND category = ${category}
+      ORDER BY importance DESC, title
+    `;
   }
+  return prisma.$queryRaw<LoreEntryRaw[]>`
+    SELECT id, title, content, category, keywords, importance, "spoilerLevel", "createdAt"
+    FROM "LoreEntry"
+    WHERE "franchiseId" = ${franchiseId}
+    ORDER BY importance DESC, title
+  `;
+}
 
-  return { created, franchiseId: franchise.id };
+/**
+ * ローアエントリ作成
+ */
+export async function createLoreEntry(data: {
+  franchiseId: string;
+  title: string;
+  content: string;
+  category?: string;
+  keywords?: string[];
+  importance?: number;
+  spoilerLevel?: number;
+}) {
+  const id = crypto.randomUUID();
+  const now = new Date();
+  await prisma.$executeRaw`
+    INSERT INTO "LoreEntry" (id, "franchiseId", title, content, category, keywords, importance, "spoilerLevel", "createdAt", "updatedAt")
+    VALUES (${id}, ${data.franchiseId}, ${data.title}, ${data.content}, 
+            ${data.category || 'event'}, ${data.keywords || []}::text[], 
+            ${data.importance || 5}, ${data.spoilerLevel || 0}, ${now}, ${now})
+  `;
+
+  // 非同期でembedding生成
+  generateEmbedding(id, data.content).catch(e => 
+    console.warn('[LoreEngine] Embedding generation failed:', e)
+  );
+
+  return { id };
+}
+
+/**
+ * ローアエントリ更新
+ */
+export async function updateLoreEntry(id: string, data: Partial<{
+  title: string;
+  content: string;
+  category: string;
+  keywords: string[];
+  importance: number;
+  spoilerLevel: number;
+}>) {
+  const now = new Date();
+  const sets: string[] = [`"updatedAt" = '${now.toISOString()}'`];
+  if (data.title !== undefined) sets.push(`title = '${data.title.replace(/'/g, "''")}'`);
+  if (data.content !== undefined) sets.push(`content = '${data.content.replace(/'/g, "''")}'`);
+  if (data.category !== undefined) sets.push(`category = '${data.category}'`);
+  if (data.importance !== undefined) sets.push(`importance = ${data.importance}`);
+  if (data.spoilerLevel !== undefined) sets.push(`"spoilerLevel" = ${data.spoilerLevel}`);
+
+  await prisma.$executeRawUnsafe(`
+    UPDATE "LoreEntry" SET ${sets.join(', ')} WHERE id = '${id}'
+  `);
+
+  // contentが更新されたらembeddingも再生成
+  if (data.content) {
+    generateEmbedding(id, data.content).catch(e =>
+      console.warn('[LoreEngine] Embedding re-generation failed:', e)
+    );
+  }
+}
+
+/**
+ * ローアエントリ削除
+ */
+export async function deleteLoreEntry(id: string) {
+  await prisma.$executeRaw`DELETE FROM "LoreEntry" WHERE id = ${id}`;
+}
+
+// ============================================================
+// Embedding generation
+// ============================================================
+
+async function generateEmbedding(entryId: string, content: string) {
+  try {
+    const embedding = await getEmbedding(content);
+    if (embedding && embedding.length > 0) {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "LoreEntry" SET embedding = '[${embedding.join(',')}]'::vector WHERE id = '${entryId}'
+      `);
+    }
+  } catch (e) {
+    console.warn('[LoreEngine] generateEmbedding error:', e);
+  }
 }

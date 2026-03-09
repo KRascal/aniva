@@ -17,7 +17,7 @@ const LOCAL_EMBEDDING_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhos
 
 // ─── Embedding生成 ────────────────────────────────────────────
 // 優先順位: ローカルサーバー > OpenAI API
-async function getEmbedding(text: string): Promise<number[]> {
+export async function getEmbedding(text: string): Promise<number[]> {
   // ① ローカルembeddingサーバー（コストゼロ、レイテンシ最小）
   try {
     const res = await fetch(LOCAL_EMBEDDING_URL, {
