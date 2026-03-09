@@ -30,6 +30,7 @@ import { CountdownTimer } from '@/components/proactive/CountdownTimer';
 import { useConversationEnd } from '@/hooks/useConversationEnd';
 import { EndingMessage } from '@/components/chat/EndingMessage';
 import { StreakBreakPopup } from '@/components/chat/StreakBreakPopup';
+import { DailyEventPopup } from '@/components/reward/DailyEventPopup';
 
 /* ─────────────── ユーティリティ ─────────────── */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -366,7 +367,7 @@ export default function ChatCharacterPage() {
   const prevXpRef = useRef<number>(0);
   // コイン残高（チャット送信後に更新）
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
-  const [dailyEvent, setDailyEvent] = useState<{ eventType: string; isNew: boolean; display: { title: string; description: string; animation: string; color: string }; reward?: { coins?: number } } | null>(null);
+  const [dailyEvent, setDailyEvent] = useState<{ eventType: string; message: string; bonusCoins?: number; bonusXpMultiplier?: number; greeting?: string } | null>(null);
   const [showDailyEvent, setShowDailyEvent] = useState(false);
 
   /* ── モーメントtopicパラメータ対応 ── */
@@ -735,14 +736,22 @@ export default function ChatCharacterPage() {
 
       // デイリーイベント判定（変動報酬）
       try {
-        const eventRes = await fetch('/api/daily-event');
+        const eventRes = await fetch(`/api/daily-event${characterId ? `?characterId=${characterId}` : ''}`);
         if (eventRes.ok) {
           const eventData = await eventRes.json();
-          setDailyEvent(eventData);
-          // 新規判定かつnormal以外なら演出表示
-          if (eventData.isNew && eventData.eventType !== 'normal') {
+          if (eventData.isNew && eventData.event?.type) {
+            setDailyEvent({
+              eventType: eventData.event.type,
+              message: eventData.event.message ?? '',
+              bonusCoins: eventData.event.bonusCoins,
+              bonusXpMultiplier: eventData.event.bonusXpMultiplier,
+              greeting: eventData.character?.greeting,
+            });
             setShowDailyEvent(true);
-            setTimeout(() => setShowDailyEvent(false), 4000);
+            // good: 4秒後に自動クローズ、rare/ultra_rare: ユーザーが閉じるまで表示
+            if (eventData.event.type === 'good') {
+              setTimeout(() => setShowDailyEvent(false), 4000);
+            }
           }
         }
       } catch {}
@@ -1845,35 +1854,33 @@ export default function ChatCharacterPage() {
         />
       )}
 
-      {/* デイリーイベント演出（good/rare/super_rare時） */}
-      {showDailyEvent && dailyEvent && (
+      {/* デイリーイベント演出 — good: トースト / rare・ultra_rare: フルDailyEventPopup */}
+      {showDailyEvent && dailyEvent && dailyEvent.eventType === 'good' && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none"
           style={{ animation: 'fadeInUp 0.5s ease-out' }}
         >
-          <div
-            className="bg-black/80 backdrop-blur-xl rounded-2xl px-8 py-6 text-center border pointer-events-auto"
-            style={{
-              borderColor: dailyEvent.display.color,
-              boxShadow: `0 0 40px ${dailyEvent.display.color}40`,
-              animation: dailyEvent.display.animation === 'rainbow'
-                ? 'glowPulse 1s ease-in-out infinite'
-                : dailyEvent.display.animation === 'glow'
-                  ? 'glowPulse 2s ease-in-out infinite'
-                  : undefined,
-            }}
+          <div className="bg-black/80 backdrop-blur-xl rounded-2xl px-8 py-6 text-center border border-amber-400/60 pointer-events-auto"
+            style={{ boxShadow: '0 0 40px rgba(251,191,36,0.3)', animation: 'glowPulse 2s ease-in-out infinite' }}
           >
-            <div className="text-2xl font-bold mb-2" style={{ color: dailyEvent.display.color }}>
-              {dailyEvent.display.title}
-            </div>
-            <div className="text-gray-300 text-sm">{dailyEvent.display.description}</div>
-            {dailyEvent.reward?.coins && (
-              <div className="mt-3 text-amber-400 font-semibold">
-                +{dailyEvent.reward.coins} コイン獲得！
-              </div>
+            <div className="text-2xl font-bold mb-2 text-amber-400">✨ 今日はいい日！</div>
+            <div className="text-gray-300 text-sm">{dailyEvent.message || dailyEvent.greeting || 'キャラのテンションが特別高い日！'}</div>
+            {dailyEvent.bonusCoins && (
+              <div className="mt-3 text-amber-400 font-semibold">+{dailyEvent.bonusCoins} コイン獲得！</div>
             )}
           </div>
         </div>
+      )}
+      {/* rare / ultra_rare: フルスクリーンDailyEventPopup */}
+      {showDailyEvent && dailyEvent && (dailyEvent.eventType === 'rare' || dailyEvent.eventType === 'ultra_rare') && (
+        <DailyEventPopup
+          eventType={dailyEvent.eventType as 'rare' | 'ultra_rare'}
+          message={dailyEvent.message ?? ''}
+          characterGreeting={dailyEvent.greeting ?? undefined}
+          bonusCoins={dailyEvent.bonusCoins}
+          bonusXpMultiplier={dailyEvent.bonusXpMultiplier}
+          onClose={() => setShowDailyEvent(false)}
+        />
       )}
 
       {/* ══════════════ ヘッダー ══════════════ */}
