@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import SummoningEffect from '@/components/onboarding/SummoningEffect';
 import CharacterReveal, { CharacterData } from '@/components/onboarding/CharacterReveal';
 import PhaseNickname from '@/components/onboarding/PhaseNickname';
@@ -47,6 +48,7 @@ function NotFound() {
 export default function EncounterPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug ?? '';
+  const { status } = useSession();
 
   const [step, setStep] = useState<OnboardingStep>('summoning');
   const [character, setCharacter] = useState<CharacterData | null>(null);
@@ -70,9 +72,15 @@ export default function EncounterPage() {
         if (!r.ok) throw new Error('not found');
         return r.json();
       })
-      .then((d) => setCharacter(d.character))
+      .then((d) => {
+        setCharacter(d.character);
+        // ログイン済みユーザーはオンボーディングをスキップしてチャットへ直行
+        if (status === 'authenticated' && d.character?.id) {
+          window.location.href = `/chat/${d.character.id}`;
+        }
+      })
       .catch(() => setNotFound(true));
-  }, [slug]);
+  }, [slug, status]);
 
   const handleSummoningComplete = useCallback(() => {
     setStep('encounter');
