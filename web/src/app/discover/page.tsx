@@ -42,8 +42,10 @@ export default function DiscoverPage() {
   const [swipeX, setSwipeX] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const isAnimatingRef = useRef(false); // Safari stale closure対策
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const currentIndexRef = useRef(0);
 
   useEffect(() => {
     track(EVENTS.DISCOVER_VIEWED);
@@ -68,29 +70,32 @@ export default function DiscoverPage() {
   const [followedIds, setFollowedIds] = useState<string[]>([]);
 
   const swipeOut = useCallback((direction: 'left' | 'right') => {
-    if (isAnimating) return;
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setIsAnimating(true);
     setSwipeDirection(direction);
     setSwipeX(direction === 'left' ? -500 : 500);
 
-    const char = characters[currentIndex];
+    const char = characters[currentIndexRef.current];
     track(EVENTS.TINDER_SWIPE, { direction, characterId: char?.id, characterSlug: char?.slug });
     if (direction === 'left' && char) {
       addSkippedSlug(char.slug);
     }
-    // 右スワイプ = フォロー（チャットに飛ばない）
+    // 右スワイプ = フォロー
     if (direction === 'right' && char) {
       setFollowedIds(prev => [...prev, char.id]);
       fetch(`/api/relationship/${char.slug}/follow`, { method: 'POST' }).catch(() => {});
     }
 
     setTimeout(() => {
+      currentIndexRef.current += 1;
       setCurrentIndex(prev => prev + 1);
       setSwipeX(0);
       setSwipeDirection(null);
+      isAnimatingRef.current = false;
       setIsAnimating(false);
     }, 350);
-  }, [isAnimating, characters, currentIndex]);
+  }, [characters]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isAnimating) return;
@@ -139,6 +144,8 @@ export default function DiscoverPage() {
     mouseStartRef.current = null;
   };
 
+  // currentIndexRefをstateと同期
+  currentIndexRef.current = currentIndex;
   const currentChar = characters[currentIndex];
   const nextChar = characters[currentIndex + 1];
   const rotation = swipeX * 0.08;
