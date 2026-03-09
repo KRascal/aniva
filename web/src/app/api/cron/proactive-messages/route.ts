@@ -34,7 +34,7 @@ async function generateProactiveMessage(
           { role: 'user', content: userMessage },
         ],
         max_tokens: 300,
-        temperature: 0.92,
+        temperature: 0.85,
       }),
     });
     if (!res.ok) throw new Error(`xAI API error ${res.status}`);
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
     const charName = rel.character.name;
     const memorySummaryText =
       rel.memorySummary && typeof rel.memorySummary === 'object'
-        ? JSON.stringify(rel.memorySummary).slice(0, 400)
+        ? JSON.stringify(rel.memorySummary).slice(0, 600)
         : '';
 
     const levelHint =
@@ -181,15 +181,27 @@ export async function POST(req: NextRequest) {
           ? `今の感情(${rel.characterEmotion})を共有したくなった。`
           : '今日の出来事や思ったことを伝えたくなった。';
 
+    const hour = now.getHours();
+    const timeOfDay = hour < 11 ? '朝' : hour < 17 ? '昼' : hour < 22 ? '夜' : '深夜';
+
     const userMessage = [
       `ユーザー名: ${userName}`,
+      `現在の時間帯: ${timeOfDay}（${hour}時）`,
       `関係レベル: ${rel.level} / ${levelHint}`,
       `あなたの感情: ${rel.characterEmotion || 'neutral'}`,
       `記憶: ${memorySummaryText || 'なし'}`,
       `送信理由: ${triggerHint}`,
       '',
       `上記をふまえ、${userName}への先制メッセージを書け。`,
-      '【ルール】1〜3文。キャラの一人称・口調を完全に守る。返信を促す余白を残す。消滅ネタはメタ発言禁止。本文のみ返せ。',
+      '【ルール】',
+      '- 1〜3文。短くて心に残る内容にする',
+      '- キャラの一人称・口調・性格を完全に守る',
+      '- 返信したくなる余白を残す（質問や誘い）',
+      '- 「消滅」「期限」等のメタ発言禁止',
+      '- 「今日は何してた？」のような定型文禁止。キャラらしい独自の話題を出す',
+      '- 記憶がある場合は過去の会話内容に自然に触れる',
+      '- 時間帯を意識する（朝/昼/夜で雰囲気を変える）',
+      '- 本文のみ返せ',
     ].join('\n');
 
     // 4. メッセージ生成
