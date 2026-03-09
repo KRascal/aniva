@@ -290,7 +290,17 @@ export default function CollectionPage() {
                           src={imgSrc}
                           alt={uc.card.name}
                           className="w-full aspect-square object-cover rounded-lg"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.style.cssText = 'width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;';
+                              fallback.innerHTML = `<span style="font-size:2rem;font-weight:700;color:#9ca3af">${uc.card.character.name?.[0] ?? '?'}</span>`;
+                              parent.insertBefore(fallback, target.nextSibling);
+                            }
+                          }}
                         />
                       ) : (
                         <div className="w-full aspect-square rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 flex items-center justify-center">
@@ -349,7 +359,19 @@ export default function CollectionPage() {
                           || (selectedCard.card.character.slug ? `/characters/${selectedCard.card.character.slug}/avatar.webp` : null);
                         return imgSrc ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={imgSrc} alt={selectedCard.card.name} className="w-full h-full object-cover" />
+                          <img src={imgSrc} alt={selectedCard.card.name} className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const t = e.target as HTMLImageElement;
+                              t.style.display = 'none';
+                              const p = t.parentElement;
+                              if (p) {
+                                const fb = document.createElement('div');
+                                fb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#374151,#1f2937);';
+                                fb.innerHTML = `<span style="font-size:3rem;font-weight:700;color:#9ca3af">${selectedCard.card.character.name?.[0] ?? '?'}</span>`;
+                                p.insertBefore(fb, t.nextSibling);
+                              }
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-gray-700 to-gray-800">
                             <span className="text-5xl font-bold text-gray-400">{selectedCard.card.character.name?.[0] ?? '?'}</span>

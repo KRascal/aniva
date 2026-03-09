@@ -400,6 +400,10 @@ export function ChatInput({
           rows={1}
           disabled={isSending || isGreeting}
           style={{ fontSize: '16px', resize: 'none' }} // prevent iOS auto-zoom
+          enterKeyHint="send"
+          inputMode="text"
+          autoCorrect="off"
+          spellCheck={false}
           className={`flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-3xl px-4 py-3 focus:outline-none transition-all disabled:opacity-50 border touch-manipulation overflow-y-auto ${
             hasInput || imagePreviewUrl
               ? 'border-purple-500/60 ring-1 ring-purple-500/30'
