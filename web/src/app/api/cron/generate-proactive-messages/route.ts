@@ -83,24 +83,36 @@ async function generateAiMessage(params: {
       ? `\n## 前回の会話\nユーザー: "${lastUserMessage ?? '(不明)'}"\n${characterName}: "${lastCharMessage ?? '(不明)'}"` 
       : '';
 
+  // 時間帯に応じたコンテキスト
+  const jstHour = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCHours();
+  const timeContext = jstHour < 6 ? '深夜（みんな寝てる時間）'
+    : jstHour < 10 ? '朝（目覚めの時間）'
+    : jstHour < 14 ? '昼（お昼どき）'
+    : jstHour < 18 ? '午後（ちょっと一息）'
+    : jstHour < 22 ? '夜（リラックスタイム）'
+    : '深夜（寝る前のひととき）';
+
   const prompt = `${soulContext}
 
 ## 現在の状況
 - 今日の感情: ${dailyEmotion}
 - 今日の状況: ${dailyContext ?? '特になし'}
+- 時間帯: ${timeContext}
 - ユーザーとの関係レベル: ${relationshipLevel} (${isClose ? '親密' : '知り合い'})
 ${lastConvContext}
 
 ## 指示
 あなたは${characterName}です。SOUL.mdのキャラ定義に完全に従い、ユーザーへのプロアクティブメッセージを**1文〜2文**で生成してください。
 
-このメッセージは「キャラから先に話しかける」特別なメッセージです。
+このメッセージは「キャラから先に話しかける」特別なメッセージです。SNSの通知のように、ユーザーが思わずタップしたくなる内容にしてください。
 
 **重要なルール:**
 - 24時間で消える緊急性・FOOMOを含む（「今日中に」「暇なら来いよ」「ちょっと待ってた」など）
+- 時間帯「${timeContext}」に合った自然な話しかけ方をする
 - 関係レベル${isClose ? '5以上（親密）: 「お前のこと考えてた」「暇なら来いよ」系の親しみある口調' : '5未満（知り合い）: 「今日どうしてた？」「話したいことある」系の少し距離感ある口調'}
 - キャラの今日の感情「${dailyEmotion}」を自然に反映
 - SOUL.mdのVoice Rules（一人称・語尾・口癖）を厳守
+- 汎用的な挨拶ではなく、そのキャラならではの具体的な話題や感情を含める
 - 短く、インパクトある1〜2文のみ。説明不要
 - メッセージ本文のみ出力（「${characterName}:」などのプレフィックス不要）
 
