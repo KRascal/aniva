@@ -269,6 +269,8 @@ function CharacterCard({
         alt={char.name}
         fill
         className="object-cover"
+        priority={isActive}
+        sizes={isActive ? "140px" : "90px"}
         onError={() => {}} // silently skip missing images
       />
       {isActive && (
@@ -335,6 +337,7 @@ function ChatDemo() {
                 width={40}
                 height={40}
                 className="w-full h-full object-cover"
+                priority
               />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-950" />
