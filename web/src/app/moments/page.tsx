@@ -371,6 +371,7 @@ export default function MomentsPage() {
 
   /* ── initial load: recommend ── */
   useEffect(() => {
+    track(EVENTS.MOMENT_VIEWED, { tab: 'recommend' });
     setRecommendLoading(true);
     fetchRecommend().then((data) => {
       if (data) {
@@ -496,7 +497,10 @@ export default function MomentsPage() {
   /* ── like ── */
   const handleLike = (momentId: string) => {
     if (!session?.user) return;
-    track(EVENTS.MOMENT_LIKED, { momentId, tab: activeTab });
+    const moment = currentMoments.find((m) => m.id === momentId);
+    if (moment && !moment.userHasLiked) {
+      track(EVENTS.MOMENT_LIKED, { momentId, characterId: moment.characterId });
+    }
     const updater = (prev: Moment[]) =>
       prev.map((m) => {
         if (m.id !== momentId) return m;
@@ -738,15 +742,36 @@ export default function MomentsPage() {
               </button>
             </div>
           ) : currentMoments.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="relative inline-block mb-4">
-                <div className="text-6xl">📭</div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-700 rounded-full animate-pulse" />
+            <div className="flex flex-col items-center py-20 px-6">
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.1))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <svg className="w-9 h-9 text-purple-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
-              <p className="text-white/50 font-medium text-sm">まだ投稿がありません</p>
-              <p className="text-white/25 text-xs mt-1">
-                {activeTab === 'following' ? 'フォローしたキャラの日常がここに届くよ' : 'みんなの投稿はまだこれから'}
+              <h3 className="text-white font-bold text-lg mb-2">
+                {activeTab === 'following' ? 'フォロー中の投稿はまだありません' : 'タイムラインを始めよう'}
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed text-center mb-8 max-w-[260px]">
+                {activeTab === 'following'
+                  ? 'フォローしたキャラの日常がここに届きます。まずはキャラをフォローしてみよう。'
+                  : '推しの近況がここに届きます。キャラをフォローして最新の投稿をチェックしよう。'
+                }
               </p>
+              <button
+                onClick={() => router.push('/discover')}
+                className="px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                  boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
+                }}
+              >
+                キャラを見つける
+              </button>
             </div>
           ) : (
             <>

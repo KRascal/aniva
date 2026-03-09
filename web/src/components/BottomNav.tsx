@@ -3,7 +3,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { track, EVENTS } from '@/lib/analytics';
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 
@@ -136,6 +137,16 @@ export function BottomNav() {
     const interval = setInterval(fetchNotifUnread, 30_000);
     return () => clearInterval(interval);
   }, []);
+
+  // Track tab switches
+  const prevPathRef = useRef(pathname);
+  useEffect(() => {
+    if (prevPathRef.current !== pathname) {
+      const tabName = pathname.split('/')[1] || 'explore';
+      track(EVENTS.TAB_SWITCHED, { tab: tabName, from: prevPathRef.current });
+      prevPathRef.current = pathname;
+    }
+  }, [pathname]);
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
   if (pathname.startsWith('/c/')) return null;

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 
 interface Notif {
   id: string;
@@ -61,6 +62,7 @@ export default function NotificationsPage() {
   }, [fetchNotifs]);
 
   const handleTap = (notif: Notif) => {
+    track(EVENTS.NOTIFICATION_CLICKED, { notificationId: notif.id, type: notif.type, targetUrl: notif.targetUrl });
     // targetUrlが /moments のみでmomentIdがある場合、highlight付きで遷移
     if (notif.targetUrl === '/moments' && notif.momentId) {
       router.push(`/moments?highlight=${notif.momentId}`);

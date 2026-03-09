@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { track, EVENTS } from '@/lib/analytics';
 import { Suspense } from 'react';
 
 function SignupForm() {
@@ -105,6 +106,7 @@ function SignupForm() {
       setError('コードが無効か期限切れです。再送信してください。');
       setIsLoading(false);
     } else {
+      track(EVENTS.SIGNUP_COMPLETED, { method: 'email' });
       window.location.href = result?.url || redirectTo;
     }
   };

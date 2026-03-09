@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
+import { track, EVENTS } from '@/lib/analytics';
 // Link removed — DM button deleted
 
 /* ────────────────────────────────── 型定義 ── */
@@ -674,6 +675,7 @@ export function MomentCard({
         body: JSON.stringify({ content: text, parentCommentId: parentCommentId ?? null }),
       });
       if (res.ok) {
+        track(EVENTS.MOMENT_COMMENTED, { momentId: moment.id, characterId: moment.characterId, isReply });
         if (isReply) {
           setReplyText('');
           setReplyingToId(null);

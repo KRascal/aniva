@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { track, EVENTS } from '@/lib/analytics';
 
 interface CardInfo {
   userCardId: string;
@@ -226,19 +227,36 @@ export default function CollectionPage() {
               <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-4xl mb-3">📦</p>
-              <p className="text-gray-400 text-sm">
-                {filter === 'ALL' ? '最初の一枚を手に入れよう' : `${filter}レアリティのカードはまだありません`}
+            <div className="flex flex-col items-center py-20 px-6">
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(245,158,11,0.1))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <svg className="w-9 h-9 text-purple-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 22V12M3.27 6.96L12 12.01l8.73-5.05"/>
+                </svg>
+              </div>
+              <h3 className="text-white font-bold text-lg mb-2">
+                {filter === 'ALL' ? 'コレクションを始めよう' : `${filter}カードはまだありません`}
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed text-center mb-8 max-w-[260px]">
+                {filter === 'ALL'
+                  ? 'ガチャを引いて、推しの限定カードを集めよう。毎日1回無料で引けます。'
+                  : 'ガチャを引いてレアカードをゲットしよう'}
               </p>
-              {filter === 'ALL' && (
-                <Link
-                  href="/gacha"
-                  className="mt-4 inline-block px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-full text-sm font-bold transition-colors"
-                >
-                  ガチャへ
-                </Link>
-              )}
+              <Link
+                href="/explore/gacha"
+                className="px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95 inline-block"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(245,158,11,0.85))',
+                  boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
+                }}
+              >
+                ガチャを引く
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -253,7 +271,7 @@ export default function CollectionPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.04 }}
-                    onClick={() => setSelectedCard(uc)}
+                    onClick={() => { setSelectedCard(uc); track(EVENTS.CHARACTER_PROFILE_VIEWED, { characterId: uc.card.character.id, characterName: uc.card.character.name, cardId: uc.card.id, rarity: uc.card.rarity }); }}
                     className={`relative rounded-xl border-2 ${style.border} ${bg} p-3 text-center shadow-lg ${style.glow}
                       hover:scale-110 hover:shadow-xl transition-all duration-200 overflow-hidden
                       ${isSSR ? 'ssr-card' : ''} ${isUR ? 'ur-card' : ''}`}
