@@ -24,12 +24,12 @@ export async function GET() {
     });
 
     const now = Date.now();
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    const SEVENTY_TWO_HOURS = 72 * 60 * 60 * 1000;
     const stories = characters.filter((c) => {
-      // 24時間以内にMomentがあるキャラのみストーリーとして表示
+      // 72時間以内にMomentがあるキャラのみストーリーとして表示（cronで3時間おきに投稿）
       const latest = c.moments[0];
       if (!latest) return false;
-      return (now - new Date(latest.createdAt).getTime()) < TWENTY_FOUR_HOURS;
+      return (now - new Date(latest.createdAt).getTime()) < SEVENTY_TWO_HOURS;
     }).map((c) => {
       const latestMoment = c.moments[0];
       const content = latestMoment?.content ?? '';
