@@ -50,14 +50,12 @@ const EMOTION_FILE_MAP: Record<string, EmotionType> = {
 export function getEmotionAvatarUrl(
   slug: string,
   emotion: string,
-  defaultAvatarUrl: string | null,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _defaultAvatarUrl?: string | null,
 ): string {
   const mappedEmotion = EMOTION_FILE_MAP[emotion] ?? 'neutral';
-  const emotionPath = `/characters/${slug}/emotions/${mappedEmotion}.webp`;
-  
-  // クライアント側で画像の存在チェックが必要
-  // ここではパスだけ返す（フロント側でonerror→フォールバック）
-  return emotionPath;
+  // クライアント側でonerror→フォールバック処理済み
+  return `/characters/${slug}/emotions/${mappedEmotion}.webp`;
 }
 
 /**
