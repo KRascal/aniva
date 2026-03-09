@@ -53,6 +53,8 @@ model User {
   limitedScenarioReads   LimitedScenarioRead[]
   storyPollVotes         StoryPollVote[]
   notifications          Notification[]
+  rankingScores          RankingScore[]
+  letterDeliveries       LetterDelivery[]
 }
 
 model PushSubscription {
@@ -168,6 +170,9 @@ model Character {
   voice                   CharacterVoice?
   images                  CharacterImage[]
   feedbacks               CharacterFeedback[]
+  rankingScores           RankingScore[]
+  characterLetters        CharacterLetter[]
+  downloadContents        DownloadContent[]
 }
 
 model SecretContent {
@@ -252,6 +257,7 @@ model Moment {
   mediaUrl      String?
   visibility    Visibility      @default(PUBLIC)
   levelRequired Int             @default(0)
+  isFcOnly      Boolean         @default(false)
   scheduledAt   DateTime?
   publishedAt   DateTime?
   createdAt     DateTime        @default(now())
@@ -492,6 +498,7 @@ model GachaCard {
   cardImageUrl    String? // カード表面画像
   illustrationUrl String? // フルイラスト画像
   frameType       String?     @default("standard") // standard/gold/rainbow
+  isFcExclusive   Boolean     @default(false) // FC会員限定カード
   isActive        Boolean     @default(true)
   createdAt       DateTime    @default(now())
   character       Character   @relation(fields: [characterId], references: [id])
@@ -959,4 +966,77 @@ model CharacterFeedback {
 
   @@index([characterId, status])
   @@index([characterId, type])
+}
+
+// ═══════════════════════════════════════════════════
+// ランキングスコア
+// ═══════════════════════════════════════════════════
+model RankingScore {
+  id          String   @id @default(uuid())
+  userId      String
+  characterId String
+  period      String   // "2026-03", "2026-W10", "alltime"
+  periodType  String   // "weekly" | "monthly" | "alltime"
+  chatScore   Int      @default(0)
+  callScore   Int      @default(0)
+  giftScore   Int      @default(0)
+  totalScore  Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId, period, periodType])
+  @@index([characterId, periodType, totalScore])
+  @@index([periodType, totalScore])
+}
+
+// ═══════════════════════════════════════════════════
+// キャラクターからの手紙（FC限定）
+// ═══════════════════════════════════════════════════
+model CharacterLetter {
+  id          String   @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  title       String
+  content     String   @db.Text
+  imageUrl    String?
+  type        String   @default("letter") // letter | message
+  isFcOnly    Boolean  @default(true)
+  scheduledAt DateTime?
+  createdAt   DateTime @default(now())
+  deliveries  LetterDelivery[]
+}
+
+model LetterDelivery {
+  id        String   @id @default(uuid())
+  letterId  String
+  letter    CharacterLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([letterId, userId])
+  @@index([userId, isRead])
+}
+
+// ═══════════════════════════════════════════════════
+// ダウンロードコンテンツ（FC限定可）
+// ═══════════════════════════════════════════════════
+model DownloadContent {
+  id          String   @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  fileUrl     String
+  thumbnailUrl String?
+  category    String   @default("wallpaper") // wallpaper | voice_clip | illustration | special
+  isFcOnly    Boolean  @default(true)
+  downloadCount Int    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([characterId, category])
 }
