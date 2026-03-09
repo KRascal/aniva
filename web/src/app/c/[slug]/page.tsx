@@ -97,7 +97,7 @@ export default function EncounterPage() {
   const handlePromiseComplete = useCallback(() => {
     if (character) {
       // ログインページへ。ログイン後にそのままチャットに飛ぶ
-      window.location.href = `/signup?redirect=${encodeURIComponent(`/chat/${character.id}`)}`;
+      window.location.href = `/signup?redirect=${encodeURIComponent(`/chat/${character.id}?from=onboarding`)}`;
     } else {
       window.location.href = '/signup';
     }

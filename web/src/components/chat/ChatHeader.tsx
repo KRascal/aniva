@@ -230,34 +230,35 @@ export function ChatHeader({
           </button>
         </div>
 
-        {/* ── 2行目: Lv + XPバー + 関係値 ── */}
-        {xpPct !== null && relationship && (
-          <div className="flex items-center gap-2 mt-1.5 pl-[60px]">
+        {/* ── 2行目: 関係値ゲージ ── */}
+        {relationship && (
+          <div className="flex items-center gap-2 mt-1 pl-[60px] pr-1">
             {/* Lvバッジ */}
             <span
-              className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full"
+              className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md tracking-wide"
               style={{
-                background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
                 color: 'white',
-                boxShadow: '0 0 6px rgba(139,92,246,0.5)',
               }}
             >
               Lv.{relationship.level}
             </span>
-            {/* XPバー */}
-            <div className="flex-1 h-[5px] rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${xpPct}%`,
-                  background: 'linear-gradient(90deg, #8b5cf6, #ec4899)',
-                  boxShadow: xpPct > 0 ? '0 0 6px rgba(139,92,246,0.7)' : 'none',
-                }}
-              />
+            {/* 関係値バー */}
+            <div className="flex-1 relative">
+              <div className="h-[6px] rounded-full bg-white/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${xpPct ?? 0}%`,
+                    background: 'linear-gradient(90deg, #8b5cf6, #d946ef, #ec4899)',
+                    boxShadow: (xpPct ?? 0) > 0 ? '0 0 8px rgba(168,85,247,0.6)' : 'none',
+                  }}
+                />
+              </div>
             </div>
-            {/* xp表示 */}
-            <span className="text-[10px] text-white/50 flex-shrink-0 font-medium">
-              {relationship.xp}<span className="text-white/25">/{relationship.nextLevelXp ?? '?'}</span>
+            {/* 関係名 + xp */}
+            <span className="text-[10px] text-purple-300/70 flex-shrink-0 font-medium whitespace-nowrap">
+              {relationship.levelName ?? '知り合い'}
             </span>
           </div>
         )}

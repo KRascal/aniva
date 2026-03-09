@@ -37,6 +37,29 @@ export default function SummoningEffect({
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
+  // Safari bfcache対策: ページ復帰時に強制完了
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        onCompleteRef.current();
+      }
+    };
+    const handleVisChange = () => {
+      if (document.visibilityState === 'visible' && startTimeRef.current > 0) {
+        const elapsed = performance.now() - startTimeRef.current;
+        if (elapsed > 4000) {
+          onCompleteRef.current();
+        }
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisChange);
+    };
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
