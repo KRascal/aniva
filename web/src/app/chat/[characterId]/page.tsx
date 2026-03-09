@@ -672,6 +672,15 @@ export default function ChatCharacterPage() {
             }
           }
         }
+        // FC誘導: 50通以上 & FC未加入 → セッションで1日1回
+        if (relData.totalMessages >= 50 && !relData.isFanclub) {
+          const fcPromptKey = `fcPrompt_${characterId}_${new Date().toDateString()}`;
+          if (!sessionStorage.getItem(fcPromptKey)) {
+            // 5秒遅延で表示（会話の邪魔にならないよう）
+            setTimeout(() => setShowFcModal(true), 5000);
+            sessionStorage.setItem(fcPromptKey, '1');
+          }
+        }
         // ストリーク途切れチェック（会話したことがあるキャラのみ）
         if (relData.streakDays === 0 && relData.isStreakActive === false && relData.totalMessages > 0) {
           const streakKey = `streakBreak_${characterId}_${new Date().toDateString()}`;
