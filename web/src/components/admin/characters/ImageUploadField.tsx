@@ -7,12 +7,15 @@ export function ImageUploadField({
   value,
   onChange,
   slug,
+  folder,
   className,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  slug: string;
+  slug?: string;
+  /** Upload folder: 'characters' (default) | 'moments' | 'content' */
+  folder?: string;
   className?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +25,8 @@ export function ImageUploadField({
 
   const uploadFile = async (file: File) => {
     setUploadError('');
-    if (!slug) {
+    const effectiveFolder = folder ?? 'characters';
+    if (effectiveFolder === 'characters' && !slug) {
       setUploadError('先にスラッグを入力してください');
       return;
     }
@@ -31,7 +35,8 @@ export function ImageUploadField({
     try {
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('slug', slug);
+      if (slug) fd.append('slug', slug);
+      fd.append('folder', effectiveFolder);
 
       const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
       const data = await res.json();

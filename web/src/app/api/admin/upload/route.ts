@@ -15,16 +15,25 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const slug = formData.get('slug') as string | null;
+    const folder = (formData.get('folder') as string | null) ?? 'characters';
 
     if (!file) {
       return NextResponse.json({ error: 'ファイルがありません' }, { status: 400 });
     }
-    if (!slug) {
+
+    // folder validation
+    const ALLOWED_FOLDERS = ['characters', 'moments', 'content'];
+    if (!ALLOWED_FOLDERS.includes(folder)) {
+      return NextResponse.json({ error: 'folderが不正です' }, { status: 400 });
+    }
+
+    // slug is required for characters, optional for others
+    if (folder === 'characters' && !slug) {
       return NextResponse.json({ error: 'slugが必要です' }, { status: 400 });
     }
 
-    // Validate slug (alphanumeric + hyphens only)
-    if (!/^[a-z0-9-]+$/.test(slug)) {
+    // Validate slug if provided (alphanumeric + hyphens only)
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
       return NextResponse.json({ error: 'slugが不正です' }, { status: 400 });
     }
 
@@ -52,15 +61,16 @@ export async function POST(req: NextRequest) {
     const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filename = `${Date.now()}_${safeName}`;
 
-    // Save to public/characters/[slug]/
-    const publicDir = join(process.cwd(), 'public', 'uploads', 'characters', slug);
+    // Save to public/uploads/[folder]/[slug?]/
+    const subPath = slug ? join(folder, slug) : folder;
+    const publicDir = join(process.cwd(), 'public', 'uploads', subPath);
     mkdirSync(publicDir, { recursive: true });
 
     const filePath = join(publicDir, filename);
     const bytes = await file.arrayBuffer();
     writeFileSync(filePath, Buffer.from(bytes));
 
-    const url = `/uploads/characters/${slug}/${filename}`;
+    const url = `/uploads/${subPath}/${filename}`;
     return NextResponse.json({ url }, { status: 200 });
   } catch (err) {
     console.error('Upload error:', err);

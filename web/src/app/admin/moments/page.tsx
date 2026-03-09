@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ImageUploadField } from '@/components/admin/characters/ImageUploadField';
 
 interface MomentRow {
   id: string;
@@ -283,13 +284,19 @@ export default function MomentsPage() {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm mb-1">メディアURL（任意）</label>
+                <label className="block text-gray-400 text-sm mb-1">メディア（任意）</label>
+                <ImageUploadField
+                  label="画像アップロード"
+                  value={form.mediaUrl}
+                  onChange={(v) => f('mediaUrl', v)}
+                  folder="moments"
+                />
                 <input
                   type="text"
                   value={form.mediaUrl}
                   onChange={(e) => f('mediaUrl', e.target.value)}
-                  placeholder="https://..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  placeholder="またはURLを直接入力..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 mt-2"
                 />
               </div>
 
