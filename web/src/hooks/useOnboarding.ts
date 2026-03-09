@@ -10,6 +10,7 @@ export type OnboardingPhase =
   | 'welcome'           // Phase 1: 沈黙のウェルカム
   | 'character_select'  // Phase 1.5: キャラ選択（汎用流入のみ）
   | 'nickname'          // Phase 2: 呼びかけ
+  | 'birthday'          // Phase 2.5: 生年月日
   | 'approval'          // Phase 3: 承認
   | 'first_chat'        // Phase 4: 5往復チャット
   | 'hook';             // Phase 5: 定着フック
@@ -32,6 +33,7 @@ export interface ChatMessage {
 export interface OnboardingState {
   phase: OnboardingPhase;
   nickname: string;
+  birthday: string; // YYYY-MM-DD
   selectedCharacter: CharacterData | null;
   conversationHistory: ChatMessage[];
   isDeepLink: boolean;
@@ -43,6 +45,7 @@ export interface OnboardingState {
 const DEEP_LINK_PHASES: OnboardingPhase[] = [
   'welcome',
   'nickname',
+  'birthday',
   'approval',
   // first_chat 削除: オンボーディング後に直接チャットページへ（Keisuke指示 2026-03-05）
   // hook 削除: プッシュ通知許可はチャット中に表示（Keisuke指示 2026-03-05）
@@ -52,6 +55,7 @@ const GENERIC_PHASES: OnboardingPhase[] = [
   'welcome',
   'character_select',
   'nickname',
+  'birthday',
   'approval',
   // first_chat 削除: 二重チャット防止
   // hook 削除: プッシュ通知許可はチャット中に表示（Keisuke指示 2026-03-05）
@@ -65,6 +69,7 @@ export function useOnboarding(initialDeeplinkCharacter?: CharacterData, initialS
   const [state, setState] = useState<OnboardingState>({
     phase: 'welcome',
     nickname: '',
+    birthday: '',
     selectedCharacter: initialDeeplinkCharacter ?? null,
     conversationHistory: [],
     isDeepLink: !!initialDeeplinkCharacter,

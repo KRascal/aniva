@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         select: { id: true, name: true, systemPrompt: true },
       },
       user: {
-        select: { id: true, displayName: true, nickname: true },
+        select: { id: true, displayName: true, nickname: true, birthday: true },
       },
     },
     take: MAX_PER_RUN * 3,
@@ -130,7 +130,19 @@ export async function POST(req: NextRequest) {
         ? ((rel.memorySummary as Record<string, unknown>).userName as string) ?? 'あなた'
         : 'あなた');
 
-    // 5. SemanticMemoryから個人的記憶を取得（パーソナライズ強化）
+    // 5. 誕生日チェック
+    let birthdayHint = '';
+    if (rel.user.birthday) {
+      const [, bm, bd] = rel.user.birthday.split('-');
+      const nowJst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      const todayMM = String(nowJst.getUTCMonth() + 1).padStart(2, '0');
+      const todayDD = String(nowJst.getUTCDate()).padStart(2, '0');
+      if (bm === todayMM && bd === todayDD) {
+        birthdayHint = `\n[特別指示] 今日は${userName}の誕生日！全力でおめでとうを伝えてください。サプライズ感を出して。`;
+      }
+    }
+
+    // 6. SemanticMemoryから個人的記憶を取得（パーソナライズ強化）
     let personalMemories = '';
     try {
       personalMemories = await getRelevantMemories(rel.user.id, rel.character.id, `${userName}への挨拶`);

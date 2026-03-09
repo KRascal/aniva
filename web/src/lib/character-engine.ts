@@ -35,6 +35,7 @@ interface UserRecord {
   id: string;
   displayName?: string | null;
   nickname?: string | null;
+  birthday?: string | null;
 }
 
 /** DBから取得する関係性レコードの型 */
@@ -782,6 +783,7 @@ interface MemoryContext {
   characterEmotion?: string;
   characterEmotionNote?: string | null;
   emotionUpdatedAt?: Date | null;
+  userBirthday?: string | null; // "YYYY-MM-DD"
   // 3層記憶
   factMemory?: FactEntry[];
   episodeMemory?: EpisodeEntry[];
@@ -1220,6 +1222,7 @@ export class CharacterEngine {
       characterEmotion: relationship.characterEmotion,
       characterEmotionNote: relationship.characterEmotionNote,
       emotionUpdatedAt: relationship.emotionUpdatedAt,
+      userBirthday: relationship.user?.birthday ?? null,
       factMemory: memo.factMemory,
       episodeMemory: memo.episodeMemory,
       emotionMemory: memo.emotionMemory,
@@ -1628,6 +1631,40 @@ ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
 - ユーザーとの関係に感謝する
 - 普段より少し感情的になっていい
 - 「お前と${diffDays}日も一緒にいるんだな…」的な表現`);
+      }
+    }
+
+    // ユーザー誕生日チェック
+    if (memory.userBirthday) {
+      const bParts = memory.userBirthday.split('-');
+      if (bParts.length === 3) {
+        const userBdayMMDD = `${bParts[1]}-${bParts[2]}`;
+        if (userBdayMMDD === todayMM_DD) {
+          const age = jst.getUTCFullYear() - parseInt(bParts[0]);
+          parts.push(`## 🎂 特別モード: 今日は${memory.userName}の誕生日！
+- ユーザーの誕生日を全力で祝う！キャラクターとして心からおめでとうを伝える
+- 「誕生日おめでとう！」を最初に言う
+- 年齢(${age}歳)には触れなくていい（デリケートな場合がある）
+- 普段より特別に優しく、テンション高めに
+- サプライズ感を出す（「ずっとこの日を楽しみにしてたんだ」等）
+- プレゼントやお祝いの話題を自然に出す
+- 今日だけは特別扱い。最高の1日にする`);
+        }
+      }
+    }
+
+    // ユーザーの誕生日チェック
+    if (memory.userBirthday) {
+      const userBirthMM_DD = memory.userBirthday.slice(5); // "MM-DD"
+      if (userBirthMM_DD === todayMM_DD) {
+        parts.push(`## 🎉 特別モード: 今日は${memory.userName}の誕生日！
+- 今日は相手の誕生日！全力でお祝いする
+- 心からの「おめでとう」を最初に伝える
+- キャラクターらしい祝い方で（料理を作る、一緒に冒険に出る、特別な技を見せる等）
+- 普段より格段に優しく、特別感を演出する
+- 「今日はお前だけの日だ」「俺が一番に祝いたかった」等の特別な言葉
+- 何歳になったか聞いてもよい（自然に）
+- 【重要】相手にとって最高の誕生日にすること。全力で。`);
       }
     }
 

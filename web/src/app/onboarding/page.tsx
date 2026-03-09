@@ -11,6 +11,7 @@ import PhaseWelcome from '@/components/onboarding/PhaseWelcome';
 import CharacterSelect from '@/components/onboarding/CharacterSelect';
 import TinderSwipe from '@/components/onboarding/TinderSwipe';
 import PhaseNickname from '@/components/onboarding/PhaseNickname';
+import PhaseBirthday from '@/components/onboarding/PhaseBirthday';
 import PhaseApproval from '@/components/onboarding/PhaseApproval';
 import PhaseFirstChat from '@/components/onboarding/PhaseFirstChat';
 import PhaseHook from '@/components/onboarding/PhaseHook';
@@ -409,14 +410,15 @@ function OnboardingInner() {
 
             // DBのphaseに基づいてstateを復元
             if (phase && phase !== 'welcome') {
-              const validPhases: OnboardingPhase[] = ['welcome', 'character_select', 'nickname', 'approval', 'first_chat', 'hook'];
+              const validPhases: OnboardingPhase[] = ['welcome', 'character_select', 'nickname', 'birthday', 'approval', 'first_chat', 'hook'];
               if (validPhases.includes(phase as OnboardingPhase)) {
                 // キャラ選択済みならcharacter_selectをスキップ、nickname既入力ならnicknameもスキップ
                 let resumePhase = phase;
                 // first_chat / hook は廃止済み → approval にフォールバック
                 if (resumePhase === 'first_chat' || resumePhase === 'hook') resumePhase = 'approval';
                 if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
-                if (resumePhase === 'nickname' && savedNickname) resumePhase = 'approval';
+                if (resumePhase === 'nickname' && savedNickname) resumePhase = 'birthday';
+                if (resumePhase === 'birthday') resumePhase = 'approval'; // birthday is one-shot, always advance
                 stateRestored = true;
                 setState((prev) => ({
                   ...prev,
@@ -604,6 +606,18 @@ function OnboardingInner() {
     }
   };
 
+  const handleBirthdayComplete = async (birthday: string) => {
+    // DBに保存
+    try {
+      await fetch('/api/onboarding/birthday', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ birthday }),
+      });
+    } catch { /* スキップ可能 */ }
+    advance({ birthday });
+  };
+
   const handleApprovalComplete = async () => {
     track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
 
@@ -717,6 +731,15 @@ function OnboardingInner() {
             character={effectiveCharacter}
             onComplete={handleNicknameComplete}
             isLoading={isSavingNickname}
+          />
+        )}
+
+        {phase === 'birthday' && (
+          <PhaseBirthday
+            key="birthday"
+            character={effectiveCharacter}
+            nickname={nickname}
+            onComplete={handleBirthdayComplete}
           />
         )}
 

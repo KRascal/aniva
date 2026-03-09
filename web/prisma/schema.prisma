@@ -30,6 +30,7 @@ model User {
   bio                    String?
   profilePublic          Boolean                 @default(true)
   coverImageUrl          String?
+  birthday               String?                 // "YYYY-MM-DD" format
   locale                 String                  @default("ja")
   accounts               Account[]
   sessions               Session[]
