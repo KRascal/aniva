@@ -22,6 +22,22 @@ export function BuildIdChecker() {
         }
       })
       .catch(() => {});
+
+    // Safari bfcache復帰時にbuild-idチェック → 不一致ならフルリロード
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && initialBuildId.current) {
+        fetch('/api/build-id', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(data => {
+            if (data.buildId && data.buildId !== 'unknown' && data.buildId !== initialBuildId.current) {
+              window.location.reload();
+            }
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   // ナビゲーション時にBUILD_IDを再チェック
