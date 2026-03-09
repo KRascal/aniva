@@ -161,6 +161,13 @@ model Character {
   diaries                 CharacterDiary[]
   limitedScenarios        LimitedScenario[]
   storyPolls              StoryPoll[]
+  // キャラクターバイブル
+  soul                    CharacterSoul?
+  quotes                  CharacterQuote[]
+  boundaries              CharacterBoundary[]
+  voice                   CharacterVoice?
+  images                  CharacterImage[]
+  feedbacks               CharacterFeedback[]
 }
 
 model SecretContent {
@@ -815,4 +822,141 @@ model SemanticMemory {
   createdAt   DateTime                    @default(now())
 
   @@index([userId, characterId])
+}
+
+// ============================================================
+// キャラクターバイブルシステム（Layer 1）
+// ============================================================
+
+model CharacterSoul {
+  id               String    @id @default(uuid())
+  characterId      String    @unique
+  character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  coreIdentity     String    @db.Text  // 「何者か」の1行定義
+  motivation       String    @db.Text  // 行動原理・動機
+  worldview        String    @db.Text  // 世界観・価値観
+  timelinePosition String?   @db.Text  // 「原作のどの時点か」
+  backstory        String?   @db.Text  // この時点までの経緯
+  relationshipMap  Json      @default("{}") // キャラ間関係性マップ
+  personalityAxes  Json      @default("{}") // Big Five + カスタム軸
+  emotionalPatterns Json     @default("{}") // 感情トリガーパターン
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model CharacterQuote {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  quote       String    @db.Text
+  context     String?   @db.Text  // セリフの状況
+  emotion     String?             // 感情タグ
+  episode     String?             // 原作エピソード
+  category    String    @default("general") // general|battle|emotional|comedic|catchphrase
+  importance  Int       @default(5) // 1-10
+  locale      String    @default("ja")
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, category])
+  @@index([characterId, locale])
+  @@index([characterId, importance])
+}
+
+model CharacterBoundary {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  rule        String    @db.Text  // 禁止ルール本文
+  category    String    @default("speech") // speech|knowledge|behavior|meta
+  severity    String    @default("hard")   // hard(絶対禁止)|soft(原則禁止)
+  example     String?   @db.Text  // NGの具体例
+  reason      String?   @db.Text  // なぜNGか
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, category])
+}
+
+model CharacterVoice {
+  id              String    @id @default(uuid())
+  characterId     String    @unique
+  character       Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  firstPerson     String    @default("俺") // 一人称
+  secondPerson    String    @default("お前") // 二人称
+  sentenceEndings Json      @default("[]") // 語尾パターン ["〜だ！","〜ぞ！"]
+  exclamations    Json      @default("[]") // 感嘆詞 ["おお！","すげぇ！"]
+  laughStyle      String?   // 笑い方 "ししし！"
+  angryStyle      String?   // 怒り表現
+  sadStyle        String?   // 悲しみ表現
+  toneNotes       String?   @db.Text // 総合的なトーン指示
+  speechExamples  Json      @default("[]") // 会話例 [{"user":"...","char":"..."}]
+  locale          String    @default("ja")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============================================================
+// ローアブック/World Info（Layer 2）
+// ============================================================
+
+model LoreFranchise {
+  id          String      @id @default(uuid())
+  name        String      @unique // "ONE PIECE", "鬼滅の刃"
+  nameEn      String?
+  description String?     @db.Text
+  entries     LoreEntry[]
+  createdAt   DateTime    @default(now())
+}
+
+model LoreEntry {
+  id           String         @id @default(uuid())
+  franchiseId  String
+  franchise    LoreFranchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  title        String         // エントリ名
+  content      String         @db.Text // 本文
+  category     String         @default("event") // event|character|location|ability|item|relationship
+  keywords     String[]       // キーワードトリガー
+  embedding    Unsupported("vector(512)")? // pgvector
+  importance   Int            @default(5) // 1-10
+  spoilerLevel Int            @default(0) // 0=なし, 1=軽微, 2=重大
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([franchiseId, category])
+  @@index([franchiseId, importance])
+}
+
+// ============================================================
+// キャラ画像管理 + フィードバック
+// ============================================================
+
+model CharacterImage {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  imageUrl    String
+  emotion     String    @default("normal") // normal|happy|sad|angry|shy|surprised|love
+  variant     String    @default("bust")   // bust|fullbody|chibi|scene
+  isDefault   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, emotion])
+  @@index([characterId, variant])
+}
+
+model CharacterFeedback {
+  id          String    @id @default(uuid())
+  userId      String
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  messageId   String?
+  type        String    @default("out_of_character") // out_of_character|wrong_knowledge|tone_mismatch|other
+  userComment String?   @db.Text
+  aiResponse  String    @db.Text
+  userMessage String?   @db.Text
+  status      String    @default("pending") // pending|reviewed|applied|dismissed
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, status])
+  @@index([characterId, type])
 }

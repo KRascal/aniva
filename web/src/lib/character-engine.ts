@@ -884,11 +884,15 @@ export class CharacterEngine {
     let characterContext;
     try { characterContext = await loadCharacterContext(character.slug, locale); } catch { characterContext = null; }
 
+    let bibleContext = '';
+    try { bibleContext = await this.buildBibleContext(character.id, locale); } catch { /* */ }
+
     const systemPrompt = this.buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as import('./daily-event-system').DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
+      bibleContext,
     );
 
     const llmMessages = [
@@ -1034,6 +1038,14 @@ export class CharacterEngine {
       console.warn('[CharacterEngine] getDailyFanCount failed:', e);
     }
     
+    // 4i. キャラクターバイブル（DB定義: Soul/Quotes/Boundaries/Voice）
+    let bibleContext = '';
+    try {
+      bibleContext = await this.buildBibleContext(characterId, locale);
+    } catch (e) {
+      console.warn('[CharacterEngine] buildBibleContext failed:', e);
+    }
+
     // 5. システムプロンプト構築
     const systemPrompt = this.buildSystemPrompt(
       character as unknown as CharacterRecord,
@@ -1048,6 +1060,7 @@ export class CharacterEngine {
       relationship.experiencePoints, // intimacyLevel = XP (0-99 Lv1, 100-299 Lv2, 300-599 Lv3, 600-999 Lv4, 1000+ Lv5)
       dailyState,
       semanticMemoryContext,
+      bibleContext,
     );
     
     // 6. LLM呼び出し
@@ -1199,6 +1212,128 @@ export class CharacterEngine {
     }
   }
 
+  /**
+   * キャラクターバイブル（DB定義）からプロンプト注入用コンテキストを構築
+   * Soul + Quotes(上位20件) + Boundaries + Voice をまとめて文字列化
+   */
+  private async buildBibleContext(characterId: string, locale: string = 'ja'): Promise<string> {
+    const [soul, quotes, boundaries, voice] = await Promise.all([
+      prisma.characterSoul.findUnique({ where: { characterId } }),
+      prisma.characterQuote.findMany({
+        where: { characterId, locale },
+        orderBy: { importance: 'desc' },
+        take: 20,
+      }),
+      prisma.characterBoundary.findMany({
+        where: { characterId },
+        orderBy: { severity: 'asc' }, // hard first
+      }),
+      prisma.characterVoice.findUnique({ where: { characterId } }),
+    ]);
+
+    const parts: string[] = [];
+
+    // Soul — 人格の核
+    if (soul) {
+      parts.push(`\n## キャラクターの本質`);
+      parts.push(`- アイデンティティ: ${soul.coreIdentity}`);
+      parts.push(`- 行動原理: ${soul.motivation}`);
+      parts.push(`- 世界観: ${soul.worldview}`);
+      if (soul.timelinePosition) parts.push(`- 時系列位置: ${soul.timelinePosition}`);
+      if (soul.backstory) parts.push(`- 背景: ${soul.backstory}`);
+
+      // 関係性マップ
+      const relMap = soul.relationshipMap as Record<string, { relation: string; emotion: string; callName: string; behavior?: string }>;
+      if (relMap && Object.keys(relMap).length > 0) {
+        parts.push(`\n### 他キャラとの関係性`);
+        for (const [key, rel] of Object.entries(relMap)) {
+          parts.push(`- ${rel.callName || key}（${rel.relation}）: ${rel.emotion}${rel.behavior ? ` → ${rel.behavior}` : ''}`);
+        }
+      }
+
+      // 感情トリガー
+      const emotionPat = soul.emotionalPatterns as Record<string, string[]>;
+      if (emotionPat && Object.keys(emotionPat).length > 0) {
+        parts.push(`\n### 感情パターン`);
+        for (const [trigger, reactions] of Object.entries(emotionPat)) {
+          if (Array.isArray(reactions) && reactions.length > 0) {
+            parts.push(`- ${trigger}: ${reactions.join('、')}`);
+          }
+        }
+      }
+    }
+
+    // Quotes — 原作セリフ（few-shot examples）
+    if (quotes.length > 0) {
+      parts.push(`\n## 原作での話し方（これを模倣すること）`);
+      // カテゴリ別に分類
+      const byCategory: Record<string, typeof quotes> = {};
+      for (const q of quotes) {
+        const cat = q.category || 'general';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(q);
+      }
+      const categoryLabels: Record<string, string> = {
+        catchphrase: '決め台詞',
+        battle: '戦闘時',
+        emotional: '感情的な場面',
+        comedic: 'コミカルな場面',
+        general: '普段の会話',
+      };
+      for (const [cat, catQuotes] of Object.entries(byCategory)) {
+        parts.push(`\n**${categoryLabels[cat] || cat}:**`);
+        for (const q of catQuotes.slice(0, 5)) {
+          const ctx = q.context ? `（${q.context}）` : '';
+          parts.push(`「${q.quote}」${ctx}`);
+        }
+      }
+      parts.push(`\n上記のセリフの口調・語彙・テンションを忠実に模倣すること。`);
+    }
+
+    // Voice — 口調の精密定義
+    if (voice) {
+      parts.push(`\n## 口調の精密ルール`);
+      parts.push(`- 一人称: 「${voice.firstPerson}」`);
+      parts.push(`- 二人称: 「${voice.secondPerson}」`);
+      const endings = voice.sentenceEndings as string[];
+      if (endings?.length > 0) parts.push(`- 語尾パターン: ${endings.map(e => `「${e}」`).join(' ')}`);
+      const excl = voice.exclamations as string[];
+      if (excl?.length > 0) parts.push(`- 感嘆詞: ${excl.map(e => `「${e}」`).join(' ')}`);
+      if (voice.laughStyle) parts.push(`- 笑い方: 「${voice.laughStyle}」`);
+      if (voice.angryStyle) parts.push(`- 怒り表現: ${voice.angryStyle}`);
+      if (voice.sadStyle) parts.push(`- 悲しみ表現: ${voice.sadStyle}`);
+      if (voice.toneNotes) parts.push(`- トーン: ${voice.toneNotes}`);
+      const examples = voice.speechExamples as Array<{ user: string; char: string }>;
+      if (examples?.length > 0) {
+        parts.push(`\n**会話例:**`);
+        for (const ex of examples.slice(0, 3)) {
+          parts.push(`ユーザー: ${ex.user}\nキャラ: ${ex.char}`);
+        }
+      }
+    }
+
+    // Boundaries — 禁止事項
+    if (boundaries.length > 0) {
+      parts.push(`\n## 禁止事項（厳守）`);
+      const hard = boundaries.filter(b => b.severity === 'hard');
+      const soft = boundaries.filter(b => b.severity === 'soft');
+      if (hard.length > 0) {
+        parts.push(`\n**絶対禁止:**`);
+        for (const b of hard) {
+          parts.push(`- ${b.rule}${b.example ? `（NG例: ${b.example}）` : ''}${b.reason ? `　理由: ${b.reason}` : ''}`);
+        }
+      }
+      if (soft.length > 0) {
+        parts.push(`\n**原則禁止:**`);
+        for (const b of soft) {
+          parts.push(`- ${b.rule}`);
+        }
+      }
+    }
+
+    return parts.join('\n');
+  }
+
   private buildSystemPrompt(
     character: CharacterRecord,
     memory: MemoryContext,
@@ -1220,6 +1355,7 @@ export class CharacterEngine {
       currentConcern?: string | null;
     } | null,
     semanticMemoryContext: string = '',
+    bibleContext: string = '',
   ): string {
     const levelInstructions = this.getLevelInstructions(memory.level, memory.userName);
     const memoryInstructions = this.getMemoryInstructions(memory);
@@ -1271,6 +1407,7 @@ export class CharacterEngine {
     );
     
     return `${soulContent}
+${bibleContext}
 
 ${intimacyToneInstruction}
 ${dailyConditionContext}
