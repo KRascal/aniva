@@ -1289,6 +1289,11 @@ export default function CharactersPage() {
                         href={`/admin/characters/${c.id}/bible`}
                         className="text-blue-400 hover:text-blue-300 text-sm mr-3"
                       >バイブル</a>
+                      <a
+                        href={`/admin/characters/${c.id}/ai-enrich`}
+                        className="text-emerald-400 hover:text-emerald-300 text-sm mr-3"
+                        title="AIで人格を深掘り"
+                      >🤖AI深掘り</a>
                       <button
                         onClick={() => openEdit(c)}
                         className="text-purple-400 hover:text-purple-300 text-sm mr-3"
