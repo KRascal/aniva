@@ -501,6 +501,17 @@ export default function ChatCharacterPage() {
     return () => { audioRef.current?.pause(); };
   }, []);
 
+  // Safari bfcache対策: ページ復元時にフルリロード
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   /* FC決済完了後のお祝いモーダル表示 */
   useEffect(() => {
     if (searchParams.get('fc_success') === '1') {

@@ -547,6 +547,15 @@ export default function ChatPage() {
   const [proactiveMessages, setProactiveMessages] = useState<ProactiveMessage[]>([]);
   const [dismissedProactive, setDismissedProactive] = useState<Set<string>>(new Set());
 
+  // Safari bfcache対策: ページ復元時にフルリロード
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.reload();
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // localStorageから各キャラの最終訪問時刻を読み込む
   useEffect(() => {
     if (typeof window === 'undefined') return;

@@ -328,7 +328,10 @@ function CommentRow({
   const [commentLikeCount, setCommentLikeCount] = useState(comment.likeCount ?? 0);
 
   const handleCommentLike = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      // セッション未ロード時はAPIに投げてエラーハンドリング
+      // (認証チェックはサーバー側で行う)
+    }
     // optimistic update
     setCommentLiked((prev) => !prev);
     setCommentLikeCount((prev) => commentLiked ? prev - 1 : prev + 1);
