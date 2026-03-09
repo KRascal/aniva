@@ -1097,8 +1097,40 @@ export class CharacterEngine {
       text = charDef?.ngFallback ?? '今はうまく答えられないぞ…また後で話しかけてくれ！';
     }
 
-    // 7. NGガードチェック
-    const cleanedText = this.applyNGGuard(text, character.name);
+    // 7. バリデーション（Layer 3: ルールベース + NGガード + 自動修正）
+    let cleanedText = text;
+    try {
+      const { characterValidator } = await import('./character-validator');
+      const validation = await characterValidator.validate(text, characterId, { userMessage });
+      
+      if (validation.autoFixed && validation.fixedText) {
+        // 自動修正されたテキストを使用
+        cleanedText = validation.fixedText;
+      } else if (!validation.passed) {
+        // criticalな違反があり自動修正不可 → 再生成（1回のみ）
+        try {
+          const retryHint = validation.violations
+            .filter(v => v.severity === 'critical')
+            .map(v => v.detail)
+            .join(', ');
+          console.warn(`[CharacterEngine] Validation failed, retrying: ${retryHint}`);
+          
+          const retryMessages = [
+            ...llmMessages.slice(0, -1),
+            { role: 'user' as const, content: `${userMessage}\n\n【注意】前回の返答に問題がありました（${retryHint}）。キャラクターとして自然に回答してください。` },
+          ];
+          cleanedText = await callLLM(systemPrompt, retryMessages, { isFcMember: options?.isFcMember });
+        } catch {
+          // 再生成も失敗 → 元のテキストにフォールバック（NGガードのみ適用）
+          cleanedText = text;
+        }
+      }
+    } catch (validatorError) {
+      // バリデーター自体のエラー → フォールバックとして旧NGガードを適用
+      console.warn('[CharacterEngine] Validator failed, using legacy NGGuard:', validatorError);
+    }
+    // 旧NGガードも念のため適用（二重チェック）
+    cleanedText = this.applyNGGuard(cleanedText, character.name);
 
     // 8. 感情分析（AIタグ優先 → キーワードフォールバック）
     const emotion = this.detectEmotion(cleanedText);
