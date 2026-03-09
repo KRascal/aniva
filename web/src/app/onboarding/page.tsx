@@ -92,12 +92,12 @@ function CharacterRevealOverlay({ character, onComplete }: CharacterRevealOverla
   useEffect(() => {
     setParticles(generateParticles(accentColor));
 
+    // シルエット演出スキップ → 召喚中(particles)から開始
     const timers = [
-      setTimeout(() => setStage(1), 300),   // silhouette
-      setTimeout(() => setStage(2), 1100),  // particles burst
-      setTimeout(() => setStage(3), 2100),  // full color reveal
-      setTimeout(() => setStage(4), 3000),  // text
-      setTimeout(() => setStage(5), 5000),  // auto-complete
+      setTimeout(() => setStage(2), 300),   // particles burst（即開始）
+      setTimeout(() => setStage(3), 1300),  // full color reveal
+      setTimeout(() => setStage(4), 2200),  // text
+      setTimeout(() => setStage(5), 4200),  // auto-complete
     ];
     return () => timers.forEach(clearTimeout);
   }, [accentColor]);
@@ -182,10 +182,10 @@ function CharacterRevealOverlay({ character, onComplete }: CharacterRevealOverla
             animate={{
               filter: stage >= 3
                 ? 'brightness(1) saturate(1) contrast(1)'
-                : stage >= 1
-                ? 'brightness(0) saturate(0) contrast(1.5)'
+                : stage >= 2
+                ? 'brightness(0.15) saturate(0) contrast(1.5)'
                 : 'brightness(0)',
-              opacity: stage >= 1 ? 1 : 0,
+              opacity: stage >= 2 ? 1 : 0,
               scale: stage >= 3 ? 1.04 : 1,
             }}
             transition={{
@@ -201,8 +201,8 @@ function CharacterRevealOverlay({ character, onComplete }: CharacterRevealOverla
               background: `linear-gradient(135deg, ${accentColor}40, rgba(139,92,246,0.4))`,
             }}
             animate={{
-              opacity: stage >= 1 ? 1 : 0,
-              filter: stage >= 3 ? 'brightness(1)' : stage >= 1 ? 'brightness(0)' : 'brightness(0)',
+              opacity: stage >= 2 ? 1 : 0,
+              filter: stage >= 3 ? 'brightness(1)' : stage >= 2 ? 'brightness(0.15)' : 'brightness(0)',
             }}
             transition={{ duration: 0.8 }}
           >
