@@ -41,7 +41,7 @@ interface GachaSession {
   lastSSR: number;
 }
 
-function rollRarity(session: GachaSession): GachaRarity {
+function rollRarity(session: GachaSession, fcBoost = false): GachaRarity {
   const sinceLastSSR = session.gachaCount - session.lastSSR;
 
   // 100連でSSR以上確定
@@ -55,6 +55,14 @@ function rollRarity(session: GachaSession): GachaRarity {
   }
 
   const rand = Math.random() * 100;
+  // FC会員: SR以上の確率1.5倍（UR:1.5%, SSR:7.5%, SR:22.5%）
+  if (fcBoost) {
+    if (rand < 1.5) return 'UR';
+    if (rand < 9) return 'SSR';
+    if (rand < 31.5) return 'SR';
+    if (rand < 55) return 'R';
+    return 'N';
+  }
   if (rand < 1) return 'UR';
   if (rand < 5) return 'SSR';
   if (rand < 20) return 'SR';
@@ -69,6 +77,15 @@ export async function pullGacha(
   source: string = 'gacha',
 ): Promise<PullResult[]> {
   const banner = await prisma.gachaBanner.findUniqueOrThrow({ where: { id: bannerId } });
+
+  // FC会員かチェック（FC会員はSR以上の確率1.5倍）
+  const fcSub = banner.characterId
+    ? await prisma.characterSubscription.findFirst({
+        where: { userId, characterId: banner.characterId, status: 'ACTIVE' },
+        select: { id: true },
+      })
+    : null;
+  const isFcMember = !!fcSub;
 
   let gachaSession: GachaSession = { gachaCount: 0, lastSSR: 0 };
 
@@ -134,7 +151,7 @@ export async function pullGacha(
       rarity = 'UR';
       currentPullCount = 0; // 天井到達でリセット
     } else {
-      rarity = rollRarity(gachaSession);
+      rarity = rollRarity(gachaSession, isFcMember);
     }
 
     if (rarity === 'SSR' || rarity === 'UR') {
