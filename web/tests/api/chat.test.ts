@@ -30,6 +30,9 @@ vi.mock('@/lib/rate-limit', () => ({
 // ── Prisma モック ──────────────────────────────────────────────────────────────
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    user: {
+      findUnique: vi.fn(),
+    },
     character: {
       findUnique: vi.fn(),
     },
@@ -108,6 +111,9 @@ function setupDefaultMocks() {
   vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
   vi.mocked(chatLimiter.check).mockResolvedValue({ success: true, remaining: 19, resetAt: Date.now() + 60000 });
 
+  // User existence check mock
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any);
+
   vi.mocked(prisma.character.findUnique).mockResolvedValue({
     id: 'char1',
     slug: 'luffy',
@@ -156,6 +162,8 @@ describe('POST /api/chat/send', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // User existence check: default to user exists
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any);
     const mod = await import('@/app/api/chat/send/route');
     POST = mod.POST;
   });
