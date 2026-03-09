@@ -229,27 +229,31 @@ export default function DiscoverPage() {
         <div className="w-10" />
       </div>
 
-      {/* Swipe hint overlays */}
+      {/* Swipe hint overlays — positioned relative to card area */}
       {swipeX > 30 && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <div className="absolute top-1/3 left-8 transform -rotate-12 border-4 border-green-400 rounded-xl px-6 py-3"
+        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center" style={{ top: '60px', bottom: '120px' }}>
+          <div className="absolute top-[20%] left-[15%] transform -rotate-12 border-3 border-green-400 rounded-xl px-4 py-2"
             style={{ opacity: Math.min(1, swipeX / 150) }}>
-            <span className="text-green-400 text-3xl font-black tracking-wider">FOLLOW</span>
+            <span className="text-green-400 text-2xl font-black tracking-wider">FOLLOW</span>
           </div>
         </div>
       )}
       {swipeX < -30 && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <div className="absolute top-1/3 right-8 transform rotate-12 border-4 border-red-400 rounded-xl px-6 py-3"
+        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center" style={{ top: '60px', bottom: '120px' }}>
+          <div className="absolute top-[20%] right-[15%] transform rotate-12 border-3 border-red-400 rounded-xl px-4 py-2"
             style={{ opacity: Math.min(1, Math.abs(swipeX) / 150) }}>
-            <span className="text-red-400 text-3xl font-black tracking-wider">SKIP</span>
+            <span className="text-red-400 text-2xl font-black tracking-wider">SKIP</span>
           </div>
         </div>
       )}
 
+      {/* Card container — centered, 75% scale */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ top: '60px', bottom: '120px' }}>
+        <div className="relative w-[75%] h-[75%] max-w-[360px]" style={{ maxHeight: '65vh' }}>
+
       {/* Next card (behind) */}
       {nextChar && (
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 rounded-2xl overflow-hidden">
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
@@ -274,11 +278,12 @@ export default function DiscoverPage() {
       >
       <div
         ref={cardRef}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-2xl overflow-hidden"
         style={{
           transform: `translateX(${swipeX}px) rotate(${rotation}deg)`,
           transition: isAnimating ? 'transform 0.35s ease-out' : 'none',
           opacity: isAnimating ? opacity : 1,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)',
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -303,7 +308,7 @@ export default function DiscoverPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
         {/* Character info */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 px-6 pb-32 space-y-3">
+        <div className="absolute bottom-0 left-0 right-0 z-10 px-5 pb-6 space-y-2">
           <div className="flex items-end gap-3">
             {/* Avatar */}
             {currentChar.avatarUrl && (
@@ -311,26 +316,29 @@ export default function DiscoverPage() {
               <img
                 src={currentChar.avatarUrl}
                 alt={currentChar.name}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-xl flex-shrink-0"
+                className="w-14 h-14 rounded-full object-cover border-2 border-white/20 shadow-xl flex-shrink-0"
               />
             )}
             <div>
-              <h2 className="text-3xl font-black text-white drop-shadow-lg">{currentChar.name}</h2>
-              <p className="text-sm text-white/60 font-medium">{currentChar.franchise}</p>
+              <h2 className="text-2xl font-black text-white drop-shadow-lg">{currentChar.name}</h2>
+              <p className="text-xs text-white/60 font-medium">{currentChar.franchise}</p>
             </div>
           </div>
           {currentChar.catchphrases && currentChar.catchphrases.length > 0 ? (
-            <p className="text-white/80 text-base leading-relaxed drop-shadow-md line-clamp-3 italic">
+            <p className="text-white/80 text-sm leading-relaxed drop-shadow-md line-clamp-2 italic">
               「{currentChar.catchphrases[0]}」
             </p>
           ) : currentChar.description ? (
-            <p className="text-white/70 text-sm leading-relaxed line-clamp-2">
+            <p className="text-white/70 text-xs leading-relaxed line-clamp-2">
               {currentChar.description}
             </p>
           ) : null}
         </div>
       </div>
       </div>{/* end card-enter wrapper */}
+
+        </div>{/* end card container inner */}
+      </div>{/* end card container */}
 
       {/* Bottom action buttons */}
       <div className="absolute bottom-8 left-0 right-0 z-30 flex items-center justify-center gap-8 px-6 pb-4">
