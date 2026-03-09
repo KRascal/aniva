@@ -122,6 +122,7 @@ export default async function proxy(req: NextRequest) {
   const isPublicApi =
     pathname.startsWith('/api/users/') ||  // 公開プロフィールAPI
     pathname.startsWith('/api/characters') ||
+    pathname.startsWith('/api/ranking') ||
     pathname.startsWith('/api/moments') ||
     pathname.startsWith('/api/push/subscribe') ||
     pathname.startsWith('/api/push/character-notify') ||
