@@ -89,6 +89,9 @@ export function StreakBreakPopup({
           setError('コインが足りません…（50コイン必要）');
         } else if (res.status === 400) {
           setError('ストリークはすでにアクティブです！');
+        } else if (res.status === 401) {
+          setError('セッションが切れました。ページを再読み込みしてください。');
+          setTimeout(() => window.location.reload(), 2000);
         } else {
           setError(data.error ?? '復活に失敗しました。もう一度お試しください。');
         }

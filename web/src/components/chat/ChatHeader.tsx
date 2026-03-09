@@ -123,8 +123,6 @@ export function ChatHeader({
   const moodLabel = dailyState ? (EMOTION_LABEL[dailyState.emotion] ?? dailyState.emotion) : null;
   const statusText = isLateNight
     ? '🌙 ふたりだけの夜'
-    : presence?.isAvailable
-    ? 'オンライン'
     : presence
     ? presence.status
     : null;

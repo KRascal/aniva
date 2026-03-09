@@ -661,8 +661,8 @@ export default function ChatCharacterPage() {
             }
           }
         }
-        // ストリーク途切れチェック
-        if (relData.streakDays === 0 && relData.isStreakActive === false) {
+        // ストリーク途切れチェック（会話したことがあるキャラのみ）
+        if (relData.streakDays === 0 && relData.isStreakActive === false && relData.totalMessages > 0) {
           const streakKey = `streakBreak_${characterId}_${new Date().toDateString()}`;
           if (!sessionStorage.getItem(streakKey)) {
             setShowStreakBreak(true);
