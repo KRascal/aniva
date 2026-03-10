@@ -51,23 +51,7 @@ interface PityProgress {
   guaranteedRarity: string;
 }
 
-interface UserCard {
-  id: string;
-  cardId: string;
-  card: {
-    id: string;
-    name: string;
-    imageUrl: string | null;
-    cardImageUrl: string | null;
-    rarity: string;
-    franchise: string | null;
-    characterId: string;
-    character: {
-      name: string;
-      avatarUrl: string | null;
-    };
-  };
-}
+// UserCard interface removed (collection in /cards)
 
 // ── Rarity style helpers ───────────────────────────────────────────────────
 const RARITY_BG: Record<string, string> = {
@@ -206,66 +190,16 @@ function PityProgressBar({ pity }: { pity: PityProgress }) {
   );
 }
 
-// ── Collection Card ────────────────────────────────────────────────────────
-function CollectionCard({ card }: { card: UserCard }) {
-  const rarity = card.card.rarity as GachaRarity;
-  return (
-    <div
-      className="relative rounded-xl overflow-hidden aspect-[3/4]"
-      style={{
-        background: RARITY_BG[rarity] ?? RARITY_BG.N,
-        border: '1px solid rgba(255,255,255,0.1)',
-      }}
-    >
-      {card.card.cardImageUrl || card.card.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={card.card.cardImageUrl ?? card.card.imageUrl ?? ''}
-          alt={card.card.name}
-          className="w-full h-full object-cover object-top"
-        />
-      ) : card.card.character.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={card.card.character.avatarUrl}
-          alt={card.card.name}
-          className="w-full h-full object-cover opacity-70"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-4xl">🃏</div>
-      )}
-      <div className="absolute bottom-0 left-0 right-0 p-2"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
-      >
-        <p className="text-yellow-400 text-xs font-bold">{RARITY_STARS[rarity]}</p>
-        <p className="text-white text-[10px] font-semibold truncate">{card.card.name}</p>
-      </div>
-    </div>
-  );
-}
-
-function SilhouetteCard() {
-  return (
-    <div
-      className="relative rounded-xl overflow-hidden aspect-[3/4] flex items-center justify-center"
-      style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      <div className="text-3xl opacity-20">❓</div>
-    </div>
-  );
-}
+// CollectionCard/SilhouetteCard 廃止（/cardsに統一）
 
 // ── Main Page ──────────────────────────────────────────────────────────────
-type Tab = 'gacha' | 'collection';
+// コレクションは /cards に統一済み。ガチャページはガチャのみ
 
 export default function GachaPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [tab, setTab] = useState<Tab>('gacha');
+  // コレクションタブ廃止（/cardsに統一）
   const [banners, setBanners] = useState<GachaBanner[]>([]);
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [freeAvailable, setFreeAvailable] = useState(false);
@@ -276,9 +210,7 @@ export default function GachaPage() {
   const [pulling, setPulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
-  const [userCards, setUserCards] = useState<UserCard[]>([]);
-  const [collectionLoaded, setCollectionLoaded] = useState(false);
-  const [allCardCount, setAllCardCount] = useState(0);
+  // コレクション関連state廃止（/cardsに統一）
   const [showPackOpening, setShowPackOpening] = useState(false);
 
   // Load banners
@@ -292,7 +224,7 @@ export default function GachaPage() {
           setSelectedBanner(data.banners[0]);
         }
         setFreeAvailable(data.freeGachaAvailable ?? false);
-        setAllCardCount(data.myCardCount ?? 0);
+        // allCardCount removed (collection in /cards)
       })
       .catch(() => {});
 
@@ -320,21 +252,7 @@ export default function GachaPage() {
       .catch(() => {});
   }, [selectedBanner, status]);
 
-  // Load collection
-  const loadCollection = useCallback(() => {
-    if (collectionLoaded) return;
-    fetch('/api/gacha/cards')
-      .then(r => r.json())
-      .then(data => {
-        setUserCards(data.cards ?? []);
-        setCollectionLoaded(true);
-      })
-      .catch(() => setCollectionLoaded(true));
-  }, [collectionLoaded]);
-
-  useEffect(() => {
-    if (tab === 'collection') loadCollection();
-  }, [tab, loadCollection]);
+  // コレクション関連ロジック廃止（/cardsに統一）
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -376,8 +294,7 @@ export default function GachaPage() {
       // パック開封演出を起動
       setShowPackOpening(true);
 
-      // Reset collection loaded to refresh
-      setCollectionLoaded(false);
+      // コレクションは/cardsに統一済み
     } catch {
       setError('通信エラーが発生しました');
     } finally {
@@ -474,31 +391,12 @@ export default function GachaPage() {
           </div>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex px-4 pb-3 gap-2">
-          {(['gacha', 'collection'] as Tab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="px-4 py-1.5 rounded-full text-sm font-semibold transition-all"
-              style={tab === t ? {
-                background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                color: 'white',
-                boxShadow: '0 2px 12px rgba(139,92,246,0.4)',
-              } : {
-                background: 'rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.5)',
-              }}
-            >
-              {t === 'gacha' ? '🎰 ガチャ' : `📦 コレクション (${allCardCount})`}
-            </button>
-          ))}
-        </div>
+        {/* コレクションタブ廃止済み（/cardsに統一） */}
       </header>
 
       <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
-        {/* ── GACHA TAB ── */}
-        {tab === 'gacha' && (
+        {/* ── GACHA CONTENT ── */}
+        {(
           <div>
             {/* Banner selector */}
             {banners.length === 0 ? (
@@ -724,49 +622,7 @@ export default function GachaPage() {
           </div>
         )}
 
-        {/* ── COLLECTION TAB ── */}
-        {tab === 'collection' && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-base">所持カード</h2>
-              <span className="text-gray-400 text-xs">{allCardCount} 枚</span>
-            </div>
-
-            {!collectionLoaded ? (
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="aspect-[3/4] rounded-xl bg-white/5 animate-pulse" />
-                ))}
-              </div>
-            ) : userCards.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-5xl mb-4">📦</div>
-                <p className="text-gray-400 text-sm mb-2">まだカードがありません</p>
-                <p className="text-gray-500 text-xs">ガチャを引いてコレクションを集めよう！</p>
-                <button
-                  onClick={() => setTab('gacha')}
-                  className="mt-4 px-6 py-2.5 rounded-full text-white text-sm font-bold"
-                  style={{
-                    background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                    boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
-                  }}
-                >
-                  ガチャを引く →
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {userCards.map(card => (
-                  <CollectionCard key={card.id} card={card} />
-                ))}
-                {/* Silhouette placeholders for "not yet obtained" — up to 3 extras */}
-                {Array.from({ length: Math.min(3, 9 - (userCards.length % 9 || 9)) }).map((_, i) => (
-                  <SilhouetteCard key={`sil-${i}`} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* コレクションタブ廃止（/cardsに統一） */}
       </main>
     </div>
   );
