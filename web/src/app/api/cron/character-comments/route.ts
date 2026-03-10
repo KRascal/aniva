@@ -1,41 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// LLM provider - xAI (Grok) or Anthropic
-async function generateText(systemMessage: string, userMessage: string): Promise<string> {
-  const xaiKey = process.env.XAI_API_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-  if (xaiKey) {
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.LLM_MODEL || 'grok-3-mini',
-        messages: [{ role: 'system', content: systemMessage }, { role: 'user', content: userMessage }],
-        max_tokens: 150,
-        temperature: 0.9,
-      }),
-    });
-    if (!res.ok) throw new Error(`xAI API error ${res.status}`);
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || '';
-  }
-
-  if (anthropicKey) {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic({ apiKey: anthropicKey });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 150,
-      system: systemMessage,
-      messages: [{ role: 'user', content: userMessage }],
-    });
-    return (response.content[0] as { type: string; text: string }).text?.trim() || '';
-  }
-
-  throw new Error('No LLM API key configured');
-}
+import { generateText, cleanGeneratedText } from '@/lib/llm';
 
 // キャラの返信率マップ（キャラ名の部分一致で照合）
 const CHARACTER_REPLY_RATES: Array<{ match: string; rate: number }> = [
@@ -55,14 +20,6 @@ function getReplyRate(commenterName: string, targetCharacterName: string): numbe
     if (commenterName.includes(match)) return rate;
   }
   return 0.3; // デフォルト
-}
-
-function cleanGeneratedText(raw: string): string {
-  return raw
-    .replace(/[。、！？]?〜[^。！？\n]+[。、！？]?/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 200);
 }
 
 export async function GET(req: NextRequest) {
