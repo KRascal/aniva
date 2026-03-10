@@ -796,9 +796,9 @@ export default function MomentsPage() {
                     onLike={handleLike}
                     currentUserId={(session?.user as { id?: string })?.id}
                     showFollowButton={activeTab === 'recommend'}
-                    isFollowing={moment.isFollowing}
+                    isFollowing={activeTab === 'following' ? true : moment.isFollowing}
                     onFollowChange={handleFollowChange}
-                    showQuickChat={activeTab === 'recommend'}
+                    showQuickChat={true}
                     onQuickChat={handleQuickChat}
                   />
                 </div>

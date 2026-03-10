@@ -103,6 +103,7 @@ export async function GET(req: NextRequest) {
       levelRequired: number;
       isFcOnly: boolean;
       publishedAt: Date | null;
+      createdAt: Date;
       reactions: { userId: string; type: string }[];
       _count: { comments: number };
     };
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,
         isFcOnly: moment.isFcOnly,
-        publishedAt: moment.publishedAt?.toISOString() ?? new Date().toISOString(),
+        publishedAt: (moment.publishedAt ?? moment.createdAt).toISOString(),
         reactionCount,
         userHasLiked,
         isLocked,
