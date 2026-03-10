@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -76,10 +77,8 @@ ${soulMd ? `\n[キャラ詳細]\n${soulMd.split(/\n##/)[0].trim()}` : ''}
 }
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);

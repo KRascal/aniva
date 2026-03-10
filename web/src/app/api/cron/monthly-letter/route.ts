@@ -1,13 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 
-const CRON_SECRET = process.env.CRON_SECRET;
-
-export async function GET(req: Request) {
-  const authHeader = req.headers.get('x-cron-secret');
-  if (CRON_SECRET && authHeader !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     // 全ユーザーの関係性を取得（1回以上チャットしたユーザー）

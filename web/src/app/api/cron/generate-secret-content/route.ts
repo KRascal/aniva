@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 
 const REQUIRED_PER_CHAR = 5;
@@ -18,11 +19,8 @@ const CONTENT_TEMPLATES = [
 ];
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || secret !== cronSecret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const xaiKey = process.env.XAI_API_KEY;
   if (!xaiKey) {

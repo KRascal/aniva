@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-
-const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
  * SOUL.mdをキャラのslugから読み込む
@@ -160,11 +159,9 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
  * - 感情は徐々に中立に戻る（感情の自然減衰）
  * - キャラごとのグローバル日次感情＋inner state（innerThoughts/dailyActivity/currentConcern）を生成
  */
-export async function GET(req: Request) {
-  const authHeader = req.headers.get('x-cron-secret');
-  if (CRON_SECRET && authHeader !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     const now = new Date();

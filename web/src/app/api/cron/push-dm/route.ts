@@ -12,13 +12,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 export async function GET(req: NextRequest) {
   // CRON_SECRET 認証チェック
-  const secret = req.headers.get('x-cron-secret');
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     // localhost直接呼び出し（Nginx Basic Authバイパス）

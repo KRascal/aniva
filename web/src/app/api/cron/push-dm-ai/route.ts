@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generatePushDmMessage, getCurrentTimeSlot } from '@/lib/push-dm-generator';
 import { sendPushNotification } from '@/lib/web-push-sender';
@@ -36,10 +37,8 @@ function getTodayStartJST(): Date {
 
 export async function POST(req: NextRequest) {
   // 認証
-  const secret = req.headers.get('x-cron-secret');
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const now = new Date();
   const todayStartJST = getTodayStartJST();

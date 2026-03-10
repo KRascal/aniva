@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { isOptimalDMTime } from '@/lib/user-activity-tracker';
 import { generateText } from '@/lib/llm';
@@ -59,10 +60,8 @@ async function getConversationIds(relationshipId: string): Promise<string[]> {
 }
 
 export async function POST(req: NextRequest) {
-  const cronSecret = req.headers.get('x-cron-secret');
-  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

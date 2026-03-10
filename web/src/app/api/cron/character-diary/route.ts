@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
-
-const CRON_SECRET = process.env.CRON_SECRET;
 
 // mood別日記テンプレート（5パターンずつ）
 const DIARY_TEMPLATES: Record<string, string[]> = {
@@ -93,11 +92,9 @@ function todayJst(): string {
   return jst.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
-export async function POST(req: Request) {
-  const authHeader = req.headers.get('x-cron-secret');
-  if (CRON_SECRET && authHeader !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function POST(req: NextRequest) {
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     const today = todayJst();

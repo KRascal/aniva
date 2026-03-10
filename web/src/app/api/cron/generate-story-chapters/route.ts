@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 
 const BGM_BY_CHAPTER: Record<number, string> = {
@@ -17,11 +18,8 @@ const BGM_BY_CHAPTER: Record<number, string> = {
 };
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || secret !== cronSecret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const maxChars = parseInt(req.nextUrl.searchParams.get('max') || '5', 10);
 

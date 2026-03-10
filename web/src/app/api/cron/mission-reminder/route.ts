@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -48,7 +49,10 @@ function getWeekStartUTC(): Date {
   return new Date(mondayJST.getTime() - 9 * 3600000);
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
+
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

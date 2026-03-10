@@ -6,16 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { setCliffhanger, getCliffhangerTease } from '@/lib/cliffhanger-system';
 
 const MAX_PER_RUN = 30;
 
 export async function POST(req: NextRequest) {
-  const cronSecret = req.headers.get('x-cron-secret');
-  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     // 本日（JST）のメッセージがあるRelationshipを対象とする

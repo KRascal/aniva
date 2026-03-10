@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText, cleanGeneratedText } from '@/lib/llm';
 
@@ -25,11 +26,8 @@ function getReplyRate(commenterName: string, targetCharacterName: string): numbe
 export async function GET(req: NextRequest) {
   try {
     // --- 認証 ---
-    const secret = req.nextUrl.searchParams.get('secret');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || secret !== cronSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = verifyCronAuth(req);
+    if (authError) return authError;
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 

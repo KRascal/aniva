@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
 
@@ -15,11 +16,8 @@ function getTimeOfDay(): string {
 export async function GET(req: NextRequest) {
   try {
     // --- 認証 ---
-    const secret = req.nextUrl.searchParams.get('secret');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || secret !== cronSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = verifyCronAuth(req);
+    if (authError) return authError;
 
     // --- アクティブキャラ一覧取得 ---
     const characters = await prisma.character.findMany({

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { getBrokenStreaks } from '@/lib/streak-system';
 
@@ -19,10 +20,8 @@ const STREAK_BREAK_MESSAGES: Record<string, string[]> = {
 const DEFAULT_BREAK_MESSAGES = ['最近来ないけど大丈夫？また話そうよ', 'ストリーク途切れちゃった…また一緒に始めよう！'];
 
 export async function POST(req: NextRequest) {
-  const cronSecret = req.headers.get('x-cron-secret');
-  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
   try {
     const broken = await getBrokenStreaks();
     let dmsSent = 0;

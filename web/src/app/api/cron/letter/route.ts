@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 
 interface FactEntry {
@@ -123,11 +124,8 @@ ${episodes.length ? `- 思い出:\n${episodes.map(e => `  • ${e}`).join('\n')}
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('x-cron-secret');
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== cronSecret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);

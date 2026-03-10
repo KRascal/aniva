@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
 import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
@@ -10,7 +11,7 @@ import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
  * 3時間おきに実行。各キャラが25%の確率で投稿（1日2-3投稿/キャラ程度）
  */
 
-const CRON_SECRET = process.env.CRON_SECRET;
+
 
 // 時間帯別の投稿テンプレート
 const TIME_TEMPLATES: Record<string, string[]> = {
@@ -88,10 +89,8 @@ function getWeatherCategory(code: number, temp: number): string | null {
 
 export async function GET(req: NextRequest) {
   // Cron認証
-  const authHeader = req.headers.get('authorization');
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(req);
+  if (authError) return authError;
 
   try {
     // 全アクティブキャラ取得（systemPromptも含む — AI生成投稿用）
