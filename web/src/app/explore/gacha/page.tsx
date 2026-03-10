@@ -297,7 +297,7 @@ export default function GachaPage() {
       .catch(() => {});
 
     // Load coin balance
-    fetch('/api/coins')
+    fetch('/api/coins/balance')
       .then(r => r.json())
       .then(data => setCoinBalance(data.balance ?? 0))
       .catch(() => {});
