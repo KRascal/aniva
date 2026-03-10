@@ -29,6 +29,9 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
   const router = useRouter();
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<{ coins: number; balance: number } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,10 +44,6 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
-  const [purchaseSuccess, setPurchaseSuccess] = useState<{ coins: number; balance: number } | null>(null);
 
   const handlePurchase = async (pkg: CoinPackage) => {
     setPurchasing(pkg.id);
