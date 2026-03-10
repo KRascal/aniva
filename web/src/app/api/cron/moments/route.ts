@@ -84,8 +84,15 @@ export async function GET(req: NextRequest) {
     const timeOfDay = getTimeOfDay();
     const generated: Array<{ characterId: string; characterName: string; content: string }> = [];
 
-    for (const character of batchChars) {
+    for (const [batchIndex, character] of batchChars.entries()) {
       try {
+        // 最低3時間インターバルチェック（連投防止）
+        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+        const recentPost = await prisma.moment.findFirst({
+          where: { characterId: character.id, type: 'TEXT', publishedAt: { gte: threeHoursAgo } },
+        });
+        if (recentPost) continue;
+
         // --- 最新5件のMomentsを取得 ---
         const recentMoments = await prisma.moment.findMany({
           where: { characterId: character.id, type: 'TEXT', content: { not: null } },
@@ -114,6 +121,11 @@ ${recentTexts || '（なし）'}
         const content = await generateText(systemMessage, userMessage);
         if (!content) continue;
 
+        // publishedAtをバッチ順に少しずらす（0/20/40分前）+ さらに0〜10分のランダム
+        const baseOffsetMinutes = batchIndex * 20;
+        const randomJitter = Math.floor(Math.random() * 10);
+        const staggeredPublishedAt = new Date(Date.now() - (baseOffsetMinutes + randomJitter) * 60 * 1000);
+
         // --- DBに保存 ---
         await prisma.moment.create({
           data: {
@@ -121,7 +133,7 @@ ${recentTexts || '（なし）'}
             type: 'TEXT',
             content,
             visibility: 'PUBLIC',
-            publishedAt: new Date(),
+            publishedAt: staggeredPublishedAt,
           },
         });
 

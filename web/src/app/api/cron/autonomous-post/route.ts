@@ -114,17 +114,28 @@ export async function GET(req: NextRequest) {
       // 25%の確率で投稿（1日8回実行 × 25% = 平均2投稿/キャラ/日）
       if (Math.random() > 0.25) continue;
 
-      // 今日の投稿数チェック（1キャラ最大4投稿/日）
+      // 最低3時間インターバルチェック（連投防止 = 機械感排除）
+      const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+      const recentPost = await prisma.moment.findFirst({
+        where: {
+          characterId: character.id,
+          type: 'TEXT',
+          publishedAt: { gte: threeHoursAgo },
+        },
+      });
+      if (recentPost) continue; // 3時間以内に投稿済みはスキップ
+
+      // 今日の投稿数チェック（1キャラ最大3投稿/日）
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayPosts = await prisma.moment.count({
         where: {
           characterId: character.id,
-          createdAt: { gte: todayStart },
+          publishedAt: { gte: todayStart },
           type: 'TEXT',
         },
       });
-      if (todayPosts >= 4) continue;
+      if (todayPosts >= 3) continue;
 
       // 投稿内容を決定
       let content: string;
@@ -143,6 +154,10 @@ export async function GET(req: NextRequest) {
 
       if (!content) continue;
 
+      // publishedAtをランダムに過去5〜90分に設定（「たった今」連発を防ぐ）
+      const randomMinutesAgo = Math.floor(Math.random() * 85) + 5; // 5〜90分前
+      const staggeredPublishedAt = new Date(Date.now() - randomMinutesAgo * 60 * 1000);
+
       // momentsに投稿
       await prisma.moment.create({
         data: {
@@ -150,6 +165,7 @@ export async function GET(req: NextRequest) {
           type: 'TEXT',
           content,
           visibility: 'PUBLIC',
+          publishedAt: staggeredPublishedAt,
         },
       });
 

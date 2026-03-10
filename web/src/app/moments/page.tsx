@@ -798,7 +798,7 @@ export default function MomentsPage() {
                     showFollowButton={activeTab === 'recommend'}
                     isFollowing={moment.isFollowing}
                     onFollowChange={handleFollowChange}
-                    showQuickChat={activeTab === 'recommend'}
+                    showQuickChat={true}
                     onQuickChat={handleQuickChat}
                   />
                 </div>
