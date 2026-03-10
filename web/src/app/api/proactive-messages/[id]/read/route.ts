@@ -48,13 +48,19 @@ export async function POST(
         data: { isRead: true, readAt: new Date() },
       });
 
-      // チャットのConversation取得/作成
-      let conversation = await tx.conversation.findFirst({
+      // Relationship経由でConversation取得/作成
+      const relationship = await tx.relationship.findFirst({
         where: { userId: session.user!.id, characterId: message.characterId },
+      });
+      if (!relationship) return; // フォローしてない場合はスキップ
+
+      let conversation = await tx.conversation.findFirst({
+        where: { relationshipId: relationship.id },
+        orderBy: { updatedAt: 'desc' },
       });
       if (!conversation) {
         conversation = await tx.conversation.create({
-          data: { userId: session.user!.id, characterId: message.characterId },
+          data: { relationshipId: relationship.id },
         });
       }
 
@@ -75,6 +81,11 @@ export async function POST(
             content: message.content,
             metadata: { proactiveMessageId: message.id, type: 'proactive' },
           },
+        });
+        // Conversation更新時刻を更新
+        await tx.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
         });
       }
     });

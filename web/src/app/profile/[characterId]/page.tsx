@@ -860,7 +860,6 @@ export default function ProfilePage() {
           <div className="flex">
             {[
               { id: 'posts' as const, label: '投稿' },
-              { id: 'diary' as const, label: '日記' },
               { id: 'fc' as const, label: 'FC限定' },
               { id: 'dl' as const, label: 'DL' },
               { id: 'profile' as const, label: '関係値' },

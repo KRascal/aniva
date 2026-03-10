@@ -727,6 +727,33 @@ export default function ChatPage() {
             ))}
           </div>
         )}
+        {/* ══ グループチャットバナー ══ */}
+        <button
+          onClick={() => router.push('/chat/group')}
+          className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.98] transition-all duration-200 mb-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(88,28,135,0.25), rgba(157,23,77,0.2), rgba(30,27,75,0.15))',
+            border: '1px solid rgba(139,92,246,0.35)',
+            boxShadow: '0 2px 20px rgba(139,92,246,0.12)',
+          }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
+              <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-purple-300 text-[10px] font-black tracking-widest uppercase">グループチャット</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(139,92,246,0.25)', color: 'rgba(196,181,254,0.9)', border: '1px solid rgba(139,92,246,0.3)' }}>NEW</span>
+              </div>
+              <p className="text-white font-bold text-sm leading-tight">キャラ同士の掛け合いを見よう！</p>
+            </div>
+            <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))', boxShadow: '0 2px 8px rgba(139,92,246,0.4)' }}>試す →</span>
+          </div>
+        </button>
+
         {/* ══ キャラからのメッセージバナー ══ */}
         {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId)).map(msg => (
           <div
