@@ -114,18 +114,20 @@ export async function GET(req: NextRequest) {
     });
     const charMap = new Map(characters.map(c => [c.id, c]));
 
-    const ranking = sorted.map(([charId, score], idx) => {
-      const char = charMap.get(charId);
-      return {
-        rank: idx + 1,
-        characterId: charId,
-        name: char?.name ?? '不明',
-        slug: char?.slug ?? '',
-        avatarUrl: char?.avatarUrl ?? null,
-        value: score,
-        valueLabel: `🪙 ${score.toLocaleString()} コイン`,
-      };
-    });
+    const ranking = sorted
+      .filter(([charId]) => charMap.has(charId))
+      .map(([charId, score], idx) => {
+        const char = charMap.get(charId)!;
+        return {
+          rank: idx + 1,
+          characterId: charId,
+          name: char.name,
+          slug: char.slug ?? '',
+          avatarUrl: char.avatarUrl ?? null,
+          value: score,
+          valueLabel: `${score.toLocaleString()} コイン`,
+        };
+      });
 
     return NextResponse.json({ type, period, ranking });
   }
@@ -163,19 +165,21 @@ export async function GET(req: NextRequest) {
     });
     const charMap = new Map(characters.map(c => [c.id, c]));
 
-    const ranking = results.map((r, idx) => {
-      const char = charMap.get(r.characterId);
-      const count = Number(r.messageCount);
-      return {
-        rank: idx + 1,
-        characterId: r.characterId,
-        name: char?.name ?? '不明',
-        slug: char?.slug ?? '',
-        avatarUrl: char?.avatarUrl ?? null,
-        value: count,
-        valueLabel: `💬 ${count.toLocaleString()}通`,
-      };
-    });
+    const ranking = results
+      .filter(r => charMap.has(r.characterId))
+      .map((r, idx) => {
+        const char = charMap.get(r.characterId)!;
+        const count = Number(r.messageCount);
+        return {
+          rank: idx + 1,
+          characterId: r.characterId,
+          name: char.name,
+          slug: char.slug ?? '',
+          avatarUrl: char.avatarUrl ?? null,
+          value: count,
+          valueLabel: `${count.toLocaleString()}通`,
+        };
+      });
 
     return NextResponse.json({ type, period, ranking });
   }

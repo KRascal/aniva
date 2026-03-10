@@ -437,7 +437,7 @@ export default function GroupChatPage() {
               ←
             </button>
             <div>
-              <h1 className="text-white font-bold text-base">👥 グループチャット</h1>
+              <h1 className="text-white font-bold text-base">グループチャット</h1>
               <p className="text-white/40 text-xs">キャラを最大3体選択</p>
             </div>
           </div>
@@ -526,7 +526,11 @@ export default function GroupChatPage() {
               ))
             ) : characters.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-4xl mb-3">👥</p>
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mb-3">
+                  <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </div>
                 <p className="text-white/50 text-sm">キャラをフォローして招待しよう</p>
                 <button
                   onClick={() => router.push('/explore')}
@@ -556,7 +560,7 @@ export default function GroupChatPage() {
 
         {/* 下部CTAボタン */}
         <div
-          className="fixed bottom-16 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
+          className="fixed bottom-[4.5rem] left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
           style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
         >
           <div className="max-w-lg mx-auto">
@@ -574,7 +578,7 @@ export default function GroupChatPage() {
             >
               {selectedIds.length < 1
                 ? 'キャラを選択してください'
-                : `👥 ${selectedChars.map(c => c.name.split('・')[0]).join('・')}とチャット開始！`}
+                : `${selectedChars.map(c => c.name.split('・')[0]).join('・')}とチャット開始`}
             </button>
           </div>
         </div>

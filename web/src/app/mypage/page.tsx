@@ -336,8 +336,9 @@ export default function MyPage() {
             />
             <label
               htmlFor="avatar-upload"
-              className="relative group cursor-pointer block"
+              className="relative group cursor-pointer block touch-manipulation"
               aria-label="プロフィール画像を変更"
+              onClick={() => avatarFileInputRef.current?.click()}
             >
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
                 {isUploadingAvatar ? (

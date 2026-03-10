@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 interface GiftType {
   id: string;
@@ -23,6 +24,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
   const [balance, setBalance] = useState<number>(0);
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { openCoinPurchase } = useCoinPurchase();
 
   useEffect(() => {
     if (isOpen) {
@@ -89,12 +91,8 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
           {/* ヘッダー */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-bold text-sm">
-              🎁 {characterName}にプレゼント
+              {characterName}にプレゼント
             </h3>
-            <div className="flex items-center gap-1.5 bg-yellow-900/30 px-3 py-1 rounded-full border border-yellow-600/30">
-              <span className="text-sm">🪙</span>
-              <span className="text-yellow-300 text-sm font-bold">{balance.toLocaleString()}</span>
-            </div>
           </div>
 
           {/* エラー */}
@@ -123,7 +121,9 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
                   <span className="text-3xl">{gift.emoji}</span>
                   <span className="text-white text-xs font-semibold">{gift.name}</span>
                   <div className="flex items-center gap-0.5">
-                    <span className="text-[10px]">🪙</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
+                    </svg>
                     <span className={`text-xs font-bold ${canAfford ? 'text-yellow-300' : 'text-gray-600'}`}>
                       {gift.coinCost}
                     </span>
@@ -134,12 +134,18 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
             })}
           </div>
 
-          {/* コイン購入リンク */}
-          <div className="mt-4 text-center">
-            <a href="/coins" className="text-purple-400 text-xs hover:text-purple-300 transition-colors">
-              🪙 コインを購入する →
-            </a>
-          </div>
+          {/* コイン残高 + 購入ボタン */}
+          <button
+            onClick={() => openCoinPurchase(balance)}
+            className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-900/40 to-yellow-900/30 border border-amber-500/30 hover:border-amber-500/50 transition-all active:scale-[0.98]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+              <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
+            </svg>
+            <span className="text-amber-300 text-sm font-bold">{balance.toLocaleString()}</span>
+            <span className="text-amber-400/60 text-xs">|</span>
+            <span className="text-amber-400 text-xs font-medium">コインを購入する →</span>
+          </button>
         </div>
       </div>
     </>

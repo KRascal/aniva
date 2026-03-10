@@ -15,7 +15,15 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { characterId } = await params;
+  const { characterId: rawId } = await params;
+
+  // slug→id解決
+  let characterId = rawId;
+  const charBySlug = await prisma.character.findFirst({
+    where: { OR: [{ id: rawId }, { slug: rawId }] },
+    select: { id: true },
+  });
+  if (charBySlug) characterId = charBySlug.id;
 
   // Relationship取得
   const relationship = await prisma.relationship.findFirst({

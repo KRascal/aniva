@@ -1481,7 +1481,7 @@ export default function ChatCharacterPage() {
       )}
       {/* 深夜モード: 月と星のオーバーレイ */}
       {isNightMode && (
-        <div className="fixed top-16 right-3 z-40 text-[10px] text-purple-400/60 flex items-center gap-1 pointer-events-none select-none bg-gray-950/60 rounded-full px-2 py-0.5 backdrop-blur-sm">
+        <div className="fixed top-20 right-3 z-40 text-[10px] text-purple-400/60 flex items-center gap-1 pointer-events-none select-none bg-gray-950/60 rounded-full px-2 py-0.5 backdrop-blur-sm">
           <span>🌙</span> <span>おやすみモード</span>
         </div>
       )}

@@ -39,7 +39,7 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   alltime: '累計',
 };
 
-const CROWN = ['👑', '🥈', '🥉'];
+const CROWN = ['🏆', '🥈', '🥉'];
 
 export default function RankingPage() {
   const router = useRouter();
@@ -131,7 +131,7 @@ export default function RankingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-base font-bold text-white">🏆 ランキング</h1>
+            <h1 className="text-base font-bold text-white">ランキング</h1>
           </div>
         </div>
       </header>
@@ -149,7 +149,7 @@ export default function RankingPage() {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {v === 'characters' ? '🌟 キャラランキング' : '⭐ 自分の推し度'}
+              {v === 'characters' ? 'キャラランキング' : 'マイランキング'}
             </button>
           ))}
         </div>
@@ -324,8 +324,8 @@ export default function RankingPage() {
                   </div>
                   <div className="flex gap-2 text-[11px] text-gray-500 mt-0.5">
                     <span>Lv.{entry.level}</span>
-                    <span>🪙{entry.score.toLocaleString()}</span>
-                    <span>🏆{entry.totalFans}人中</span>
+                    <span>{entry.score.toLocaleString()}コイン</span>
+                    <span>{entry.totalFans}人参加</span>
                   </div>
                 </div>
 
@@ -334,7 +334,7 @@ export default function RankingPage() {
                   {entry.myRank > 0 ? (
                     <>
                       <p className="text-purple-300 font-black text-lg leading-tight">#{entry.myRank}</p>
-                      <p className="text-[10px] text-gray-600">🪙{entry.score.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-600">{entry.score.toLocaleString()}pt</p>
                     </>
                   ) : (
                     <p className="text-gray-600 text-xs">圏外</p>

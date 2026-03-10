@@ -23,7 +23,7 @@ interface RankingData {
   totalFans: number;
 }
 
-const RANK_MEDALS = ['🥇', '🥈', '🥉'];
+const RANK_MEDALS = ['🏆', '🥈', '🥉'];
 const RANK_COLORS = [
   'from-yellow-500/20 to-amber-500/10 border-yellow-500/40',
   'from-gray-300/20 to-gray-400/10 border-gray-400/30',
@@ -50,7 +50,16 @@ export default function RankingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-pulse text-purple-400 text-lg">ランキング読み込み中...</div>
+        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 text-gray-400 p-8">
+        <p className="text-white/70 font-medium">ランキングを読み込めませんでした</p>
+        <button onClick={() => router.back()} className="text-purple-400 text-sm underline">戻る</button>
       </div>
     );
   }
@@ -64,7 +73,7 @@ export default function RankingPage() {
             ← 
           </button>
           <div>
-            <h1 className="font-bold text-sm">🏆 {charName} 推し度ランキング</h1>
+            <h1 className="font-bold text-sm">{charName} 推し度ランキング</h1>
             <p className="text-gray-500 text-xs">{data?.totalFans ?? 0}人のファン</p>
           </div>
         </div>
