@@ -41,15 +41,45 @@ export async function POST(
       return NextResponse.json({ ok: true, alreadyRead: true, chatUrl });
     }
 
-    const updated = await prisma.characterProactiveMessage.update({
-      where: { id },
-      data: {
-        isRead: true,
-        readAt: new Date(),
-      },
+    // プロアクティブメッセージをチャットメッセージとしても保存
+    await prisma.$transaction(async (tx) => {
+      await tx.characterProactiveMessage.update({
+        where: { id },
+        data: { isRead: true, readAt: new Date() },
+      });
+
+      // チャットのConversation取得/作成
+      let conversation = await tx.conversation.findFirst({
+        where: { userId: session.user!.id, characterId: message.characterId },
+      });
+      if (!conversation) {
+        conversation = await tx.conversation.create({
+          data: { userId: session.user!.id, characterId: message.characterId },
+        });
+      }
+
+      // プロアクティブメッセージをチャットメッセージとして追加（重複防止）
+      const existing = await tx.message.findFirst({
+        where: {
+          conversationId: conversation.id,
+          role: 'assistant',
+          content: message.content,
+          metadata: { path: ['proactiveMessageId'], equals: message.id },
+        },
+      });
+      if (!existing) {
+        await tx.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'assistant',
+            content: message.content,
+            metadata: { proactiveMessageId: message.id, type: 'proactive' },
+          },
+        });
+      }
     });
 
-    return NextResponse.json({ ok: true, message: updated, chatUrl });
+    return NextResponse.json({ ok: true, chatUrl });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

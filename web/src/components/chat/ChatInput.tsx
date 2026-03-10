@@ -225,12 +225,15 @@ export function ChatInput({
           <div className="flex items-center gap-2">
             <button
               onClick={() => openCoinPurchase(coinBalance)}
-              className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 transition-colors active:scale-95 ${coinBalance <= 5 ? 'bg-red-900/40 hover:bg-red-800/50' : 'bg-gray-800/80 hover:bg-gray-700/80'}`}
+              className={`flex items-center gap-0.5 text-xs rounded-full pl-1.5 pr-2.5 py-1 transition-colors active:scale-95 ${coinBalance <= 5 ? 'bg-red-900/40 hover:bg-red-800/50' : 'bg-gray-800/80 hover:bg-gray-700/80'}`}
             >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-amber-400/60">
+                <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+              </svg>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
                 <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
               </svg>
-              <span className={`font-bold ${coinBalance <= 5 ? 'text-red-300' : 'text-amber-300'}`}>{coinBalance}</span>
+              <span className={`font-bold ml-0.5 ${coinBalance <= 5 ? 'text-red-300' : 'text-amber-300'}`}>{coinBalance}</span>
             </button>
             <button
               onClick={handleToggleSound}

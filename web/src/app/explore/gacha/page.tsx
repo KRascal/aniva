@@ -381,13 +381,16 @@ export function GachaContent() {
           <h1 className="text-lg font-black text-white flex-1 tracking-tight">GACHA</h1>
           <button
             onClick={() => openCoinPurchase(coinBalance)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95"
+            className="flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full transition-all active:scale-95"
             style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
           >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-yellow-400/60">
+              <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+            </svg>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-400">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8M8 14h8" strokeLinecap="round"/>
             </svg>
-            <span className="text-yellow-300 text-sm font-bold">{coinBalance.toLocaleString()}</span>
+            <span className="text-yellow-300 text-sm font-bold ml-0.5">{coinBalance.toLocaleString()}</span>
           </button>
         </div>
 

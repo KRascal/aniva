@@ -1789,7 +1789,16 @@ export default function ExplorePage() {
 
       // 両方のfetchが完了するまでisLoadingを維持（レース条件防止）
       const charPromise = fetch('/api/characters').then(r => r.json()).then(charData => {
-        setCharacters(charData.characters || []);
+        const chars = charData.characters || [];
+        setCharacters(chars);
+        // 初回フェッチで空だった場合、1秒後にリトライ（セッション初期化遅延対策）
+        if (chars.length === 0) {
+          setTimeout(() => {
+            fetch('/api/characters').then(r => r.json()).then(d => {
+              if (d.characters?.length > 0) setCharacters(d.characters);
+            }).catch(() => {});
+          }, 1000);
+        }
       }).catch(err => console.error('Failed to fetch characters:', err));
 
       const relPromise = fetch('/api/relationship/all').then(r => r.json()).then(relData => {
@@ -1925,8 +1934,8 @@ export default function ExplorePage() {
     );
   }
 
-  // Empty state when no characters loaded
-  if (!isLoading && characters.length === 0) {
+  // Empty state when no characters loaded (show only after confirmed fetch completion)
+  if (!isLoading && characters.length === 0 && status === 'authenticated') {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center pb-24 px-4">
         <div className="text-6xl mb-4">🌊</div>

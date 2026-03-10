@@ -10,8 +10,10 @@ export function ProactiveMessagePanel() {
     return <div className="p-4 text-center text-gray-500 text-sm">読み込み中…</div>;
   }
 
-  if (messages.length === 0) {
-    return null; // メッセージなし時は非表示
+  const unreadMessages = messages.filter(m => !m.isRead);
+
+  if (unreadMessages.length === 0) {
+    return null; // 未読メッセージなし時は非表示
   }
 
   return (
@@ -29,7 +31,7 @@ export function ProactiveMessagePanel() {
       </div>
 
       <div className="flex flex-col gap-2">
-        {messages.map((msg) => (
+        {unreadMessages.map((msg) => (
           <ProactiveMessageCard
             key={msg.id}
             message={msg}

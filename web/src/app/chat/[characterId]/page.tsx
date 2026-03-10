@@ -502,15 +502,14 @@ export default function ChatCharacterPage() {
     return () => { audioRef.current?.pause(); };
   }, []);
 
-  // Safari bfcache対策 + Stripe戻り対策: ページ復元時にデータ再取得
+  // Safari bfcache対策 + Stripe戻り対策
   useEffect(() => {
+    // bfcache復元時はフルリロード
     const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        window.location.reload();
-      }
+      if (e.persisted) window.location.reload();
     };
-    const handleFocus = () => {
-      // Stripe等の外部ページから戻った時にコイン残高・FC状態を再取得
+    // Stripe等から戻った時にデータ再取得（visibilitychange + focus両方）
+    const refetchState = () => {
       fetch('/api/coins/balance').then(r => r.json()).then(d => {
         if (d.balance !== undefined) setCoinBalance(d.balance);
       }).catch(() => {});
@@ -523,11 +522,16 @@ export default function ChatCharacterPage() {
         }).catch(() => {});
       }
     };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refetchState();
+    };
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener('focus', refetchState);
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', refetchState);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [characterId]);
 
