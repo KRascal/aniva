@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 export function CoinBalanceDisplay() {
   const { data: session } = useSession();
   const [balance, setBalance] = useState<number | null>(null);
+  const { openCoinPurchase } = useCoinPurchase();
 
   useEffect(() => {
     if (!session?.user) return;
@@ -17,9 +19,14 @@ export function CoinBalanceDisplay() {
   if (balance === null) return null;
 
   return (
-    <div className="flex items-center gap-1.5 bg-gray-800/80 rounded-full px-3 py-1.5 border border-gray-700/50">
-      <span className="text-yellow-400 text-sm">🪙</span>
+    <button
+      onClick={() => openCoinPurchase(balance)}
+      className="flex items-center gap-1.5 bg-gray-800/80 rounded-full px-3 py-1.5 border border-gray-700/50 transition-colors hover:bg-gray-700/80 active:scale-95"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-400">
+        <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
+      </svg>
       <span className="text-white text-sm font-semibold">{balance.toLocaleString()}</span>
-    </div>
+    </button>
   );
 }

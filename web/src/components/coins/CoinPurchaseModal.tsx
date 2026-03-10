@@ -91,7 +91,7 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
         style={{
           background: 'linear-gradient(180deg, rgba(15,10,30,0.98), rgba(5,3,15,0.99))',
           borderTop: '1px solid rgba(255,255,255,0.08)',
-          animation: 'slideUp 0.3s ease-out',
+          animation: 'slideUp 0.3s ease-out', /* defined in globals.css */
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -203,12 +203,7 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-      `}</style>
+      {/* slideUp animation via global CSS or inline */}
     </div>
   );
 }

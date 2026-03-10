@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
 import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
 import BondCalendar from '@/components/BondCalendar';
+import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 /* ── Achievement definitions ── */
 interface AchievementDef {
@@ -89,6 +90,7 @@ const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> 
 export default function MyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { openCoinPurchase } = useCoinPurchase();
 
   const [user, setUser] = useState<UserInfo | null>(null);
   const [following, setFollowing] = useState<Character[]>([]);
@@ -302,14 +304,14 @@ export default function MyPage() {
         <h1 className="text-lg font-bold text-white">マイページ</h1>
         <div className="ml-auto flex items-center gap-2">
           <CoinBalanceDisplay />
-          <a
-            href="/coins"
-            className="flex items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors"
+          <button
+            onClick={() => openCoinPurchase()}
+            className="flex items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors active:scale-95"
             aria-label="コイン購入"
           >
             <span>＋</span>
             <span>購入</span>
-          </a>
+          </button>
           {/* テーマ切替は現在ダークモード固定のため非表示 */}
         </div>
       </header>
