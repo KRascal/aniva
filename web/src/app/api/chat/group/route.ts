@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       });
       if (!rel) {
         rel = await prisma.relationship.create({
-          data: { userId, characterId: character.id },
+          data: { userId, characterId: character.id, locale: 'ja' },
         });
       }
       relationshipMap.set(character.id, rel.id);

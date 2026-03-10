@@ -27,6 +27,12 @@ export async function POST(
       return NextResponse.json({ error: 'Character not found' }, { status: 404 });
     }
 
+    // ユーザー存在確認（JWTのIDがDB上に存在しない場合のガード）
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found. Please re-login.' }, { status: 404 });
+    }
+
     // Relationship を upsert してフォロー状態をトグル
     const existing = await prisma.relationship.findUnique({
       where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
@@ -39,6 +45,7 @@ export async function POST(
       create: {
         userId,
         characterId,
+        locale: 'ja',
         isFollowing: true,
       },
       update: {

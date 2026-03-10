@@ -30,8 +30,15 @@ export async function POST(req: NextRequest) {
     // ニックネームが設定されている場合、displayNameも同期
     const preUser = await prisma.user.findUnique({
       where: { id: effectiveUserId },
-      select: { nickname: true, displayName: true },
+      select: { nickname: true, displayName: true, onboardingCharacterId: true },
     });
+
+    if (!preUser) {
+      return NextResponse.json(
+        { success: false, error: { code: 'USER_NOT_FOUND', message: 'ユーザーが見つかりません。再ログインしてください。' } },
+        { status: 404 },
+      );
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: effectiveUserId },
@@ -40,7 +47,7 @@ export async function POST(req: NextRequest) {
         onboardingCompletedAt: new Date(),
         notificationPermission: notificationPermission ?? null,
         // nicknameが設定済みかつdisplayNameがメアド由来なら同期
-        ...(preUser?.nickname && preUser.displayName?.includes('@') || preUser?.displayName?.includes('+')
+        ...(preUser.nickname && (preUser.displayName?.includes('@') || preUser.displayName?.includes('+'))
           ? { displayName: preUser.nickname }
           : {}),
       },
