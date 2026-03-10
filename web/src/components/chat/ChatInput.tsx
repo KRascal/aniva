@@ -139,6 +139,8 @@ export function ChatInput({
 }: ChatInputProps) {
   const hasInput = inputText.length > 0;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
 
   // LINE風 展開/折りたたみ state
   const [isExpanded, setIsExpanded] = useState(false);
@@ -306,59 +308,78 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="relative flex items-end gap-1.5">
-        {/* 隠しファイル入力 */}
+      <div className="relative flex items-end gap-1">
+        {/* 隠しファイル入力: +ボタン（全ファイル） */}
         <input
           ref={fileInputRef}
           type="file"
+          accept="*/*"
+          onChange={handleImageSelect}
+          className="hidden"
+          aria-hidden="true"
+        />
+        {/* カメラ起動用 */}
+        <input
+          ref={cameraInputRef}
+          type="file"
           accept="image/*"
+          capture="environment"
+          onChange={handleImageSelect}
+          className="hidden"
+          aria-hidden="true"
+        />
+        {/* カメラフォルダ（画像+動画） */}
+        <input
+          ref={mediaInputRef}
+          type="file"
+          accept="image/*,video/*"
           onChange={handleImageSelect}
           className="hidden"
           aria-hidden="true"
         />
 
         {/* ── LINE風 左側エリア ── */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-0 flex-shrink-0">
           {isExpanded ? (
             <>
               {/* 折りたたみボタン (＜) */}
               <button
                 onClick={() => setIsExpanded(false)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
                 aria-label="メニューを閉じる"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              {/* + ボタン (noop) */}
+              {/* + ボタン → ファイル送信 */}
               <button
-                className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="追加"
-                onClick={() => {/* noop */}}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
+                aria-label="ファイルを送る"
+                onClick={() => fileInputRef.current?.click()}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
                 </svg>
               </button>
-              {/* 📷 カメラ */}
+              {/* 📷 カメラ → カメラ起動 */}
               <button
-                className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
                 aria-label="カメラ"
-                onClick={() => {/* noop - カメラ機能 */}}
+                onClick={() => cameraInputRef.current?.click()}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              {/* 🖼️ 画像送信 */}
+              {/* 🖼️ 画像/動画 → カメラフォルダ */}
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="画像を送る"
+                onClick={() => mediaInputRef.current?.click()}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
+                aria-label="画像・動画を送る"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round"/>
@@ -369,10 +390,10 @@ export function ChatInput({
             /* 展開ボタン (＞) */
             <button
               onClick={() => setIsExpanded(true)}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
               aria-label="メニューを開く"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -380,7 +401,7 @@ export function ChatInput({
         </div>
 
         {/* ── テキスト入力 + インラインアイコン ── */}
-        <div className={`flex-1 relative flex items-end bg-gray-800 rounded-3xl border transition-all ${
+        <div className={`flex-1 min-w-0 relative flex items-end bg-gray-800 rounded-2xl border transition-all ${
           hasInput || imagePreviewUrl
             ? 'border-purple-500/60 ring-1 ring-purple-500/30'
             : 'border-gray-700/60'
@@ -403,38 +424,34 @@ export function ChatInput({
             inputMode="text"
             autoCorrect="off"
             spellCheck={false}
-            className="flex-1 bg-transparent text-white placeholder-gray-500 pl-4 pr-1 py-2.5 focus:outline-none disabled:opacity-50 touch-manipulation overflow-y-auto"
+            className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm pl-3 pr-1 py-2 focus:outline-none disabled:opacity-50 touch-manipulation overflow-y-auto"
           />
-          {/* インラインアイコン: AI + スタンプ */}
-          <div className="flex items-center gap-0.5 pr-2 pb-2 flex-shrink-0">
-            {/* AI アイコン（既存機能維持 — 現在はビジュアルのみ） */}
-            <button
-              className="w-7 h-7 rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/15 transition-all touch-manipulation"
-              aria-label="AI"
-              onClick={() => {/* AI機能 — 将来拡張用 */}}
-            >
-              <span className="text-xs font-bold">AI</span>
-            </button>
-            {/* 😊 スタンプピッカー */}
+          {/* インラインアイコン: スタンプ */}
+          <div className="flex items-center pr-1.5 pb-1.5 flex-shrink-0">
             {onSendSticker && (
               <button
                 onClick={() => setShowStickerPicker(true)}
                 className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
                 aria-label="スタンプ"
               >
-                <span className="text-base leading-none">😊</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="9" y1="9" x2="9.01" y2="9" strokeLinecap="round" strokeWidth="2.5"/>
+                  <line x1="15" y1="9" x2="15.01" y2="9" strokeLinecap="round" strokeWidth="2.5"/>
+                </svg>
               </button>
             )}
           </div>
         </div>
 
         {/* ── 右側: 送信/マイク + ギフト ── */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           {(hasInput || imagePreviewUrl) ? (
             <button
               onClick={onSend}
               disabled={isSending || isGreeting}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden touch-manipulation ${
                 isSendBouncing ? 'send-bounce' : ''
               } send-glow`}
               style={{
@@ -451,7 +468,7 @@ export function ChatInput({
             <button
               onClick={toggleListening}
               disabled={isSending || isGreeting}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all touch-manipulation relative overflow-hidden ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all touch-manipulation relative overflow-hidden ${
                 isListening ? 'voice-pulse' : ''
               }`}
               style={{
@@ -472,7 +489,7 @@ export function ChatInput({
             <button
               onClick={onSend}
               disabled={true}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-all opacity-40 cursor-not-allowed touch-manipulation"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-40 cursor-not-allowed touch-manipulation"
               aria-label="送信"
             >
               <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -483,7 +500,7 @@ export function ChatInput({
           {/* 🎁 ギフトボタン */}
           <button
             onClick={onGift}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/15 transition-all touch-manipulation"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/15 transition-all touch-manipulation -ml-0.5"
             aria-label="ギフトを贈る"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
