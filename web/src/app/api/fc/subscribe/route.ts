@@ -69,6 +69,23 @@ export async function POST(req: NextRequest) {
     const fcCoins = character.fcMonthlyCoins ?? 500;
     const baseUrl = process.env.NEXTAUTH_URL ?? 'https://demo.aniva-project.com';
 
+    // デモモード: Stripe不要で即FC加入
+    const DEMO_MODE = process.env.DEMO_MODE === 'true' || !process.env.STRIPE_SECRET_KEY;
+    if (DEMO_MODE) {
+      await prisma.characterSubscription.create({
+        data: {
+          userId,
+          characterId,
+          status: 'ACTIVE',
+          tier: 'FC',
+          priceJpy,
+          startedAt: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+      return NextResponse.json({ success: true, demoMode: true });
+    }
+
     // Stripe Checkout Session作成（動的価格 price_data を使用）
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,

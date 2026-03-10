@@ -304,14 +304,7 @@ export default function MyPage() {
         <h1 className="text-lg font-bold text-white">マイページ</h1>
         <div className="ml-auto flex items-center gap-2">
           <CoinBalanceDisplay />
-          <button
-            onClick={() => openCoinPurchase()}
-            className="flex items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors active:scale-95"
-            aria-label="コイン購入"
-          >
-            <span>＋</span>
-            <span>購入</span>
-          </button>
+          {/* 購入ボタン削除 — CoinBalanceDisplayのタップでポップアップ起動 */}
           {/* テーマ切替は現在ダークモード固定のため非表示 */}
         </div>
       </header>

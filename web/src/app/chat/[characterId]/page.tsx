@@ -1843,8 +1843,16 @@ export default function ChatCharacterPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ characterId }),
               });
-              const data = await res.json() as { checkoutUrl?: string; error?: string };
-              if (data.checkoutUrl) {
+              const data = await res.json() as { checkoutUrl?: string; error?: string; success?: boolean; demoMode?: boolean };
+              if (data.success && data.demoMode) {
+                // デモモード: 即FC加入完了
+                setShowFcModal(false);
+                setShowFcSuccess(true);
+                // relationship再取得
+                fetch(`/api/relationship/${characterId}`).then(r => r.json()).then(d => {
+                  if (d.relationship) { setRelationship(d.relationship); if (d.relationship.id) setRelationshipId(d.relationship.id); }
+                }).catch(() => {});
+              } else if (data.checkoutUrl) {
                 window.location.href = data.checkoutUrl;
               } else if (data.error === 'Already subscribed') {
                 setShowFcModal(false);

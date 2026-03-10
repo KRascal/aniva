@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 interface Character {
   id: string;
@@ -111,6 +111,10 @@ export function ChatHeader({
       })
       .catch((err) => console.warn('[ChatHeader] daily-state fetch failed:', err));
   }, [characterId, character?.slug]);
+
+  // 関係値バー/気分の折りたたみ
+  const [collapsed, setCollapsed] = useState(false);
+  const toggleCollapse = useCallback(() => setCollapsed(prev => !prev), []);
 
   // XP percentage (relationshipがあれば常に表示、xp=0でも0%として表示)
   const xpPct =
@@ -230,55 +234,71 @@ export function ChatHeader({
           </button>
         </div>
 
-        {/* ── 2行目: 関係値ゲージ ── */}
-        {relationship && (
-          <div className="flex items-center gap-2 mt-1 pl-[60px] pr-1">
-            {/* Lvバッジ */}
-            <span
-              className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md tracking-wide"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                color: 'white',
-              }}
-            >
-              Lv.{relationship.level}
-            </span>
-            {/* 関係値バー */}
-            <div className="flex-1 relative">
-              <div className="h-[6px] rounded-full bg-white/8 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{
-                    width: `${xpPct ?? 0}%`,
-                    background: 'linear-gradient(90deg, #8b5cf6, #d946ef, #ec4899)',
-                    boxShadow: (xpPct ?? 0) > 0 ? '0 0 8px rgba(168,85,247,0.6)' : 'none',
-                  }}
-                />
+        {/* 折りたたみ可能: 関係値ゲージ + 気分 */}
+        <div
+          className="overflow-hidden transition-all duration-300 ease-out"
+          style={{ maxHeight: collapsed ? 0 : 60, opacity: collapsed ? 0 : 1 }}
+        >
+          {/* ── 2行目: 関係値ゲージ ── */}
+          {relationship && (
+            <div className="flex items-center gap-2 mt-1 pl-[60px] pr-1">
+              <span
+                className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md tracking-wide"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}
+              >
+                Lv.{relationship.level}
+              </span>
+              <div className="flex-1 relative">
+                <div className="h-[6px] rounded-full bg-white/8 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 ease-out"
+                    style={{
+                      width: `${xpPct ?? 0}%`,
+                      background: 'linear-gradient(90deg, #8b5cf6, #d946ef, #ec4899)',
+                      boxShadow: (xpPct ?? 0) > 0 ? '0 0 8px rgba(168,85,247,0.6)' : 'none',
+                    }}
+                  />
+                </div>
               </div>
+              <span className="text-[10px] text-purple-300/70 flex-shrink-0 font-medium whitespace-nowrap">
+                {relationship.levelName ?? '知り合い'}
+              </span>
             </div>
-            {/* 関係名 + xp */}
-            <span className="text-[10px] text-purple-300/70 flex-shrink-0 font-medium whitespace-nowrap">
-              {relationship.levelName ?? '知り合い'}
-            </span>
-          </div>
-        )}
+          )}
 
-        {/* ── 3行目: 気分 + ステータス ── */}
-        {(moodEmoji || statusText) && (
-          <div className="flex items-center gap-1 mt-0.5 pl-[60px]">
-            {moodEmoji && (
-              <>
-                <span className="text-xs leading-none">{moodEmoji}</span>
-                <span className="text-xs text-white/40 leading-none">{moodLabel}</span>
-              </>
-            )}
-            {moodEmoji && statusText && (
-              <span className="text-xs text-white/25 leading-none mx-0.5">·</span>
-            )}
-            {statusText && (
-              <span className="text-xs text-white/40 leading-none">{statusText}</span>
-            )}
-          </div>
+          {/* ── 3行目: 気分 + ステータス ── */}
+          {(moodEmoji || statusText) && (
+            <div className="flex items-center gap-1 mt-0.5 pl-[60px]">
+              {moodEmoji && (
+                <>
+                  <span className="text-xs leading-none">{moodEmoji}</span>
+                  <span className="text-xs text-white/40 leading-none">{moodLabel}</span>
+                </>
+              )}
+              {moodEmoji && statusText && (
+                <span className="text-xs text-white/25 leading-none mx-0.5">·</span>
+              )}
+              {statusText && (
+                <span className="text-xs text-white/40 leading-none">{statusText}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 折りたたみトグル */}
+        {relationship && (
+          <button
+            onClick={toggleCollapse}
+            className="flex items-center justify-center w-full py-0.5 -mb-1"
+            aria-label={collapsed ? 'ステータスを展開' : 'ステータスを折りたたむ'}
+          >
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className={`text-white/20 transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}
+            >
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         )}
       </header>
     </div>
