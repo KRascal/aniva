@@ -1,22 +1,15 @@
 /**
- * POST /api/admin/users/:userId/grant
+ * POST /api/admin/users/:id/grant
  * 管理画面からコイン付与 or FC加入を付与
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { CoinTxType } from '@prisma/client';
 
-// 管理者チェック（簡易版: admin roleのユーザーのみ）
-async function isAdmin(userId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  return user?.role === 'ADMIN';
-}
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const adminId = await getVerifiedUserId();
-  if (!adminId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!await isAdmin(adminId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id: userId } = await params;
   const body = await req.json() as { type: 'coins' | 'fc'; amount?: number; characterId?: string };
@@ -36,8 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             type: CoinTxType.BONUS,
             amount,
             balanceAfter: bal.balance,
-            description: `管理者付与 (by admin)`,
-            metadata: { adminId, grantedAt: new Date().toISOString() },
+            description: `管理者付与 (by ${admin.email})`,
+            metadata: { adminId: admin.id, grantedAt: new Date().toISOString() },
           },
         });
         return bal.balance;
@@ -48,7 +41,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body.type === 'fc') {
       if (!body.characterId) return NextResponse.json({ error: 'characterId required' }, { status: 400 });
 
-      // 既存チェック
       const existing = await prisma.characterSubscription.findFirst({
         where: { userId, characterId: body.characterId, status: 'ACTIVE' },
       });
@@ -62,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           tier: 'FC',
           priceJpy: 0,
           startedAt: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1年
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         },
       });
       return NextResponse.json({ success: true });

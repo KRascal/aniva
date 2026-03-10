@@ -7,6 +7,10 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { track, EVENTS } from '@/lib/analytics';
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
+// チャット中（個別チャット・グループチャット内）はBottomNavを非表示
+// /chat は表示、/chat/group は表示、/chat/group/[id] は非表示、/chat/[slug] は非表示
+const CHAT_VISIBLE_EXACT = ['/chat', '/chat/group'];
+const HIDDEN_PREFIXES = ['/chat/'];
 
 const navItems = [
   {
@@ -149,6 +153,7 @@ export function BottomNav() {
   }, [pathname]);
 
   if (HIDDEN_PATHS.includes(pathname)) return null;
+  if (HIDDEN_PREFIXES.some(prefix => pathname.startsWith(prefix)) && !CHAT_VISIBLE_EXACT.includes(pathname)) return null;
   if (pathname.startsWith('/c/')) return null;
 
   const isHome = pathname === '/explore' || pathname === '/explore/';

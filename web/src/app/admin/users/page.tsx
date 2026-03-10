@@ -191,22 +191,6 @@ export default function UsersPage() {
             </button>
           )}
         </div>
-        {/* Plan filter buttons */}
-        <div className="flex gap-1.5">
-          {PLAN_FILTER_OPTIONS.map((p) => (
-            <button
-              key={p || 'ALL'}
-              onClick={() => handlePlanFilter(p)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                planFilter === p
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-              }`}
-            >
-              {p || 'ALL'}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Users table */}
@@ -216,7 +200,7 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b border-gray-800 bg-gray-950/40">
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">ユーザー</th>
-                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">プラン</th>
+
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">登録日</th>
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">最終ログイン</th>
                 <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">関係数</th>
@@ -260,11 +244,7 @@ export default function UsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${planBadge(u.plan)}`}>
-                        {u.plan}
-                      </span>
-                    </td>
+
                     <td className="px-4 py-3 text-gray-400 text-sm">{formatDate(u.createdAt)}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{formatDate(u.lastLogin)}</td>
                     <td className="px-4 py-3 text-right text-gray-300 text-sm">{u.relationshipCount}</td>
@@ -351,11 +331,7 @@ export default function UsersPage() {
 
                 <div className="p-5 space-y-5">
                   {/* KPI grid */}
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-gray-700/50">
-                      <div className="text-gray-400 text-xs mb-1">プラン</div>
-                      <div className={`font-bold text-sm ${planColor(selectedUser.plan)}`}>{selectedUser.plan}</div>
-                    </div>
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-gray-700/50">
                       <div className="text-gray-400 text-xs mb-1">メッセージ</div>
                       <div className="text-white font-bold">{selectedUser.totalMessages.toLocaleString()}</div>
@@ -391,26 +367,7 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Plan change */}
-                  <div>
-                    <label className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-2 block">プラン変更</label>
-                    <div className="flex gap-2">
-                      {PLANS.map((p) => (
-                        <button
-                          key={p}
-                          disabled={selectedUser.plan === p || planChanging === selectedUser.id}
-                          onClick={() => changePlan(selectedUser.id, p)}
-                          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                            selectedUser.plan === p
-                              ? 'bg-purple-600 border-purple-500 text-white'
-                              : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white'
-                          } disabled:opacity-50`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+
 
                   {/* Recent activity (character relationships) */}
                   {selectedUser.recentActivity.length > 0 && (
