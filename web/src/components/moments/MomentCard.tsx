@@ -282,7 +282,9 @@ function CommentAvatar({ comment }: { comment: MomentComment }) {
 
   if (comment.characterId && comment.character) {
     return comment.character.avatarUrl ? (
-      <Image src={comment.character.avatarUrl} alt={charName ?? ''} width={32} height={32} className="rounded-full object-cover flex-shrink-0" unoptimized />
+      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+        <Image src={comment.character.avatarUrl} alt={charName ?? ''} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+      </div>
     ) : (
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
         {charName?.charAt(0) ?? '?'}
@@ -290,7 +292,11 @@ function CommentAvatar({ comment }: { comment: MomentComment }) {
     );
   }
   if (comment.user?.id && userAvatar) {
-    return <Image src={userAvatar} alt={displayLabel ?? ''} width={32} height={32} className="rounded-full object-cover flex-shrink-0" unoptimized />;
+    return (
+      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+        <Image src={userAvatar} alt={displayLabel ?? ''} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+      </div>
+    );
   }
   return (
     <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white/60 text-xs font-bold flex-shrink-0">

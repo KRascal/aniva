@@ -1787,11 +1787,12 @@ export default function ExplorePage() {
         .then(data => setExploreActivePollCount((data?.polls ?? []).length))
         .catch(() => {});
 
-      fetch('/api/characters').then(r => r.json()).then(charData => {
+      // 両方のfetchが完了するまでisLoadingを維持（レース条件防止）
+      const charPromise = fetch('/api/characters').then(r => r.json()).then(charData => {
         setCharacters(charData.characters || []);
       }).catch(err => console.error('Failed to fetch characters:', err));
 
-      fetch('/api/relationship/all').then(r => r.json()).then(relData => {
+      const relPromise = fetch('/api/relationship/all').then(r => r.json()).then(relData => {
         if (relData.relationships) {
           const map = new Map<string, RelationshipInfo>();
           for (const rel of relData.relationships as RelationshipInfo[]) {
@@ -1799,8 +1800,9 @@ export default function ExplorePage() {
           }
           setRelationships(map);
         }
-      }).catch(err => console.error('Failed to fetch relationships:', err))
-        .finally(() => setIsLoading(false));
+      }).catch(err => console.error('Failed to fetch relationships:', err));
+
+      Promise.all([charPromise, relPromise]).finally(() => setIsLoading(false));
     }
   }, [status]);
 
@@ -2407,8 +2409,10 @@ export default function ExplorePage() {
                           onClick={() => router.push(`/chat/${c.slug}`)}
                         >
                           {c.avatarUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={c.avatarUrl} alt={c.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-yellow-400/40" />
+                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-yellow-400/40">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                            </div>
                           ) : (
                             <span className="text-2xl flex-shrink-0">🎂</span>
                           )}

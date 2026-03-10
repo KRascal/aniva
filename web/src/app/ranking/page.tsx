@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-type PeriodType = 'weekly' | 'monthly' | 'alltime';
+type PeriodType = 'daily' | 'weekly' | 'monthly' | 'alltime';
 type ViewType = 'characters' | 'mine';
 
 interface CharacterRankEntry {
@@ -33,6 +33,7 @@ interface MyRankEntry {
 }
 
 const PERIOD_LABELS: Record<PeriodType, string> = {
+  daily: '日間',
   weekly: '週間',
   monthly: '月間',
   alltime: '累計',
@@ -52,7 +53,7 @@ export default function RankingPage() {
   useEffect(() => {
     if (view !== 'characters') return;
     setLoading(true);
-    const periodParam = period === 'alltime' ? 'monthly' : period;
+    const periodParam = period === 'alltime' ? 'monthly' : period === 'daily' ? 'daily' : period;
     Promise.all([
       fetch(`/api/ranking/characters?type=messages&period=${periodParam}`).then(r => r.json()),
       fetch('/api/relationship/following').then(r => r.ok ? r.json() : { following: [] }),
@@ -157,7 +158,7 @@ export default function RankingPage() {
       {view === 'characters' && (
         <div className="max-w-lg mx-auto px-4 pb-3">
           <div className="flex gap-1.5">
-            {(['weekly', 'monthly', 'alltime'] as PeriodType[]).map(p => (
+            {(['daily', 'weekly', 'monthly', 'alltime'] as PeriodType[]).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}

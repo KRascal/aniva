@@ -2106,6 +2106,7 @@ export default function ChatCharacterPage() {
         showPlusMenu={showPlusMenu}
         setShowPlusMenu={setShowPlusMenu}
         onGift={() => setShowGift(true)}
+        onFcClick={() => setShowFcModal(true)}
         handleKeyDown={handleKeyDown}
         lastCharacterMessage={
           [...messages].reverse().find((m: Message) => m.role === 'CHARACTER')?.content ?? undefined

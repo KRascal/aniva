@@ -109,6 +109,25 @@ export async function GET(
     const fcCount = user.relationships.filter(r => r.isFanclub).length;
     const maxLevel = Math.max(0, ...user.relationships.map(r => r.level));
 
+    // ===== キャラ別ランキング順位を取得（oshiRankingより先に構築）=====
+    const charRankings: Record<string, { rank: number; totalInRanking: number }> = {};
+    for (const rel of user.relationships.slice(0, 5)) {
+      const higherCount = await prisma.relationship.count({
+        where: {
+          characterId: rel.characterId,
+          isFollowing: true,
+          OR: [
+            { level: { gt: rel.level } },
+            { level: rel.level, experiencePoints: { gt: rel.experiencePoints ?? 0 } },
+          ],
+        },
+      });
+      const totalInRanking = await prisma.relationship.count({
+        where: { characterId: rel.characterId, isFollowing: true },
+      });
+      charRankings[rel.characterId] = { rank: higherCount + 1, totalInRanking };
+    }
+
     // 推し度ランキング（レベル×XP順）
     const oshiRanking = user.relationships
       .sort((a, b) => b.level - a.level || (b.experiencePoints ?? 0) - (a.experiencePoints ?? 0))
@@ -131,25 +150,6 @@ export async function GET(
 
     // 参加日からの日数
     const daysSinceJoin = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-
-    // ===== キャラ別ランキング順位を取得 =====
-    const charRankings: Record<string, { rank: number; totalInRanking: number }> = {};
-    for (const rel of user.relationships.slice(0, 5)) {
-      const higherCount = await prisma.relationship.count({
-        where: {
-          characterId: rel.characterId,
-          isFollowing: true,
-          OR: [
-            { level: { gt: rel.level } },
-            { level: rel.level, experiencePoints: { gt: rel.experiencePoints ?? 0 } },
-          ],
-        },
-      });
-      const totalInRanking = await prisma.relationship.count({
-        where: { characterId: rel.characterId, isFollowing: true },
-      });
-      charRankings[rel.characterId] = { rank: higherCount + 1, totalInRanking };
-    }
 
     // ===== 称号/バッジ =====
     const badges: Array<{ id: string; name: string; icon: string; description: string; rarity: string }> = [];

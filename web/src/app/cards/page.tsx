@@ -1017,8 +1017,8 @@ export default function CardsPage() {
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     // 水平スワイプ150px以上 & 垂直移動より水平移動が大きい場合のみタブ切替
     if (Math.abs(dx) > 150 && Math.abs(dx) > Math.abs(dy) * 2) {
-      if (dx < 0 && activeTab === 'collection') setActiveTab('gacha');
-      else if (dx > 0 && activeTab === 'gacha') setActiveTab('collection');
+      // スワイプ左でガチャへ遷移
+      if (dx < 0 && activeTab === 'collection') router.push('/explore/gacha');
     }
   };
 
@@ -1063,12 +1063,10 @@ export default function CardsPage() {
               コレクション
             </button>
             <button
-              onClick={() => setActiveTab('gacha')}
-              className={`relative z-10 flex-1 py-2 text-sm font-bold text-center rounded-lg transition-colors ${
-                activeTab === 'gacha' ? 'text-white' : 'text-gray-400'
-              }`}
+              onClick={() => router.push('/explore/gacha')}
+              className="relative z-10 flex-1 py-2 text-sm font-bold text-center rounded-lg transition-colors text-gray-400 hover:text-white"
             >
-              ガチャ
+              ガチャ →
             </button>
           </div>
         </div>
@@ -1080,16 +1078,8 @@ export default function CardsPage() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{ transform: activeTab === 'collection' ? 'translateX(0)' : 'translateX(-50%)', width: '200%' }}
-        >
-          <div className="w-1/2 min-h-[60vh]">
-            <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
-          </div>
-          <div className="w-1/2 min-h-[60vh]">
-            {activeTab === 'gacha' ? <TabErrorBoundary key="gacha"><GachaTab /></TabErrorBoundary> : <div />}
-          </div>
+        <div className="w-full min-h-[60vh]">
+          <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
         </div>
       </div>
     </div>

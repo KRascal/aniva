@@ -71,10 +71,10 @@ export async function GET(req: NextRequest) {
           : followingCharacterIds !== null
           ? { characterId: { in: followingCharacterIds } }
           : {}),
-        publishedAt: {
-          not: null,
-          lte: now,
-        },
+        OR: [
+          { publishedAt: { lte: now } },
+          { publishedAt: null }, // publishedAt未設定の投稿も表示する
+        ],
       },
       include: {
         character: { select: { id: true, name: true, avatarUrl: true } },
@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,
         isFcOnly: moment.isFcOnly,
-        publishedAt: moment.publishedAt!.toISOString(),
+        publishedAt: moment.publishedAt?.toISOString() ?? new Date().toISOString(),
         reactionCount,
         userHasLiked,
         isLocked,

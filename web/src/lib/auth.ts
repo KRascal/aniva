@@ -160,13 +160,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token.userId) {
           let dbUser = await prisma.user.findUnique({
             where: { id: token.userId as string },
-            select: { id: true, onboardingStep: true, nickname: true },
+            select: { id: true, onboardingStep: true, nickname: true, avatarUrl: true },
           });
           // JWT IDでユーザーが見つからない場合、emailで検索（JWT/DB ID不一致対策）
           if (!dbUser && token.email) {
             dbUser = await prisma.user.findUnique({
               where: { email: token.email as string },
-              select: { id: true, onboardingStep: true, nickname: true },
+              select: { id: true, onboardingStep: true, nickname: true, avatarUrl: true },
             });
             if (dbUser) {
               token.userId = dbUser.id; // JWTのIDを修正
@@ -190,6 +190,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           token.onboardingStep = dbUser?.onboardingStep ?? null;
           token.nickname = dbUser?.nickname ?? null;
+          if (dbUser?.avatarUrl) {
+            token.avatarUrl = dbUser.avatarUrl;
+          }
         }
       }
       return token;
@@ -201,6 +204,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         session.user.onboardingStep = token.onboardingStep ?? null;
         session.user.nickname = token.nickname ?? null;
+        // DBに保存されたavatarUrlをsessionに反映（Googleのプロフィール画像を上書きしない）
+        if (token.userId && token.avatarUrl) {
+          session.user.image = token.avatarUrl as string;
+        }
       }
       return session;
     },

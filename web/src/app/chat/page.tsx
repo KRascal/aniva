@@ -698,26 +698,26 @@ export default function ChatPage() {
 
       <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
         {/* ══ 新着チャット通知バナー ══ */}
-        {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).length > 0 && (
+        {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
           <div className="mb-4 space-y-2">
-            {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).slice(0, 3).map(msg => (
+            {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).slice(0, 3).map(msg => (
               <div
                 key={msg.id}
                 className="bg-gradient-to-r from-purple-900/80 to-pink-900/60 border border-purple-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all animate-in fade-in slide-in-from-top-2 duration-300"
                 onClick={() => {
                   setDismissedProactive(prev => new Set([...prev, msg.id]));
-                  router.push(`/chat/${msg.character.slug}`);
+                  router.push(`/chat/${msg.character?.slug || msg.character?.id}`);
                 }}
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-400/50">
-                  {msg.character.avatarUrl ? (
+                  {msg.character?.avatarUrl ? (
                     <img src={msg.character.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{msg.character.name[0]}</div>
+                    <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{msg.character?.name?.[0] || '?'}</div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-bold">{msg.character.name}</p>
+                  <p className="text-white text-sm font-bold">{msg.character?.name || 'キャラクター'}</p>
                   <p className="text-white/60 text-xs truncate">{msg.message}</p>
                 </div>
                 <div className="flex-shrink-0">
@@ -760,14 +760,14 @@ export default function ChatPage() {
         ))}
 
         {/* ══ キャラ主導メッセージ（Proactive Messages）バナー ══ */}
-        {proactiveMessages.filter(m => !dismissedProactive.has(m.id)).map(msg => {
+        {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).map(msg => {
           const diffMs = Date.now() - new Date(msg.createdAt).getTime();
           const diffH = Math.floor(diffMs / 3600000);
           const handleClick = async () => {
             // 既読にする
             fetch(`/api/proactive-messages/${msg.id}/read`, { method: 'POST' }).catch(() => {});
             setDismissedProactive(prev => new Set([...prev, msg.id]));
-            router.push(`/chat/${msg.character.id}`);
+            router.push(`/chat/${msg.character?.id}`);
           };
           return (
             <div
@@ -777,17 +777,17 @@ export default function ChatPage() {
             >
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-indigo-400/50">
-                  {msg.character.avatarUrl ? (
+                  {msg.character?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-full h-full object-cover" />
+                    <img src={msg.character.avatarUrl} alt={msg.character?.name || ''} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character.name.charAt(0)}</div>
+                    <div className="w-full h-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character?.name?.charAt(0) || '?'}</div>
                   )}
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 text-xs">✨</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-indigo-300 font-bold mb-0.5">{msg.character.name} が呼んでいる <span className="text-gray-500 font-normal">({diffH > 0 ? `${diffH}時間前` : 'たった今'})</span></p>
+                <p className="text-xs text-indigo-300 font-bold mb-0.5">{msg.character?.name || 'キャラクター'} が呼んでいる <span className="text-gray-500 font-normal">({diffH > 0 ? `${diffH}時間前` : 'たった今'})</span></p>
                 <p className="text-sm text-white/90 italic truncate">「{msg.message}」</p>
               </div>
               <div className="flex flex-col gap-1 flex-shrink-0 items-end">
@@ -912,7 +912,7 @@ export default function ChatPage() {
                 const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
                 const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
                 // キャラごとの未読proactiveメッセージ数
-                const charProactiveCount = proactiveMessages.filter(m => m.character.id === character.id && !dismissedProactive.has(m.id)).length;
+                const charProactiveCount = proactiveMessages.filter(m => m.character?.id === character.id && !dismissedProactive.has(m.id)).length;
                 const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
                 return (
                   <ChatRow
