@@ -5,7 +5,7 @@ import { Providers } from "@/components/providers";
 import { PushSetup } from "@/components/PushSetup";
 import { BottomNav } from "@/components/BottomNav";
 import { LoginBonusPopup } from "@/components/LoginBonusPopup";
-import { GlobalProactiveBanner } from "@/components/GlobalProactiveBanner";
+// GlobalProactiveBanner 廃止（Keisuke指示 3/10 — 定期的に上に出るメッセージが邪魔）
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { BuildIdChecker } from "@/components/BuildIdChecker";
 import { NextIntlClientProvider } from 'next-intl';
@@ -112,7 +112,7 @@ if('serviceWorker' in navigator){
               <BuildIdChecker />
               <PushSetup />
               <LoginBonusPopup />
-              <GlobalProactiveBanner />
+              {/* GlobalProactiveBanner 廃止 */}
               {children}
               <BottomNav />
             </PostHogProvider>
