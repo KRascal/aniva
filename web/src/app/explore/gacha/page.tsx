@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
 import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';

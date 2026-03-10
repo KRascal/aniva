@@ -227,7 +227,12 @@ function SwipeableChatRow({
 
   const handleTouchEnd = useCallback(() => {
     if (!isSwiping) {
-      // タップ → チャットへ遷移
+      // 縦スクロール中 → タップとして扱わない
+      if (directionLocked.current === 'vertical') {
+        directionLocked.current = null;
+        return;
+      }
+      // タップ → チャットへ遷移（方向ロック未確定 = 移動が少なかった = 純粋なタップ）
       if (swipeState !== 'idle') {
         setSwipeState('idle');
         setTranslateX(0);
