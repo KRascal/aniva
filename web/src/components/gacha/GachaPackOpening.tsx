@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { playSound, vibrateGacha } from '@/lib/sound-effects';
 import type { GachaRarity } from './GachaFlipCard';
 
@@ -113,21 +112,8 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   const currentColors = currentCard ? (RARITY_COLORS[currentCard.rarity] ?? RARITY_COLORS.N) : RARITY_COLORS.N;
   const currentImg = currentCard?.card.cardImageUrl ?? currentCard?.card.imageUrl ?? currentCard?.card.illustrationUrl ?? currentCard?.card.character?.avatarUrl;
 
-  const overlayContent = (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100vw',
-      height: '100vh',
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.95)',
-    }}>
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.95)' }}>
       <style>{`
         @keyframes packFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -186,7 +172,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
       {/* スキップボタン */}
       <button
         onClick={onSkip}
-        className="absolute top-6 right-6 z-60 text-white/40 hover:text-white/80 text-sm font-medium px-3 py-1.5 rounded-full transition-colors"
+        className="absolute top-6 right-6 z-[70] text-white/40 hover:text-white/80 text-sm font-medium px-3 py-1.5 rounded-full transition-colors"
         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
       >
         SKIP →
@@ -194,7 +180,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
 
       {/* 残りカード表示 */}
       {phase === 'card-reveal' && cards.length > 1 && (
-        <div className="absolute top-6 left-6 z-60 text-white/50 text-sm font-bold"
+        <div className="absolute top-6 left-6 z-[70] text-white/50 text-sm font-bold"
           style={{ animation: 'fadeIn 0.3s ease' }}
         >
           {revealIndex + 1} / {cards.length}
@@ -322,15 +308,19 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
       {/* ===== Phase: card-reveal (1枚ずつ開封) ===== */}
       {phase === 'card-reveal' && currentCard && (
         <div
-          className="flex flex-col items-center cursor-pointer select-none"
+          className="flex flex-col items-center justify-center cursor-pointer select-none"
           onClick={nextCard}
-          style={{ animation: showCard ? 'cardSlideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none' }}
+          style={{
+            animation: showCard ? 'cardSlideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
+            maxHeight: '80vh',
+          }}
         >
           {/* カード本体 */}
           <div
-            className="relative w-64 max-w-[75vw] rounded-2xl overflow-hidden"
+            className="relative w-64 max-w-[70vw] rounded-2xl overflow-hidden"
             style={{
               aspectRatio: '3/4',
+              maxHeight: '65vh',
               border: `2px solid ${currentColors.text}`,
               boxShadow: `0 0 30px ${currentColors.glow}, 0 0 60px ${currentColors.glow}`,
               animation: getRarityTier(currentCard.rarity) >= 3 ? 'cardGlow 2s ease-in-out infinite' : 'none',
@@ -399,7 +389,4 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
       )}
     </div>
   );
-
-  if (typeof document === 'undefined') return null;
-  return createPortal(overlayContent, document.body);
 }
