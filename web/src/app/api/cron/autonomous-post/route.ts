@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateText } from '@/lib/llm';
 import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
 
 /**
@@ -93,10 +94,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 全アクティブキャラ取得
+    // 全アクティブキャラ取得（systemPromptも含む — AI生成投稿用）
     const characters = await prisma.character.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, systemPrompt: true },
     });
 
     if (characters.length === 0) {
@@ -137,17 +138,41 @@ export async function GET(req: NextRequest) {
       });
       if (todayPosts >= 3) continue;
 
-      // 投稿内容を決定
+      // AI生成で投稿内容を決定（キャラの人格を完全反映）
       let content: string;
 
-      // 30%の確率で天気連動、70%で時間帯テンプレート
-      if (weatherCategory && Math.random() < 0.3) {
-        const templates = WEATHER_TEMPLATES[weatherCategory] ?? [];
-        content = templates[Math.floor(Math.random() * templates.length)] ?? '';
-        if (weather) {
-          content += ` ${weather.emoji} ${weather.temperature}°C`;
+      try {
+        // 直近5件の投稿を取得（重複回避）
+        const recentPosts = await prisma.moment.findMany({
+          where: { characterId: character.id, type: 'TEXT', content: { not: null } },
+          orderBy: { publishedAt: 'desc' },
+          take: 5,
+          select: { content: true },
+        });
+        const recentTexts = recentPosts.map((m, i) => `${i + 1}. ${m.content}`).join('\n');
+
+        // 天気情報を文脈として追加
+        const weatherCtx = weatherCategory && weather
+          ? `現在の天気: ${weather.description} ${weather.temperature}°C ${weather.emoji}`
+          : '';
+
+        const systemPromptCore = (character.systemPrompt || character.name).split(/\n##/)[0].trim();
+        const systemMessage = `${systemPromptCore}\n\n重要: SNSに投稿する短いテキストのみを出力せよ。説明や前置き・後書きは一切不要。`;
+        const userMessage = `あなたは${character.name}として、今この瞬間にSNSに投稿する自然な短いひとこと（1〜3文）を書いてください。
+時間帯: ${timeOfDay === 'morning' ? '朝' : timeOfDay === 'afternoon' ? '昼' : timeOfDay === 'evening' ? '夕方' : '夜'}
+${weatherCtx ? weatherCtx + '\n' : ''}過去の投稿（被らないように）:
+${recentTexts || '（なし）'}
+
+キャラの口調・世界観を守り、自然でリアルな投稿テキストのみ返答してください。`;
+
+        content = await generateText(systemMessage, userMessage, { maxTokens: 200, temperature: 0.9 });
+        // フォールバック: AI失敗時はテンプレート
+        if (!content) {
+          const templates = TIME_TEMPLATES[timeOfDay] ?? TIME_TEMPLATES.afternoon;
+          content = templates[Math.floor(Math.random() * templates.length)] ?? '';
         }
-      } else {
+      } catch {
+        // AI生成エラー時はテンプレートにフォールバック
         const templates = TIME_TEMPLATES[timeOfDay] ?? TIME_TEMPLATES.afternoon;
         content = templates[Math.floor(Math.random() * templates.length)] ?? '';
       }
