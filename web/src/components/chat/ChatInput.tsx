@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
 import { StickerPicker } from './StickerPicker';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 interface Character {
   id: string;
@@ -140,6 +141,7 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 🎤 音声入力
+  const { openCoinPurchase } = useCoinPurchase();
   const { isListening, isSupported: isVoiceSupported, interimText, toggleListening } = useVoiceInput({
     language: 'ja-JP',
     onResult: (text) => {
@@ -208,26 +210,28 @@ export function ChatInput({
         <div className="flex flex-col gap-1.5 mb-2 px-1">
           {/* コイン残高が少ない時の煽り */}
           {coinBalance <= 5 && coinBalance > 0 && (
-            <a href="/coins" className="flex items-center gap-2 bg-red-900/40 border border-red-500/30 rounded-xl px-3 py-2 text-xs">
-              <span className="text-base">⚠️</span>
+            <button onClick={() => openCoinPurchase(coinBalance)} className="flex items-center gap-2 bg-red-900/40 border border-red-500/30 rounded-xl px-3 py-2 text-xs w-full text-left active:scale-[0.98]">
               <span className="text-red-300 font-medium">残り{coinBalance}コイン…{character?.name ?? '推し'}との会話が途切れちゃう</span>
               <span className="text-red-400 ml-auto">→ 補充</span>
-            </a>
+            </button>
           )}
           {coinBalance === 0 && (
-            <a href="/coins" className="flex items-center gap-2 bg-red-900/60 border border-red-500/40 rounded-xl px-3 py-2.5 text-xs animate-pulse">
-              <span className="text-base">💔</span>
+            <button onClick={() => openCoinPurchase(0)} className="flex items-center gap-2 bg-red-900/60 border border-red-500/40 rounded-xl px-3 py-2.5 text-xs animate-pulse w-full text-left active:scale-[0.98]">
               <span className="text-red-200 font-bold">{character?.name ?? '推し'}が待ってるのに…コインがない</span>
               <span className="text-red-300 ml-auto font-bold">→ 今すぐ補充</span>
-            </a>
+            </button>
           )}
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <a href="/coins" className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 transition-colors ${coinBalance <= 5 ? 'bg-red-900/40 hover:bg-red-800/50' : 'bg-gray-800/80 hover:bg-gray-700/80'}`}>
-              <span className="text-amber-400 text-sm">🪙</span>
+            <button
+              onClick={() => openCoinPurchase(coinBalance)}
+              className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 transition-colors active:scale-95 ${coinBalance <= 5 ? 'bg-red-900/40 hover:bg-red-800/50' : 'bg-gray-800/80 hover:bg-gray-700/80'}`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+                <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
+              </svg>
               <span className={`font-bold ${coinBalance <= 5 ? 'text-red-300' : 'text-amber-300'}`}>{coinBalance}</span>
-              <span className="text-gray-400">コイン</span>
-            </a>
+            </button>
             <button
               onClick={handleToggleSound}
               title={soundMuted ? 'サウンドON' : 'サウンドOFF'}

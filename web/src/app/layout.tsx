@@ -8,6 +8,7 @@ import { LoginBonusPopup } from "@/components/LoginBonusPopup";
 // GlobalProactiveBanner 廃止（Keisuke指示 3/10 — 定期的に上に出るメッセージが邪魔）
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { BuildIdChecker } from "@/components/BuildIdChecker";
+import { CoinPurchaseProvider } from "@/components/coins/CoinPurchaseContext";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -109,12 +110,14 @@ if('serviceWorker' in navigator){
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <PostHogProvider>
-              <BuildIdChecker />
-              <PushSetup />
-              <LoginBonusPopup />
-              {/* GlobalProactiveBanner 廃止 */}
-              {children}
-              <BottomNav />
+              <CoinPurchaseProvider>
+                <BuildIdChecker />
+                <PushSetup />
+                <LoginBonusPopup />
+                {/* GlobalProactiveBanner 廃止 */}
+                {children}
+                <BottomNav />
+              </CoinPurchaseProvider>
             </PostHogProvider>
           </Providers>
         </NextIntlClientProvider>

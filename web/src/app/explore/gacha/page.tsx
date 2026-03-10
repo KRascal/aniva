@@ -7,7 +7,7 @@ import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
 import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';
 import { playSound } from '@/lib/sound-effects';
-import { CoinPurchaseModal } from '@/components/coins/CoinPurchaseModal';
+import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface GachaBanner {
@@ -214,7 +214,7 @@ export function GachaContent() {
   const [showParticles, setShowParticles] = useState(false);
   // コレクション関連state廃止（/cardsに統一）
   const [showPackOpening, setShowPackOpening] = useState(false);
-  const [showCoinPurchase, setShowCoinPurchase] = useState(false);
+  const { openCoinPurchase } = useCoinPurchase();
 
   // Load banners
   useEffect(() => {
@@ -380,7 +380,7 @@ export function GachaContent() {
         <div className="max-w-lg mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
           <h1 className="text-lg font-black text-white flex-1 tracking-tight">GACHA</h1>
           <button
-            onClick={() => setShowCoinPurchase(true)}
+            onClick={() => openCoinPurchase(coinBalance)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95"
             style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
           >
@@ -632,12 +632,7 @@ export function GachaContent() {
         {/* コレクションタブ廃止（/cardsに統一） */}
       </main>
 
-      {/* コイン購入モーダル */}
-      <CoinPurchaseModal
-        isOpen={showCoinPurchase}
-        onClose={() => setShowCoinPurchase(false)}
-        currentBalance={coinBalance}
-      />
+      {/* コイン購入モーダルはグローバル（layout.tsx CoinPurchaseProvider） */}
     </div>
   );
 }
