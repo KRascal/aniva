@@ -147,14 +147,14 @@ export function ChatMenu({
       icon: <IconPhoto />,
       label: 'アルバム',
       sublabel: '共有した画像',
-      comingSoon: true,
+      href: `/chat/${characterId}/album`,
       accent: 'text-pink-400 bg-pink-500/15',
     },
     {
       icon: <IconBrain />,
       label: '記憶',
       sublabel: 'キャラが覚えていること',
-      comingSoon: true,
+      href: `/chat/${characterId}/memory`,
       accent: 'text-purple-400 bg-purple-500/15',
     },
     {

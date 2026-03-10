@@ -118,8 +118,21 @@ function ChatRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-bold text-white text-sm truncate">{character.name}</span>
-          {isPinned && <span className="text-[10px] flex-shrink-0" title="ピン留め">📌</span>}
-          {isMuted && <span className="text-[10px] flex-shrink-0" title="通知オフ">🔕</span>}
+          {isPinned && (
+            <span className="flex-shrink-0" title="ピン留め">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
+                <path d="M16 2l-4 4-6-2-2 2 4.5 4.5L2 17l1 1 6.5-6.5L14 16l2-2-2-6 4-4-2-2z"/>
+              </svg>
+            </span>
+          )}
+          {isMuted && (
+            <span className="flex-shrink-0" title="通知オフ">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
+                <path d="M13.73 21a2 2 0 01-3.46 0M18.63 13A17.89 17.89 0 0118 8M6.26 6.26A5.86 5.86 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.33-5" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round"/>
+              </svg>
+            </span>
+          )}
           <span className="text-[10px] text-gray-500 flex-shrink-0 ml-auto">{formatTime(lastAt)}</span>
         </div>
         <p className="text-sm text-gray-400 truncate mt-0.5">
@@ -241,7 +254,7 @@ function SwipeableChatRow({
     };
   }, [swipeState]);
 
-  const actionBtnBase = 'flex flex-col items-center justify-center gap-0.5 text-white text-[10px] font-semibold h-full min-w-[64px] px-3';
+  const actionBtnBase = 'flex flex-col items-center justify-center gap-0.5 text-white text-[10px] font-semibold h-full min-w-[60px] px-2';
 
   return (
     <div ref={rowRef} className="relative overflow-hidden rounded-xl">
@@ -251,14 +264,25 @@ function SwipeableChatRow({
           onClick={() => { onPin(); setSwipeState('idle'); }}
           className={`${actionBtnBase} ${isPinned ? 'bg-yellow-600' : 'bg-blue-600'}`}
         >
-          <span className="text-base">{isPinned ? '📌' : '📌'}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+            <path d="M16 2l-4 4-6-2-2 2 4.5 4.5L2 17l1 1 6.5-6.5L14 16l2-2-2-6 4-4-2-2z"/>
+          </svg>
           <span>{isPinned ? '解除' : 'ピン留め'}</span>
         </button>
         <button
           onClick={() => { onMute(); setSwipeState('idle'); }}
           className={`${actionBtnBase} ${isMuted ? 'bg-green-600' : 'bg-gray-600'}`}
         >
-          <span className="text-base">{isMuted ? '🔔' : '🔕'}</span>
+          {isMuted ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white">
+              <path d="M13.73 21a2 2 0 01-3.46 0M18.63 13A17.89 17.89 0 0118 8M6.26 6.26A5.86 5.86 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.33-5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round"/>
+            </svg>
+          )}
           <span>{isMuted ? '通知ON' : '通知OFF'}</span>
         </button>
       </div>
@@ -269,8 +293,10 @@ function SwipeableChatRow({
           onClick={() => { onUnfollow(); setSwipeState('idle'); }}
           className={`${actionBtnBase} bg-red-600`}
         >
-          <span className="text-base">✕</span>
-          <span>フォロー外す</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
+            <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="whitespace-nowrap">外す</span>
         </button>
       </div>
 
