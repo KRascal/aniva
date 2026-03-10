@@ -148,6 +148,15 @@ export default function MyPage() {
   }, [relationships, following]);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // bfcache / Stripe戻り対策: ページ復元時にフルリロード
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.reload();
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');

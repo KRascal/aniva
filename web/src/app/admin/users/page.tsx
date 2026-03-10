@@ -451,16 +451,45 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* Following */}
+                  {/* FC加入付与 */}
                   {selectedUser.following.length > 0 && (
                     <div>
-                      <label className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-2 block">フォロー中 ({selectedUser.following.length})</label>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedUser.following.map((c) => (
-                          <span key={c.characterId} className="bg-gray-800 text-gray-300 text-xs px-2.5 py-1 rounded-full border border-gray-700">
-                            {c.name} <span className="text-gray-500">Lv.{c.level}</span>
-                          </span>
-                        ))}
+                      <label className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-2 block">FC加入付与（フォロー中キャラ）</label>
+                      <div className="space-y-1.5">
+                        {selectedUser.following.map((c) => {
+                          const isAlreadyFc = selectedUser.activeSubscriptions.some(s => s.characterId === c.characterId);
+                          return (
+                            <div key={c.characterId} className="flex items-center justify-between bg-gray-800/60 rounded-lg px-3 py-2 border border-gray-700/50">
+                              <span className="text-white text-sm">{c.name} <span className="text-gray-500 text-xs">Lv.{c.level}</span></span>
+                              {isAlreadyFc ? (
+                                <span className="text-purple-400 text-xs">FC加入済み</span>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`${c.name}のFC加入を${selectedUser.displayName ?? selectedUser.email}に付与しますか？`)) return;
+                                    try {
+                                      const res = await fetch(`/api/admin/users/${selectedUser.id}/grant`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ type: 'fc', characterId: c.characterId }),
+                                      });
+                                      if (res.ok) {
+                                        alert('FC加入を付与しました');
+                                        fetchUserDetail(selectedUser.id);
+                                      } else {
+                                        const data = await res.json();
+                                        alert(data.error || 'エラー');
+                                      }
+                                    } catch { alert('通信エラー'); }
+                                  }}
+                                  className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-lg font-medium transition-colors"
+                                >
+                                  FC付与
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
