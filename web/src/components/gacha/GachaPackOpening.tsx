@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { playSound, vibrateGacha } from '@/lib/sound-effects';
 import type { GachaRarity } from './GachaFlipCard';
 
@@ -112,8 +113,21 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   const currentColors = currentCard ? (RARITY_COLORS[currentCard.rarity] ?? RARITY_COLORS.N) : RARITY_COLORS.N;
   const currentImg = currentCard?.card.cardImageUrl ?? currentCard?.card.imageUrl ?? currentCard?.card.illustrationUrl ?? currentCard?.card.character?.avatarUrl;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.95)' }}>
+  const overlayContent = (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(0,0,0,0.95)',
+    }}>
       <style>{`
         @keyframes packFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -385,4 +399,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
       )}
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlayContent, document.body);
 }

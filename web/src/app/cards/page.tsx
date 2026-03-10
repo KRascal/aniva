@@ -739,7 +739,9 @@ function GachaTab() {
       {showFlash && typeof document !== 'undefined' && createPortal(
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 300,
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            width: '100vw', height: '100vh',
+            zIndex: 9999,
             background: 'white',
             animation: 'flashFade 0.5s ease-out forwards',
             pointerEvents: 'none',
@@ -752,7 +754,9 @@ function GachaTab() {
       {openingPhase === 'pack' && typeof document !== 'undefined' && createPortal(
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 200,
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            width: '100vw', height: '100vh',
+            zIndex: 9998,
             background: 'rgba(0,0,0,0.96)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
@@ -821,7 +825,9 @@ function GachaTab() {
       {openingPhase === 'reveal' && typeof document !== 'undefined' && createPortal(
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 190,
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            width: '100vw', height: '100vh',
+            zIndex: 9997,
             background: 'rgba(3,7,18,0.97)',
             padding: '24px 16px 80px',
             overflowY: 'auto',
