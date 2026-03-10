@@ -556,7 +556,7 @@ export default function GroupChatPage() {
 
         {/* 下部CTAボタン */}
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-6"
+          className="fixed bottom-16 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
           style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
         >
           <div className="max-w-lg mx-auto">

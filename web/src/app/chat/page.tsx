@@ -914,7 +914,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-lg mx-auto px-4 py-4 pb-24">
+      <main className="relative z-10 max-w-lg mx-auto px-4 pt-4 pb-32">
         {/* ══ 新着チャット通知バナー ══ */}
         {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
           <div className="mb-4 space-y-2">
