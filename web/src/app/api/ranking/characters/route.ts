@@ -2,7 +2,9 @@
  * キャラクター人気ランキングAPI
  * GET /api/ranking/characters?type=coins|messages&period=daily|weekly|monthly
  *
- * type=coins    — 推し貢献度（キャラに使われたコイン総額）
+ * type=coins    — 推し貢献度（キャラに使われたコイン消費額）
+ *                 チャット(10コイン/回) + 通話(コイン/分) + ギフト + その他消費
+ *                 FC会員のチャットも通常消費額(10コイン)として加算
  * type=messages — トーク数（キャラへの総メッセージ数）
  */
 
@@ -32,7 +34,7 @@ function getPeriodFilter(period: string): Date | undefined {
     return d;
   }
 
-  return undefined;
+  return undefined; // alltime
 }
 
 export async function GET(req: NextRequest) {
@@ -44,8 +46,10 @@ export async function GET(req: NextRequest) {
   const periodFrom = getPeriodFilter(period);
 
   if (type === 'coins') {
-    // キャラ別コイン消費合計
-    const conditions: string[] = [`ct.type = 'GIFT_SENT'`, `ct."characterId" IS NOT NULL`];
+    // ====== 消費コイン数ランキング ======
+    // amount < 0 の全トランザクション（CHAT_EXTRA, SPEND, GIFT_SENT等）を集計
+    // FC会員のチャットはamount=0だがメッセージ数×10を仮想加算
+    const conditions: string[] = [`ct."characterId" IS NOT NULL`, `ct.amount < 0`];
     const params: (string | Date | number)[] = [];
 
     if (periodFrom) {
@@ -57,7 +61,7 @@ export async function GET(req: NextRequest) {
     const limitParam = `$${params.length}`;
 
     type Row = { characterId: string; totalCoins: bigint };
-    const results = await prisma.$queryRawUnsafe<Row[]>(
+    const coinResults = await prisma.$queryRawUnsafe<Row[]>(
       `SELECT ct."characterId", ABS(SUM(ct.amount)) AS "totalCoins"
        FROM "CoinTransaction" ct
        WHERE ${conditions.join(' AND ')}
@@ -67,24 +71,59 @@ export async function GET(req: NextRequest) {
       ...params,
     );
 
-    const charIds = results.map(r => r.characterId);
+    // FC会員のチャットメッセージも仮想コインとして加算（10コイン/メッセージ）
+    // FC会員は実際にはコインを消費しないが、ランキングには「本来消費されるべき額」を加算
+    const msgConditions: string[] = [`m.role = 'USER'`];
+    const msgParams: (string | Date | number)[] = [];
+    if (periodFrom) {
+      msgParams.push(periodFrom);
+      msgConditions.push(`m."createdAt" >= $${msgParams.length}`);
+    }
+    msgParams.push(limit * 2);
+
+    type MsgRow = { characterId: string; messageCount: bigint };
+    const msgResults = await prisma.$queryRawUnsafe<MsgRow[]>(
+      `SELECT r."characterId", COUNT(m.id) AS "messageCount"
+       FROM "Message" m
+       JOIN "Conversation" c ON m."conversationId" = c.id
+       JOIN "Relationship" r ON c."relationshipId" = r.id
+       WHERE ${msgConditions.join(' AND ')}
+       GROUP BY r."characterId"
+       ORDER BY "messageCount" DESC
+       LIMIT $${msgParams.length}`,
+      ...msgParams,
+    );
+
+    // コイン消費 + メッセージ×10 の合算マップ
+    const scoreMap = new Map<string, number>();
+    for (const r of coinResults) {
+      const coins = Number(r.totalCoins);
+      scoreMap.set(r.characterId, (scoreMap.get(r.characterId) ?? 0) + coins);
+    }
+    for (const r of msgResults) {
+      const virtualCoins = Number(r.messageCount) * 10; // 1メッセージ = 10コイン相当
+      scoreMap.set(r.characterId, (scoreMap.get(r.characterId) ?? 0) + virtualCoins);
+    }
+
+    // ソート
+    const sorted = [...scoreMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+    const charIds = sorted.map(([id]) => id);
     const characters = await prisma.character.findMany({
       where: { id: { in: charIds } },
       select: { id: true, name: true, slug: true, avatarUrl: true },
     });
     const charMap = new Map(characters.map(c => [c.id, c]));
 
-    const ranking = results.map((r, idx) => {
-      const char = charMap.get(r.characterId);
-      const coins = Number(r.totalCoins);
+    const ranking = sorted.map(([charId, score], idx) => {
+      const char = charMap.get(charId);
       return {
         rank: idx + 1,
-        characterId: r.characterId,
+        characterId: charId,
         name: char?.name ?? '不明',
         slug: char?.slug ?? '',
         avatarUrl: char?.avatarUrl ?? null,
-        value: coins,
-        valueLabel: `🪙 ${coins.toLocaleString()} コイン`,
+        value: score,
+        valueLabel: `🪙 ${score.toLocaleString()} コイン`,
       };
     });
 
@@ -92,7 +131,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (type === 'messages') {
-    // キャラ別メッセージ数合計
+    // ====== メッセージ数ランキング ======
     const conditions: string[] = [`m.role = 'USER'`];
     const params: (string | Date | number)[] = [];
 

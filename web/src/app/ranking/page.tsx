@@ -53,9 +53,9 @@ export default function RankingPage() {
   useEffect(() => {
     if (view !== 'characters') return;
     setLoading(true);
-    const periodParam = period === 'alltime' ? 'monthly' : period === 'daily' ? 'daily' : period;
+    const periodParam = period === 'alltime' ? '' : period;
     Promise.all([
-      fetch(`/api/ranking/characters?type=messages&period=${periodParam}`).then(r => r.json()),
+      fetch(`/api/ranking/characters?type=coins${periodParam ? `&period=${periodParam}` : ''}`).then(r => r.json()),
       fetch('/api/relationship/following').then(r => r.ok ? r.json() : { following: [] }),
     ]).then(([rankData, followData]) => {
       const followList = followData.following ?? [];
@@ -89,7 +89,8 @@ export default function RankingPage() {
         // 各キャラの自分の順位を取得
         const results = await Promise.allSettled(
           followList.map(async (char: { id: string; name: string; slug: string; avatarUrl: string | null; isFanclub: boolean }) => {
-            const res = await fetch(`/api/ranking/${char.id}`);
+            const periodParam = period === 'alltime' ? '' : `?period=${period}`;
+            const res = await fetch(`/api/ranking/${char.id}${periodParam}`);
             if (!res.ok) return null;
             const data = await res.json();
             return {
@@ -114,7 +115,7 @@ export default function RankingPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [view]);
+  }, [view, period]);
 
   return (
     <div className="min-h-screen bg-gray-950 pb-28">
@@ -323,7 +324,7 @@ export default function RankingPage() {
                   </div>
                   <div className="flex gap-2 text-[11px] text-gray-500 mt-0.5">
                     <span>Lv.{entry.level}</span>
-                    <span>💬{entry.totalMessages.toLocaleString()}通</span>
+                    <span>🪙{entry.score.toLocaleString()}</span>
                     <span>🏆{entry.totalFans}人中</span>
                   </div>
                 </div>
@@ -333,7 +334,7 @@ export default function RankingPage() {
                   {entry.myRank > 0 ? (
                     <>
                       <p className="text-purple-300 font-black text-lg leading-tight">#{entry.myRank}</p>
-                      <p className="text-[10px] text-gray-600">{entry.score}pt</p>
+                      <p className="text-[10px] text-gray-600">🪙{entry.score.toLocaleString()}</p>
                     </>
                   ) : (
                     <p className="text-gray-600 text-xs">圏外</p>
