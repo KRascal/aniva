@@ -113,7 +113,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
   const currentImg = currentCard?.card.cardImageUrl ?? currentCard?.card.imageUrl ?? currentCard?.card.illustrationUrl ?? currentCard?.card.character?.avatarUrl;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.95)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style={{ background: 'rgba(0,0,0,0.95)' }}>
       <style>{`
         @keyframes packFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -198,7 +198,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
         >
           {/* パック本体 */}
           <div
-            className="relative w-56 h-80 rounded-2xl overflow-hidden"
+            className="relative w-56 h-80 max-w-[70vw] max-h-[50vh] rounded-2xl overflow-hidden"
             style={{
               background: `linear-gradient(160deg, ${bestColors.bg}, rgba(0,0,0,0.8))`,
               border: `2px solid ${bestColors.glow}`,
@@ -314,7 +314,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
         >
           {/* カード本体 */}
           <div
-            className="relative w-64 rounded-2xl overflow-hidden"
+            className="relative w-64 max-w-[75vw] rounded-2xl overflow-hidden"
             style={{
               aspectRatio: '3/4',
               border: `2px solid ${currentColors.text}`,

@@ -1068,7 +1068,7 @@ export default function CardsPage() {
               onClick={() => setActiveTab('gacha')}
               className="relative z-10 flex-1 py-2 text-sm font-bold text-center rounded-lg transition-colors text-gray-400 hover:text-white"
             >
-              ガチャ →
+              ガチャ
             </button>
           </div>
         </div>

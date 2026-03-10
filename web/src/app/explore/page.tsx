@@ -2072,24 +2072,6 @@ export default function ExplorePage() {
           {/* HERO section — only on no search/filter */}
           {!searchQuery && selectedCategory === 'すべて' && (
             <div className="py-6">
-              {/* ランキング */}
-              <RankingBannerSection />
-
-              {/* ガチャ */}
-              <GachaBannerSection freeAvailable={freeGachaAvailable} />
-
-              {/* 今日のひとこと */}
-              <TodayGreetingSection characters={characters} relationships={relationships} />
-
-              {/* 新着メッセージ（時間で消える） */}
-              {session?.user && (
-                <FadeSection delay={20}>
-                  <div className="mb-5">
-                    <ProactiveMessagePanel />
-                  </div>
-                </FadeSection>
-              )}
-
               {/* Hero banner — dynamic character avatars */}
               <FadeSection>
                 {(() => {
@@ -2278,12 +2260,32 @@ export default function ExplorePage() {
                 })()}
               </FadeSection>
 
+              {/* ランキング */}
+              <RankingBannerSection />
+
+              {/* ガチャ */}
+              <div className="mt-3">
+                <GachaBannerSection freeAvailable={freeGachaAvailable} />
+              </div>
+
+              {/* 今日のひとこと */}
+              <TodayGreetingSection characters={characters} relationships={relationships} />
+
               {/* 今日のミッション進捗バー */}
               {missionProgress !== null && missionProgress.total > 0 && (
                 <MissionProgressSection
                   completed={missionProgress.completed}
                   total={missionProgress.total}
                 />
+              )}
+
+              {/* 限定キャラメッセージ */}
+              {session?.user && (
+                <FadeSection delay={20}>
+                  <div className="mb-5">
+                    <ProactiveMessagePanel />
+                  </div>
+                </FadeSection>
               )}
 
               {/* 期間限定シナリオバナー */}

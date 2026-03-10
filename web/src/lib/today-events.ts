@@ -159,7 +159,9 @@ export function getTodayMainEvent(date?: Date): string | null {
 
   // hype降順でソートして最初を返す
   candidates.sort((a, b) => b.hype - a.hype);
-  return candidates[0].short;
+  // hype 1はバナー非表示（花粉シーズン等の低hypeイベントを除外）
+  const top = candidates.find(c => c.hype >= 2);
+  return top?.short ?? null;
 }
 
 export default { getTodayEvents, getTodayMainEvent, FIXED_EVENTS, WEEKDAY_EVENTS };
