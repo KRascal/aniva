@@ -377,6 +377,22 @@ function OnboardingInner() {
         }
       }
 
+      // 既存ユーザー検出: フォロー済みキャラがあればオンボーディングスキップ
+      try {
+        const relRes = await fetch('/api/relationship/all');
+        if (relRes.ok) {
+          const relData = await relRes.json();
+          const follows = (relData.relationships ?? []).filter((r: { isFollowing?: boolean }) => r.isFollowing);
+          if (follows.length > 0) {
+            // フォロー済みキャラがある = 既存ユーザー → onboarding完了としてDB更新 & リダイレクト
+            await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {});
+            await update();
+            window.location.href = '/explore';
+            return;
+          }
+        }
+      } catch { /* 取得失敗は無視して通常フローへ */ }
+
       // 途中離脱のリカバリー: DBの状態を復元
       let stateRestored = false;
       let savedCharacterFromDB: { id: string; name: string; slug: string; avatarUrl: string | null; franchise?: string } | null = null;

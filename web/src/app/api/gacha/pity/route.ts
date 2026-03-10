@@ -4,12 +4,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { getPityInfo } from '@/lib/gacha-system';
 
 export async function GET(req: Request) {
-  const session = await auth();
-  const userId = (session?.user as { id?: string })?.id;
+  const userId = await getVerifiedUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);

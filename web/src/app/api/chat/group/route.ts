@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { characterEngine } from '@/lib/character-engine';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { Prisma } from '@prisma/client';
 
@@ -34,9 +34,8 @@ const MAX_CHARACTERS = 3;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. 認証
-    const session = await auth();
-    const userId = session?.user?.id;
+    // 1. 認証（DB存在チェック付き — FK violation防止）
+    const userId = await getVerifiedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

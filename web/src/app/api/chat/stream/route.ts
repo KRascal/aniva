@@ -12,7 +12,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { characterEngine } from '@/lib/character-engine';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { chatLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
@@ -33,9 +33,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // ── 認証 ──
-    const session = await auth();
-    const userId = session?.user?.id;
+    // ── 認証（DB存在チェック付き — FK violation防止） ──
+    const userId = await getVerifiedUserId();
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),

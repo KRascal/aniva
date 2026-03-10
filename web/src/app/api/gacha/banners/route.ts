@@ -4,13 +4,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { getFreeGachaAvailable } from '@/lib/gacha-system';
 
 export async function GET() {
-  const session = await auth();
-  const userId = (session?.user as { id?: string })?.id;
+  const userId = await getVerifiedUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {

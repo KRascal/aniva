@@ -172,6 +172,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.userId = dbUser.id; // JWTのIDを修正
             }
           }
+
+          // 自動完了: onboardingStep が completed でないが、フォロー済みキャラがある場合
+          // → 既にアクティブなユーザーなので onboardingStep を completed に自動昇格
+          if (dbUser && dbUser.onboardingStep !== 'completed') {
+            const followCount = await prisma.relationship.count({
+              where: { userId: dbUser.id, isFollowing: true },
+            });
+            if (followCount > 0) {
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { onboardingStep: 'completed' },
+              });
+              dbUser = { ...dbUser, onboardingStep: 'completed' };
+            }
+          }
+
           token.onboardingStep = dbUser?.onboardingStep ?? null;
           token.nickname = dbUser?.nickname ?? null;
         }

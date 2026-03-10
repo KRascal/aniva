@@ -8,6 +8,8 @@ export async function GET(req: NextRequest) {
     // ?q= または ?search= でキャラ名の部分一致検索
     const q = req.nextUrl.searchParams.get('q') ?? req.nextUrl.searchParams.get('search');
     const followingOnly = req.nextUrl.searchParams.get('followingOnly') === 'true';
+    const limitParam = req.nextUrl.searchParams.get('limit');
+    const randomParam = req.nextUrl.searchParams.get('random');
 
     const where: Prisma.CharacterWhereInput = { isActive: true };
     if (q && q.trim()) {
@@ -62,7 +64,7 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    const enriched = characters
+    let enriched = characters
       .map(c => ({
         ...c,
         followerCount: c._count.relationships,
@@ -70,6 +72,17 @@ export async function GET(req: NextRequest) {
       }))
       // 人気順（フォロワー数降順）→ 同数なら名前順
       .sort((a, b) => (b.followerCount - a.followerCount) || a.name.localeCompare(b.name, 'ja'));
+
+    // ?random=1 → シャッフル
+    if (randomParam === '1') {
+      enriched = enriched.sort(() => Math.random() - 0.5);
+    }
+
+    // ?limit=N → 件数制限（サーバーサイド）
+    if (limitParam) {
+      const limit = Math.max(1, Math.min(100, parseInt(limitParam, 10) || 100));
+      enriched = enriched.slice(0, limit);
+    }
 
     return NextResponse.json({ characters: enriched });
   } catch (error) {

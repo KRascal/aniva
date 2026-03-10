@@ -89,6 +89,14 @@ export async function getEmbedding(text: string): Promise<number[]> {
   return [];
 }
 
+/** Truncate or pad embedding to match DB column dimension */
+function normalizeDimension(embedding: number[]): number[] {
+  if (embedding.length === EMBEDDING_DIM) return embedding;
+  if (embedding.length > EMBEDDING_DIM) return embedding.slice(0, EMBEDDING_DIM);
+  // pad with zeros (shouldn't happen in practice)
+  return [...embedding, ...new Array(EMBEDDING_DIM - embedding.length).fill(0)];
+}
+
 // ─── 記憶の保存 ──────────────────────────────────────────────
 interface MemoryInput {
   userId: string;
@@ -103,8 +111,9 @@ interface MemoryInput {
 
 export async function storeMemory(input: MemoryInput): Promise<string | null> {
   try {
-    const embedding = await getEmbedding(input.content);
-    if (embedding.length === 0) return null;
+    const rawEmbedding = await getEmbedding(input.content);
+    if (rawEmbedding.length === 0) return null;
+    const embedding = normalizeDimension(rawEmbedding);
 
     const vecStr = `[${embedding.join(',')}]`;
 
@@ -149,8 +158,9 @@ export async function searchMemories(
   limit: number = MAX_MEMORIES_PER_QUERY,
 ): Promise<MemoryResult[]> {
   try {
-    const embedding = await getEmbedding(query);
-    if (embedding.length === 0) return [];
+    const rawEmbedding = await getEmbedding(query);
+    if (rawEmbedding.length === 0) return [];
+    const embedding = normalizeDimension(rawEmbedding);
 
     const vecStr = `[${embedding.join(',')}]`;
 

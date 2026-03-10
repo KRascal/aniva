@@ -1804,43 +1804,25 @@ export default function ExplorePage() {
     }
   }, [status]);
 
-  // 久しぶりユーザー (72時間以上) にはexplore内でスワイプモーダル表示
-  // ※ 新規ユーザーは /discover（フルスクリーンオンボーディング）  
-  // ※ 既存ユーザー（onboardingStep=completed）は絶対に /discover に飛ばさない → モーダルのみ
+  // フォロー中キャラがゼロの新規ユーザーのみ /discover にリダイレクト
+  // DB状態で判定（localStorageはSafariシークレットで消えるため使わない）
   const [showSwipeModal, setShowSwipeModal] = useState(false);
+  const [discoverChecked, setDiscoverChecked] = useState(false);
   useEffect(() => {
-    if (status !== 'authenticated' || !session) return;
-    // ログイン直後は新キャラ発見スキップ（exploreをそのまま表示）
-    const fromLogin = typeof window !== 'undefined' && sessionStorage.getItem('aniva_just_logged_in');
-    if (fromLogin) {
-      sessionStorage.removeItem('aniva_just_logged_in');
-      // ログイン直後でも初回の人にはモーダルを出す（localStorageが空 = 初めてexploreを見る）
-      const LAST_VISIT_KEY = 'aniva_last_explore_visit';
-      const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
-      localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
-      if (!lastVisit && session.user?.onboardingStep === 'completed') {
+    if (status !== 'authenticated' || isLoading || discoverChecked) return;
+    setDiscoverChecked(true);
+    const hasFollowing = Array.from(relationships.values()).some(r => r.isFollowing);
+    if (!hasFollowing && relationships.size === 0) {
+      // フォロー0人 = 新規ユーザー → /discover
+      const step = session?.user?.onboardingStep;
+      if (step === 'completed') {
+        // オンボーディング済みだがフォロー0 → モーダル表示
         setShowSwipeModal(true);
+      } else {
+        router.push('/discover');
       }
-      return;
     }
-    const LAST_VISIT_KEY = 'aniva_last_explore_visit';
-    const HOURS_72 = 72 * 60 * 60 * 1000;
-    try {
-      const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
-      const now = Date.now();
-      localStorage.setItem(LAST_VISIT_KEY, String(now));
-      if (!lastVisit || now - parseInt(lastVisit, 10) > HOURS_72) {
-        const step = session.user?.onboardingStep;
-        if (step === 'completed') {
-          // 既存ユーザー → 絶対にモーダル（/discoverには飛ばさない）
-          setShowSwipeModal(true);
-        } else {
-          // 新規ユーザー → フルスクリーンオンボーディング
-          router.push('/discover');
-        }
-      }
-    } catch { /* ignore */ }
-  }, [status, session, router]);
+  }, [status, isLoading, relationships, discoverChecked, session, router]);
 
   const handleFollow = useCallback((characterId: string, following: boolean) => {
     setRelationships(prev => {

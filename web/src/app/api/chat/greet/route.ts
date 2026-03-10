@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
-import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 
 // デフォルトの音声モデルID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
@@ -66,9 +66,8 @@ function getDefaultGreeting(characterName: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    // 認証チェック（IDOR修正: userIdはセッションから取得）
-    const session = await auth();
-    const userId = session?.user?.id;
+    // 認証チェック（DB存在チェック付き — FK violation防止）
+    const userId = await getVerifiedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

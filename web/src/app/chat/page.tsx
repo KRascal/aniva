@@ -735,12 +735,14 @@ export default function ChatPage() {
             onClick={() => router.push(`/chat/${msg.characterId}`)}
           >
             <div className="relative flex-shrink-0">
-              {msg.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={msg.avatarUrl} alt={msg.characterName} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-400/50" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold">{msg.characterName.charAt(0)}</div>
-              )}
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-400/50">
+                {msg.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={msg.avatarUrl} alt={msg.characterName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-purple-700 flex items-center justify-center text-white font-bold">{msg.characterName.charAt(0)}</div>
+                )}
+              </div>
               <span className="absolute -bottom-0.5 -right-0.5 text-xs">💬</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -774,12 +776,14 @@ export default function ChatPage() {
               onClick={handleClick}
             >
               <div className="relative flex-shrink-0">
-                {msg.character.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-400/50" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character.name.charAt(0)}</div>
-                )}
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-indigo-400/50">
+                  {msg.character.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={msg.character.avatarUrl} alt={msg.character.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character.name.charAt(0)}</div>
+                  )}
+                </div>
                 <span className="absolute -bottom-0.5 -right-0.5 text-xs">✨</span>
               </div>
               <div className="flex-1 min-w-0">
