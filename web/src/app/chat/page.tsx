@@ -97,7 +97,7 @@ function ChatRow({
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-800/50 active:bg-gray-800/70 transition-colors text-left"
     >
-      {/* アバター — LINE風 丸型 */}
+      {/* アバター — LINE風 丸型 + ピン留めバッジ */}
       <div className="relative flex-shrink-0">
         <div className="w-12 h-12 rounded-full overflow-hidden">
           {character.avatarUrl ? (
@@ -112,19 +112,19 @@ function ChatRow({
         {hasUnread && (
           <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-950" />
         )}
+        {isPinned && (
+          <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-yellow-500 border-2 border-gray-950 flex items-center justify-center" title="ピン留め">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+              <path d="M16 2l-4 4-6-2-2 2 4.5 4.5L2 17l1 1 6.5-6.5L14 16l2-2-2-6 4-4-2-2z"/>
+            </svg>
+          </span>
+        )}
       </div>
 
       {/* テキスト情報 — LINE風コンパクト */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-bold text-white text-sm truncate">{character.name}</span>
-          {isPinned && (
-            <span className="flex-shrink-0" title="ピン留め">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
-                <path d="M16 2l-4 4-6-2-2 2 4.5 4.5L2 17l1 1 6.5-6.5L14 16l2-2-2-6 4-4-2-2z"/>
-              </svg>
-            </span>
-          )}
           {isMuted && (
             <span className="flex-shrink-0" title="通知オフ">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
@@ -181,35 +181,49 @@ function SwipeableChatRow({
   const [swipeState, setSwipeState] = useState<'idle' | 'left-actions' | 'right-actions'>('idle');
   const [translateX, setTranslateX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const directionLocked = useRef<'horizontal' | 'vertical' | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(false);
+    directionLocked.current = null;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
 
-    // 垂直スクロール優先: 横より縦の移動が大きい場合はスワイプしない
-    if (!isSwiping && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+    // 方向ロック: 最初に大きく動いた方向で確定
+    if (!directionLocked.current) {
+      if (Math.abs(deltaY) > 15 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5) {
+        directionLocked.current = 'vertical';
+        return;
+      }
+      if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        directionLocked.current = 'horizontal';
+      } else {
+        return; // まだ方向未確定
+      }
+    }
+
+    // 垂直スクロールにロック済み → スワイプしない
+    if (directionLocked.current === 'vertical') {
       return;
     }
 
-    if (Math.abs(deltaX) > 10) {
-      setIsSwiping(true);
-      // スワイプ状態がある場合は戻す方向のみ許可
-      if (swipeState === 'left-actions' && deltaX < 0) {
-        setTranslateX(Math.max(deltaX, -20));
-      } else if (swipeState === 'right-actions' && deltaX > 0) {
-        setTranslateX(Math.min(deltaX, 20));
-      } else if (swipeState === 'idle') {
-        setTranslateX(deltaX);
-      }
+    // 横スワイプ
+    setIsSwiping(true);
+    // スワイプ状態がある場合は戻す方向のみ許可
+    if (swipeState === 'left-actions' && deltaX < 0) {
+      setTranslateX(Math.max(deltaX, -20));
+    } else if (swipeState === 'right-actions' && deltaX > 0) {
+      setTranslateX(Math.min(deltaX, 20));
+    } else if (swipeState === 'idle') {
+      setTranslateX(deltaX);
     }
-  }, [isSwiping, swipeState]);
+  }, [swipeState]);
 
   const handleTouchEnd = useCallback(() => {
     if (!isSwiping) {
@@ -895,7 +909,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
+      <main className="relative z-10 max-w-lg mx-auto px-4 py-4 pb-24">
         {/* ══ 新着チャット通知バナー ══ */}
         {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
           <div className="mb-4 space-y-2">
