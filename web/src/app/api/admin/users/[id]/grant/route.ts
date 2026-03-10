@@ -13,12 +13,12 @@ async function isAdmin(userId: string): Promise<boolean> {
   return user?.role === 'ADMIN';
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const adminId = await getVerifiedUserId();
   if (!adminId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!await isAdmin(adminId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { userId } = await params;
+  const { id: userId } = await params;
   const body = await req.json() as { type: 'coins' | 'fc'; amount?: number; characterId?: string };
 
   try {
