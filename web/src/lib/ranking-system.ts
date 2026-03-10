@@ -68,7 +68,7 @@ async function upsertScore(
  */
 export async function addChatScore(userId: string, characterId: string, isFcMember: boolean) {
   const score = isFcMember ? SCORE_RATES.CHAT_FC : SCORE_RATES.CHAT_NON_FC;
-  if (score === 0) return;
+  if (!score) return;
 
   await Promise.all([
     upsertScore(userId, characterId, 'monthly', { chat: score }),
