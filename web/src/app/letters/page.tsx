@@ -173,7 +173,7 @@ export default function LettersPage() {
             </div>
 
             {/* 本文 */}
-            <div className="px-6 py-6 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 120px)' }}>
+            <div className="px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 170px)' }}>
               <h2 className="text-amber-900 font-bold text-base mb-4">{selectedLetter.title}</h2>
               {selectedLetter.imageUrl && (
                 <div className="rounded-2xl overflow-hidden mb-4">
@@ -183,6 +183,27 @@ export default function LettersPage() {
               <div className="text-amber-800 text-sm leading-relaxed whitespace-pre-line" style={{ fontFamily: "'Noto Serif JP', serif" }}>
                 {selectedLetter.content}
               </div>
+            </div>
+
+            {/* チャットで返信ボタン */}
+            <div className="px-6 pb-6 pt-3 border-t border-amber-300/30 bg-amber-50/80">
+              <button
+                onClick={() => {
+                  const topic = encodeURIComponent(selectedLetter.content.slice(0, 120));
+                  router.push(`/chat/${selectedLetter.character.id}?topic=${topic}&fromLetter=1`);
+                  setSelectedLetter(null);
+                }}
+                className="w-full py-3 rounded-2xl text-white text-sm font-bold transition-all active:scale-[0.97] flex items-center justify-center gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  boxShadow: '0 4px 16px rgba(139,92,246,0.35)',
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {selectedLetter.character.name}にチャットで返信する
+              </button>
             </div>
           </div>
         </div>

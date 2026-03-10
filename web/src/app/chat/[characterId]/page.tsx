@@ -554,6 +554,14 @@ export default function ChatCharacterPage() {
     const truncated = topicParam.slice(0, 100);
     setTopicText(truncated);
 
+    // 手紙から来た場合: 内容を引用してチャット入力にセット
+    const fromLetter = searchParams.get('fromLetter') === '1';
+    if (fromLetter) {
+      setInputText(`「${truncated}」…この手紙、すごく嬉しかった。直接返事したくて`);
+      setTopicCardVisible(false);
+      return;
+    }
+
     // ストーリーから来た場合: ワンタップで自動送信（チュートリアルもスキップ）
     const fromStory = searchParams.get('fromStory') === '1';
     if (fromStory) {

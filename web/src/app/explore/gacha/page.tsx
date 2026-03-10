@@ -574,56 +574,75 @@ export function GachaContent() {
                   </div>
                 )}
 
-                {/* Results grid */}
+                {/* Results overlay — centered on screen */}
                 {pullResults.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-white font-bold text-base">結果</h2>
-                      {hasAnyUnflipped && (
-                        <button
-                          onClick={flipAll}
-                          className="text-xs px-3 py-1.5 rounded-full text-purple-300 font-semibold"
-                          style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
-                        >
-                          全部開く
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {pullResults.map((result, i) => (
-                        <div key={i} className="relative">
-                          {/* High rarity glow background */}
-                          {(result.rarity === 'SSR' || result.rarity === 'UR') && flippedCards[i] && (
-                            <div
-                              className="absolute -inset-2 rounded-2xl blur-md pointer-events-none z-0"
-                              style={{
-                                background: result.rarity === 'UR'
-                                  ? 'radial-gradient(ellipse, rgba(244,114,182,0.4), transparent 70%)'
-                                  : 'radial-gradient(ellipse, rgba(250,204,21,0.35), transparent 70%)',
-                              }}
-                            />
+                  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
+                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
+                      <div className="flex items-center justify-between mb-4 pt-2">
+                        <h2 className="text-white font-bold text-base">結果</h2>
+                        <div className="flex items-center gap-2">
+                          {hasAnyUnflipped && (
+                            <button
+                              onClick={flipAll}
+                              className="text-xs px-3 py-1.5 rounded-full text-purple-300 font-semibold"
+                              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
+                            >
+                              全部開く
+                            </button>
                           )}
-                          <div className="relative z-10">
-                            <GachaFlipCard
-                              rarity={result.rarity}
-                              characterName={result.card.franchise ?? 'キャラクター'}
-                              characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl ?? result.card.character?.avatarUrl ?? null}
-                              itemName={result.card.name}
-                              isFlipped={flippedCards[i] ?? false}
-                              onFlip={() => flipCard(i)}
-                              isNew={result.isNew}
-                              frameType={result.card.frameType}
-                              franchise={result.card.franchise}
-                            />
-                          </div>
-                          {/* NEW badge effect */}
-                          {result.isNew && flippedCards[i] && (
-                            <div className="text-center mt-1">
-                              <span className="text-[10px] text-green-400 font-bold tracking-wide">NEW</span>
-                            </div>
-                          )}
+                          <button
+                            onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                            className="text-xs px-3 py-1.5 rounded-full text-white/60 font-semibold"
+                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                          >
+                            閉じる
+                          </button>
                         </div>
-                      ))}
+                      </div>
+                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
+                        {pullResults.map((result, i) => (
+                          <div key={i} className="relative">
+                            {(result.rarity === 'SSR' || result.rarity === 'UR') && flippedCards[i] && (
+                              <div
+                                className="absolute -inset-2 rounded-2xl blur-md pointer-events-none z-0"
+                                style={{
+                                  background: result.rarity === 'UR'
+                                    ? 'radial-gradient(ellipse, rgba(244,114,182,0.4), transparent 70%)'
+                                    : 'radial-gradient(ellipse, rgba(250,204,21,0.35), transparent 70%)',
+                                }}
+                              />
+                            )}
+                            <div className="relative z-10">
+                              <GachaFlipCard
+                                rarity={result.rarity}
+                                characterName={result.card.franchise ?? 'キャラクター'}
+                                characterAvatarUrl={result.card.cardImageUrl ?? result.card.imageUrl ?? result.card.illustrationUrl ?? result.card.character?.avatarUrl ?? null}
+                                itemName={result.card.name}
+                                isFlipped={flippedCards[i] ?? false}
+                                onFlip={() => flipCard(i)}
+                                isNew={result.isNew}
+                                frameType={result.card.frameType}
+                                franchise={result.card.franchise}
+                              />
+                            </div>
+                            {result.isNew && flippedCards[i] && (
+                              <div className="text-center mt-1">
+                                <span className="text-[10px] text-green-400 font-bold tracking-wide">NEW</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {/* もう一回引くボタン */}
+                      <div className="mt-6 pb-4">
+                        <button
+                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                          className="w-full py-3 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        >
+                          もう一度引く
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

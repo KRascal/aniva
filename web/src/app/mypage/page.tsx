@@ -334,11 +334,13 @@ export default function MyPage() {
               className="hidden"
               aria-hidden="true"
             />
-            <label
-              htmlFor="avatar-upload"
+            <div
+              role="button"
+              tabIndex={0}
               className="relative group cursor-pointer block touch-manipulation"
               aria-label="プロフィール画像を変更"
-              onClick={() => avatarFileInputRef.current?.click()}
+              onClick={(e) => { e.preventDefault(); avatarFileInputRef.current?.click(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') avatarFileInputRef.current?.click(); }}
             >
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg ring-2 ring-purple-500/30 group-hover:ring-purple-500/60 transition-all">
                 {isUploadingAvatar ? (
@@ -364,7 +366,7 @@ export default function MyPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </span>
-            </label>
+            </div>
             {/* アップロードエラー */}
             {avatarUploadError && (
               <p className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-xs text-red-400 whitespace-nowrap bg-gray-900 px-2 py-1 rounded-lg border border-red-500/30">

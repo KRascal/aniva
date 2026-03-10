@@ -9,10 +9,9 @@ interface RankEntry {
   displayName: string;
   avatarUrl: string | null;
   level: number;
-  totalMessages: number;
-  giftCoins: number;
   isFanclub: boolean;
   score: number;
+  scoreLabel: string;
   isMe: boolean;
 }
 
@@ -90,7 +89,7 @@ export default function RankingPage() {
             </div>
             <div className="text-right">
               <p className="text-sm text-yellow-300 font-bold">Lv.{data.myRank.level}</p>
-              <p className="text-[10px] text-gray-500">{data.myRank.totalMessages.toLocaleString()}通</p>
+              <p className="text-[10px] text-gray-500">{data.myRank.score.toLocaleString()}pt</p>
             </div>
           </div>
         </div>
@@ -149,8 +148,7 @@ export default function RankingPage() {
                   )}
                 </div>
                 <p className="text-[10px] text-gray-500">
-                  Lv.{entry.level} · {entry.totalMessages.toLocaleString()}通
-                  {entry.giftCoins > 0 && ` · 🪙${entry.giftCoins.toLocaleString()}`}
+                  Lv.{entry.level} · {entry.score.toLocaleString()}pt
                 </p>
               </div>
 
