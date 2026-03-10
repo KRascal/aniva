@@ -42,9 +42,39 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
 
   if (!isOpen) return null;
 
-  const handlePurchase = (pkg: CoinPackage) => {
-    router.push(`/coins/purchase?packageId=${pkg.id}`);
-    onClose();
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<{ coins: number; balance: number } | null>(null);
+
+  const handlePurchase = async (pkg: CoinPackage) => {
+    setPurchasing(pkg.id);
+    setPurchaseError(null);
+    try {
+      const res = await fetch('/api/coins/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: pkg.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Purchase failed');
+
+      if (data.checkoutUrl) {
+        // Stripe Checkout
+        window.location.href = data.checkoutUrl;
+      } else if (data.success) {
+        // デモモード: 直接付与
+        setPurchaseSuccess({ coins: pkg.coinAmount, balance: data.balance });
+        setTimeout(() => {
+          setPurchaseSuccess(null);
+          onClose();
+          router.refresh();
+        }, 2000);
+      }
+    } catch (err) {
+      setPurchaseError(err instanceof Error ? err.message : '購入に失敗しました');
+    } finally {
+      setPurchasing(null);
+    }
   };
 
   return (
@@ -93,6 +123,19 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
           </div>
         </div>
 
+        {/* Success/Error messages */}
+        {purchaseSuccess && (
+          <div className="mx-5 mb-3 p-3 rounded-xl text-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <p className="text-green-300 text-sm font-bold">{purchaseSuccess.coins.toLocaleString()} コイン獲得</p>
+            <p className="text-green-400/60 text-xs mt-0.5">残高: {purchaseSuccess.balance.toLocaleString()}</p>
+          </div>
+        )}
+        {purchaseError && (
+          <div className="mx-5 mb-3 p-3 rounded-xl text-center" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <p className="text-red-300 text-sm">{purchaseError}</p>
+          </div>
+        )}
+
         {/* Package grid */}
         <div className="px-5 pb-6 max-h-[60vh] overflow-y-auto">
           {loading ? (
@@ -110,7 +153,8 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
                   <button
                     key={pkg.id}
                     onClick={() => handlePurchase(pkg)}
-                    className="relative rounded-2xl p-3.5 text-left transition-all active:scale-[0.97] overflow-hidden"
+                    disabled={!!purchasing}
+                    className={`relative rounded-2xl p-3.5 text-left transition-all active:scale-[0.97] overflow-hidden ${purchasing === pkg.id ? 'opacity-70' : ''}`}
                     style={{
                       background: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.08)',
@@ -148,6 +192,14 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
               })}
             </div>
           )}
+
+          {/* 利用規約文言 */}
+          <div className="mt-3 px-1">
+            <p className="text-white/25 text-[10px] leading-relaxed">
+              購入したコインの有効期限は最終利用日から6ヶ月間です。6ヶ月間ご利用がない場合、コインは失効します。購入後の返金・換金はできません。
+              <a href="/terms" className="underline text-white/35 ml-1">利用規約</a>
+            </p>
+          </div>
         </div>
       </div>
 

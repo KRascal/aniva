@@ -145,8 +145,12 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
       {showCelebration && (
         <div className="fixed inset-0 z-[99] flex items-center justify-center pointer-events-none">
           <div className="text-center animate-bounce">
-            <div className="text-6xl mb-2">🎉</div>
-            <p className="text-2xl font-black text-yellow-300 drop-shadow-lg">購入完了！</p>
+            <div className="w-16 h-16 mx-auto mb-2 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.3), rgba(245,158,11,0.2))' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-400">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p className="text-2xl font-black text-yellow-300 drop-shadow-lg tracking-tight">購入完了</p>
           </div>
         </div>
       )}
@@ -283,7 +287,7 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-8">
-          ※ 購入したコインに有効期限はありません。返金・換金はできません。
+          ※ 購入したコインの有効期限は最終利用日から6ヶ月間です。6ヶ月間ご利用がない場合、コインは失効します。購入後の返金・換金はできません。
         </p>
       </div>
     </div>
