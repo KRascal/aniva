@@ -7,6 +7,7 @@ import { track, EVENTS } from '@/lib/analytics';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
 import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';
 import { playSound } from '@/lib/sound-effects';
+import { CoinPurchaseModal } from '@/components/coins/CoinPurchaseModal';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface GachaBanner {
@@ -163,7 +164,7 @@ function PityProgressBar({ pity }: { pity: PityProgress }) {
       }}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-yellow-300">⭐ 天井カウント</span>
+        <span className="text-xs font-bold text-yellow-300 tracking-wide">PITY COUNT</span>
         <span className="text-xs text-gray-400">
           {pity.current} / {pity.ceiling}
         </span>
@@ -183,7 +184,7 @@ function PityProgressBar({ pity }: { pity: PityProgress }) {
       </div>
       <p className="text-xs text-gray-400 text-center">
         {remaining === 0
-          ? '🎉 次回 UR 確定！'
+          ? 'NEXT UR GUARANTEED'
           : `あと ${remaining} 回で ${pity.guaranteedRarity} 確定`}
       </p>
     </div>
@@ -213,6 +214,7 @@ export function GachaContent() {
   const [showParticles, setShowParticles] = useState(false);
   // コレクション関連state廃止（/cardsに統一）
   const [showPackOpening, setShowPackOpening] = useState(false);
+  const [showCoinPurchase, setShowCoinPurchase] = useState(false);
 
   // Load banners
   useEffect(() => {
@@ -376,20 +378,17 @@ export function GachaContent() {
         style={{ background: 'rgba(3,7,18,0.95)', backdropFilter: 'blur(12px)' }}
       >
         <div className="max-w-lg mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+          <h1 className="text-lg font-black text-white flex-1 tracking-tight">GACHA</h1>
           <button
-            onClick={() => router.back()}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
+            onClick={() => setShowCoinPurchase(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
           >
-            ←
-          </button>
-          <h1 className="text-lg font-black text-white flex-1">🎰 ガチャ</h1>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ background: 'rgba(250,204,21,0.12)', border: '1px solid rgba(250,204,21,0.25)' }}
-          >
-            <span className="text-yellow-400 text-xs">🪙</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-400">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8M8 14h8" strokeLinecap="round"/>
+            </svg>
             <span className="text-yellow-300 text-sm font-bold">{coinBalance.toLocaleString()}</span>
-          </div>
+          </button>
         </div>
 
         {/* コレクションタブ廃止済み（/cardsに統一） */}
@@ -402,8 +401,13 @@ export function GachaContent() {
             {/* Banner selector */}
             {banners.length === 0 ? (
               <div className="text-center py-16">
-                <div className="text-5xl mb-4">🎰</div>
-                <p className="text-gray-400">現在開催中のガチャはありません</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.15))', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-purple-400">
+                    <rect x="2" y="6" width="20" height="12" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M2 10h20"/>
+                  </svg>
+                </div>
+                <p className="text-gray-400 text-sm">現在開催中のガチャはありません</p>
               </div>
             ) : (
               <>
@@ -460,10 +464,15 @@ export function GachaContent() {
                         }}
                       >
                         <div className="text-center">
-                          <p className="text-4xl mb-1">🎰</p>
-                          <p className="text-white font-bold text-lg">{selectedBanner.name}</p>
+                          <div className="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center"
+                            style={{ background: 'rgba(255,255,255,0.08)' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/60">
+                              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                            </svg>
+                          </div>
+                          <p className="text-white font-bold text-lg tracking-tight">{selectedBanner.name}</p>
                           {selectedBanner.franchise && (
-                            <p className="text-white/50 text-xs">{selectedBanner.franchise}</p>
+                            <p className="text-white/40 text-[11px] font-medium tracking-wider uppercase">{selectedBanner.franchise}</p>
                           )}
                         </div>
                       </div>
@@ -483,7 +492,7 @@ export function GachaContent() {
                       <div className="rounded-xl p-3 mb-3 text-red-300 text-sm text-center"
                         style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}
                       >
-                        ⚠️ {error}
+                        {error}
                       </div>
                     )}
 
@@ -504,13 +513,9 @@ export function GachaContent() {
                           border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
-                        {freeAvailable && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            FREE
-                          </span>
-                        )}
-                        <span className="block text-lg mb-0.5">🎁</span>
-                        <span className="text-xs">無料</span>
+                        {/* FREE badge removed — button itself says FREE */}
+                        <span className="block text-sm font-black mb-0.5 tracking-tight">FREE</span>
+                        <span className="text-[10px] opacity-80">1日1回</span>
                       </button>
 
                       {/* 1 pull */}
@@ -529,8 +534,8 @@ export function GachaContent() {
                           border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
-                        <span className="block text-lg mb-0.5">×1</span>
-                        <span className="text-xs">🪙{selectedBanner.costCoins}</span>
+                        <span className="block text-sm font-black mb-0.5">×1</span>
+                        <span className="text-[10px] opacity-80">{selectedBanner.costCoins} coin</span>
                       </button>
 
                       {/* 10 pull */}
@@ -548,11 +553,12 @@ export function GachaContent() {
                           border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
-                        <span className="absolute -top-1.5 -right-1.5 bg-yellow-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                          お得
+                        <span className="absolute -top-1 -right-1 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'linear-gradient(135deg, #f59e0b, #dc2626)', letterSpacing: '0.05em' }}>
+                          BEST
                         </span>
-                        <span className="block text-lg mb-0.5">×10</span>
-                        <span className="text-xs">🪙{selectedBanner.cost10Coins}</span>
+                        <span className="block text-sm font-black mb-0.5">×10</span>
+                        <span className="text-[10px] opacity-80">{selectedBanner.cost10Coins} coin</span>
                       </button>
                     </div>
 
@@ -610,7 +616,7 @@ export function GachaContent() {
                           {/* NEW badge effect */}
                           {result.isNew && flippedCards[i] && (
                             <div className="text-center mt-1">
-                              <span className="text-[10px] text-green-400 font-bold">✨ 初ゲット！</span>
+                              <span className="text-[10px] text-green-400 font-bold tracking-wide">NEW</span>
                             </div>
                           )}
                         </div>
@@ -625,6 +631,13 @@ export function GachaContent() {
 
         {/* コレクションタブ廃止（/cardsに統一） */}
       </main>
+
+      {/* コイン購入モーダル */}
+      <CoinPurchaseModal
+        isOpen={showCoinPurchase}
+        onClose={() => setShowCoinPurchase(false)}
+        currentBalance={coinBalance}
+      />
     </div>
   );
 }
