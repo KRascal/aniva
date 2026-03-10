@@ -52,7 +52,11 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
       const res = await fetch('/api/coins/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkg.id }),
+        body: JSON.stringify({
+          packageId: pkg.id,
+          successUrl: window.location.href.split('?')[0] + '?coin_purchase=success',
+          cancelUrl: window.location.href.split('?')[0],
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Purchase failed');

@@ -48,10 +48,11 @@ export async function POST(req: NextRequest) {
         });
 
         const newBalance = coinBalance.balance + coinPackage.coinAmount;
+        const newPaidBalance = coinBalance.paidBalance + coinPackage.coinAmount;
 
         await tx.coinBalance.update({
           where: { userId },
-          data: { balance: newBalance },
+          data: { balance: newBalance, paidBalance: newPaidBalance },
         });
 
         await tx.coinTransaction.create({

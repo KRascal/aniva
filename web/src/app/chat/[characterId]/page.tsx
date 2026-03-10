@@ -502,16 +502,34 @@ export default function ChatCharacterPage() {
     return () => { audioRef.current?.pause(); };
   }, []);
 
-  // Safari bfcache対策: ページ復元時にフルリロード
+  // Safari bfcache対策 + Stripe戻り対策: ページ復元時にデータ再取得
   useEffect(() => {
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         window.location.reload();
       }
     };
+    const handleFocus = () => {
+      // Stripe等の外部ページから戻った時にコイン残高・FC状態を再取得
+      fetch('/api/coins/balance').then(r => r.json()).then(d => {
+        if (d.balance !== undefined) setCoinBalance(d.balance);
+      }).catch(() => {});
+      if (characterId) {
+        fetch(`/api/relationship/${characterId}`).then(r => r.json()).then(d => {
+          if (d.relationship) {
+            setRelationship(d.relationship);
+            if (d.relationship.id) setRelationshipId(d.relationship.id);
+          }
+        }).catch(() => {});
+      }
+    };
     window.addEventListener('pageshow', handlePageShow);
-    return () => window.removeEventListener('pageshow', handlePageShow);
-  }, []);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [characterId]);
 
   /* FC決済完了後のお祝いモーダル表示 / プロフィールからのFC加入リダイレクト */
   useEffect(() => {
