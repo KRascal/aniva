@@ -51,9 +51,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           userId,
           characterId: body.characterId,
           status: 'ACTIVE',
-          tier: 'FC',
-          priceJpy: 0,
-          startedAt: new Date(),
+          pricePaidJpy: 0,
+          currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         },
       });

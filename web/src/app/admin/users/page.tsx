@@ -432,7 +432,7 @@ export default function UsersPage() {
                                       });
                                       if (res.ok) {
                                         alert('FC加入を付与しました');
-                                        fetchUserDetail(selectedUser.id);
+                                        loadDetail(selectedUser.id);
                                       } else {
                                         const data = await res.json();
                                         alert(data.error || 'エラー');

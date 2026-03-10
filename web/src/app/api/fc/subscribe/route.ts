@@ -77,9 +77,8 @@ export async function POST(req: NextRequest) {
           userId,
           characterId,
           status: 'ACTIVE',
-          tier: 'FC',
-          priceJpy,
-          startedAt: new Date(),
+          pricePaidJpy: priceJpy,
+          currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });

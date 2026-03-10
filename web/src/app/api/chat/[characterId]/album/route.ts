@@ -26,7 +26,7 @@ export async function GET(
 
     // Find conversation
     const conversation = await prisma.conversation.findFirst({
-      where: { userId, characterId },
+      where: { relationship: { userId, characterId } },
       select: { id: true },
     });
 

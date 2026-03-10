@@ -68,7 +68,7 @@ export async function POST(
       const existing = await tx.message.findFirst({
         where: {
           conversationId: conversation.id,
-          role: 'assistant',
+          role: 'CHARACTER',
           content: message.content,
           metadata: { path: ['proactiveMessageId'], equals: message.id },
         },
@@ -77,7 +77,7 @@ export async function POST(
         await tx.message.create({
           data: {
             conversationId: conversation.id,
-            role: 'assistant',
+            role: 'CHARACTER',
             content: message.content,
             metadata: { proactiveMessageId: message.id, type: 'proactive' },
           },
