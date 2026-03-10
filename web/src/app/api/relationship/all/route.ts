@@ -25,6 +25,9 @@ export async function GET() {
         lastMessageAt: true,
         isFollowing: true,
         isFanclub: true,
+        isPinned: true,
+        isMuted: true,
+        pinnedAt: true,
         character: {
           select: { name: true, slug: true, avatarUrl: true },
         },
@@ -51,6 +54,9 @@ export async function GET() {
       lastMessageAt: Date | null;
       isFollowing: boolean;
       isFanclub: boolean;
+      isPinned: boolean;
+      isMuted: boolean;
+      pinnedAt: Date | null;
       character: { name: string; slug: string; avatarUrl: string | null };
       conversations: { messages: { content: string; role: string; createdAt: Date }[] }[];
     };
@@ -66,6 +72,9 @@ export async function GET() {
         lastMessageAt: r.lastMessageAt,
         isFollowing: r.isFollowing,
         isFanclub: r.isFanclub,
+        isPinned: r.isPinned ?? false,
+        isMuted: r.isMuted ?? false,
+        pinnedAt: r.pinnedAt,
         character: r.character,
         lastMessage: lastMsg ? { content: lastMsg.content, role: lastMsg.role } : null,
       };

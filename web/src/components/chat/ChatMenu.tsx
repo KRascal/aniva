@@ -120,6 +120,7 @@ interface MenuItem {
   onClick?: () => void;
   comingSoon?: boolean;
   accent?: string;
+  disabled?: boolean;
 }
 
 export function ChatMenu({
@@ -131,6 +132,8 @@ export function ChatMenu({
   onFcClick,
 }: ChatMenuProps) {
   const [showMemory, setShowMemory] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const menuItems: MenuItem[] = [
     {
@@ -170,22 +173,12 @@ export function ChatMenu({
     },
 
     {
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
-      label: 'メモリーブック',
-      sublabel: '二人の思い出アルバム',
-      href: `/memory-book/${characterId}`,
-      accent: 'text-purple-400 bg-purple-500/15',
-    },
-    {
       icon: <IconHeart />,
       label: 'ファンクラブ',
       sublabel: relationship?.isFanclub ? 'FC会員' : '未加入',
-      onClick: () => { onFcClick?.(); onClose(); },
-      accent: 'text-red-400 bg-red-500/15',
+      onClick: relationship?.isFanclub ? () => { onFcClick?.(); onClose(); } : undefined,
+      accent: relationship?.isFanclub ? 'text-red-400 bg-red-500/15' : 'text-gray-500 bg-gray-500/10',
+      disabled: !relationship?.isFanclub,
     },
     {
       icon: <IconChart />,
@@ -195,11 +188,15 @@ export function ChatMenu({
       accent: 'text-green-400 bg-green-500/15',
     },
     {
-      icon: <IconCog />,
-      label: '設定',
-      sublabel: 'アプリの設定',
-      href: '/settings',
-      accent: 'text-gray-400 bg-gray-500/15',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      ),
+      label: '会話リセット',
+      sublabel: 'AIの文脈をリセット',
+      onClick: () => setShowResetConfirm(true),
+      accent: 'text-orange-400 bg-orange-500/15',
     },
   ];
 
@@ -274,10 +271,17 @@ export function ChatMenu({
             );
 
             const baseClass = 'w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all text-left group';
-            const hoverClass = item.comingSoon
-              ? 'opacity-60 cursor-default'
+            const hoverClass = item.comingSoon || item.disabled
+              ? 'opacity-40 cursor-default'
               : 'hover:bg-white/6 active:bg-white/10 cursor-pointer';
 
+            if (item.disabled) {
+              return (
+                <div key={item.label} className={`${baseClass} ${hoverClass}`}>
+                  {content}
+                </div>
+              );
+            }
             if (item.onClick) {
               return (
                 <div key={item.label}>
@@ -314,6 +318,53 @@ export function ChatMenu({
           <p className="text-gray-600 text-xs text-center">ANIVA</p>
         </div>
       </div>
+
+      {/* 会話リセット確認ダイアログ */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowResetConfirm(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 mx-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <h3 className="text-white font-bold text-lg">会話をリセット</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                {character?.name ?? 'キャラ'}との会話のAI文脈をリセットします。メッセージ履歴は残りますが、キャラが新しい会話として始めます。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-gray-800 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                disabled={resetting}
+                onClick={async () => {
+                  setResetting(true);
+                  try {
+                    await fetch(`/api/chat/${characterId}/reset`, { method: 'POST' });
+                    setShowResetConfirm(false);
+                    onClose();
+                    // ページリロードで新しい会話を開始
+                    window.location.reload();
+                  } catch {
+                    alert('リセットに失敗しました');
+                  } finally {
+                    setResetting(false);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-500 disabled:opacity-50 transition-colors"
+              >
+                {resetting ? 'リセット中...' : 'リセットする'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

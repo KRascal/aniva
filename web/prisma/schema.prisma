@@ -210,6 +210,10 @@ model Relationship {
   streakLastDate       DateTime?
   pendingCliffhanger   Json?
   locale               String         @default("ja")
+  isPinned             Boolean        @default(false)   // チャット一覧でピン留め
+  pinnedAt             DateTime?                        // ピン留め日時（ソート用）
+  isMuted              Boolean        @default(false)   // 通知オフ
+  mutedUntil           DateTime?                        // 通知オフ期限（nullなら無期限）
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   user                 User           @relation(fields: [userId], references: [id])
@@ -224,6 +228,7 @@ model Relationship {
 model Conversation {
   id             String       @id @default(uuid())
   relationshipId String
+  isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   metadata       Json         @default("{}")

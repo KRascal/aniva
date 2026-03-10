@@ -581,7 +581,7 @@ export function ChatMessageList({
 
                     {/* 吹き出し本体 */}
                     <div
-                      className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-colors duration-500 select-none ${
+                      className={`px-3.5 py-2 text-[13px] leading-relaxed shadow-sm transition-colors duration-500 select-none ${
                         isUser
                           ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl rounded-tr-sm shadow-purple-900/30'
                           : `rounded-2xl rounded-tl-sm ${getCharacterBubbleStyle(emotion)} ${

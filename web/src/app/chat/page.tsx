@@ -44,6 +44,9 @@ interface RelationshipInfo {
   lastMessageAt: string | null;
   isFollowing?: boolean;
   isFanclub?: boolean;
+  isPinned?: boolean;
+  isMuted?: boolean;
+  pinnedAt?: string | null;
   character?: { name: string; slug: string; avatarUrl?: string | null };
   lastMessage?: { content: string; role: string } | null;
 }
@@ -54,12 +57,16 @@ function ChatRow({
   relationship,
   hasUnread,
   unreadCount = 0,
+  isPinned = false,
+  isMuted = false,
   onClick,
 }: {
   character: Character;
   relationship: RelationshipInfo;
   hasUnread: boolean;
   unreadCount?: number;
+  isPinned?: boolean;
+  isMuted?: boolean;
   onClick: () => void;
 }) {
   const lastMsg = relationship.lastMessage;
@@ -111,7 +118,9 @@ function ChatRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-bold text-white text-sm truncate">{character.name}</span>
-          <span className="text-[10px] text-gray-500 flex-shrink-0">{formatTime(lastAt)}</span>
+          {isPinned && <span className="text-[10px] flex-shrink-0" title="ピン留め">📌</span>}
+          {isMuted && <span className="text-[10px] flex-shrink-0" title="通知オフ">🔕</span>}
+          <span className="text-[10px] text-gray-500 flex-shrink-0 ml-auto">{formatTime(lastAt)}</span>
         </div>
         <p className="text-sm text-gray-400 truncate mt-0.5">
           {previewText}
@@ -127,6 +136,170 @@ function ChatRow({
         </div>
       )}
     </button>
+  );
+}
+
+/* ── Swipeable chat row wrapper ── */
+function SwipeableChatRow({
+  character,
+  relationship,
+  hasUnread,
+  unreadCount = 0,
+  isPinned = false,
+  isMuted = false,
+  onClick,
+  onPin,
+  onMute,
+  onUnfollow,
+}: {
+  character: Character;
+  relationship: RelationshipInfo;
+  hasUnread: boolean;
+  unreadCount?: number;
+  isPinned?: boolean;
+  isMuted?: boolean;
+  onClick: () => void;
+  onPin: () => void;
+  onMute: () => void;
+  onUnfollow: () => void;
+}) {
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const [swipeState, setSwipeState] = useState<'idle' | 'left-actions' | 'right-actions'>('idle');
+  const [translateX, setTranslateX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    setIsSwiping(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+
+    // 垂直スクロール優先: 横より縦の移動が大きい場合はスワイプしない
+    if (!isSwiping && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+      return;
+    }
+
+    if (Math.abs(deltaX) > 10) {
+      setIsSwiping(true);
+      // スワイプ状態がある場合は戻す方向のみ許可
+      if (swipeState === 'left-actions' && deltaX < 0) {
+        setTranslateX(Math.max(deltaX, -20));
+      } else if (swipeState === 'right-actions' && deltaX > 0) {
+        setTranslateX(Math.min(deltaX, 20));
+      } else if (swipeState === 'idle') {
+        setTranslateX(deltaX);
+      }
+    }
+  }, [isSwiping, swipeState]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isSwiping) {
+      // タップ → チャットへ遷移
+      if (swipeState !== 'idle') {
+        setSwipeState('idle');
+        setTranslateX(0);
+      } else {
+        onClick();
+      }
+      return;
+    }
+
+    const deltaX = translateX;
+    if (swipeState === 'idle') {
+      if (deltaX > 60) {
+        setSwipeState('left-actions');
+      } else if (deltaX < -60) {
+        setSwipeState('right-actions');
+      }
+    } else {
+      // 戻す
+      setSwipeState('idle');
+    }
+    setTranslateX(0);
+    setIsSwiping(false);
+  }, [isSwiping, translateX, swipeState, onClick]);
+
+  // 外部タップで閉じる
+  useEffect(() => {
+    if (swipeState === 'idle') return;
+    const handleOutside = (e: TouchEvent | MouseEvent) => {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setSwipeState('idle');
+      }
+    };
+    document.addEventListener('touchstart', handleOutside, { passive: true });
+    document.addEventListener('mousedown', handleOutside);
+    return () => {
+      document.removeEventListener('touchstart', handleOutside);
+      document.removeEventListener('mousedown', handleOutside);
+    };
+  }, [swipeState]);
+
+  const actionBtnBase = 'flex flex-col items-center justify-center gap-0.5 text-white text-[10px] font-semibold h-full min-w-[64px] px-3';
+
+  return (
+    <div ref={rowRef} className="relative overflow-hidden rounded-xl">
+      {/* 左アクション（右スワイプで表示）: ピン留め + 通知オフ */}
+      <div className="absolute inset-y-0 left-0 flex">
+        <button
+          onClick={() => { onPin(); setSwipeState('idle'); }}
+          className={`${actionBtnBase} ${isPinned ? 'bg-yellow-600' : 'bg-blue-600'}`}
+        >
+          <span className="text-base">{isPinned ? '📌' : '📌'}</span>
+          <span>{isPinned ? '解除' : 'ピン留め'}</span>
+        </button>
+        <button
+          onClick={() => { onMute(); setSwipeState('idle'); }}
+          className={`${actionBtnBase} ${isMuted ? 'bg-green-600' : 'bg-gray-600'}`}
+        >
+          <span className="text-base">{isMuted ? '🔔' : '🔕'}</span>
+          <span>{isMuted ? '通知ON' : '通知OFF'}</span>
+        </button>
+      </div>
+
+      {/* 右アクション（左スワイプで表示）: フォロー外し */}
+      <div className="absolute inset-y-0 right-0 flex">
+        <button
+          onClick={() => { onUnfollow(); setSwipeState('idle'); }}
+          className={`${actionBtnBase} bg-red-600`}
+        >
+          <span className="text-base">✕</span>
+          <span>フォロー外す</span>
+        </button>
+      </div>
+
+      {/* メインコンテンツ（スライドする） */}
+      <div
+        style={{
+          transform: `translateX(${
+            swipeState === 'left-actions' ? 128
+            : swipeState === 'right-actions' ? -72
+            : translateX
+          }px)`,
+          transition: isSwiping ? 'none' : 'transform 0.25s ease-out',
+        }}
+        className="relative z-10 bg-gray-950"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <ChatRow
+          character={character}
+          relationship={relationship}
+          hasUnread={hasUnread}
+          unreadCount={unreadCount}
+          isPinned={isPinned}
+          isMuted={isMuted}
+          onClick={() => {/* handled by touch end */}}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -843,9 +1016,19 @@ export default function ChatPage() {
             .sort((a, b) => {
               const relA = relationships.get(a.id);
               const relB = relationships.get(b.id);
+              // ピン留め優先: isPinned が true のものを先頭に
+              const pinnedA = relA?.isPinned ? 1 : 0;
+              const pinnedB = relB?.isPinned ? 1 : 0;
+              if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+              // 同じピン状態なら: ピン留め内は pinnedAt 新しい順、それ以外は lastMessageAt 新しい順
+              if (pinnedA && pinnedB) {
+                const pA = relA?.pinnedAt ? new Date(relA.pinnedAt).getTime() : 0;
+                const pB = relB?.pinnedAt ? new Date(relB.pinnedAt).getTime() : 0;
+                return pB - pA;
+              }
               const timeA = relA?.lastMessageAt ? new Date(relA.lastMessageAt).getTime() : 0;
               const timeB = relB?.lastMessageAt ? new Date(relB.lastMessageAt).getTime() : 0;
-              return timeB - timeA; // 最新が上
+              return timeB - timeA;
             });
 
           if (charsWithHistory.length === 0) {
@@ -929,26 +1112,80 @@ export default function ChatPage() {
           }
 
           return (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {charsWithHistory.map((character) => {
                 const rel = relationships.get(character.id)!;
-                // 最後にチャット画面を開いた時刻
                 const lastVisited = lastVisitMap.get(character.id) ?? 0;
-                // キャラからの最新メッセージが未読かどうか
                 const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
                 const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
                 const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
-                // キャラごとの未読proactiveメッセージ数
                 const charProactiveCount = proactiveMessages.filter(m => m.character?.id === character.id && !dismissedProactive.has(m.id)).length;
                 const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
                 return (
-                  <ChatRow
+                  <SwipeableChatRow
                     key={character.id}
                     character={character}
                     relationship={rel}
                     hasUnread={hasUnread || charProactiveCount > 0}
                     unreadCount={totalUnread}
-                    onClick={() => router.push(`/chat/${character.id}`)}
+                    isPinned={!!rel.isPinned}
+                    isMuted={!!rel.isMuted}
+                    onClick={() => router.push(`/chat/${character.slug || character.id}`)}
+                    onPin={async () => {
+                      const newPin = !rel.isPinned;
+                      try {
+                        const res = await fetch('/api/relationship/pin', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ characterId: character.id, pin: newPin }),
+                        });
+                        if (res.ok) {
+                          setRelationships(prev => {
+                            const next = new Map(prev);
+                            const updated = { ...rel, isPinned: newPin, pinnedAt: newPin ? new Date().toISOString() : null };
+                            next.set(character.id, updated);
+                            return next;
+                          });
+                        }
+                      } catch (err) {
+                        console.error('[ChatPage] pin error:', err);
+                      }
+                    }}
+                    onMute={async () => {
+                      const newMute = !rel.isMuted;
+                      try {
+                        const res = await fetch('/api/relationship/mute', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ characterId: character.id, mute: newMute }),
+                        });
+                        if (res.ok) {
+                          setRelationships(prev => {
+                            const next = new Map(prev);
+                            const updated = { ...rel, isMuted: newMute };
+                            next.set(character.id, updated);
+                            return next;
+                          });
+                        }
+                      } catch (err) {
+                        console.error('[ChatPage] mute error:', err);
+                      }
+                    }}
+                    onUnfollow={async () => {
+                      try {
+                        const res = await fetch(`/api/relationship/${character.id}/follow`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ follow: false }),
+                        });
+                        if (res.ok) {
+                          // 一覧から除外（isFollowing = false にして再フェッチ）
+                          loadChatList();
+                        }
+                      } catch (err) {
+                        console.error('[ChatPage] unfollow error:', err);
+                      }
+                    }}
                   />
                 );
               })}
