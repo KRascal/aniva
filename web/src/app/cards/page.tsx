@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCard';
+import { GachaContent } from '@/app/explore/gacha/page';
 
 // Error Boundary
 class TabErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean; error?: Error }> {
@@ -1087,7 +1088,7 @@ export default function CardsPage() {
             <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
           </div>
           <div className="w-1/2 min-h-[60vh]">
-            {activeTab === 'gacha' ? <TabErrorBoundary key="gacha"><GachaTab /></TabErrorBoundary> : <div />}
+            {activeTab === 'gacha' ? <TabErrorBoundary key="gacha"><GachaContent /></TabErrorBoundary> : <div />}
           </div>
         </div>
       </div>

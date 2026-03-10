@@ -195,7 +195,8 @@ function PityProgressBar({ pity }: { pity: PityProgress }) {
 // ── Main Page ──────────────────────────────────────────────────────────────
 // コレクションは /cards に統一済み。ガチャページはガチャのみ
 
-export default function GachaPage() {
+/** ガチャメインコンポーネント（/explore/gacha と /cards のガチャタブ共用） */
+export function GachaContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -626,4 +627,9 @@ export default function GachaPage() {
       </main>
     </div>
   );
+}
+
+/** Next.js page route */
+export default function GachaPage() {
+  return <GachaContent />;
 }
