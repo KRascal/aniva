@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { track, EVENTS } from '@/lib/analytics';
 import { DailyBonus } from '@/components/DailyBonus';
-// ProactiveMessagePanel 廃止（Keisuke指示 3/10）
+import { ProactiveMessagePanel } from '@/components/proactive/ProactiveMessagePanel';
 import { getTodayMainEvent } from '@/lib/today-events';
 import { getDailyState } from '@/lib/character-daily-state';
 import { useMissionTrigger } from '@/hooks/useMissionTrigger';
@@ -2071,7 +2071,14 @@ export default function ExplorePage() {
               {/* 今日のひとこと */}
               <TodayGreetingSection characters={characters} relationships={relationships} />
 
-              {/* 新着メッセージポップアップ廃止（Keisuke指示 3/10） */}
+              {/* 新着メッセージ（時間で消える） */}
+              {session?.user && (
+                <FadeSection delay={20}>
+                  <div className="mb-5">
+                    <ProactiveMessagePanel />
+                  </div>
+                </FadeSection>
+              )}
 
               {/* Hero banner — dynamic character avatars */}
               <FadeSection>
