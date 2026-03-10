@@ -705,6 +705,8 @@ export default function ChatCharacterPage() {
             }),
           ]);
           if (followRes.ok) {
+            // フォロー時にウェルカムメッセージ送信
+            fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
             const relRes2 = await fetch(`/api/relationship/${characterId}`);
             const relData2 = await relRes2.json();
             setRelationship(relData2);

@@ -248,7 +248,7 @@ export default function CollectionPage() {
                   : 'ガチャを引いてレアカードをゲットしよう'}
               </p>
               <Link
-                href="/explore/gacha"
+                href="/gacha"
                 className="px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95 inline-block"
                 style={{
                   background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(245,158,11,0.85))',

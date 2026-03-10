@@ -1111,6 +1111,8 @@ function FollowButton({
         onFollow(characterId, newFollowing);
         if (newFollowing) {
           track(EVENTS.CHARACTER_FOLLOWED, { characterId });
+          // フォロー時にウェルカムメッセージ送信
+          fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
         }
       }
     } catch {

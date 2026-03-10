@@ -358,11 +358,21 @@ function CommentRow({
   return (
     <div className="flex gap-2 py-1">
       <div className="flex-shrink-0">
-        <CommentAvatar comment={comment} />
+        {comment.characterId ? (
+          <a href={`/profile/${comment.character?.slug || comment.characterId}`}>
+            <CommentAvatar comment={comment} />
+          </a>
+        ) : (
+          <CommentAvatar comment={comment} />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="font-bold text-sm text-white leading-tight">{displayName}</span>
+          {comment.characterId ? (
+            <a href={`/profile/${comment.character?.slug || comment.characterId}`} className="font-bold text-sm text-white leading-tight hover:text-purple-300 transition-colors">{displayName}</a>
+          ) : (
+            <span className="font-bold text-sm text-white leading-tight">{displayName}</span>
+          )}
           {comment.characterId && (
             <svg className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -459,10 +469,25 @@ function CommentThread({
   onDelete: (commentId: string) => void;
 }) {
   const [showAllReplies, setShowAllReplies] = useState(false);
+  const [threadLiked, setThreadLiked] = useState(comment.userHasLiked ?? false);
+  const [threadLikeCount, setThreadLikeCount] = useState(comment.likeCount ?? 0);
   const replies = comment.replies ?? [];
   const AUTO_SHOW = 2;
   const visibleReplies = showAllReplies ? replies : replies.slice(0, AUTO_SHOW);
   const hiddenCount = replies.length - AUTO_SHOW;
+
+  const handleThreadLike = async () => {
+    setThreadLiked((prev) => !prev);
+    setThreadLikeCount((prev) => threadLiked ? prev - 1 : prev + 1);
+    try {
+      const res = await fetch(`/api/moments/${momentId}/comments/${comment.id}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setThreadLiked(data.liked);
+        setThreadLikeCount(data.likeCount);
+      }
+    } catch { /* revert handled by optimistic */ }
+  };
 
   const charName = comment.character?.name;
   const displayLabel =
@@ -478,13 +503,23 @@ function CommentThread({
       <div className="flex gap-2">
         {/* Avatar + thread line */}
         <div className="flex flex-col items-center flex-shrink-0" style={{ width: 32 }}>
-          <CommentAvatar comment={comment} />
+          {comment.characterId ? (
+            <a href={`/profile/${comment.character?.slug || comment.characterId}`}>
+              <CommentAvatar comment={comment} />
+            </a>
+          ) : (
+            <CommentAvatar comment={comment} />
+          )}
           {replies.length > 0 && <div className="w-px flex-1 bg-white/10 mt-1 min-h-[8px]" />}
         </div>
         {/* Content */}
         <div className="flex-1 min-w-0 pb-1">
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-bold text-sm text-white leading-tight">{parentDisplayName}</span>
+            {comment.characterId ? (
+              <a href={`/profile/${comment.character?.slug || comment.characterId}`} className="font-bold text-sm text-white leading-tight hover:text-purple-300 transition-colors">{parentDisplayName}</a>
+            ) : (
+              <span className="font-bold text-sm text-white leading-tight">{parentDisplayName}</span>
+            )}
             {comment.characterId && (
               <svg className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -514,10 +549,14 @@ function CommentThread({
               </svg>
               {replies.length > 0 && <span className="text-xs">{replies.length}</span>}
             </button>
-            <button className="flex items-center gap-1 text-white/30 hover:text-red-400 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <button
+              className={`flex items-center gap-1 transition-colors ${threadLiked ? 'text-red-400' : 'text-white/30 hover:text-red-400'}`}
+              onClick={handleThreadLike}
+            >
+              <svg className="w-3.5 h-3.5" fill={threadLiked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
+              {threadLikeCount > 0 && <span className="text-xs">{threadLikeCount}</span>}
             </button>
           </div>
           {replyingToId === comment.id && (
@@ -632,6 +671,10 @@ export function MomentCard({
       if (res.ok) {
         setFollowState(newFollowing);
         onFollowChange?.(moment.characterId, newFollowing);
+        // フォロー時にウェルカムメッセージ送信
+        if (newFollowing) {
+          fetch(`/api/relationship/${moment.characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
+        }
       }
     } catch { /* ignore */ } finally {
       setFollowLoading(false);

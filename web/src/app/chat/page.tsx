@@ -803,18 +803,18 @@ export default function ChatPage() {
 
         {/* チャット一覧 — 会話履歴のあるキャラのみ、最終トーク順 */}
         {(() => {
-          // 会話履歴があるキャラのみ（totalMessages > 0）
+          // フォロー中 or 会話履歴があるキャラを表示
           const charsWithHistory = characters
             .filter((c) => {
               const rel = relationships.get(c.id);
-              return rel && rel.totalMessages > 0;
+              return rel && (rel.isFollowing || rel.totalMessages > 0);
             })
             .sort((a, b) => {
               const relA = relationships.get(a.id);
               const relB = relationships.get(b.id);
               const timeA = relA?.lastMessageAt ? new Date(relA.lastMessageAt).getTime() : 0;
               const timeB = relB?.lastMessageAt ? new Date(relB.lastMessageAt).getTime() : 0;
-              return timeB - timeA; // 最新が上
+              return timeB - timeA; // 最新が上（フォローのみで会話なしは最下部）
             });
 
           if (charsWithHistory.length === 0) {

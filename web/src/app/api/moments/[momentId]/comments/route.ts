@@ -199,6 +199,20 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
       let replyContent = '';
+      // 投稿内容とコメントの両方をコンテキストに含める
+      const systemBase = (ownerChar.systemPrompt || '').split(/\n##/)[0].trim();
+      const systemPromptForReply = `${systemBase}
+
+あなたは今、自分がSNSに投稿した内容「${momentWithChar.content?.slice(0, 150) || ''}」に対してユーザーからコメントをもらった。
+そのコメントに対して、${ownerChar.name}として自然に返信してください。
+
+ルール:
+- 投稿の内容に関連した返答をする
+- コメント内容を正確に理解して返答する
+- 1〜2文の短い返答のみ。説明や前置きは不要
+- ${ownerChar.name}らしいキャラクターの口調・性格を維持する
+- 質問されたら答える、感想を言われたら反応する、の形で自然な会話にする`;
+
       if (xaiKey) {
         const res = await fetch('https://api.x.ai/v1/chat/completions', {
           method: 'POST',
@@ -206,11 +220,11 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           body: JSON.stringify({
             model: process.env.LLM_MODEL || 'grok-3-mini',
             messages: [
-              { role: 'system', content: `${(ownerChar.systemPrompt || '').split(/\n##/)[0].trim()}\n\n重要: 自分の投稿へのコメントへの返信として自然な1〜2文のみ出力。口調ルールは出力しない。` },
-              { role: 'user', content: `${userName}が「${content.slice(0, 100)}」とコメントしてくれた。${ownerChar.name}らしく短く返信してください。` },
+              { role: 'system', content: systemPromptForReply },
+              { role: 'user', content: `${userName}からのコメント: 「${content.slice(0, 150)}」\n\n${ownerChar.name}として短く返信してください。` },
             ],
-            max_tokens: 100,
-            temperature: 0.9,
+            max_tokens: 120,
+            temperature: 0.85,
           }),
         });
         const data = await res.json();
@@ -220,9 +234,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         const client = new Anthropic({ apiKey: anthropicKey });
         const response = await client.messages.create({
           model: 'claude-haiku-4-5',
-          max_tokens: 100,
-          system: `${(ownerChar.systemPrompt || '').split(/\n##/)[0].trim()}\n\n重要: 投稿へのコメントへの返信として自然な1〜2文のみ出力。`,
-          messages: [{ role: 'user', content: `${userName}が「${content.slice(0, 100)}」とコメントしてくれた。${ownerChar.name}らしく短く返信してください。` }],
+          max_tokens: 120,
+          system: systemPromptForReply,
+          messages: [{ role: 'user', content: `${userName}からのコメント: 「${content.slice(0, 150)}」\n\n${ownerChar.name}として短く返信してください。` }],
         });
         replyContent = (response.content[0] as { text: string }).text?.trim() || '';
       }

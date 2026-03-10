@@ -476,6 +476,10 @@ export default function ProfilePage() {
       const data = await res.json();
       setIsFollowing(data.isFollowing);
       if (data.followerCount !== undefined) setFollowerCount(data.followerCount);
+      // フォロー時にウェルカムメッセージ送信
+      if (data.isFollowing) {
+        fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
+      }
     } catch (err) {
       console.error('Follow error:', err);
     } finally {
