@@ -331,7 +331,7 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
               <img
                 src={currentImg}
                 alt={currentCard.card.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-900 text-6xl">🃏</div>

@@ -289,7 +289,7 @@ export default function CollectionPage() {
                         <img
                           src={imgSrc}
                           alt={uc.card.name}
-                          className="w-full aspect-square object-cover rounded-lg"
+                          className="w-full aspect-square object-cover object-top rounded-lg"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';

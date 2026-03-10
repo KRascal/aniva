@@ -822,12 +822,17 @@ model Notification {
 }
 
 model SemanticMemory {
-  id          String                      @id @default(uuid())
-  userId      String
-  characterId String
-  embedding   Unsupported("vector(512)")?
-  content     String
-  createdAt   DateTime                    @default(now())
+  id               String                      @id @default(uuid())
+  userId           String
+  characterId      String
+  embedding        Unsupported("vector(1536)")?
+  content          String
+  summary          String?
+  importance       Float                       @default(0.5)
+  emotionalValence Float                       @default(0.0)
+  category         String                      @default("conversation")
+  messageId        String?
+  createdAt        DateTime                    @default(now())
 
   @@index([userId, characterId])
 }

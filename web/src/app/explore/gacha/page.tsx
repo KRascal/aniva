@@ -222,7 +222,7 @@ function CollectionCard({ card }: { card: UserCard }) {
         <img
           src={card.card.cardImageUrl ?? card.card.imageUrl ?? ''}
           alt={card.card.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-top"
         />
       ) : card.card.character.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

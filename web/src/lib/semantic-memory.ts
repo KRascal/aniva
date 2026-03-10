@@ -8,9 +8,9 @@
 
 import { prisma } from './prisma';
 
-// Voyage voyage-3-lite = 512dim (primary provider)
-// DB column: vector(512) — matched to Voyage output
-const EMBEDDING_DIM = 512;
+// Local embedding server: intfloat/multilingual-e5-small = 1536dim
+// DB column: vector(1536) — matched to local server output
+const EMBEDDING_DIM = 1536;
 const MAX_MEMORIES_PER_QUERY = 5;
 const MIN_SIMILARITY = 0.72; // cosine similarity threshold
 const LOCAL_EMBEDDING_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhost:3075/v1/embeddings';

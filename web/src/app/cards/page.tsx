@@ -149,9 +149,9 @@ function HoloCardThumbnail({ oc, onClick }: { oc: OwnedCard; onClick: () => void
     >
       {/* Card image or avatar fallback */}
       {oc.card.imageUrl ? (
-        <img src={oc.card.imageUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover" />
+        <img src={oc.card.imageUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
       ) : oc.card.character?.avatarUrl ? (
-        <img src={oc.card.character.avatarUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover" />
+        <img src={oc.card.character.avatarUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
       ) : (
         <div className={`absolute inset-0 bg-gradient-to-br ${style.bg} opacity-30`} />
       )}
@@ -303,10 +303,10 @@ function CardDetailModal({ card, onClose }: { card: OwnedCard; onClose: () => vo
           {/* Image */}
           {card.card.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.card.imageUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover" />
+            <img src={card.card.imageUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
           ) : card.card.character?.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.card.character.avatarUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover" />
+            <img src={card.card.character.avatarUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
           ) : (
             <div className={`absolute inset-0 bg-gradient-to-br ${style.bg} opacity-40`} />
           )}
