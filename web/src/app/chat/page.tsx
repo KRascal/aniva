@@ -1007,11 +1007,11 @@ export default function ChatPage() {
 
         {/* チャット一覧 — 会話履歴のあるキャラのみ、最終トーク順 */}
         {(() => {
-          // 会話履歴があるキャラのみ（totalMessages > 0）
+          // フォロー中 or 会話履歴があるキャラを表示
           const charsWithHistory = characters
             .filter((c) => {
               const rel = relationships.get(c.id);
-              return rel && rel.totalMessages > 0;
+              return rel && (rel.isFollowing || rel.totalMessages > 0);
             })
             .sort((a, b) => {
               const relA = relationships.get(a.id);

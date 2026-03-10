@@ -7,10 +7,10 @@ import { prisma } from './prisma';
 
 // コイン換算レート
 const SCORE_RATES = {
-  CHAT_NON_FC: 0,       // 非FC: チャットはスコアなし
-  CHAT_FC: 2,           // FC: 1通 = 2コイン相当
-  CALL_NON_FC: 0,       // 非FC: 通話はスコアなし
-  CALL_FC_PER_MIN: 10,  // FC: 1分 = 10コイン相当
+  CHAT_NON_FC: 1,       // 非FC: 1通 = 1スコア（ランキングに参加できる）
+  CHAT_FC: 3,           // FC: 1通 = 3スコア（FC優遇）
+  CALL_NON_FC: 3,       // 非FC: 1分 = 3スコア
+  CALL_FC_PER_MIN: 10,  // FC: 1分 = 10スコア
   GIFT: 1,              // ギフティング: 1円 = 1スコア
   LOGIN_NON_FC: 5,
   LOGIN_FC: 10,
@@ -68,7 +68,7 @@ async function upsertScore(
  */
 export async function addChatScore(userId: string, characterId: string, isFcMember: boolean) {
   const score = isFcMember ? SCORE_RATES.CHAT_FC : SCORE_RATES.CHAT_NON_FC;
-  if (score === 0) return;
+  if (!score) return;
 
   await Promise.all([
     upsertScore(userId, characterId, 'monthly', { chat: score }),

@@ -84,7 +84,14 @@ export default function DiscoverPage() {
     // 右スワイプ = フォロー
     if (direction === 'right' && char) {
       setFollowedIds(prev => [...prev, char.id]);
-      fetch(`/api/relationship/${char.slug}/follow`, { method: 'POST' }).catch(() => {});
+      fetch(`/api/relationship/${char.slug}/follow`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.isFollowing) {
+            fetch(`/api/relationship/${char.slug}/follow-welcome`, { method: 'POST' }).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }
 
     setTimeout(() => {
@@ -365,7 +372,14 @@ export default function DiscoverPage() {
           onClick={() => {
             if (currentChar) {
               // フォロー + チャットに直行
-              fetch(`/api/relationship/${currentChar.slug}/follow`, { method: 'POST' }).catch(() => {});
+              fetch(`/api/relationship/${currentChar.slug}/follow`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.isFollowing) {
+                    fetch(`/api/relationship/${currentChar.slug}/follow-welcome`, { method: 'POST' }).catch(() => {});
+                  }
+                })
+                .catch(() => {});
               setFollowedIds(prev => [...prev, currentChar.id]);
               router.push(`/chat/${currentChar.id}`);
             }
