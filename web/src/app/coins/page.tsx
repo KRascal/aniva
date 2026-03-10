@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import CoinsPageClient from './CoinsPageClient';
+
+export const metadata: Metadata = {
+  title: 'コイン | ANIVA',
+  description: 'コインを購入してキャラクターとの体験を広げよう',
+};
 
 export const dynamic = 'force-dynamic';
 
