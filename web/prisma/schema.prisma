@@ -57,6 +57,8 @@ model User {
   rankingScores          RankingScore[]
   letterDeliveries       LetterDelivery[]
   deepReplyQueue         DeepReplyQueue[]
+  fanThreads             FanThread[]
+  fanReplies             FanReply[]
 }
 
 model PushSubscription {
@@ -187,6 +189,8 @@ model Character {
   guardrailRules          GuardrailRule[]
   deepReplyQueue          DeepReplyQueue[]
   relationshipGraph       CharacterRelationshipGraph[]
+  fanThreads              FanThread[]
+  fanReplies              FanReply[]     @relation("FanReplyCharacter")
 }
 
 model SecretContent {
@@ -1309,4 +1313,51 @@ model CharacterRelationshipGraph {
 
   @@unique([characterId, relatedName])
   @@index([characterId])
+}
+
+// ============================================
+// ファン掲示板（キャラごとのコミュニティ）
+// ============================================
+
+model FanThread {
+  id           String       @id @default(cuid())
+  characterId  String
+  character    Character    @relation(fields: [characterId], references: [id])
+  userId       String?      // null = キャラが立てたスレッド
+  user         User?        @relation(fields: [userId], references: [id])
+  title        String
+  content      String       @db.Text
+  category     String       @default("general") // general | discussion | fanart | question | event
+  isPinned     Boolean      @default(false)
+  isLocked     Boolean      @default(false)
+  viewCount    Int          @default(0)
+  replyCount   Int          @default(0)
+  lastReplyAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  replies      FanReply[]
+
+  @@index([characterId, createdAt])
+  @@index([characterId, isPinned])
+  @@index([category])
+}
+
+model FanReply {
+  id           String       @id @default(cuid())
+  threadId     String
+  thread       FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId       String?      // null = キャラの返信
+  user         User?        @relation(fields: [userId], references: [id])
+  characterId  String?      // non-null = キャラの返信
+  character    Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
+  content      String       @db.Text
+  parentId     String?      // ネスト返信用
+  parent       FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
+  children     FanReply[]   @relation("FanReplyNested")
+  likes        Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([userId])
 }

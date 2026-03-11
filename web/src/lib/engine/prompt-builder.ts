@@ -14,6 +14,9 @@ import type {
 import { type DailyEventType } from '../daily-event-system';
 import { getMemoryInstructions } from './memory-manager';
 import { getCharacterEmotionContext } from './emotion';
+import { getSeasonalPromptContext } from '../seasonal-event-system';
+import { getGrowthContext } from '../character-growth-system';
+import { buildImageMemoryContext } from '../multimodal-memory';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -532,6 +535,7 @@ export function buildSystemPrompt(
   semanticMemoryContext: string = '',
   bibleContext: string = '',
   loreContext: string = '',
+  memorySummary?: Record<string, unknown> | null,
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -575,6 +579,11 @@ export function buildSystemPrompt(
     characterContext?.personality?.name || character.name,
     dailyFanCount,
   );
+
+  // 季節イベント + キャラ成長 + 画像メモリ
+  const seasonalContext = getSeasonalPromptContext(character.slug);
+  const growthContext = getGrowthContext(character.slug, memory.level, memory.totalMessages ?? 0);
+  const imageMemoryCtx = buildImageMemoryContext(memorySummary ?? null);
 
   return `${soulContent}
 ${bibleContext}
@@ -652,6 +661,10 @@ ${cliffhangerFollowUp ? `## 【重要】昨日の予告の続き（ツァイガ�
 ${otherFansContext}
 
 ${getSpecialDayContext(character, memory)}
+
+${seasonalContext}
+${growthContext}
+${imageMemoryCtx}
 
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;

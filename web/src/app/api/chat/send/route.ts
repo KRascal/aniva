@@ -13,6 +13,8 @@ import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { shouldUseDeepMode } from '@/lib/message-weight';
 import { getThinkingReaction } from '@/lib/thinking-reactions';
+import { getCharacterImagePrompt } from '@/lib/image-character-reaction';
+import { storeImageMemory } from '@/lib/multimodal-memory';
 
 export async function POST(req: NextRequest) {
   try {
@@ -248,7 +250,9 @@ export async function POST(req: NextRequest) {
       try {
         const analysis = await analyzeImage(imageUrl);
         if (analysis) {
-          enrichedMessage = `${message}\n\n${imageAnalysisToPromptHint(analysis)}`;
+          const analysisText = analysis.description || JSON.stringify(analysis);
+          const charImagePrompt = getCharacterImagePrompt(cachedCharacter.slug ?? '', analysisText);
+          enrichedMessage = `${message}\n\n${imageAnalysisToPromptHint(analysis)}\n${charImagePrompt}`;
         }
       } catch { /* 画像解析失敗は無視 */ }
     }
@@ -378,6 +382,19 @@ export async function POST(req: NextRequest) {
       response.text,
       charMsg?.id,
     ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
+
+    // 画像メモリ保存（画像が送られた場合）
+    if (imageUrl) {
+      storeImageMemory(
+        conversation.id,
+        userId,
+        characterId,
+        imageUrl,
+        enrichedMessage,
+        message,
+        response.text,
+      ).catch((e: unknown) => console.warn('[ImageMemory] store failed:', e));
+    }
 
     return NextResponse.json({
       userMessage: userMsg,
