@@ -56,6 +56,7 @@ model User {
   notifications          Notification[]
   rankingScores          RankingScore[]
   letterDeliveries       LetterDelivery[]
+  deepReplyQueue         DeepReplyQueue[]
 }
 
 model PushSubscription {
@@ -184,6 +185,8 @@ model Character {
   emergencyStopBy         String?
   approvalRequests        ApprovalRequest[]
   guardrailRules          GuardrailRule[]
+  deepReplyQueue          DeepReplyQueue[]
+  relationshipGraph       CharacterRelationshipGraph[]
 }
 
 model SecretContent {
@@ -1253,4 +1256,57 @@ model AdminAuditLog {
   @@index([adminUserId, createdAt])
   @@index([targetType, targetId])
   @@index([action, createdAt])
+}
+
+// ============================================
+// Deep Chat — 非同期チャットパイプライン
+// ============================================
+
+model DeepReplyQueue {
+  id              String          @id @default(cuid())
+  userId          String
+  characterId     String
+  relationshipId  String
+  conversationId  String
+  userMessageId   String
+  thinkingMsgId   String
+  status          DeepReplyStatus @default(QUEUED)
+  priority        Int             @default(0)
+  attempts        Int             @default(0)
+  maxAttempts     Int             @default(3)
+  result          Json?
+  error           String?
+  scheduledAt     DateTime        @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+
+  user            User            @relation(fields: [userId], references: [id])
+  character       Character       @relation(fields: [characterId], references: [id])
+
+  @@index([status, scheduledAt])
+  @@index([userId, characterId])
+}
+
+enum DeepReplyStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model CharacterRelationshipGraph {
+  id               String    @id @default(cuid())
+  characterId      String
+  relatedName      String
+  relationshipType String
+  description      String    @db.Text
+  keyEpisodes      Json      @default("[]")
+  emotionalBond    String?
+
+  character        Character @relation(fields: [characterId], references: [id])
+
+  @@unique([characterId, relatedName])
+  @@index([characterId])
 }

@@ -271,6 +271,88 @@ export function getSpecialDayContext(character: CharacterRecord, memory: MemoryC
     }
   }
 
+  // ──────────────────────────────────────────────────
+  // 季節イベント連動システム
+  // 日本の年間行事にキャラが自然に反応する
+  // ──────────────────────────────────────────────────
+  const month = jst.getUTCMonth() + 1;
+  const day = jst.getUTCDate();
+
+  const seasonalEvents: Array<{ startMM_DD: string; endMM_DD: string; event: string; instruction: string }> = [
+    // 正月
+    { startMM_DD: '01-01', endMM_DD: '01-03', event: '🎍 お正月',
+      instruction: `お正月の雰囲気を出す。「あけましておめでとう！」「今年もよろしくな！」。おせち・初詣・お年玉の話題を自然に。新年の抱負を語ってもいい。` },
+    // バレンタインデー
+    { startMM_DD: '02-13', endMM_DD: '02-14', event: '💝 バレンタインデー',
+      instruction: `バレンタインを意識した会話。チョコの話題を自然に出す。キャラの性格に合った反応で（照れる/鈍感/積極的/クール等）。2/14は特にテンション変化。` },
+    // ひな祭り
+    { startMM_DD: '03-03', endMM_DD: '03-03', event: '🎎 ひな祭り',
+      instruction: `ひな祭りに軽く触れる。女性キャラは嬉しそう、男性キャラは「なんの日だっけ？」でもいい。` },
+    // ホワイトデー
+    { startMM_DD: '03-14', endMM_DD: '03-14', event: '🤍 ホワイトデー',
+      instruction: `ホワイトデーを意識。お返しの話題。バレンタインの記憶があれば触れる。` },
+    // エイプリルフール
+    { startMM_DD: '04-01', endMM_DD: '04-01', event: '🤡 エイプリルフール',
+      instruction: `嘘をついてもいい日！キャラらしい冗談やいたずらを仕掛ける。最後に「嘘だけどな！」。普段真面目なキャラほど面白い。` },
+    // 花見シーズン
+    { startMM_DD: '03-25', endMM_DD: '04-10', event: '🌸 お花見シーズン',
+      instruction: `桜の話題を自然に。「花見行きてぇな」「桜きれいだな」。春の陽気とワクワク感。` },
+    // こどもの日
+    { startMM_DD: '05-05', endMM_DD: '05-05', event: '🎏 こどもの日',
+      instruction: `こどもの日に軽く触れる。「柏餅食いてぇ」「鯉のぼりすげぇ！」等。` },
+    // 七夕
+    { startMM_DD: '07-07', endMM_DD: '07-07', event: '🎋 七夕',
+      instruction: `七夕を意識。願い事の話題。「お前は何を願うんだ？」。星空やロマンチックな雰囲気。短冊に書く願い事をキャラらしく。` },
+    // 夏（海・花火）
+    { startMM_DD: '07-20', endMM_DD: '08-31', event: '🏖️ 夏！',
+      instruction: `夏の話題を自然に。海・花火・かき氷・スイカ・お祭り・浴衣。「暑いな〜」「海行きてぇ」。夏祭りや花火大会の話。` },
+    // お盆
+    { startMM_DD: '08-13', endMM_DD: '08-16', event: '🏮 お盆',
+      instruction: `お盆の時期。少し落ち着いた雰囲気。故人を偲ぶキャラもいる。帰省の話題。` },
+    // 敬老の日付近
+    { startMM_DD: '09-15', endMM_DD: '09-15', event: '👴 敬老の日',
+      instruction: `年長者への敬意の話題を自然に。師匠や恩人の話。` },
+    // ハロウィン
+    { startMM_DD: '10-28', endMM_DD: '10-31', event: '🎃 ハロウィン',
+      instruction: `ハロウィンを意識！仮装・お菓子・ホラーの話題。「トリックオアトリート！」。キャラらしい仮装を提案しても面白い。10/31が本番。` },
+    // クリスマスシーズン
+    { startMM_DD: '12-20', endMM_DD: '12-25', event: '🎄 クリスマス',
+      instruction: `クリスマスの雰囲気全開。プレゼント・ケーキ・イルミネーション。12/24-25は特別テンション。「メリークリスマス！」。キャラらしいクリスマスの過ごし方を語る。普段クールなキャラも少し優しくなる。` },
+    // 大晦日
+    { startMM_DD: '12-31', endMM_DD: '12-31', event: '🔔 大晦日',
+      instruction: `年末の雰囲気。1年の振り返り。「今年もいい年だったな」「来年もよろしくな」。紅白・年越しそば・除夜の鐘の話題。カウントダウン感。` },
+  ];
+
+  for (const se of seasonalEvents) {
+    const [sM, sD] = se.startMM_DD.split('-').map(Number);
+    const [eM, eD] = se.endMM_DD.split('-').map(Number);
+    const start = sM * 100 + sD;
+    const end = eM * 100 + eD;
+    const today = month * 100 + day;
+
+    // 年跨ぎ対応（大晦日→正月等）
+    const inRange = start <= end
+      ? (today >= start && today <= end)
+      : (today >= start || today <= end);
+
+    if (inRange) {
+      parts.push(`## ${se.event}
+- ${se.instruction}
+- キャラクターの性格に合った自然なリアクションで。無理に話題にしなくていいが、会話の流れで触れると「この世界で生きてる」感が出る。`);
+    }
+  }
+
+  // 季節感（春夏秋冬の空気感）
+  if (month >= 3 && month <= 5) {
+    parts.push(`- 【季節】春。暖かくなってきた空気感。新しい始まりの予感。`);
+  } else if (month >= 6 && month <= 8) {
+    parts.push(`- 【季節】夏。暑さ、開放感、エネルギッシュ。`);
+  } else if (month >= 9 && month <= 11) {
+    parts.push(`- 【季節】秋。涼しくなってきた。紅葉、食欲の秋、少し寂しげ。`);
+  } else {
+    parts.push(`- 【季節】冬。寒い。温かいものが恋しい。人肌恋しい季節。`);
+  }
+
   return parts.join('\n\n');
 }
 

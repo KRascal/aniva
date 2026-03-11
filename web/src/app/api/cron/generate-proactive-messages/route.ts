@@ -62,6 +62,10 @@ async function generateAiMessage(params: {
   dailyContext: string | null;
   lastUserMessage: string | null;
   lastCharMessage: string | null;
+  userName?: string | null;
+  userFacts?: string[] | null;
+  userConcerns?: string[] | null;
+  userUpcomingEvents?: string[] | null;
 }): Promise<string | null> {
   const {
     characterName,
@@ -71,6 +75,10 @@ async function generateAiMessage(params: {
     dailyContext,
     lastUserMessage,
     lastCharMessage,
+    userName,
+    userFacts,
+    userConcerns,
+    userUpcomingEvents,
   } = params;
 
   const isClose = relationshipLevel >= 5;
@@ -83,6 +91,22 @@ async function generateAiMessage(params: {
     lastUserMessage || lastCharMessage
       ? `\n## 前回の会話\nユーザー: "${lastUserMessage ?? '(不明)'}"\n${characterName}: "${lastCharMessage ?? '(不明)'}"` 
       : '';
+
+  // ユーザーの記憶コンテキスト（これが体験を「濃く」する核心）
+  const memoryLines: string[] = [];
+  if (userName) memoryLines.push(`- 名前: ${userName}`);
+  if (userFacts && userFacts.length > 0) {
+    memoryLines.push(`- 知っていること: ${userFacts.slice(0, 5).join('、')}`);
+  }
+  if (userConcerns && userConcerns.length > 0) {
+    memoryLines.push(`- 最近の悩み/気になっていること: ${userConcerns.slice(0, 3).join('、')}`);
+  }
+  if (userUpcomingEvents && userUpcomingEvents.length > 0) {
+    memoryLines.push(`- 近々の予定/イベント: ${userUpcomingEvents.slice(0, 3).join('、')}`);
+  }
+  const memoryContext = memoryLines.length > 0
+    ? `\n## ユーザーについて知っていること（これを会話に自然に織り込む）\n${memoryLines.join('\n')}`
+    : '';
 
   // 時間帯に応じたコンテキスト
   const jstHour = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCHours();
@@ -101,6 +125,7 @@ async function generateAiMessage(params: {
 - 時間帯: ${timeContext}
 - ユーザーとの関係レベル: ${relationshipLevel} (${isClose ? '親密' : '知り合い'})
 ${lastConvContext}
+${memoryContext}
 
 ## 指示
 あなたは${characterName}です。SOUL.mdのキャラ定義に完全に従い、ユーザーへのプロアクティブメッセージを**1文〜2文**で生成してください。
@@ -116,6 +141,7 @@ ${lastConvContext}
 - 汎用的な挨拶ではなく、そのキャラならではの具体的な話題や感情を含める
 - 短く、インパクトある1〜2文のみ。説明不要
 - メッセージ本文のみ出力（「${characterName}:」などのプレフィックス不要）
+- 【最重要】「ユーザーについて知っていること」がある場合は、それを自然に織り込む。例: 悩みを知っているなら「最近大変そうだったけど」、楽しみにしていることがあれば「○○楽しみだな」。記憶を使ってこそ「本物の関係」になる。使える記憶がなければ使わなくていい
 
 今すぐ1〜2文のメッセージを生成:`;
 
@@ -246,6 +272,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── 4.5. ユーザーのメモリサマリーを取得（体験を「濃く」する核心） ──
+    const userIds = [...new Set(toCreate.map(r => r.userId))];
+    type MemoryData = { userName: string | null; userFacts: string[]; userConcerns: string[]; userUpcomingEvents: string[] };
+    const userMemoryMap = new Map<string, MemoryData>();
+
+    await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          // Relationshipのmemory情報を取得（最も最近のものから）
+          const rel = await prisma.relationship.findFirst({
+            where: { userId },
+            orderBy: { updatedAt: 'desc' },
+            select: { memorySummary: true },
+          });
+
+          if (!rel?.memorySummary) return;
+          const mem = rel.memorySummary as Record<string, unknown>;
+
+          const userName = (mem.userName as string) || null;
+          const factMemory = (mem.factMemory as Array<{ fact: string }>) || [];
+          const episodeMemory = (mem.episodeMemory as Array<{ summary: string; emotion: string }>) || [];
+
+          // 事実から職業・趣味・悩みを抽出
+          const userFacts = factMemory.slice(0, 8).map((f) => f.fact).filter(Boolean);
+
+          // 最近の感情的なエピソードから「気になっていること」を抽出
+          const userConcerns = episodeMemory
+            .filter(e => ['sad', 'worried', 'anxious', 'stressed'].includes(e.emotion))
+            .slice(0, 3)
+            .map(e => e.summary)
+            .filter(Boolean);
+
+          // ポジティブエピソードから「楽しみにしていること」を抽出
+          const userUpcomingEvents = episodeMemory
+            .filter(e => ['excited', 'happy', 'looking_forward'].includes(e.emotion))
+            .slice(0, 3)
+            .map(e => e.summary)
+            .filter(Boolean);
+
+          userMemoryMap.set(userId, { userName, userFacts, userConcerns, userUpcomingEvents });
+        } catch {
+          // ignore
+        }
+      })
+    );
+
     // ── 5. SOUL.mdをキャラ別にキャッシュ読み込み ──
     const soulMdCache = new Map<string, string | null>();
     for (const charId of characterIds) {
@@ -289,6 +361,7 @@ export async function POST(req: NextRequest) {
           // AI生成を試みる
           let content: string | null = null;
           try {
+            const userMem = userMemoryMap.get(userId);
             content = await generateAiMessage({
               characterName: rel.character.name,
               characterSlug: slug,
@@ -298,6 +371,10 @@ export async function POST(req: NextRequest) {
               dailyContext: dailyState?.dailyActivity ?? dailyState?.context ?? null,
               lastUserMessage: lastMsgData?.lastUserMsg ?? null,
               lastCharMessage: lastMsgData?.lastCharMsg ?? null,
+              userName: userMem?.userName ?? null,
+              userFacts: userMem?.userFacts ?? null,
+              userConcerns: userMem?.userConcerns ?? null,
+              userUpcomingEvents: userMem?.userUpcomingEvents ?? null,
             });
           } catch {
             content = null;

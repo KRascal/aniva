@@ -11,6 +11,8 @@ import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
+import { shouldUseDeepMode } from '@/lib/message-weight';
+import { getThinkingReaction } from '@/lib/thinking-reactions';
 
 export async function POST(req: NextRequest) {
   try {
@@ -180,6 +182,65 @@ export async function POST(req: NextRequest) {
         content: message,
       },
     });
+
+    // ─── Deep Mode判定 ───────────────────────────────────────────
+    // 直近5往復以内のDeep Reply回数を取得
+    const recentMessages = await prisma.message.findMany({
+      where: { conversationId: conversation.id, role: 'CHARACTER' },
+      orderBy: { createdAt: 'desc' },
+      take: 10, // 5往復 = キャラ10件
+      select: { metadata: true },
+    });
+    const recentDeepReplyCount = recentMessages.filter(
+      (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
+    ).length;
+
+    if (shouldUseDeepMode(message, recentDeepReplyCount)) {
+      // Deep Mode: 考え中メッセージ → キュー投入 → 即レス返却
+      const thinkingText = getThinkingReaction(cachedCharacter.slug);
+
+      // 考え中メッセージをDB保存
+      const thinkingMsg = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'CHARACTER',
+          content: thinkingText,
+          metadata: { isThinking: true },
+        },
+      });
+
+      // DeepReplyQueueにジョブ追加
+      await prisma.deepReplyQueue.create({
+        data: {
+          userId,
+          characterId,
+          relationshipId: relationship.id,
+          conversationId: conversation.id,
+          userMessageId: userMsg.id,
+          thinkingMsgId: thinkingMsg.id,
+        },
+      });
+
+      // 会話のupdatedAt更新
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+
+      // FREE の場合、月次チャットカウントをインクリメント
+      if (access.type === 'FREE') {
+        await incrementMonthlyChat(userId, characterId);
+      }
+
+      return NextResponse.json({
+        userMessage: userMsg,
+        characterMessage: thinkingMsg,
+        emotion: 'thinking',
+        isDeepProcessing: true,
+        consumed,
+      });
+    }
+    // ─────────────────────────────────────────────────────────────
 
     // 4. 画像解析（画像が送られた場合）
     let enrichedMessage = message;
