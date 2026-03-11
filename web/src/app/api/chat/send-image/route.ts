@@ -9,12 +9,21 @@ import path from 'path';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { createRateLimiter } from '@/lib/rate-limit';
+
+const imageSendLimiter = createRateLimiter({ prefix: 'chat-image', limit: 10, windowSec: 60 });
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit: 10画像/分
+  const { success } = await imageSendLimiter.check(userId);
+  if (!success) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
   }
 
   let formData: FormData;

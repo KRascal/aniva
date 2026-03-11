@@ -37,6 +37,17 @@ const nextConfig: NextConfig = {
       ],
     },
     {
+      // セキュリティヘッダー（全ルート）
+      source: '/(.*)',
+      headers: [
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'X-XSS-Protection', value: '1; mode=block' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      ],
+    },
+    {
       // HTML・API・その他は no-store（デプロイ後の stale Server Action 対策）
       source: '/((?!_next/static).*)',
       headers: [
