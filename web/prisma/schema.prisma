@@ -146,14 +146,6 @@ model Character {
   presenceStatus          String? // 手動上書きステータス（nullなら自動）
   presenceEmoji           String? // 手動上書き絵文字
   presenceManualMode      Boolean                 @default(false) // trueなら手動モード
-  // === IP管理（Phase 2） ===
-  tenantId                String?                 // テナント（版元）ID — nullならテナント未割当
-  tenant                  Tenant?                 @relation(fields: [tenantId], references: [id])
-  approvalRequired        Boolean                 @default(false) // 変更時に承認が必要か
-  ageRating               String                  @default("all_ages") // all_ages | 12+ | 15+ | 18+
-  emergencyStop           Boolean                 @default(false) // 緊急停止フラグ
-  emergencyStopAt         DateTime?
-  emergencyStopBy         String?
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   relationships           Relationship[]
@@ -182,6 +174,14 @@ model Character {
   rankingScores           RankingScore[]
   characterLetters        CharacterLetter[]
   downloadContents        DownloadContent[]
+  // Phase 3: IP管理
+  tenantId                String?
+  tenant                  Tenant?              @relation(fields: [tenantId], references: [id])
+  approvalRequired        Boolean              @default(false)
+  ageRating               String               @default("all_ages")
+  emergencyStop           Boolean              @default(false)
+  emergencyStopAt         DateTime?
+  emergencyStopBy         String?
   approvalRequests        ApprovalRequest[]
   guardrailRules          GuardrailRule[]
 }
@@ -1062,101 +1062,92 @@ model DownloadContent {
   @@index([characterId, category])
 }
 
-// ═══════════════════════════════════════════════════
-// Phase 2: RBAC & マルチテナント
-// ═══════════════════════════════════════════════════
-
-model Tenant {
-  id            String       @id @default(uuid())
-  name          String       // "KADOKAWA", "集英社" etc.
-  slug          String       @unique
-  logoUrl       String?
-  isActive      Boolean      @default(true)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  adminUsers    AdminUser[]
-  characters    Character[]
-  contracts     Contract[]
-}
+// ============================================
+// Phase 3: RBAC & マルチテナント
+// ============================================
 
 model AdminUser {
   id            String       @id @default(uuid())
   email         String       @unique
   name          String
   role          String       @default("viewer") // super_admin | ip_admin | editor | viewer
-  tenantId      String?      // nullならテナント横断（super_admin用）
+  tenantId      String?
   tenant        Tenant?      @relation(fields: [tenantId], references: [id])
   isActive      Boolean      @default(true)
   lastLoginAt   DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  approvalRequests  ApprovalRequest[]  @relation("ApprovalRequester")
-  approvalActions   ApprovalAction[]   @relation("ApprovalActor")
-  auditLogs         AdminAuditLog[]
-
-  @@index([tenantId, role])
+  approvalActions    ApprovalAction[]
+  approvalRequests   ApprovalRequest[]
+  auditLogs          AdminAuditLog[]
 }
 
-// ═══════════════════════════════════════════════════
+model Tenant {
+  id            String       @id @default(uuid())
+  name          String
+  slug          String       @unique
+  logoUrl       String?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+
+  adminUsers    AdminUser[]
+  contracts     Contract[]
+  characters    Character[]
+}
+
+// ============================================
 // Phase 3: 権利・契約管理
-// ═══════════════════════════════════════════════════
+// ============================================
 
 model Contract {
-  id                  String       @id @default(uuid())
-  tenantId            String
-  tenant              Tenant       @relation(fields: [tenantId], references: [id])
-  contractCode        String       @unique // 契約ID（人間可読 e.g. CT-001）
-  rightsHolder        String       // 権利者名
-  targetWork          String       // 対象作品名
-  targetCharacters    String[]     // 対象キャラクター名リスト
-  status              String       @default("negotiating") // negotiating | active | pending_renewal | expired | terminated
+  id                 String       @id @default(uuid())
+  tenantId           String
+  tenant             Tenant       @relation(fields: [tenantId], references: [id])
+  contractCode       String       @unique
+  rightsHolder       String
+  targetWork         String
+  targetCharacters   String[]
+  status             String       @default("negotiating") // negotiating | active | pending_renewal | expired | terminated
 
-  // 利用条件
-  allowedRegions      String[]     // ["JP", "US", "EU"] etc.
-  allowedLanguages    String[]     // ["ja", "en", "zh"] etc.
-  startDate           DateTime
-  endDate             DateTime
-  renewalAlertDays    Int          @default(90)
+  allowedRegions     String[]
+  allowedLanguages   String[]
+  startDate          DateTime
+  endDate            DateTime
+  renewalAlertDays   Int          @default(90)
 
-  // 権利項目
-  voiceAllowed        Boolean      @default(false)
-  snsAllowed          Boolean      @default(false)
-  adAllowed           Boolean      @default(false)
-  aiTrainingAllowed   Boolean      @default(false)
-  ragAllowed          Boolean      @default(false)
-  thirdPartyAllowed   Boolean      @default(false)
-  ugcAllowed          Boolean      @default(false)
+  voiceAllowed       Boolean      @default(false)
+  snsAllowed         Boolean      @default(false)
+  adAllowed          Boolean      @default(false)
+  aiTrainingAllowed  Boolean      @default(false)
+  ragAllowed         Boolean      @default(false)
+  thirdPartyAllowed  Boolean      @default(false)
+  ugcAllowed         Boolean      @default(false)
 
-  // 収益
   revenueSharePercent Float?
   minimumGuarantee    Float?
-  reportingCycle      String       @default("monthly") // monthly | quarterly
+  reportingCycle      String      @default("monthly")
 
-  // 監修
-  supervisorName      String?
-  supervisorEmail     String?
-  supervisorPhone     String?
+  supervisorName     String?
+  supervisorEmail    String?
+  supervisorPhone    String?
 
-  // 素材
-  allowedAssets       Json         @default("[]")
-  prohibitedAssets    Json         @default("[]")
+  allowedAssets      Json         @default("[]")
+  prohibitedAssets   Json         @default("[]")
 
-  // ドキュメント
-  contractDocUrl      String?
-  notes               String?      @db.Text
+  contractDocUrl     String?
+  notes              String?      @db.Text
 
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   @@index([tenantId, status])
   @@index([endDate])
 }
 
-// ═══════════════════════════════════════════════════
+// ============================================
 // Phase 3: 監修・承認ワークフロー
-// ═══════════════════════════════════════════════════
+// ============================================
 
 model ApprovalRequest {
   id             String       @id @default(uuid())
@@ -1166,15 +1157,14 @@ model ApprovalRequest {
   title          String
   description    String?      @db.Text
 
-  // 差分管理
   previousValue  Json?
   proposedValue  Json
   diffSummary    String?      @db.Text
 
-  // ステータス
   status         String       @default("pending") // pending | approved | rejected | revision_requested
-  requestedById  String
-  requester      AdminUser    @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  requestedBy    String
+  requester      AdminUser    @relation(fields: [requestedBy], references: [id])
+
   priority       String       @default("normal") // low | normal | high | urgent
 
   createdAt      DateTime     @default(now())
@@ -1189,9 +1179,9 @@ model ApprovalRequest {
 model ApprovalAction {
   id              String          @id @default(uuid())
   requestId       String
-  request         ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  actionById      String
-  actor           AdminUser       @relation("ApprovalActor", fields: [actionById], references: [id])
+  request         ApprovalRequest @relation(fields: [requestId], references: [id])
+  actionBy        String
+  actor           AdminUser       @relation(fields: [actionBy], references: [id])
   action          String          // approved | rejected | revision_requested | comment
   comment         String?         @db.Text
   createdAt       DateTime        @default(now())
@@ -1199,30 +1189,31 @@ model ApprovalAction {
   @@index([requestId])
 }
 
-// ═══════════════════════════════════════════════════
+// ============================================
 // Phase 3: ガードレール管理
-// ═══════════════════════════════════════════════════
+// ============================================
 
 model GuardrailRule {
-  id              String       @id @default(uuid())
-  characterId     String?      // nullならグローバルルール
-  character       Character?   @relation(fields: [characterId], references: [id])
-  tenantId        String?
+  id             String       @id @default(uuid())
+  characterId    String?
+  character      Character?   @relation(fields: [characterId], references: [id])
+  tenantId       String?
 
-  ruleType        String       // ng_word | ng_theme | age_rating | region_restrict | escalation
-  category        String       // sexual | violence | political | religious | self_harm | discrimination | spoiler | brand_damage
-  severity        String       @default("block") // block | warn | log | escalate
+  ruleType       String       // ng_word | ng_theme | age_rating | region_restrict | escalation
+  category       String       // sexual | violence | political | religious | self_harm | discrimination | spoiler | brand_damage
+  severity       String       @default("block") // block | warn | log | escalate
 
-  pattern         String?      // ワード or 正規表現
-  description     String?      @db.Text
+  pattern        String?
+  description    String?      @db.Text
 
-  ageRating       String?      // all_ages | 12+ | 15+ | 18+
-  regions         String[]     // 適用地域
-  fallbackMessage String?      @db.Text
+  ageRating      String?
+  regions        String[]
 
-  isActive        Boolean      @default(true)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  fallbackMessage String?     @db.Text
+
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([characterId, ruleType])
   @@index([tenantId, ruleType])
@@ -1244,17 +1235,16 @@ model GuardrailLog {
   @@index([action, resolved])
 }
 
-// ═══════════════════════════════════════════════════
-// 管理操作監査ログ（DB版）
-// ═══════════════════════════════════════════════════
+// ============================================
+// Phase 3: 管理操作監査ログ
+// ============================================
 
 model AdminAuditLog {
   id           String       @id @default(uuid())
-  adminUserId  String?
-  adminUser    AdminUser?   @relation(fields: [adminUserId], references: [id])
-  adminEmail   String       // AdminUser未登録でも記録可能
+  adminUserId  String
+  adminUser    AdminUser    @relation(fields: [adminUserId], references: [id])
   action       String
-  targetType   String       // character | contract | guardrail | user | content | gacha | shop | system
+  targetType   String
   targetId     String
   details      Json
   ipAddress    String?

@@ -51,6 +51,14 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: 'IP管理',
+    items: [
+      { href: '/admin/approvals', label: '監修・承認', icon: '📋' },
+      { href: '/admin/guardrails', label: 'ガードレール', icon: '🛡' },
+      { href: '/admin/contracts', label: '契約管理', icon: '📄' },
+    ],
+  },
+  {
     label: 'システム',
     superAdminOnly: true,
     items: [
