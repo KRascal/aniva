@@ -8,15 +8,21 @@ interface CountdownTimerProps {
 }
 
 export function CountdownTimer({ expiresAt, className = '' }: CountdownTimerProps) {
-  const [remaining, setRemaining] = useState('');
+  const [display, setDisplay] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
+  const [progress, setProgress] = useState(100);
 
   useEffect(() => {
+    // Assume total duration is ~8 hours from creation
+    const expiresTime = new Date(expiresAt).getTime();
+    const totalDuration = 8 * 60 * 60 * 1000; // 8h assumed
+
     const update = () => {
-      const diff = new Date(expiresAt).getTime() - Date.now();
+      const diff = expiresTime - Date.now();
       if (diff <= 0) {
-        setRemaining('消えた…');
+        setDisplay('00:00:00');
         setIsUrgent(false);
+        setProgress(0);
         return;
       }
 
@@ -24,15 +30,10 @@ export function CountdownTimer({ expiresAt, className = '' }: CountdownTimerProp
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-      setIsUrgent(diff < 60 * 60 * 1000); // 1時間未満で緊迫感
-
-      if (hours > 0) {
-        setRemaining(`${hours}時間${minutes}分後に消える`);
-      } else if (minutes > 0) {
-        setRemaining(`${minutes}分${seconds}秒後に消える`);
-      } else {
-        setRemaining(`${seconds}秒後に消える`);
-      }
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      setDisplay(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+      setIsUrgent(diff < 60 * 60 * 1000);
+      setProgress(Math.min(100, (diff / totalDuration) * 100));
     };
 
     update();
@@ -41,10 +42,28 @@ export function CountdownTimer({ expiresAt, className = '' }: CountdownTimerProp
   }, [expiresAt]);
 
   return (
-    <span
-      className={`text-xs font-mono ${isUrgent ? 'text-red-400 animate-pulse' : 'text-gray-400'} ${className}`}
-    >
-      ⏱ {remaining}
-    </span>
+    <div className={`flex items-center gap-1.5 ${className}`}>
+      {/* Mini progress ring */}
+      <svg width="16" height="16" viewBox="0 0 16 16" className="flex-shrink-0">
+        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5"
+          className={isUrgent ? 'text-red-900' : 'text-white/10'}
+        />
+        <circle cx="8" cy="8" r="6" fill="none" strokeWidth="1.5"
+          className={isUrgent ? 'text-red-400' : 'text-purple-400'}
+          strokeDasharray={`${2 * Math.PI * 6}`}
+          strokeDashoffset={`${2 * Math.PI * 6 * (1 - progress / 100)}`}
+          strokeLinecap="round"
+          transform="rotate(-90 8 8)"
+          style={{ transition: 'stroke-dashoffset 1s linear' }}
+        />
+      </svg>
+      <span
+        className={`text-[11px] font-mono tabular-nums tracking-wider ${
+          isUrgent ? 'text-red-400 animate-pulse' : 'text-white/50'
+        }`}
+      >
+        {display}
+      </span>
+    </div>
   );
 }
