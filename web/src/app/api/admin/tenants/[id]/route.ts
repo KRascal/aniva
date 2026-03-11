@@ -1,0 +1,50 @@
+/**
+ * PUT    /api/admin/tenants/[id]  — テナント更新
+ * DELETE /api/admin/tenants/[id]  — テナント削除
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin';
+import { prisma } from '@/lib/prisma';
+
+type Params = { params: Promise<{ id: string }> };
+
+export async function PUT(req: NextRequest, { params }: Params) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+  try {
+    const body = await req.json();
+    const { name, slug, logoUrl, isActive } = body;
+
+    const updated = await prisma.tenant.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(slug !== undefined && { slug }),
+        ...(logoUrl !== undefined && { logoUrl }),
+        ...(isActive !== undefined && { isActive }),
+      },
+    });
+
+    return NextResponse.json({ tenant: updated });
+  } catch (err) {
+    console.error('[admin/tenants PUT]', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+  try {
+    await prisma.tenant.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[admin/tenants DELETE]', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}

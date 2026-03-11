@@ -174,6 +174,16 @@ model Character {
   rankingScores           RankingScore[]
   characterLetters        CharacterLetter[]
   downloadContents        DownloadContent[]
+  // Phase 3: IP管理
+  tenantId                String?
+  tenant                  Tenant?              @relation(fields: [tenantId], references: [id])
+  approvalRequired        Boolean              @default(false)
+  ageRating               String               @default("all_ages")
+  emergencyStop           Boolean              @default(false)
+  emergencyStopAt         DateTime?
+  emergencyStopBy         String?
+  approvalRequests        ApprovalRequest[]
+  guardrailRules          GuardrailRule[]
 }
 
 model SecretContent {
@@ -1050,4 +1060,197 @@ model DownloadContent {
   createdAt   DateTime @default(now())
 
   @@index([characterId, category])
+}
+
+// ============================================
+// Phase 3: RBAC & マルチテナント
+// ============================================
+
+model AdminUser {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  name          String
+  role          String       @default("viewer") // super_admin | ip_admin | editor | viewer
+  tenantId      String?
+  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
+  isActive      Boolean      @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  approvalActions    ApprovalAction[]
+  approvalRequests   ApprovalRequest[]
+  auditLogs          AdminAuditLog[]
+}
+
+model Tenant {
+  id            String       @id @default(uuid())
+  name          String
+  slug          String       @unique
+  logoUrl       String?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+
+  adminUsers    AdminUser[]
+  contracts     Contract[]
+  characters    Character[]
+}
+
+// ============================================
+// Phase 3: 権利・契約管理
+// ============================================
+
+model Contract {
+  id                 String       @id @default(uuid())
+  tenantId           String
+  tenant             Tenant       @relation(fields: [tenantId], references: [id])
+  contractCode       String       @unique
+  rightsHolder       String
+  targetWork         String
+  targetCharacters   String[]
+  status             String       @default("negotiating") // negotiating | active | pending_renewal | expired | terminated
+
+  allowedRegions     String[]
+  allowedLanguages   String[]
+  startDate          DateTime
+  endDate            DateTime
+  renewalAlertDays   Int          @default(90)
+
+  voiceAllowed       Boolean      @default(false)
+  snsAllowed         Boolean      @default(false)
+  adAllowed          Boolean      @default(false)
+  aiTrainingAllowed  Boolean      @default(false)
+  ragAllowed         Boolean      @default(false)
+  thirdPartyAllowed  Boolean      @default(false)
+  ugcAllowed         Boolean      @default(false)
+
+  revenueSharePercent Float?
+  minimumGuarantee    Float?
+  reportingCycle      String      @default("monthly")
+
+  supervisorName     String?
+  supervisorEmail    String?
+  supervisorPhone    String?
+
+  allowedAssets      Json         @default("[]")
+  prohibitedAssets   Json         @default("[]")
+
+  contractDocUrl     String?
+  notes              String?      @db.Text
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tenantId, status])
+  @@index([endDate])
+}
+
+// ============================================
+// Phase 3: 監修・承認ワークフロー
+// ============================================
+
+model ApprovalRequest {
+  id             String       @id @default(uuid())
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+  type           String       // prompt_change | personality_change | boundary_change | voice_change | content_publish
+  title          String
+  description    String?      @db.Text
+
+  previousValue  Json?
+  proposedValue  Json
+  diffSummary    String?      @db.Text
+
+  status         String       @default("pending") // pending | approved | rejected | revision_requested
+  requestedBy    String
+  requester      AdminUser    @relation(fields: [requestedBy], references: [id])
+
+  priority       String       @default("normal") // low | normal | high | urgent
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  actions        ApprovalAction[]
+
+  @@index([characterId, status])
+  @@index([status, createdAt])
+}
+
+model ApprovalAction {
+  id              String          @id @default(uuid())
+  requestId       String
+  request         ApprovalRequest @relation(fields: [requestId], references: [id])
+  actionBy        String
+  actor           AdminUser       @relation(fields: [actionBy], references: [id])
+  action          String          // approved | rejected | revision_requested | comment
+  comment         String?         @db.Text
+  createdAt       DateTime        @default(now())
+
+  @@index([requestId])
+}
+
+// ============================================
+// Phase 3: ガードレール管理
+// ============================================
+
+model GuardrailRule {
+  id             String       @id @default(uuid())
+  characterId    String?
+  character      Character?   @relation(fields: [characterId], references: [id])
+  tenantId       String?
+
+  ruleType       String       // ng_word | ng_theme | age_rating | region_restrict | escalation
+  category       String       // sexual | violence | political | religious | self_harm | discrimination | spoiler | brand_damage
+  severity       String       @default("block") // block | warn | log | escalate
+
+  pattern        String?
+  description    String?      @db.Text
+
+  ageRating      String?
+  regions        String[]
+
+  fallbackMessage String?     @db.Text
+
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([characterId, ruleType])
+  @@index([tenantId, ruleType])
+}
+
+model GuardrailLog {
+  id             String       @id @default(uuid())
+  ruleId         String?
+  characterId    String
+  userId         String
+  triggerText    String       @db.Text
+  action         String       // blocked | warned | escalated | logged
+  resolved       Boolean      @default(false)
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([characterId, createdAt])
+  @@index([action, resolved])
+}
+
+// ============================================
+// Phase 3: 管理操作監査ログ
+// ============================================
+
+model AdminAuditLog {
+  id           String       @id @default(uuid())
+  adminUserId  String
+  adminUser    AdminUser    @relation(fields: [adminUserId], references: [id])
+  action       String
+  targetType   String
+  targetId     String
+  details      Json
+  ipAddress    String?
+  createdAt    DateTime     @default(now())
+
+  @@index([adminUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
 }
