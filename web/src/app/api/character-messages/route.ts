@@ -77,13 +77,18 @@ export async function GET(req: NextRequest) {
       // (96h超は「ほぼ離脱」なので送らない — しつこくしない)
       if (diffH < 24 || diffH >= 96) continue;
 
+      // expiresAt = lastMessageAt の次の24hウィンドウ境界（キャラごとに異なる）
+      // h24-47 → lastMessageAt + 48h, h48-71 → +72h, h72-95 → +96h
+      const windowEnd = diffH >= 72 ? 96 : diffH >= 48 ? 72 : 48;
+      const expiresAt = new Date(new Date(rel.lastMessageAt!).getTime() + windowEnd * 3600 * 1000).toISOString();
+
       notifications.push({
         characterId: rel.character.id,
         characterName: rel.character.name,
         avatarUrl: rel.character.avatarUrl,
         message: getCallMessage(rel.character.slug ?? 'default', diffH),
         diffH,
-        expiresAt: new Date(now + 24 * 3600 * 1000).toISOString(),
+        expiresAt,
       });
     }
 

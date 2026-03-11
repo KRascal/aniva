@@ -196,8 +196,10 @@ function PityProgressBar({ pity }: { pity: PityProgress }) {
 // ── Main Page ──────────────────────────────────────────────────────────────
 // コレクションは /cards に統一済み。ガチャページはガチャのみ
 
-/** ガチャメインコンポーネント（/explore/gacha と /cards のガチャタブ共用） */
-export function GachaContent() {
+/** ガチャメインコンポーネント（/explore/gacha と /cards のガチャタブ共用）
+ * embedded=true のとき: sticky headerを非表示（親がheaderを持つため）
+ */
+export function GachaContent({ embedded = false }: { embedded?: boolean }) {
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -352,7 +354,7 @@ export function GachaContent() {
   const hasAnyUnflipped = flippedCards.some(f => !f);
 
   return (
-    <div className="min-h-screen bg-gray-950 pb-24">
+    <div className={embedded ? 'pb-4' : 'min-h-screen bg-gray-950 pb-24'}>
       {/* パック開封演出 */}
       {showPackOpening && pullResults.length > 0 && (
         <GachaPackOpening
@@ -373,12 +375,33 @@ export function GachaContent() {
         <GoldParticles active={showParticles} />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/5"
-        style={{ background: 'rgba(3,7,18,0.95)', backdropFilter: 'blur(12px)' }}
-      >
-        <div className="max-w-lg mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
-          <h1 className="text-lg font-black text-white flex-1 tracking-tight">GACHA</h1>
+      {/* Header — 単独ページ時のみ表示（/cards埋め込み時は非表示） */}
+      {!embedded && (
+        <header className="sticky top-0 z-30 border-b border-white/5"
+          style={{ background: 'rgba(3,7,18,0.95)', backdropFilter: 'blur(12px)' }}
+        >
+          <div className="max-w-lg mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+            <h1 className="text-lg font-black text-white flex-1 tracking-tight">GACHA</h1>
+            <button
+              onClick={() => openCoinPurchase(coinBalance)}
+              className="flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-yellow-400/60">
+                <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-400">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8M8 14h8" strokeLinecap="round"/>
+              </svg>
+              <span className="text-yellow-300 text-sm font-bold ml-0.5">{coinBalance.toLocaleString()}</span>
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* コイン残高 — embedded時はコンパクト表示 */}
+      {embedded && (
+        <div className="px-4 pt-3 pb-1 flex justify-end">
           <button
             onClick={() => openCoinPurchase(coinBalance)}
             className="flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full transition-all active:scale-95"
@@ -393,9 +416,7 @@ export function GachaContent() {
             <span className="text-yellow-300 text-sm font-bold ml-0.5">{coinBalance.toLocaleString()}</span>
           </button>
         </div>
-
-        {/* コレクションタブ廃止済み（/cardsに統一） */}
-      </header>
+      )}
 
       <main className="relative z-10 max-w-lg mx-auto px-4 py-4">
         {/* ── GACHA CONTENT ── */}

@@ -169,11 +169,11 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
         }
       `}</style>
 
-      {/* スキップボタン */}
+      {/* スキップボタン — safe-area対応、常に画面内に表示 */}
       <button
         onClick={onSkip}
-        className="absolute top-6 right-6 z-[70] text-white/40 hover:text-white/80 text-sm font-medium px-3 py-1.5 rounded-full transition-colors"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        className="fixed top-4 right-4 z-[70] text-white/40 hover:text-white/80 text-sm font-medium px-4 py-2 rounded-full transition-colors"
+        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', paddingTop: 'max(8px, env(safe-area-inset-top))' }}
       >
         SKIP →
       </button>
@@ -196,9 +196,9 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
             animation: phase === 'pack-rip' ? 'packShake 0.5s ease infinite' : 'packFloat 2s ease-in-out infinite',
           }}
         >
-          {/* パック本体 */}
+          {/* パック本体 — スマホ画面に確実に収まるサイズ */}
           <div
-            className="relative w-56 h-80 max-w-[70vw] max-h-[50vh] rounded-2xl overflow-hidden"
+            className="relative w-48 h-72 max-w-[65vw] max-h-[45vh] rounded-2xl overflow-hidden"
             style={{
               background: `linear-gradient(160deg, ${bestColors.bg}, rgba(0,0,0,0.8))`,
               border: `2px solid ${bestColors.glow}`,
@@ -315,12 +315,12 @@ export function GachaPackOpening({ cards, onComplete, onSkip }: GachaPackOpening
             maxHeight: '80vh',
           }}
         >
-          {/* カード本体 */}
+          {/* カード本体 — スマホ画面に確実に収まるサイズ */}
           <div
-            className="relative w-64 max-w-[70vw] rounded-2xl overflow-hidden"
+            className="relative w-56 max-w-[65vw] rounded-2xl overflow-hidden"
             style={{
               aspectRatio: '3/4',
-              maxHeight: '65vh',
+              maxHeight: '55vh',
               border: `2px solid ${currentColors.text}`,
               boxShadow: `0 0 30px ${currentColors.glow}, 0 0 60px ${currentColors.glow}`,
               animation: getRarityTier(currentCard.rarity) >= 3 ? 'cardGlow 2s ease-in-out infinite' : 'none',
