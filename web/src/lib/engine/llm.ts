@@ -14,13 +14,13 @@ export async function callLLM(
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const isFc = options?.isFcMember ?? false;
 
-  // FC会員 → Anthropic claude-sonnet-4-5 を優先（高品質会話）
+  // FC会員 → Anthropic claude-sonnet-4-6 を優先（高品質会話）
   if (isFc && anthropicKey) {
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const client = new Anthropic({ apiKey: anthropicKey });
       const response = await client.messages.create({
-        model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-5',
+        model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-6',
         max_tokens: 600,
         system: systemPrompt,
         messages,
