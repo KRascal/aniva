@@ -347,7 +347,14 @@ export default function MyPage() {
                   <div className="w-8 h-8 rounded-full border-3 border-white border-t-transparent animate-spin" style={{ borderWidth: '3px' }} />
                 ) : editAvatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => setEditAvatarUrl('')} />
+                  <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => {
+                    // 旧パス(/uploads/...)が404の場合、API経由(/api/uploads/...)にフォールバック
+                    if (editAvatarUrl.startsWith('/uploads/')) {
+                      setEditAvatarUrl(editAvatarUrl.replace('/uploads/', '/api/uploads/'));
+                    } else {
+                      setEditAvatarUrl('');
+                    }
+                  }} />
                 ) : (
                   avatarLetter
                 )}

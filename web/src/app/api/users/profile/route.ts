@@ -87,18 +87,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // 保存先ディレクトリの確保
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-  await mkdir(uploadDir, { recursive: true });
+  // 保存先: デプロイで消えない永続ディレクトリ（public/は git clean やビルドで消失する）
+  const persistentUploadDir = path.resolve('/home/openclaw/.openclaw/workspace/uploads/avatars');
+  await mkdir(persistentUploadDir, { recursive: true });
 
-  // ファイル書き込み
+  // 旧ディレクトリにも書き込み（Next.js static serving 互換）
+  const publicUploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+  await mkdir(publicUploadDir, { recursive: true });
+
+  // ファイル書き込み（両方に保存）
   const filename = `${user.id}.${ext}`;
-  const filepath = path.join(uploadDir, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filepath, buffer);
+  await writeFile(path.join(persistentUploadDir, filename), buffer);
+  await writeFile(path.join(publicUploadDir, filename), buffer);
 
-  // DBのavatarUrlを更新（キャッシュバスティング用にtimestampを付与）
-  const avatarUrl = `/uploads/avatars/${filename}?t=${Date.now()}`;
+  // DBのavatarUrlを更新（API経由で配信 — デプロイ後も消えない）
+  const avatarUrl = `/api/uploads/avatars/${filename}?t=${Date.now()}`;
   await prisma.user.update({
     where: { id: user.id },
     data: { avatarUrl, image: avatarUrl },

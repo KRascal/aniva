@@ -135,7 +135,8 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith('/api/og') ||
     pathname.startsWith('/api/events') ||
     pathname.startsWith('/api/stories') ||
-    pathname === '/api/build-id';
+    pathname === '/api/build-id' ||
+    pathname.startsWith('/api/uploads/');  // ユーザーアバター等の静的ファイル配信（認証不要）
 
   const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 

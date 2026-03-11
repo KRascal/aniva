@@ -1,44 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/rbac';
-import { adminAudit } from '@/lib/audit-log';
+/**
+ * GET  /api/admin/tenants  — テナント一覧
+ * POST /api/admin/tenants  — テナント作成
+ */
 
-// GET /api/admin/tenants — テナント一覧
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin';
+import { prisma } from '@/lib/prisma';
+
 export async function GET() {
-  const ctx = await requireRole('super_admin');
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const tenants = await prisma.tenant.findMany({
     include: {
-      _count: { select: { adminUsers: true, characters: true, contracts: true } },
+      _count: {
+        select: {
+          adminUsers: true,
+          characters: true,
+          contracts: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
 
-  return NextResponse.json(tenants);
+  return NextResponse.json({ tenants });
 }
 
-// POST /api/admin/tenants — テナント作成
 export async function POST(req: NextRequest) {
-  const ctx = await requireRole('super_admin');
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { name, slug, logoUrl } = await req.json();
-  if (!name || !slug) {
-    return NextResponse.json({ error: 'name and slug are required' }, { status: 400 });
+  try {
+    const body = await req.json();
+    const { name, slug, logoUrl } = body;
+
+    if (!name || !slug) {
+      return NextResponse.json({ error: 'Missing name or slug' }, { status: 400 });
+    }
+
+    const tenant = await prisma.tenant.create({
+      data: {
+        name,
+        slug,
+        logoUrl: logoUrl ?? null,
+      },
+    });
+
+    return NextResponse.json({ tenant }, { status: 201 });
+  } catch (err) {
+    console.error('[admin/tenants POST]', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
-
-  // slug重複チェック
-  const existing = await prisma.tenant.findUnique({ where: { slug } });
-  if (existing) {
-    return NextResponse.json({ error: 'slug already exists' }, { status: 409 });
-  }
-
-  const tenant = await prisma.tenant.create({
-    data: { name, slug, logoUrl: logoUrl || null },
-  });
-
-  await adminAudit('tenant_create', ctx.email, { tenantId: tenant.id, name, slug });
-
-  return NextResponse.json(tenant, { status: 201 });
 }

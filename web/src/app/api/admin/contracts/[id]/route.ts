@@ -1,110 +1,78 @@
+/**
+ * PUT    /api/admin/contracts/[id]  — 契約更新
+ * DELETE /api/admin/contracts/[id]  — 契約削除
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
-import { requireRole, canAccessCharacter } from '@/lib/rbac';
-import { adminAudit } from '@/lib/audit-log';
 
-// GET /api/admin/contracts/[id] — 契約詳細
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const ctx = await requireRole('viewer');
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+type Params = { params: Promise<{ id: string }> };
+
+export async function PUT(req: NextRequest, { params }: Params) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
+  try {
+    const body = await req.json();
+    const {
+      contractCode, rightsHolder, targetWork, targetCharacters, status,
+      allowedRegions, allowedLanguages, startDate, endDate, renewalAlertDays,
+      voiceAllowed, snsAllowed, adAllowed, aiTrainingAllowed, ragAllowed,
+      thirdPartyAllowed, ugcAllowed, revenueSharePercent, minimumGuarantee,
+      reportingCycle, supervisorName, supervisorEmail, supervisorPhone,
+      contractDocUrl, notes,
+    } = body;
 
-  const contract = await prisma.contract.findUnique({
-    where: { id },
-    include: { tenant: { select: { name: true, slug: true } } },
-  });
+    const updated = await prisma.contract.update({
+      where: { id },
+      data: {
+        ...(contractCode !== undefined && { contractCode }),
+        ...(rightsHolder !== undefined && { rightsHolder }),
+        ...(targetWork !== undefined && { targetWork }),
+        ...(targetCharacters !== undefined && { targetCharacters }),
+        ...(status !== undefined && { status }),
+        ...(allowedRegions !== undefined && { allowedRegions }),
+        ...(allowedLanguages !== undefined && { allowedLanguages }),
+        ...(startDate !== undefined && { startDate: new Date(startDate) }),
+        ...(endDate !== undefined && { endDate: new Date(endDate) }),
+        ...(renewalAlertDays !== undefined && { renewalAlertDays }),
+        ...(voiceAllowed !== undefined && { voiceAllowed }),
+        ...(snsAllowed !== undefined && { snsAllowed }),
+        ...(adAllowed !== undefined && { adAllowed }),
+        ...(aiTrainingAllowed !== undefined && { aiTrainingAllowed }),
+        ...(ragAllowed !== undefined && { ragAllowed }),
+        ...(thirdPartyAllowed !== undefined && { thirdPartyAllowed }),
+        ...(ugcAllowed !== undefined && { ugcAllowed }),
+        ...(revenueSharePercent !== undefined && { revenueSharePercent }),
+        ...(minimumGuarantee !== undefined && { minimumGuarantee }),
+        ...(reportingCycle !== undefined && { reportingCycle }),
+        ...(supervisorName !== undefined && { supervisorName }),
+        ...(supervisorEmail !== undefined && { supervisorEmail }),
+        ...(supervisorPhone !== undefined && { supervisorPhone }),
+        ...(contractDocUrl !== undefined && { contractDocUrl }),
+        ...(notes !== undefined && { notes }),
+      },
+    });
 
-  if (!contract) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  // テナントスコープチェック
-  if (ctx.role !== 'super_admin' && contract.tenantId !== ctx.tenantId) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ contract: updated });
+  } catch (err) {
+    console.error('[admin/contracts PUT]', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
-
-  return NextResponse.json(contract);
 }
 
-// PUT /api/admin/contracts/[id] — 契約更新
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const ctx = await requireRole('ip_admin');
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-
-  const contract = await prisma.contract.findUnique({ where: { id } });
-  if (!contract) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  // テナントスコープチェック
-  if (ctx.role !== 'super_admin' && contract.tenantId !== ctx.tenantId) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    await prisma.contract.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[admin/contracts DELETE]', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
-
-  const body = await req.json();
-
-  const updated = await prisma.contract.update({
-    where: { id },
-    data: {
-      ...(body.contractCode !== undefined && { contractCode: body.contractCode }),
-      ...(body.rightsHolder !== undefined && { rightsHolder: body.rightsHolder }),
-      ...(body.targetWork !== undefined && { targetWork: body.targetWork }),
-      ...(body.targetCharacters !== undefined && { targetCharacters: body.targetCharacters }),
-      ...(body.status !== undefined && { status: body.status }),
-      ...(body.allowedRegions !== undefined && { allowedRegions: body.allowedRegions }),
-      ...(body.allowedLanguages !== undefined && { allowedLanguages: body.allowedLanguages }),
-      ...(body.startDate !== undefined && { startDate: new Date(body.startDate) }),
-      ...(body.endDate !== undefined && { endDate: new Date(body.endDate) }),
-      ...(body.renewalAlertDays !== undefined && { renewalAlertDays: body.renewalAlertDays }),
-      ...(body.voiceAllowed !== undefined && { voiceAllowed: body.voiceAllowed }),
-      ...(body.snsAllowed !== undefined && { snsAllowed: body.snsAllowed }),
-      ...(body.adAllowed !== undefined && { adAllowed: body.adAllowed }),
-      ...(body.aiTrainingAllowed !== undefined && { aiTrainingAllowed: body.aiTrainingAllowed }),
-      ...(body.ragAllowed !== undefined && { ragAllowed: body.ragAllowed }),
-      ...(body.thirdPartyAllowed !== undefined && { thirdPartyAllowed: body.thirdPartyAllowed }),
-      ...(body.ugcAllowed !== undefined && { ugcAllowed: body.ugcAllowed }),
-      ...(body.revenueSharePercent !== undefined && { revenueSharePercent: body.revenueSharePercent }),
-      ...(body.minimumGuarantee !== undefined && { minimumGuarantee: body.minimumGuarantee }),
-      ...(body.reportingCycle !== undefined && { reportingCycle: body.reportingCycle }),
-      ...(body.supervisorName !== undefined && { supervisorName: body.supervisorName }),
-      ...(body.supervisorEmail !== undefined && { supervisorEmail: body.supervisorEmail }),
-      ...(body.supervisorPhone !== undefined && { supervisorPhone: body.supervisorPhone }),
-      ...(body.allowedAssets !== undefined && { allowedAssets: body.allowedAssets }),
-      ...(body.prohibitedAssets !== undefined && { prohibitedAssets: body.prohibitedAssets }),
-      ...(body.contractDocUrl !== undefined && { contractDocUrl: body.contractDocUrl }),
-      ...(body.notes !== undefined && { notes: body.notes }),
-    },
-  });
-
-  await adminAudit('contract_update', ctx.email, {
-    contractId: id, contractCode: contract.contractCode, changes: Object.keys(body),
-  });
-
-  return NextResponse.json(updated);
-}
-
-// DELETE /api/admin/contracts/[id] — 契約削除
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const ctx = await requireRole('super_admin');
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
-  const { id } = await params;
-
-  const contract = await prisma.contract.findUnique({ where: { id } });
-  if (!contract) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  await prisma.contract.delete({ where: { id } });
-  await adminAudit('contract_delete', ctx.email, {
-    contractId: id, contractCode: contract.contractCode,
-  });
-
-  return NextResponse.json({ ok: true });
 }

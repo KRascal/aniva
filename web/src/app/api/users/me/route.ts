@@ -32,9 +32,19 @@ export async function GET() {
 
     // avatarUrl未設定時はOAuth image にフォールバック（ランキングと統一）
     // 注意: avatarUrlが空文字列''の場合もフォールバックする（??ではなく||を使用）
+    const resolvedAvatarUrl = user.avatarUrl || user.image || null;
+
+    // avatarUrlが空でimageに値がある場合、DBのavatarUrlを自動修復（次回以降の不整合を防止）
+    if (!user.avatarUrl && user.image) {
+      prisma.user.update({
+        where: { email: session.user.email },
+        data: { avatarUrl: user.image },
+      }).catch(() => { /* best-effort repair */ });
+    }
+
     return NextResponse.json({
       ...user,
-      avatarUrl: user.avatarUrl || user.image || null,
+      avatarUrl: resolvedAvatarUrl,
     });
   } catch (error) {
     console.error('[users/me] error:', error);
@@ -57,7 +67,11 @@ export async function PUT(request: Request) {
     const updateData: Record<string, unknown> = {};
     if (displayName !== undefined) updateData.displayName = String(displayName).slice(0, 30) || null;
     if (nickname !== undefined) updateData.nickname = String(nickname).slice(0, 30) || null;
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl ? String(avatarUrl) : null;
+    if (avatarUrl !== undefined) {
+      updateData.avatarUrl = avatarUrl ? String(avatarUrl) : null;
+      // image カラムも同期（GET時のフォールバックで整合性を保つ）
+      if (avatarUrl) updateData.image = String(avatarUrl);
+    }
     if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl ? String(coverImageUrl) : null;
     if (bio !== undefined) updateData.bio = bio ? String(bio).slice(0, 200) : null;
     if (profilePublic !== undefined) updateData.profilePublic = Boolean(profilePublic);
