@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 async function requireAdmin(req: NextRequest) {
   const session = await auth();
@@ -95,6 +96,10 @@ export async function POST(req: NextRequest) {
         deliveredCount = userIds.length;
       }
     }
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.LETTER_CREATE, 'system', {
+      letterId: letter.id, characterId, title, deliveredCount,
+    });
 
     return NextResponse.json({ letter, deliveredCount, ok: true });
   } catch (error) {

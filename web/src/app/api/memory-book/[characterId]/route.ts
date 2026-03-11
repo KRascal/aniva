@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getAuthUserId } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -10,8 +10,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> },
 ) {
-  const token = await getToken({ req });
-  if (!token?.sub) {
+  const userId = await getAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -27,7 +27,7 @@ export async function GET(
 
   // Relationship取得
   const relationship = await prisma.relationship.findFirst({
-    where: { userId: token.sub, characterId },
+    where: { userId, characterId },
     select: {
       id: true,
       level: true,

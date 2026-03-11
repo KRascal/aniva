@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function PATCH(
   req: NextRequest,
@@ -21,6 +22,10 @@ export async function PATCH(
     },
   });
 
+  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_UPDATE, admin.email, {
+    bannerId: id,
+  });
+
   return NextResponse.json(updated);
 }
 
@@ -33,5 +38,10 @@ export async function DELETE(
 
   const { id } = await params;
   await prisma.gachaBanner.delete({ where: { id } });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_DELETE, admin.email, {
+    bannerId: id,
+  });
+
   return NextResponse.json({ ok: true });
 }

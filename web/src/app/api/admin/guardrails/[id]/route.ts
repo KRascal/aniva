@@ -1,60 +1,56 @@
-/**
- * PUT    /api/admin/guardrails/[id]  — ルール更新
- * DELETE /api/admin/guardrails/[id]  — ルール削除
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/rbac';
+import { adminAudit } from '@/lib/audit-log';
 
-type Params = { params: Promise<{ id: string }> };
-
-export async function PUT(req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// PUT /api/admin/guardrails/[id] — ルール更新
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const ctx = await requireRole('ip_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  try {
-    const body = await req.json();
-    const {
-      ruleType, category, severity, pattern, description,
-      ageRating, regions, fallbackMessage, isActive, characterId, tenantId,
-    } = body;
+  const body = await req.json();
 
-    const updated = await prisma.guardrailRule.update({
-      where: { id },
-      data: {
-        ...(ruleType !== undefined && { ruleType }),
-        ...(category !== undefined && { category }),
-        ...(severity !== undefined && { severity }),
-        ...(pattern !== undefined && { pattern }),
-        ...(description !== undefined && { description }),
-        ...(ageRating !== undefined && { ageRating }),
-        ...(regions !== undefined && { regions }),
-        ...(fallbackMessage !== undefined && { fallbackMessage }),
-        ...(isActive !== undefined && { isActive }),
-        ...(characterId !== undefined && { characterId }),
-        ...(tenantId !== undefined && { tenantId }),
-      },
-    });
+  const rule = await prisma.guardrailRule.update({
+    where: { id },
+    data: {
+      ...(body.ruleType !== undefined && { ruleType: body.ruleType }),
+      ...(body.category !== undefined && { category: body.category }),
+      ...(body.severity !== undefined && { severity: body.severity }),
+      ...(body.pattern !== undefined && { pattern: body.pattern }),
+      ...(body.description !== undefined && { description: body.description }),
+      ...(body.ageRating !== undefined && { ageRating: body.ageRating }),
+      ...(body.regions !== undefined && { regions: body.regions }),
+      ...(body.fallbackMessage !== undefined && { fallbackMessage: body.fallbackMessage }),
+      ...(body.isActive !== undefined && { isActive: body.isActive }),
+    },
+  });
 
-    return NextResponse.json({ rule: updated });
-  } catch (err) {
-    console.error('[admin/guardrails PUT]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
+  await adminAudit('guardrail_update', ctx.email, { ruleId: id, changes: Object.keys(body) });
+
+  return NextResponse.json(rule);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// DELETE /api/admin/guardrails/[id] — ルール削除（論理削除）
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const ctx = await requireRole('ip_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  try {
-    await prisma.guardrailRule.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error('[admin/guardrails DELETE]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
+
+  // 物理削除ではなく論理削除（isActive=false）
+  await prisma.guardrailRule.update({
+    where: { id },
+    data: { isActive: false },
+  });
+
+  await adminAudit('guardrail_deactivate', ctx.email, { ruleId: id });
+
+  return NextResponse.json({ ok: true });
 }

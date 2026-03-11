@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
@@ -74,6 +75,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.STORY_CREATE, admin.email, {
+      chapterId: chapter.id, title, characterId, chapterNumber: Number(chapterNumber),
+    });
+
     return NextResponse.json({ chapter }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/admin/stories]', error);
@@ -107,6 +112,10 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.STORY_UPDATE, admin.email, {
+      chapterId: id,
+    });
+
     return NextResponse.json({ chapter });
   } catch (error) {
     console.error('[PUT /api/admin/stories]', error);
@@ -124,6 +133,11 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
     await prisma.storyChapter.delete({ where: { id } });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.STORY_DELETE, admin.email, {
+      chapterId: id,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[DELETE /api/admin/stories]', error);

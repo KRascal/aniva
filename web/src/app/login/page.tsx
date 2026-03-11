@@ -61,24 +61,50 @@ function ParticleField() {
 function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const errorParam = searchParams.get('error');
   const callbackUrl = searchParams.get('callbackUrl') || '/explore';
 
   // 既にログイン済みならリダイレクト
   useEffect(() => {
-    if (status === 'authenticated' && session) {
-      if (!session.user.onboardingStep || session.user.onboardingStep !== 'completed') {
-        router.replace('/onboarding');
-      } else {
-        // ログイン直後フラグ（explore側のdiscoverリダイレクトをスキップするため）
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('aniva_just_logged_in', '1');
-        }
-        router.replace(callbackUrl);
+    if (status !== 'authenticated' || !session) return;
+
+    const step = session.user.onboardingStep;
+    if (step === 'completed') {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('aniva_just_logged_in', '1');
       }
+      router.replace(callbackUrl);
+      return;
     }
-  }, [session, status, router, callbackUrl]);
+
+    // onboardingStep未完了の場合:
+    // 既存ユーザー（会話履歴あり）なら onboardingStep を completed に更新して /explore へ
+    // 新規ユーザーなら /onboarding へ
+    (async () => {
+      try {
+        const res = await fetch('/api/relationship/all');
+        if (res.ok) {
+          const data = await res.json();
+          const rels = data.relationships ?? data ?? [];
+          const hasConversations = Array.isArray(rels) && rels.some((r: { totalMessages?: number }) => (r.totalMessages ?? 0) > 0);
+          if (hasConversations) {
+            // 既存ユーザー: onboardingStepをcompletedに更新
+            await fetch('/api/onboarding/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+            await update(); // JWT更新
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('aniva_just_logged_in', '1');
+            }
+            router.replace('/explore');
+            return;
+          }
+        }
+      } catch {
+        // APIエラー時はフォールバックでオンボーディングへ
+      }
+      router.replace('/onboarding');
+    })();
+  }, [session, status, router, callbackUrl, update]);
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');

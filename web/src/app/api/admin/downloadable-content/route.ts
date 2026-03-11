@@ -11,6 +11,7 @@ import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 const CONTENT_DIR = join(process.cwd(), 'public', 'uploads', 'content');
 const ALLOWED_TYPES = [
@@ -116,6 +117,10 @@ export async function POST(req: NextRequest) {
     data: { fileUrl, thumbnailUrl },
   });
 
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_CREATE, admin.email, {
+    contentId: updated.id, title, characterId, type,
+  });
+
   return NextResponse.json({ content: updated }, { status: 201 });
 }
 
@@ -145,6 +150,10 @@ export async function PUT(req: NextRequest) {
     },
   });
 
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_UPDATE, admin.email, {
+    contentId: body.id,
+  });
+
   return NextResponse.json({ content: updated });
 }
 
@@ -157,5 +166,10 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id は必須です' }, { status: 400 });
 
   await prisma.downloadableContent.delete({ where: { id } });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_DELETE, admin.email, {
+    contentId: id,
+  });
+
   return NextResponse.json({ success: true });
 }

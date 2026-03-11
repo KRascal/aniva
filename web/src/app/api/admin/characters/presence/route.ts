@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function PUT(req: NextRequest) {
   const admin = await requireAdmin();
@@ -21,6 +22,10 @@ export async function PUT(req: NextRequest) {
       presenceEmoji: manualMode ? (emoji ?? null) : null,
     },
     select: { id: true, presenceManualMode: true, presenceStatus: true, presenceEmoji: true },
+  });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_PRESENCE_UPDATE, admin.email, {
+    characterId, manualMode: manualMode ?? false, status: status ?? null,
   });
 
   return NextResponse.json(character);

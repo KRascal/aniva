@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         reason: (b.reason as string) || null,
       })),
     });
+    await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_BOUNDARY_UPDATE, admin.email, {
+      characterId: id, batchCount: result.count,
+    });
+
     return NextResponse.json({ created: result.count });
   }
 
@@ -44,6 +49,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       reason: data.reason || null,
     },
   });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_BOUNDARY_UPDATE, admin.email, {
+    characterId: id, boundaryId: boundary.id,
+  });
+
   return NextResponse.json(boundary);
 }
 

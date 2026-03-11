@@ -18,6 +18,7 @@ export async function GET() {
         displayName: true,
         nickname: true,
         avatarUrl: true,
+        image: true,
         coverImageUrl: true,
         bio: true,
         profilePublic: true,
@@ -29,7 +30,12 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // avatarUrl未設定時はOAuth image にフォールバック（ランキングと統一）
+    // 注意: avatarUrlが空文字列''の場合もフォールバックする（??ではなく||を使用）
+    return NextResponse.json({
+      ...user,
+      avatarUrl: user.avatarUrl || user.image || null,
+    });
   } catch (error) {
     console.error('[users/me] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

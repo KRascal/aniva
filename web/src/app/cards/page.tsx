@@ -1080,23 +1080,21 @@ export default function CardsPage() {
         </div>
       </header>
 
-      {/* Content with swipe */}
+      {/* Content with swipe — NO transform to avoid breaking fixed overlays (gacha pack opening) */}
       <div
-        className="max-w-lg mx-auto overflow-hidden"
+        className="max-w-lg mx-auto"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{ transform: activeTab === 'collection' ? 'translateX(0)' : 'translateX(-50%)', width: '200%' }}
-        >
-          <div className="w-1/2 min-h-[60vh]">
+        {activeTab === 'collection' ? (
+          <div className="min-h-[60vh]">
             <TabErrorBoundary><CardCollectionTab /></TabErrorBoundary>
           </div>
-          <div className="w-1/2 min-h-[60vh]">
-            {activeTab === 'gacha' ? <TabErrorBoundary key="gacha"><GachaContent /></TabErrorBoundary> : <div />}
+        ) : (
+          <div className="min-h-[60vh]">
+            <TabErrorBoundary key="gacha"><GachaContent embedded /></TabErrorBoundary>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

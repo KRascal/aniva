@@ -976,8 +976,15 @@ export default function ExplorePage() {
         <SwipeModal onClose={() => setShowSwipeModal(false)} />
       )}
 
-      {/* ポストオンボーディング・チュートリアル */}
-      {tutorialInitialized && tutorialState.step >= 1 && tutorialState.step <= 5 && (
+      {/* ポストオンボーディング・チュートリアル — 会話済みユーザーには非表示 */}
+      {tutorialInitialized && tutorialState.step >= 1 && tutorialState.step <= 5 && (() => {
+        // 既に会話したことがあるユーザーはチュートリアル不要
+        let hasConversation = false;
+        relationships.forEach(rel => {
+          if (rel.totalMessages > 0) hasConversation = true;
+        });
+        return !hasConversation;
+      })() && (
         <TutorialOverlay
           tutorialState={tutorialState}
           onAdvance={advanceTutorial}

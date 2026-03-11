@@ -1,50 +1,58 @@
-/**
- * PUT    /api/admin/tenants/[id]  — テナント更新
- * DELETE /api/admin/tenants/[id]  — テナント削除
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/rbac';
+import { adminAudit } from '@/lib/audit-log';
 
-type Params = { params: Promise<{ id: string }> };
-
-export async function PUT(req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// PUT /api/admin/tenants/[id] — テナント更新
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  try {
-    const body = await req.json();
-    const { name, slug, logoUrl, isActive } = body;
+  const { name, slug, logoUrl, isActive } = await req.json();
 
-    const updated = await prisma.tenant.update({
-      where: { id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(slug !== undefined && { slug }),
-        ...(logoUrl !== undefined && { logoUrl }),
-        ...(isActive !== undefined && { isActive }),
-      },
-    });
+  const tenant = await prisma.tenant.update({
+    where: { id },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(slug !== undefined && { slug }),
+      ...(logoUrl !== undefined && { logoUrl }),
+      ...(isActive !== undefined && { isActive }),
+    },
+  });
 
-    return NextResponse.json({ tenant: updated });
-  } catch (err) {
-    console.error('[admin/tenants PUT]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
+  await adminAudit('tenant_update', ctx.email, { tenantId: id, changes: { name, slug, isActive } });
+
+  return NextResponse.json(tenant);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// DELETE /api/admin/tenants/[id] — テナント削除
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
-  try {
-    await prisma.tenant.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error('[admin/tenants DELETE]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+
+  // メンバーやキャラが紐付いている場合は無効化のみ推奨
+  const counts = await prisma.tenant.findUnique({
+    where: { id },
+    include: { _count: { select: { adminUsers: true, characters: true } } },
+  });
+
+  if (counts && (counts._count.adminUsers > 0 || counts._count.characters > 0)) {
+    return NextResponse.json({
+      error: 'テナントにメンバーまたはキャラが紐付いています。先に解除するか、無効化してください。',
+    }, { status: 409 });
   }
+
+  await prisma.tenant.delete({ where: { id } });
+  await adminAudit('tenant_delete', ctx.email, { tenantId: id });
+
+  return NextResponse.json({ ok: true });
 }

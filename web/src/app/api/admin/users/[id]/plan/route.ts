@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
@@ -17,6 +18,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     where: { id },
     data: { plan },
     select: { id: true, email: true, plan: true },
+  });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.USER_PLAN_CHANGE, admin.email, {
+    userId: id, plan,
   });
 
   return NextResponse.json(user);

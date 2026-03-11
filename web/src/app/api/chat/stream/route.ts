@@ -200,11 +200,18 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          // ── 会話updatedAt更新 ──
-          await prisma.conversation.update({
-            where: { id: conversation.id },
-            data: { updatedAt: new Date() },
-          });
+          // ── 会話updatedAt更新 + relationship.lastMessageAt更新（チャット順序ソートに必須） ──
+          const nowTs = new Date();
+          await Promise.all([
+            prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { updatedAt: nowTs },
+            }),
+            prisma.relationship.update({
+              where: { id: relationship.id },
+              data: { lastMessageAt: nowTs },
+            }),
+          ]);
 
           // ── ストリーク更新 ──
           let streakResult: { streakDays: number; isNew: boolean; milestone: number | null } | null = null;

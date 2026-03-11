@@ -434,7 +434,8 @@ function OnboardingInner() {
                 if (resumePhase === 'first_chat' || resumePhase === 'hook') resumePhase = 'approval';
                 if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
                 if (resumePhase === 'nickname' && savedNickname) resumePhase = 'birthday';
-                if (resumePhase === 'birthday') resumePhase = 'approval'; // birthday is one-shot, always advance
+                // birthday は保存済みならスキップ、未入力なら表示
+                // (birthdayは任意入力のためスキップ可能だが、一度入力済みなら進める)
                 stateRestored = true;
                 setState((prev) => ({
                   ...prev,
@@ -505,20 +506,19 @@ function OnboardingInner() {
         }
       }
 
-      // ゲスト体験でニックネーム入力済みならスキップ
+      // ゲスト体験でニックネーム入力済みならnickname+character_selectをスキップ
       try {
         const guestNickname = sessionStorage.getItem('aniva_guest_nickname');
         if (guestNickname) {
           setState((prev) => {
-            // ニックネームをセットし、nicknameフェーズなら次へスキップ
-            const updated = { ...prev, nickname: guestNickname };
-            if (prev.phase === 'nickname') {
-              updated.phase = 'approval';
-            } else if (prev.phase === 'welcome' && prev.selectedCharacter) {
-              // welcomeでキャラ選択済み（ディープリンク等）ならnickname & character_selectスキップ
-              updated.phase = 'approval';
-            }
-            return updated;
+            // ニックネーム設定済み → nickname/character_selectスキップしてbirthdayへ
+            // isDeepLink=trueにしてcharacter_selectフェーズを含まないフロー（DEEP_LINK_PHASES）を使う
+            return {
+              ...prev,
+              nickname: guestNickname,
+              isDeepLink: true,
+              phase: 'birthday',
+            };
           });
           // DB にもニックネームを保存
           fetch('/api/onboarding/nickname', {
@@ -562,7 +562,7 @@ function OnboardingInner() {
       setState(prev => ({
         ...prev,
         nickname: prev.nickname || existingNickname,
-        phase: 'approval',
+        phase: 'birthday',
       }));
     }
   }, [initialized, state.phase, state.nickname, session?.user]);

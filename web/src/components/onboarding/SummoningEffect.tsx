@@ -37,19 +37,14 @@ export default function SummoningEffect({
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  // Safari bfcache対策: ページ復帰時に強制完了
+  // Safari bfcache対策
   useEffect(() => {
     const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        onCompleteRef.current();
-      }
+      if (e.persisted) onCompleteRef.current();
     };
     const handleVisChange = () => {
       if (document.visibilityState === 'visible' && startTimeRef.current > 0) {
-        const elapsed = performance.now() - startTimeRef.current;
-        if (elapsed > 4000) {
-          onCompleteRef.current();
-        }
+        if (performance.now() - startTimeRef.current > 4000) onCompleteRef.current();
       }
     };
     window.addEventListener('pageshow', handlePageShow);
@@ -72,26 +67,25 @@ export default function SummoningEffect({
     const W = canvas.width;
     const H = canvas.height;
     const cx = W / 2;
-    const cy = H / 2;
+    const cy = H * 0.45; // 卵を少し上に配置
 
-    const DURATION = 3000; // 3 seconds total
-    const PHASE1_END = 1000; // 0-1s: converge
-    const PHASE2_END = 2000; // 1-2s: silhouette forming
-    // 2-3s: silhouette pulsing + stable
+    const DURATION = 4000; // 4秒
+    const PHASE1_END = 1200; // パーティクル収束
+    const PHASE2_END = 2500; // 卵形成 + ゆっくり揺れ
+    const PHASE3_END = 3500; // 激しく揺れ + ヒビ
+    // 3500-4000: 光って完了
 
     const isMobile = W < 768;
-    const count = isMobile ? 30 : 60;
+    const count = isMobile ? 35 : 60;
     const colors = ['#a855f7', '#ec4899', '#7c3aed', characterColor];
 
-    // Spawn particles scattered across the screen
     const particles: Particle[] = Array.from({ length: count }, () => {
       const angle = Math.random() * Math.PI * 2;
       const dist = Math.random() * Math.max(W, H) * 0.5 + 80;
       return {
         x: cx + Math.cos(angle) * dist,
         y: cy + Math.sin(angle) * dist,
-        vx: 0,
-        vy: 0,
+        vx: 0, vy: 0,
         size: Math.random() * 3 + 1,
         opacity: Math.random() * 0.8 + 0.2,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -100,60 +94,122 @@ export default function SummoningEffect({
 
     const rgb = hexToRgb(characterColor);
 
-    function drawSilhouette(opacity: number, pulse: number) {
+    // 卵を描画する関数
+    function drawEgg(
+      opacity: number,
+      shakeAngle: number,
+      glowIntensity: number,
+      showCracks: boolean,
+      crackProgress: number,
+    ) {
       if (!ctx) return;
       ctx.save();
-      ctx.globalAlpha = opacity;
-      ctx.shadowBlur = 20 + pulse * 15;
+      ctx.translate(cx, cy);
+      ctx.rotate(shakeAngle);
+
+      const eggW = 70;
+      const eggH = 95;
+
+      // グロー
+      ctx.shadowBlur = 20 + glowIntensity * 40;
       ctx.shadowColor = characterColor;
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`;
 
-      const scale = 0.9 + pulse * 0.08;
-      const headR = 22 * scale;
-      const bodyW = 44 * scale;
-      const bodyH = 90 * scale;
-      const headY = cy - bodyH / 2 - headR;
-
-      // Head
+      // 卵本体 — ベジェ曲線で卵型
       ctx.beginPath();
-      ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+      ctx.moveTo(0, -eggH);
+      // 上部（細い方）
+      ctx.bezierCurveTo(eggW * 0.6, -eggH, eggW, -eggH * 0.3, eggW, eggH * 0.1);
+      // 下部（太い方）
+      ctx.bezierCurveTo(eggW, eggH * 0.65, eggW * 0.55, eggH, 0, eggH);
+      ctx.bezierCurveTo(-eggW * 0.55, eggH, -eggW, eggH * 0.65, -eggW, eggH * 0.1);
+      ctx.bezierCurveTo(-eggW, -eggH * 0.3, -eggW * 0.6, -eggH, 0, -eggH);
+      ctx.closePath();
+
+      // グラデーション
+      const grad = ctx.createRadialGradient(-15, -30, 5, 0, 0, eggH);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${opacity * 0.95})`);
+      grad.addColorStop(0.3, `rgba(230, 220, 240, ${opacity * 0.9})`);
+      grad.addColorStop(0.6, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity * 0.5})`);
+      grad.addColorStop(1, `rgba(${rgb.r * 0.6}, ${rgb.g * 0.6}, ${rgb.b * 0.6}, ${opacity * 0.7})`);
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = opacity;
       ctx.fill();
 
-      // Body
+      // 光沢ハイライト
       ctx.beginPath();
-      ctx.roundRect(cx - bodyW / 2, cy - bodyH / 2, bodyW, bodyH, 8);
+      ctx.ellipse(-15, -40, 18, 12, -0.3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`;
       ctx.fill();
 
-      // Left arm
-      ctx.beginPath();
-      ctx.roundRect(cx - bodyW / 2 - 16 * scale, cy - bodyH / 2, 14 * scale, bodyH * 0.65, 4);
-      ctx.fill();
+      // ヒビ
+      if (showCracks && crackProgress > 0) {
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = opacity * Math.min(crackProgress * 2, 1);
 
-      // Right arm
-      ctx.beginPath();
-      ctx.roundRect(cx + bodyW / 2 + 2 * scale, cy - bodyH / 2, 14 * scale, bodyH * 0.65, 4);
-      ctx.fill();
+        // ヒビ1（メイン）
+        ctx.beginPath();
+        ctx.moveTo(-5, -10);
+        ctx.lineTo(8, -30 * crackProgress);
+        ctx.lineTo(-3, -50 * crackProgress);
+        ctx.lineTo(12, -70 * crackProgress);
+        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)`;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // ヒビ2（右）
+        if (crackProgress > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(10, 5);
+          ctx.lineTo(25, -15 * crackProgress);
+          ctx.lineTo(18, -30 * crackProgress);
+          ctx.strokeStyle = `rgba(236, 72, 153, 0.7)`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // ヒビ3（左）
+        if (crackProgress > 0.6) {
+          ctx.beginPath();
+          ctx.moveTo(-8, 10);
+          ctx.lineTo(-22, -5 * crackProgress);
+          ctx.lineTo(-15, -25 * crackProgress);
+          ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        // ヒビから漏れる光
+        if (crackProgress > 0.5) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = characterColor;
+          ctx.beginPath();
+          ctx.moveTo(-5, -10);
+          ctx.lineTo(8, -30 * crackProgress);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(crackProgress - 0.5) * 0.6})`;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+        }
+      }
 
       ctx.restore();
     }
 
     startTimeRef.current = performance.now();
 
-    // フォールバック: 4秒後に強制完了（スタック防止）
     const fallbackTimer = setTimeout(() => {
       cancelAnimationFrame(animRef.current);
       onCompleteRef.current();
-    }, 4200);
+    }, 5000);
 
     function animate(now: number) {
       if (!ctx || !canvas) return;
       const elapsed = now - startTimeRef.current;
-      const t = Math.min(elapsed / DURATION, 1);
 
       ctx.clearRect(0, 0, W, H);
 
       if (elapsed < PHASE1_END) {
-        // Phase 1: particles converge toward center
+        // Phase 1: パーティクル収束
         const phase = elapsed / PHASE1_END;
         particles.forEach((p) => {
           const dx = cx - p.x;
@@ -175,44 +231,72 @@ export default function SummoningEffect({
           ctx.fill();
           ctx.shadowBlur = 0;
         });
+
+        // 卵が薄く出現し始める
+        if (phase > 0.5) {
+          drawEgg((phase - 0.5) * 1.2, 0, 0, false, 0);
+        }
       } else if (elapsed < PHASE2_END) {
-        // Phase 2: particles still converge, silhouette forming
+        // Phase 2: 卵形成 + ゆっくり揺れ
         const phase = (elapsed - PHASE1_END) / (PHASE2_END - PHASE1_END);
+
+        // パーティクル消滅
         particles.forEach((p) => {
           const dx = cx - p.x;
           const dy = cy - p.y;
-          p.vx += dx * 0.06;
-          p.vy += dy * 0.06;
-          p.vx *= 0.88;
-          p.vy *= 0.88;
+          p.vx += dx * 0.08;
+          p.vy += dy * 0.08;
+          p.vx *= 0.85;
+          p.vy *= 0.85;
           p.x += p.vx;
           p.y += p.vy;
 
-          const prgb = hexToRgb(p.color);
           const dist = Math.hypot(p.x - cx, p.y - cy);
-          const fadeOut = Math.max(0, 1 - dist / 40);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${prgb.r}, ${prgb.g}, ${prgb.b}, ${p.opacity * fadeOut})`;
-          ctx.shadowBlur = 12;
-          ctx.shadowColor = p.color;
-          ctx.fill();
-          ctx.shadowBlur = 0;
+          const fadeOut = Math.max(0, 1 - phase * 1.5) * Math.max(0, 1 - dist / 60);
+          if (fadeOut > 0.01) {
+            const prgb = hexToRgb(p.color);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${prgb.r}, ${prgb.g}, ${prgb.b}, ${fadeOut})`;
+            ctx.fill();
+          }
         });
 
-        drawSilhouette(phase * 0.6, 0);
+        // 卵: ゆっくり揺れ
+        const shake = Math.sin(elapsed * 0.005) * 0.04 * (0.5 + phase * 0.5);
+        drawEgg(0.7 + phase * 0.3, shake, phase * 0.3, false, 0);
+      } else if (elapsed < PHASE3_END) {
+        // Phase 3: 激しく揺れ + ヒビ
+        const phase = (elapsed - PHASE2_END) / (PHASE3_END - PHASE2_END);
+
+        // 激しい揺れ（周波数と振幅が増加）
+        const freq = 0.015 + phase * 0.025;
+        const amp = 0.06 + phase * 0.12;
+        const shake = Math.sin(elapsed * freq) * amp;
+
+        drawEgg(1, shake, 0.3 + phase * 0.7, true, phase);
       } else {
-        // Phase 3: silhouette stable with pulse
-        const phase = (elapsed - PHASE2_END) / (DURATION - PHASE2_END);
-        const pulse = Math.sin(phase * Math.PI * 4) * 0.5 + 0.5;
-        drawSilhouette(0.6 + phase * 0.4, pulse);
+        // Phase 4: 光って完了
+        const phase = (elapsed - PHASE3_END) / (DURATION - PHASE3_END);
+
+        // 白くフラッシュ
+        drawEgg(1 - phase * 0.5, 0, 1, true, 1);
+
+        // 爆発光
+        ctx.save();
+        ctx.globalAlpha = phase * 0.8;
+        const flashGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 200 * phase);
+        flashGrad.addColorStop(0, `rgba(255, 255, 255, ${phase})`);
+        flashGrad.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${phase * 0.5})`);
+        flashGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = flashGrad;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
       }
 
       if (elapsed < DURATION) {
         animRef.current = requestAnimationFrame(animate);
       } else {
-        // Final frame: full silhouette
-        drawSilhouette(1, 0);
         setTimeout(() => onCompleteRef.current(), 100);
       }
     }
@@ -231,11 +315,10 @@ export default function SummoningEffect({
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
       />
-      {/* Ambient glow overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse 40% 60% at 50% 50%, ${characterColor}15 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 40% 60% at 50% 45%, ${characterColor}15 0%, transparent 70%)`,
         }}
       />
     </div>

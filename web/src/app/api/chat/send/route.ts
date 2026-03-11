@@ -216,11 +216,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 6. 会話のupdatedAt更新
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: { updatedAt: new Date() },
-    });
+    // 6. 会話のupdatedAt更新 + relationship.lastMessageAt更新（チャット順序ソートに必須）
+    const nowTs = new Date();
+    await Promise.all([
+      prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: nowTs },
+      }),
+      prisma.relationship.update({
+        where: { id: relationship.id },
+        data: { lastMessageAt: nowTs },
+      }),
+    ]);
 
     // 7a. ストリーク更新
     let streakResult: { streakDays: number; isNew: boolean; milestone: number | null } | null = null;

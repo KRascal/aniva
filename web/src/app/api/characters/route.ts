@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { getToken } from 'next-auth/jwt';
+import { getAuthUserId } from '@/lib/api-auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,15 +22,10 @@ export async function GET(req: NextRequest) {
 
     // フォロー中のみフィルタ
     if (followingOnly) {
-      const cookieName = req.cookies.has('__Secure-authjs.session-token')
-        ? '__Secure-authjs.session-token'
-        : req.cookies.has('authjs.session-token')
-        ? 'authjs.session-token'
-        : '__Secure-next-auth.session-token';
-      const token = await getToken({ req, cookieName, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET });
-      if (token?.sub) {
+      const userId = await getAuthUserId(req);
+      if (userId) {
         where.relationships = {
-          some: { userId: token.sub, isFollowing: true },
+          some: { userId, isFollowing: true },
         };
       } else {
         // 未認証時はフォロー中キャラなし → 空を返す

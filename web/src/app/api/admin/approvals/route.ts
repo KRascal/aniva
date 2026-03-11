@@ -1,74 +1,103 @@
-/**
- * GET  /api/admin/approvals  — 承認リクエスト一覧
- * POST /api/admin/approvals  — 新規承認リクエスト作成
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { requireRole, tenantScope, canAccessCharacter } from '@/lib/rbac';
+import { adminAudit } from '@/lib/audit-log';
 
+// GET /api/admin/approvals — 承認リクエスト一覧
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('viewer');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
+  const characterId = searchParams.get('characterId');
 
-  const approvals = await prisma.approvalRequest.findMany({
-    where: status ? { status } : undefined,
+  // テナントスコープ: 自テナントのキャラのみ
+  let characterFilter: { id?: string; tenantId?: string } = {};
+  if (ctx.role !== 'super_admin' && ctx.tenantId) {
+    characterFilter = { tenantId: ctx.tenantId };
+  }
+
+  const requests = await prisma.approvalRequest.findMany({
+    where: {
+      ...(characterId ? { characterId } : {}),
+      ...(status ? { status } : {}),
+      character: Object.keys(characterFilter).length > 0 ? characterFilter : undefined,
+    },
     include: {
       character: { select: { id: true, name: true, slug: true, avatarUrl: true } },
-      requester: { select: { id: true, name: true, email: true } },
+      requester: { select: { id: true, email: true, name: true } },
       actions: {
-        include: {
-          actor: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { createdAt: 'asc' },
+        include: { actor: { select: { email: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [
+      { status: 'asc' }, // pending先頭
+      { createdAt: 'desc' },
+    ],
   });
 
-  return NextResponse.json({ approvals });
+  return NextResponse.json(requests);
 }
 
+// POST /api/admin/approvals — 承認リクエスト作成
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  try {
-    const body = await req.json();
-    const {
-      characterId, type, title, description,
-      previousValue, proposedValue, diffSummary,
-      requestedBy, priority,
-    } = body;
+  const { characterId, type, title, description, previousValue, proposedValue, diffSummary, priority } = await req.json();
 
-    if (!characterId || !type || !title || !proposedValue || !requestedBy) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
+  if (!characterId || !type || !title || proposedValue === undefined) {
+    return NextResponse.json(
+      { error: 'characterId, type, title, proposedValue are required' },
+      { status: 400 }
+    );
+  }
 
-    const approval = await prisma.approvalRequest.create({
+  // アクセス権チェック
+  const hasAccess = await canAccessCharacter(ctx, characterId);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Forbidden: no access to this character' }, { status: 403 });
+  }
+
+  // AdminUserレコードを取得（または作成）
+  let adminUser = await prisma.adminUser.findUnique({ where: { email: ctx.email } });
+  if (!adminUser) {
+    // legacy admin（ADMIN_EMAILS経由）の場合は自動作成
+    adminUser = await prisma.adminUser.create({
       data: {
-        characterId,
-        type,
-        title,
-        description: description ?? null,
-        previousValue: previousValue ?? null,
-        proposedValue,
-        diffSummary: diffSummary ?? null,
-        requestedBy,
-        priority: priority ?? 'normal',
-      },
-      include: {
-        character: { select: { id: true, name: true } },
-        requester: { select: { id: true, name: true, email: true } },
+        email: ctx.email,
+        name: ctx.name,
+        role: ctx.role,
+        tenantId: ctx.tenantId,
       },
     });
-
-    return NextResponse.json({ approval }, { status: 201 });
-  } catch (err) {
-    console.error('[admin/approvals POST]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
+
+  const request = await prisma.approvalRequest.create({
+    data: {
+      characterId,
+      type,
+      title,
+      description: description ?? null,
+      previousValue: previousValue ?? null,
+      proposedValue,
+      diffSummary: diffSummary ?? null,
+      status: 'pending',
+      requestedById: adminUser.id,
+      priority: priority ?? 'normal',
+    },
+    include: {
+      character: { select: { name: true } },
+      requester: { select: { email: true, name: true } },
+    },
+  });
+
+  await adminAudit('approval_request_create', ctx.email, {
+    requestId: request.id, characterId, type, title,
+  });
+
+  return NextResponse.json(request, { status: 201 });
 }

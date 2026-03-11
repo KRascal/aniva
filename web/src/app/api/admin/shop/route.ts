@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 // GET: 商品一覧（管理者用・全件、非アクティブ含む）
 export async function GET(req: NextRequest) {
@@ -87,6 +88,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_CREATE, admin.email, {
+      itemId: item.id, name, characterId, type,
+    });
+
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/admin/shop]', error);
@@ -132,6 +137,10 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_UPDATE, admin.email, {
+      itemId: id,
+    });
+
     return NextResponse.json({ item });
   } catch (error) {
     console.error('[PUT /api/admin/shop]', error);
@@ -161,6 +170,10 @@ export async function DELETE(req: NextRequest) {
     const item = await prisma.shopItem.update({
       where: { id },
       data: { isActive: false },
+    });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_DELETE, admin.email, {
+      itemId: id, name: existing.name,
     });
 
     return NextResponse.json({ success: true, item });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(_req: NextRequest) {
   const admin = await requireAdmin();
@@ -53,6 +54,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_CREATE, admin.email, {
+      packageId: pkg.id, name, coinAmount: Number(coinAmount),
+    });
+
     return NextResponse.json({ package: pkg }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/admin/coins]', error);
@@ -82,6 +87,10 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_UPDATE, admin.email, {
+      packageId: id,
+    });
+
     return NextResponse.json({ package: pkg });
   } catch (error) {
     console.error('[PUT /api/admin/coins]', error);
@@ -99,6 +108,11 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
     await prisma.coinPackage.delete({ where: { id } });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_DELETE, admin.email, {
+      packageId: id,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[DELETE /api/admin/coins]', error);

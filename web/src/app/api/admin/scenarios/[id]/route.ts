@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -48,6 +49,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_UPDATE, admin.email, {
+      scenarioId: id,
+    });
+
     return NextResponse.json({ scenario: updated });
   } catch (err) {
     console.error('[admin/scenarios PATCH]', err);
@@ -62,6 +67,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   try {
     await prisma.limitedScenario.delete({ where: { id } });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_DELETE, admin.email, {
+      scenarioId: id,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[admin/scenarios DELETE]', err);
