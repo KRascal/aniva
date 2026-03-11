@@ -101,11 +101,18 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // conversation の updatedAt を更新
-  await prisma.conversation.update({
-    where: { id: conversation.id },
-    data: { updatedAt: new Date() },
-  });
+  // conversation + relationship の時刻を更新（チャット順序ソートに必須）
+  const nowTs = new Date();
+  await Promise.all([
+    prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: nowTs },
+    }),
+    prisma.relationship.update({
+      where: { id: relationship.id },
+      data: { lastMessageAt: nowTs },
+    }),
+  ]);
 
   return NextResponse.json({
     message: {
