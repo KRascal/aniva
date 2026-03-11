@@ -217,11 +217,11 @@ export default function CommunityPage() {
 
       {/* New Thread Modal */}
       {showNewThread && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center">
-          <div className="w-full max-w-lg bg-[#1a1a1a] rounded-t-2xl p-5 animate-slide-up">
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowNewThread(false)}>
+          <div className="w-full max-w-lg bg-[#1a1a1a] rounded-2xl p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold">新しいスレッド</h2>
-              <button onClick={() => setShowNewThread(false)} className="text-white/40 hover:text-white">
+              <button onClick={() => setShowNewThread(false)} className="text-white/40 hover:text-white p-1">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
@@ -233,7 +233,7 @@ export default function CommunityPage() {
                 <button
                   key={cat.id}
                   onClick={() => setNewCategory(cat.id)}
-                  className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
+                  className={`px-3 py-1.5 text-xs rounded-full whitespace-nowrap ${
                     newCategory === cat.id
                       ? 'bg-white text-black'
                       : 'bg-white/5 text-white/50'
@@ -258,14 +258,14 @@ export default function CommunityPage() {
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
               maxLength={5000}
-              rows={5}
+              rows={4}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 resize-none mb-4"
             />
 
             <button
               onClick={handleSubmit}
               disabled={!newTitle.trim() || !newContent.trim() || submitting}
-              className="w-full py-2.5 bg-white text-black rounded-lg text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/90 active:scale-[0.98] transition-all"
+              className="w-full py-3 bg-white text-black rounded-xl text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/90 active:scale-[0.98] transition-all"
             >
               {submitting ? '投稿中...' : '投稿する'}
             </button>
