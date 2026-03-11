@@ -42,21 +42,14 @@ export function CountdownTimer({ expiresAt, className = '' }: CountdownTimerProp
   }, [expiresAt]);
 
   return (
-    <div className={`flex items-center gap-1.5 ${className}`}>
-      {/* Mini progress ring */}
-      <svg width="16" height="16" viewBox="0 0 16 16" className="flex-shrink-0">
-        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5"
-          className={isUrgent ? 'text-red-900' : 'text-white/10'}
-        />
-        <circle cx="8" cy="8" r="6" fill="none" strokeWidth="1.5"
-          className={isUrgent ? 'text-red-400' : 'text-purple-400'}
-          strokeDasharray={`${2 * Math.PI * 6}`}
-          strokeDashoffset={`${2 * Math.PI * 6 * (1 - progress / 100)}`}
-          strokeLinecap="round"
-          transform="rotate(-90 8 8)"
-          style={{ transition: 'stroke-dashoffset 1s linear' }}
-        />
-      </svg>
+    <div
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${
+        isUrgent
+          ? 'bg-red-950/60 border-red-500/40'
+          : 'bg-white/[0.04] border-white/10'
+      } ${className}`}
+    >
+      <span className={`text-[10px] ${isUrgent ? 'text-red-400' : 'text-white/40'}`}>⏱</span>
       <span
         className={`text-[11px] font-mono tabular-nums tracking-wider ${
           isUrgent ? 'text-red-400 animate-pulse' : 'text-white/50'

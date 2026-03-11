@@ -148,7 +148,7 @@ ${memoryContext}
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-sonnet-4-5-20250514',
       max_tokens: 150,
       messages: [{ role: 'user', content: prompt }],
     });

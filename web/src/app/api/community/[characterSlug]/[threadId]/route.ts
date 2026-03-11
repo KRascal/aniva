@@ -101,13 +101,67 @@ export async function POST(
     });
 
     // Update thread reply count and lastReplyAt
-    await prisma.fanThread.update({
+    const updatedThread = await prisma.fanThread.update({
       where: { id: threadId },
       data: {
         replyCount: { increment: 1 },
         lastReplyAt: new Date(),
       },
+      include: {
+        user: { select: { id: true, nickname: true, displayName: true } },
+        character: { select: { id: true, name: true, slug: true } },
+      },
     });
+
+    // Notify thread author about the reply (skip if replying to own thread)
+    if (updatedThread.userId && updatedThread.userId !== session.user.id) {
+      const replierName = (session.user as Record<string, unknown>).nickname as string
+        || (session.user as Record<string, unknown>).name as string
+        || '匿名';
+      prisma.notification.create({
+        data: {
+          userId: updatedThread.userId,
+          type: 'community_reply',
+          title: '掲示板に返信がありました',
+          body: `${replierName}さんが「${updatedThread.title?.slice(0, 30)}」に返信しました`,
+          characterId: updatedThread.characterId,
+          actorName: replierName,
+          targetUrl: `/community/${updatedThread.character?.slug || ''}/${threadId}`,
+        },
+      }).catch((e: unknown) => console.warn('[Notification] community reply:', e));
+    }
+
+    // Also notify users mentioned with @ in the content
+    const mentionMatches = content.match(/@(\S+)/g);
+    if (mentionMatches) {
+      const mentionNames = mentionMatches.map((m: string) => m.slice(1));
+      const mentionedUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            { nickname: { in: mentionNames } },
+            { displayName: { in: mentionNames } },
+          ],
+          id: { not: session.user.id },
+        },
+        select: { id: true },
+      });
+      const replierName = (session.user as Record<string, unknown>).nickname as string
+        || (session.user as Record<string, unknown>).name as string
+        || '匿名';
+      for (const u of mentionedUsers) {
+        prisma.notification.create({
+          data: {
+            userId: u.id,
+            type: 'community_mention',
+            title: '掲示板でメンションされました',
+            body: `${replierName}さんがあなたをメンションしました`,
+            characterId: updatedThread.characterId,
+            actorName: replierName,
+            targetUrl: `/community/${updatedThread.character?.slug || ''}/${threadId}`,
+          },
+        }).catch((e: unknown) => console.warn('[Notification] community mention:', e));
+      }
+    }
 
     return NextResponse.json({ reply }, { status: 201 });
   } catch (error) {
