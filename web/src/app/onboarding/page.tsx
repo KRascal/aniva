@@ -434,7 +434,8 @@ function OnboardingInner() {
                 if (resumePhase === 'first_chat' || resumePhase === 'hook') resumePhase = 'approval';
                 if (phase === 'character_select' && savedCharacter) resumePhase = 'nickname';
                 if (resumePhase === 'nickname' && savedNickname) resumePhase = 'birthday';
-                if (resumePhase === 'birthday') resumePhase = 'approval'; // birthday is one-shot, always advance
+                // birthday は保存済みならスキップ、未入力なら表示
+                // (birthdayは任意入力のためスキップ可能だが、一度入力済みなら進める)
                 stateRestored = true;
                 setState((prev) => ({
                   ...prev,
@@ -513,10 +514,10 @@ function OnboardingInner() {
             // ニックネームをセットし、nicknameフェーズなら次へスキップ
             const updated = { ...prev, nickname: guestNickname };
             if (prev.phase === 'nickname') {
-              updated.phase = 'approval';
+              updated.phase = 'birthday';
             } else if (prev.phase === 'welcome' && prev.selectedCharacter) {
               // welcomeでキャラ選択済み（ディープリンク等）ならnickname & character_selectスキップ
-              updated.phase = 'approval';
+              updated.phase = 'birthday';
             }
             return updated;
           });

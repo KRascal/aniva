@@ -57,8 +57,8 @@ function useTypewriter(text: string, active: boolean, speed = 60) {
 }
 
 export default function CharacterReveal({ character, onComplete }: CharacterRevealProps) {
-  // Phase: 'summoning' → 'silhouette' → 'reveal' → 'phrase'
-  const [phase, setPhase] = useState<'summoning' | 'silhouette' | 'reveal' | 'phrase'>('summoning');
+  // Phase: 'summoning' → 'egg' → 'hatching' → 'reveal' → 'phrase'
+  const [phase, setPhase] = useState<'summoning' | 'egg' | 'hatching' | 'reveal' | 'phrase'>('summoning');
   const [brightness, setBrightness] = useState(0);
   const [phraseVisible, setPhraseVisible] = useState(false);
   const [gatherParticles, setGatherParticles] = useState(false);
@@ -75,20 +75,23 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
     }, 500);
 
     const t2 = setTimeout(() => {
-      // Silhouette phase
-      setPhase('silhouette');
+      // Egg phase — 卵が出現
+      setPhase('egg');
     }, 1500);
 
-    // Phase 2: hold silhouette for 1s, then start reveal
+    // Phase 2: 卵が揺れる→孵化
     const t3 = setTimeout(() => {
+      setPhase('hatching');
+    }, 3500);
+
+    // Phase 3: キャラ出現
+    const t4_reveal = setTimeout(() => {
       setPhase('reveal');
-      // Animate brightness from 0 to 1
       const startTime = Date.now();
-      const duration = 1800;
+      const duration = 1200;
       const animate = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // Ease-in-out
         const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
         setBrightness(eased);
         if (progress < 1) {
@@ -96,26 +99,27 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
         }
       };
       requestAnimationFrame(animate);
-    }, 2500);
+    }, 4500);
 
-    // Phase 3: show phrase after reveal
+    // Phase 4: セリフ表示
     const t4 = setTimeout(() => {
       setPhase('phrase');
       setPhraseVisible(true);
       setGatherParticles(false);
-    }, 4500);
+    }, 6000);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4_reveal);
       clearTimeout(t4);
     };
   }, []);
 
-  // Auto-advance after 8 seconds total
+  // Auto-advance after 10 seconds total
   useEffect(() => {
-    const timer = setTimeout(() => onComplete(), 8000);
+    const timer = setTimeout(() => onComplete(), 10000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
@@ -125,14 +129,13 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
     }
   };
 
-  const isSilhouetteOrReveal = phase === 'silhouette' || phase === 'reveal';
-  const imageFilter = isSilhouetteOrReveal
+  const isRevealOrPhrase = phase === 'reveal' || phase === 'phrase';
+  const imageFilter = isRevealOrPhrase
     ? `brightness(${brightness}) saturate(${brightness})`
-    : phase === 'phrase'
-    ? 'brightness(1) saturate(1)'
     : 'brightness(0) saturate(0)';
 
-  const imageOpacity = phase === 'summoning' ? 0 : 1;
+  // 卵フェーズ中はキャラ画像を非表示、reveal以降で表示
+  const imageOpacity = (phase === 'summoning' || phase === 'egg' || phase === 'hatching') ? 0 : 1;
 
   return (
     <div
@@ -152,13 +155,69 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
         className="absolute inset-0 pointer-events-none"
         style={{
           background: 'radial-gradient(ellipse 60% 80% at 50% 100%, rgba(168,85,247,0.25) 0%, transparent 70%)',
-          opacity: isSilhouetteOrReveal || phase === 'phrase' ? 1 : 0.2,
+          opacity: isRevealOrPhrase ? 1 : 0.2,
           transition: 'opacity 2s ease',
         }}
       />
 
-      {/* Summoning ring effect */}
-      {(phase === 'summoning' || phase === 'silhouette') && (
+      {/* Egg animation */}
+      {(phase === 'egg' || phase === 'hatching') && (
+        <div
+          className="absolute pointer-events-none flex items-center justify-center"
+          style={{
+            bottom: '25%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '200px',
+            height: '260px',
+          }}
+        >
+          {/* 卵本体 */}
+          <div
+            style={{
+              width: '140px',
+              height: '180px',
+              borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
+              background: `linear-gradient(160deg, 
+                rgba(255,255,255,0.95) 0%, 
+                rgba(230,220,240,0.9) 30%, 
+                rgba(200,180,220,0.85) 60%, 
+                rgba(168,85,247,0.4) 100%)`,
+              boxShadow: phase === 'hatching'
+                ? '0 0 60px rgba(168,85,247,0.8), 0 0 120px rgba(236,72,153,0.4), inset 0 -20px 40px rgba(168,85,247,0.3)'
+                : '0 0 30px rgba(168,85,247,0.3), inset 0 -20px 40px rgba(168,85,247,0.15)',
+              animation: phase === 'hatching'
+                ? 'eggShakeIntense 0.15s ease-in-out infinite'
+                : 'eggShake 0.8s ease-in-out infinite',
+              transition: 'box-shadow 0.5s ease',
+              position: 'relative',
+            }}
+          >
+            {/* 卵の光沢 */}
+            <div style={{
+              position: 'absolute',
+              top: '15%',
+              left: '25%',
+              width: '30%',
+              height: '20%',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.6)',
+              filter: 'blur(8px)',
+            }} />
+            {/* ヒビ（hatching時） */}
+            {phase === 'hatching' && (
+              <svg viewBox="0 0 140 180" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                <path d="M 55 90 L 65 75 L 58 60 L 70 45" stroke="rgba(168,85,247,0.8)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <path d="M 75 95 L 85 80 L 78 70" stroke="rgba(236,72,153,0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
+                <path d="M 60 100 L 50 85 L 55 75" stroke="rgba(168,85,247,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Summoning particles */}
+      {phase === 'summoning' && (
         <div
           className="absolute pointer-events-none"
           style={{
@@ -202,41 +261,19 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
             />
           </div>
         ) : (
-          /* Silhouette fallback: initial in dark style */
+          /* Avatar未設定時: キャラの頭文字をグロウ表示 */
           <div
             className="relative mb-16 flex items-center justify-center"
-            style={{
-              width: '180px',
-              height: '260px',
-            }}
+            style={{ width: '160px', height: '160px' }}
           >
-            {/* Body silhouette shape */}
             <div
-              className="absolute"
+              className="absolute inset-0 rounded-full"
               style={{
-                width: '180px',
-                height: '260px',
-                background: phase === 'phrase'
-                  ? 'radial-gradient(ellipse at center, rgba(168,85,247,0.8) 0%, rgba(168,85,247,0.2) 70%)'
-                  : 'radial-gradient(ellipse at center, rgba(30,10,60,0.95) 0%, rgba(60,20,100,0.7) 60%, transparent 90%)',
-                borderRadius: '50% 50% 40% 40%',
-                boxShadow: phase === 'phrase'
-                  ? '0 0 60px rgba(168,85,247,0.6), 0 0 120px rgba(168,85,247,0.3)'
-                  : '0 0 40px rgba(168,85,247,0.2)',
-                filter: `blur(${phase === 'phrase' ? 0 : 2}px)`,
-                transition: 'all 1.8s ease',
+                background: 'radial-gradient(circle, rgba(168,85,247,0.6) 0%, rgba(168,85,247,0.1) 70%)',
+                boxShadow: '0 0 60px rgba(168,85,247,0.5), 0 0 120px rgba(236,72,153,0.3)',
               }}
             />
-            {/* Initial letter */}
-            <span
-              className="relative z-10 font-bold"
-              style={{
-                fontSize: '72px',
-                color: phase === 'phrase' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
-                textShadow: phase === 'phrase' ? '0 0 30px rgba(168,85,247,0.8)' : 'none',
-                transition: 'all 1.8s ease',
-              }}
-            >
+            <span className="relative z-10 font-bold text-white/90" style={{ fontSize: '64px', textShadow: '0 0 40px rgba(168,85,247,0.8)' }}>
               {character.name[0]}
             </span>
           </div>
@@ -360,6 +397,19 @@ export default function CharacterReveal({ character, onComplete }: CharacterReve
         @keyframes summonRing {
           0% { transform: scale(0.3); opacity: 0.8; }
           100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes eggShake {
+          0%, 100% { transform: rotate(0deg); }
+          20% { transform: rotate(-3deg); }
+          40% { transform: rotate(3deg); }
+          60% { transform: rotate(-2deg); }
+          80% { transform: rotate(2deg); }
+        }
+        @keyframes eggShakeIntense {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          25% { transform: rotate(-6deg) scale(1.02); }
+          50% { transform: rotate(6deg) scale(1.04); }
+          75% { transform: rotate(-4deg) scale(1.02); }
         }
       `}</style>
     </div>
