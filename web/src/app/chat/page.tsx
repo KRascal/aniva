@@ -59,6 +59,7 @@ function ChatRow({
   unreadCount = 0,
   isPinned = false,
   isMuted = false,
+  isFanclub = false,
   onClick,
 }: {
   character: Character;
@@ -67,6 +68,7 @@ function ChatRow({
   unreadCount?: number;
   isPinned?: boolean;
   isMuted?: boolean;
+  isFanclub?: boolean;
   onClick: () => void;
 }) {
   const lastMsg = relationship.lastMessage;
@@ -97,9 +99,13 @@ function ChatRow({
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-800/50 active:bg-gray-800/70 transition-colors text-left"
     >
-      {/* アバター — LINE風 丸型 + ピン留めバッジ */}
+      {/* アバター — LINE風 丸型 + FCキャラは金枠 + ピン留めバッジ */}
       <div className="relative flex-shrink-0">
-        <div className="w-12 h-12 rounded-full overflow-hidden">
+        <div className={`w-12 h-12 rounded-full overflow-hidden ${
+          isFanclub
+            ? 'ring-2 ring-yellow-400/60 shadow-sm shadow-yellow-400/20'
+            : ''
+        }`}>
           {character.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
@@ -125,6 +131,9 @@ function ChatRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-bold text-white text-sm truncate">{character.name}</span>
+          {isFanclub && (
+            <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full border border-yellow-500/30 font-bold">FC</span>
+          )}
           {isMuted && (
             <span className="flex-shrink-0" title="通知オフ">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
@@ -160,6 +169,7 @@ function SwipeableChatRow({
   unreadCount = 0,
   isPinned = false,
   isMuted = false,
+  isFanclub = false,
   onClick,
   onPin,
   onMute,
@@ -171,6 +181,7 @@ function SwipeableChatRow({
   unreadCount?: number;
   isPinned?: boolean;
   isMuted?: boolean;
+  isFanclub?: boolean;
   onClick: () => void;
   onPin: () => void;
   onMute: () => void;
@@ -341,6 +352,7 @@ function SwipeableChatRow({
           unreadCount={unreadCount}
           isPinned={isPinned}
           isMuted={isMuted}
+          isFanclub={isFanclub}
           onClick={() => {/* handled by touch end */}}
         />
       </div>
@@ -1210,6 +1222,7 @@ export default function ChatPage() {
                     unreadCount={totalUnread}
                     isPinned={!!rel.isPinned}
                     isMuted={!!rel.isMuted}
+                    isFanclub={!!rel.isFanclub}
                     onClick={() => router.push(`/chat/${character.slug || character.id}`)}
                     onPin={async () => {
                       const newPin = !rel.isPinned;

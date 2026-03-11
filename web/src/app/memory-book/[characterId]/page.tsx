@@ -40,10 +40,15 @@ export default function MemoryBookPage() {
 
     fetch(`/api/memory-book/${characterId}`)
       .then(r => {
+        if (r.status === 404) {
+          // まだ会話していないキャラ → data=null（エラーではなく空状態）
+          setData(null);
+          return null;
+        }
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(setData)
+      .then(d => { if (d) setData(d); })
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [characterId, status, router]);
@@ -69,8 +74,18 @@ export default function MemoryBookPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex items-center justify-center text-gray-400">
-        <p>二人の思い出はこれから作ろう</p>
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex flex-col items-center justify-center text-gray-400 p-8 gap-4">
+        <div className="text-5xl">📖</div>
+        <p className="text-white/70 font-bold text-lg">まだ思い出はない</p>
+        <p className="text-gray-500 text-sm text-center max-w-[250px]">会話を重ねると、ここに二人だけの思い出が記録されていくよ</p>
+        <button
+          onClick={() => router.push(`/chat/${characterId}`)}
+          className="mt-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
+          style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))', boxShadow: '0 4px 16px rgba(139,92,246,0.35)' }}
+        >
+          話しかけてみる →
+        </button>
+        <button onClick={() => router.back()} className="text-gray-500 text-sm mt-1">戻る</button>
       </div>
     );
   }
