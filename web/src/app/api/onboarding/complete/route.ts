@@ -24,8 +24,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const body = await req.json();
-    const { notificationPermission } = body as { notificationPermission: boolean | null };
+    let notificationPermission: boolean | null = null;
+    try {
+      const body = await req.json();
+      notificationPermission = body?.notificationPermission ?? null;
+    } catch {
+      // 空body（既存ユーザーの自動完了等）は許容
+    }
 
     // ニックネームが設定されている場合、displayNameも同期
     const preUser = await prisma.user.findUnique({
