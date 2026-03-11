@@ -1423,9 +1423,19 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════ パーソナリティトレイト ══════════════ */}
-        {character?.personalityTraits && Array.isArray(character.personalityTraits) && character.personalityTraits.length > 0 && (
-          <PersonalityTraitsSection traits={character.personalityTraits as PersonalityTrait[]} />
-        )}
+        {character?.personalityTraits && Array.isArray(character.personalityTraits) && character.personalityTraits.length > 0 && (() => {
+          // DB: string[] → PersonalityTrait[] に変換（valueは順序ベースで自動割り当て）
+          const rawTraits = character.personalityTraits as (string | PersonalityTrait)[];
+          const converted: PersonalityTrait[] = rawTraits.map((t, i) => {
+            if (typeof t === 'object' && t !== null && 'trait' in t && 'value' in t) {
+              return t as PersonalityTrait;
+            }
+            // 文字列 → trait+value形式に変換。最初の特性ほど強い（90→60のグラデーション）
+            const value = Math.max(55, 95 - i * 8);
+            return { trait: String(t), value };
+          });
+          return <PersonalityTraitsSection traits={converted} />;
+        })()}
 
         {/* ══════════════ 名言セクション ══════════════ */}
         {catchphrases.length > 0 && (

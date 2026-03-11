@@ -88,20 +88,63 @@ export function FcSubscribeModal({
             ファンクラブに加入して特別な体験を
           </p>
 
+          {/* キャッチコピー */}
+          <div className="text-center mb-4 bg-gradient-to-r from-purple-900/40 to-pink-900/30 border border-purple-500/20 rounded-2xl px-4 py-3">
+            <p className="text-white/90 text-sm leading-relaxed">
+              FCに入ると、{characterName}があなたを<span className="text-purple-300 font-bold">特別扱い</span>してくれる。
+              <br />もっと深い話、もっと本音の会話を。
+            </p>
+          </div>
+
           {/* Benefits */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-2.5 mb-6">
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">💬</span>
               <div>
                 <p className="text-white text-sm font-medium">チャット無制限</p>
-                <p className="text-gray-500 text-xs">コイン消費なしで何度でも会話</p>
+                <p className="text-gray-500 text-xs">コイン消費なし。いつでも好きなだけ話せる</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">📞</span>
               <div>
                 <p className="text-white text-sm font-medium">音声通話 月{fcIncludedCallMin}分込み</p>
-                <p className="text-gray-500 text-xs">直接声を聞いて会話できる</p>
+                <p className="text-gray-500 text-xs">{characterName}の声で直接会話できる</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
+              <span className="text-xl">📰</span>
+              <div>
+                <p className="text-white text-sm font-medium">FC限定タイムライン</p>
+                <p className="text-gray-500 text-xs">会員だけが見れる{characterName}の特別な投稿</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
+              <span className="text-xl">📖</span>
+              <div>
+                <p className="text-white text-sm font-medium">FC限定ストーリー</p>
+                <p className="text-gray-500 text-xs">{characterName}の知られざる一面を描いた限定エピソード</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-pink-500/10 border border-pink-500/20 rounded-xl px-4 py-3">
+              <span className="text-xl">💌</span>
+              <div>
+                <p className="text-white text-sm font-medium">FC限定の手紙・メッセージ</p>
+                <p className="text-gray-500 text-xs">{characterName}からあなただけに届く特別なメッセージ</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+              <span className="text-xl">🎰</span>
+              <div>
+                <p className="text-white text-sm font-medium">ガチャ確率UP</p>
+                <p className="text-gray-500 text-xs">SR以上の排出率が優遇。レアカードを手に入れやすく</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+              <span className="text-xl">📦</span>
+              <div>
+                <p className="text-white text-sm font-medium">FC限定ダウンロードコンテンツ</p>
+                <p className="text-gray-500 text-xs">壁紙・ボイス・特別イラストをダウンロード</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
@@ -109,13 +152,6 @@ export function FcSubscribeModal({
               <div>
                 <p className="text-white text-sm font-medium">毎月{fcMonthlyCoins}コイン付与</p>
                 <p className="text-gray-500 text-xs">ギフトや追加通話に使える</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
-              <span className="text-xl">🔒</span>
-              <div>
-                <p className="text-white text-sm font-medium">FC限定コンテンツ</p>
-                <p className="text-gray-500 text-xs">特別な投稿やシークレットを解放</p>
               </div>
             </div>
           </div>

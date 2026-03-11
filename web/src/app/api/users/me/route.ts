@@ -31,9 +31,10 @@ export async function GET() {
     }
 
     // avatarUrl未設定時はOAuth image にフォールバック（ランキングと統一）
+    // 注意: avatarUrlが空文字列''の場合もフォールバックする（??ではなく||を使用）
     return NextResponse.json({
       ...user,
-      avatarUrl: user.avatarUrl ?? user.image ?? null,
+      avatarUrl: user.avatarUrl || user.image || null,
     });
   } catch (error) {
     console.error('[users/me] error:', error);

@@ -993,16 +993,13 @@ export default function ChatPage() {
 
         {/* ══ キャラからのメッセージバナー ══ */}
         {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {
-          // 各キャラごとに異なる残り時間
+          // 各キャラごとに異なる残り時間 — ストップウォッチ風 HH:MM:SS
           const remainMs = new Date(msg.expiresAt).getTime() - now;
           const remainH = Math.floor(remainMs / 3600000);
           const remainM = Math.floor((remainMs % 3600000) / 60000);
           const remainS = Math.floor((remainMs % 60000) / 1000);
-          const countdownStr = remainH > 0
-            ? `残り${remainH}時間${remainM}分`
-            : remainM > 0
-            ? `残り${remainM}分${remainS}秒`
-            : `残り${remainS}秒`;
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const countdownStr = `${pad(remainH)}:${pad(remainM)}:${pad(remainS)}`;
           const isUrgent = remainMs < 3600000; // 1時間未満
           return (
             <div
