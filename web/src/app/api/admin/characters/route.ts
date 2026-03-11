@@ -3,6 +3,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -130,6 +131,10 @@ export async function POST(req: NextRequest) {
     console.warn('[admin/characters] SOUL.md generation failed:', e);
   }
 
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_CREATE, admin.email, {
+    characterId: character.id, name, slug, franchise,
+  });
+
   return NextResponse.json(character, { status: 201 });
 }
 
@@ -195,6 +200,20 @@ export async function PUT(req: NextRequest) {
     },
   });
 
+  // 重要な変更を記録
+  const changes: Record<string, unknown> = {};
+  if (isActive !== undefined) changes.isActive = isActive;
+  if (systemPrompt !== undefined) changes.systemPromptChanged = true;
+  if (name !== undefined) changes.name = name;
+
+  await adminAudit(
+    isActive !== undefined && Object.keys(data).length <= 2
+      ? ADMIN_AUDIT_ACTIONS.CHARACTER_TOGGLE_ACTIVE
+      : ADMIN_AUDIT_ACTIONS.CHARACTER_UPDATE,
+    admin.email,
+    { characterId: id, ...changes }
+  );
+
   return NextResponse.json(character);
 }
 
@@ -206,6 +225,12 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
+  const char = await prisma.character.findUnique({ where: { id }, select: { name: true, slug: true } });
   await prisma.character.delete({ where: { id } });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_DELETE, admin.email, {
+    characterId: id, name: char?.name, slug: char?.slug,
+  });
+
   return NextResponse.json({ ok: true });
 }

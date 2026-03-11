@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 // PATCH /api/admin/feedback/[id]
 export async function PATCH(
@@ -17,6 +18,10 @@ export async function PATCH(
   await prisma.characterFeedback.update({
     where: { id },
     data: { status },
+  });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.FEEDBACK_STATUS_UPDATE, 'system', {
+    feedbackId: id, status,
   });
 
   return NextResponse.json({ ok: true });

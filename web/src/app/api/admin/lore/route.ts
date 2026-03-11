@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listFranchises, listLoreEntries, createLoreEntry } from '@/lib/lore-engine';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 // GET /api/admin/lore?franchiseId=xxx&category=yyy
 export async function GET(req: NextRequest) {
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest) {
     keywords,
     importance,
     spoilerLevel,
+  });
+
+  await adminAudit(ADMIN_AUDIT_ACTIONS.LORE_CREATE, 'system', {
+    franchiseId, title,
   });
 
   return NextResponse.json(result, { status: 201 });

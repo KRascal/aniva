@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { GachaRarity } from '@prisma/client';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,6 +49,10 @@ export async function POST(req: NextRequest) {
         rarity: rarity as GachaRarity,
         category: category ?? 'memory',
       },
+    });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_CARD_CREATE, admin.email, {
+      cardId: card.id, name, characterId, rarity,
     });
 
     return NextResponse.json(card, { status: 201 });

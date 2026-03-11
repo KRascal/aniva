@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function POST(
   req: NextRequest,
@@ -67,6 +68,10 @@ export async function POST(
     });
 
     const updated = await prisma.coinBalance.findUnique({ where: { userId } });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.USER_COIN_GRANT, admin.email, {
+      userId, amount, type, note,
+    });
 
     return NextResponse.json({
       success: true,

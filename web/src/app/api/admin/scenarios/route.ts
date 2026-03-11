@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
         endsAt: new Date(endsAt),
         isActive: isActive ?? true,
       },
+    });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_CREATE, admin.email, {
+      scenarioId: scenario.id, title, characterId,
     });
 
     return NextResponse.json({ scenario }, { status: 201 });

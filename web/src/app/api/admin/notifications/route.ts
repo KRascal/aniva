@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
         isRead: false,
       })),
       skipDuplicates: false,
+    });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.NOTIFICATION_SEND, admin.email, {
+      title, sentCount: userIds.length, targetUserId: targetUserId || 'all',
     });
 
     return NextResponse.json({

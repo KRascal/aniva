@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(req: NextRequest) {
   try {
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_CREATE, admin.email, {
+      momentId: moment.id, characterId, type: type || 'TEXT',
+    });
+
     return NextResponse.json(moment, { status: 201 });
   } catch (error) {
     console.error('[admin/moments] POST error:', error);
@@ -78,6 +83,11 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
     await prisma.moment.delete({ where: { id } });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_DELETE, admin.email, {
+      momentId: id,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[admin/moments] DELETE error:', error);

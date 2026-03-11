@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET() {
   try {
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
         costCoins: Number(costCoins) || 100,
         isActive: true,
       },
+    });
+
+    await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_CREATE, admin.email, {
+      bannerId: banner.id, name,
     });
 
     return NextResponse.json(banner, { status: 201 });
