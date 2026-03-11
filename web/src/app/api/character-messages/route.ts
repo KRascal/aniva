@@ -7,7 +7,7 @@
  * - 24時間で有効期限切れ（損失回避を刺激）
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getAuthUserId } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 
 // キャラ別の「呼びかけメッセージ」テンプレート（24h/48h/72h）
@@ -42,13 +42,8 @@ function getCallMessage(slug: string, diffH: number): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const cookieName = req.cookies.has('authjs.session-token')
-      ? 'authjs.session-token'
-      : 'next-auth.session-token';
-    const token = await getToken({ req, cookieName, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET });
-    if (!token?.sub) return NextResponse.json([], { status: 200 });
-
-    const userId = token.sub;
+    const userId = await getAuthUserId(req);
+    if (!userId) return NextResponse.json([], { status: 200 });
 
     // フォロー中のキャラ + 最終チャット時間を取得
     const relationships = await prisma.relationship.findMany({
