@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const { characterId, type, content, mediaUrl, visibility, scheduledAt, isFcOnly } = body;
+    const { characterId, type, content, mediaUrl, visibility, scheduledAt } = body;
 
     if (!characterId) {
       return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
         content: content || null,
         mediaUrl: mediaUrl || null,
         visibility: visibility || 'PUBLIC',
-        isFcOnly: isFcOnly === true,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         publishedAt: publishNow ? new Date() : null,
       },

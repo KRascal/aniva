@@ -174,9 +174,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          // 自動完了は削除: selectCharacterでRelationship作成後にJWTコールバックが
-          // onboardingStep='completed'に更新してしまい、nickname APIが400を返すバグの原因だった。
-          // onboarding完了は /api/onboarding/complete で明示的に行う。
+          // 自動完了: onboardingStep が completed でないが、フォロー済みキャラがある場合
+          // → 既にアクティブなユーザーなので onboardingStep を completed に自動昇格
+          if (dbUser && dbUser.onboardingStep !== 'completed') {
+            const followCount = await prisma.relationship.count({
+              where: { userId: dbUser.id, isFollowing: true },
+            });
+            if (followCount > 0) {
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { onboardingStep: 'completed' },
+              });
+              dbUser = { ...dbUser, onboardingStep: 'completed' };
+            }
+          }
 
           token.onboardingStep = dbUser?.onboardingStep ?? null;
           token.nickname = dbUser?.nickname ?? null;

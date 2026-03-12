@@ -35,7 +35,7 @@ export function SwipeModal({ onClose }: SwipeModalProps) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/characters?limit=20&random=1&excludeFollowing=true');
+        const res = await fetch('/api/characters?limit=20&random=1');
         if (res.ok) {
           const data = await res.json();
           const chars = (data.characters ?? [])

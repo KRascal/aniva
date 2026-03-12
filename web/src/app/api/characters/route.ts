@@ -8,7 +8,6 @@ export async function GET(req: NextRequest) {
     // ?q= または ?search= でキャラ名の部分一致検索
     const q = req.nextUrl.searchParams.get('q') ?? req.nextUrl.searchParams.get('search');
     const followingOnly = req.nextUrl.searchParams.get('followingOnly') === 'true';
-    const excludeFollowing = req.nextUrl.searchParams.get('excludeFollowing') === 'true';
     const limitParam = req.nextUrl.searchParams.get('limit');
     const randomParam = req.nextUrl.searchParams.get('random');
 
@@ -31,21 +30,6 @@ export async function GET(req: NextRequest) {
       } else {
         // 未認証時はフォロー中キャラなし → 空を返す
         return NextResponse.json({ characters: [] });
-      }
-    }
-
-    // 既フォローキャラを除外
-    if (excludeFollowing) {
-      const userId = await getAuthUserId(req);
-      if (userId) {
-        const followedRels = await prisma.relationship.findMany({
-          where: { userId, isFollowing: true },
-          select: { characterId: true },
-        });
-        const followedCharacterIds = followedRels.map(r => r.characterId);
-        if (followedCharacterIds.length > 0) {
-          where.id = { notIn: followedCharacterIds };
-        }
       }
     }
 

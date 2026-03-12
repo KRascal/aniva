@@ -12,17 +12,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    // JWT IDでユーザーを検索、見つからなければemailで検索（ID不一致対策）
-    let user = await prisma.user.findUnique({ where: { id: session.user.id } });
-    if (!user && session.user.email) {
-      user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    }
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-    const userId = user.id;
+  const userId = session.user.id;
 
+  try {
     const { characterIds } = await req.json();
 
     if (!Array.isArray(characterIds) || characterIds.length === 0) {

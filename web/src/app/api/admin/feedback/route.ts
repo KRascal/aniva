@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
 
 // GET /api/admin/feedback?status=xxx&type=xxx
 export async function GET(req: NextRequest) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
   const type = searchParams.get('type');

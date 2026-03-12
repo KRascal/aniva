@@ -17,7 +17,6 @@ interface SwipeCharacter {
 
 interface TinderSwipeProps {
   onComplete: (followedIds: string[]) => void;
-  onChatSelect?: (characterId: string) => void;
   isLoading?: boolean;
 }
 
@@ -121,7 +120,7 @@ function SwipeCard({
 }
 
 // ---- Main Component ----
-export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: TinderSwipeProps) {
+export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps) {
   const [characters, setCharacters] = useState<SwipeCharacter[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
@@ -133,7 +132,7 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
   useEffect(() => {
     const fetchCharacters = async () => {
       try {
-        const res = await fetch('/api/characters?limit=10&excludeFollowing=true');
+        const res = await fetch('/api/characters?limit=10');
         if (res.ok) {
           const data = await res.json();
           const chars: SwipeCharacter[] = (data.characters ?? data ?? []).map((c: Record<string, unknown>) => ({
@@ -338,68 +337,55 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
       </div>
 
       {/* Action buttons */}
-      <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-7">
+      <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-5">
         {/* Skip button */}
         <motion.button
           onClick={() => handleButtonSwipe('left')}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
+          className="w-13 h-13 rounded-full flex items-center justify-center"
           style={{
-            width: 56, height: 56,
+            width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
             border: '2px solid rgba(239,68,68,0.4)',
           }}
           whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </motion.button>
-
-        {/* Chat button */}
-        <motion.button
-          onClick={() => {
-            const char = characters[currentIndex];
-            if (!char) return;
-            // フォローに追加
-            setFollowedIds(prev => [...prev, char.id]);
-            // onChatSelectがあれば呼ぶ
-            if (onChatSelect) {
-              onChatSelect(char.id);
-            } else {
-              onComplete([...followedIds, char.id]);
-            }
-          }}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
-          style={{
-            width: 60, height: 60,
-            background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-            boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
-            border: '2px solid rgba(255,255,255,0.2)',
-          }}
-          whileTap={{ scale: 0.85 }}
-        >
-          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </motion.button>
 
         {/* Follow button */}
         <motion.button
           onClick={() => handleButtonSwipe('right')}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
+          className="rounded-full flex items-center justify-center"
           style={{
-            width: 56, height: 56,
-            background: 'rgba(255,255,255,0.06)',
-            border: '2px solid rgba(34,197,94,0.4)',
+            width: 64, height: 64,
+            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+            boxShadow: '0 4px 16px rgba(34,197,94,0.35)',
           }}
           whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </motion.button>
+
+        {/* Info button */}
+        <motion.button
+          onClick={() => handleButtonSwipe('left')}
+          className="rounded-full flex items-center justify-center"
+          style={{
+            width: 52, height: 52,
+            background: 'rgba(255,255,255,0.06)',
+            border: '2px solid rgba(59,130,246,0.4)',
+          }}
+          whileTap={{ scale: 0.85 }}
+        >
+          <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+        </motion.button>
       </div>
-      <p className="relative z-30 text-center text-white/20 text-[10px] pb-2">← スキップ ・ チャット ・ フォロー →</p>
     </div>
   );
 }

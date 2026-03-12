@@ -64,12 +64,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // onboardingStep=completedでもニックネーム更新は許可（JWT自動完了との競合防止）
+    if (user?.onboardingStep === 'completed') {
+      return NextResponse.json(
+        { success: false, error: { code: 'ALREADY_COMPLETED', message: 'オンボーディング完了済みです' } },
+        { status: 400 },
+      );
+    }
 
     // ディープリンク由来かどうかで次ステップを判定
-    // 汎用流入: welcome → character_select → nickname → birthday → approval
-    // ディープリンク: welcome → nickname → birthday → approval
-    const nextStep = 'birthday';
+    const isDeepLink = !!user?.onboardingDeeplinkSlug;
+    const nextStep = isDeepLink ? 'approval' : 'character_select';
 
     const updated = await prisma.user.update({
       where: { id: user.id },
@@ -84,7 +88,7 @@ export async function POST(req: NextRequest) {
       data: {
         nickname: updated.nickname,
         nextStep,
-        characterId: user?.onboardingCharacterId ?? undefined,
+        characterId: isDeepLink ? user?.onboardingCharacterId : undefined,
       },
     });
   } catch (error) {
