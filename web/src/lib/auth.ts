@@ -174,20 +174,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          // 自動完了: onboardingStep が completed でないが、フォロー済みキャラがある場合
-          // → 既にアクティブなユーザーなので onboardingStep を completed に自動昇格
-          if (dbUser && dbUser.onboardingStep !== 'completed') {
-            const followCount = await prisma.relationship.count({
-              where: { userId: dbUser.id, isFollowing: true },
-            });
-            if (followCount > 0) {
-              await prisma.user.update({
-                where: { id: dbUser.id },
-                data: { onboardingStep: 'completed' },
-              });
-              dbUser = { ...dbUser, onboardingStep: 'completed' };
-            }
-          }
+          // ⚠️ JWT自動完了は削除済み（永久に復活させない）:
+          // フォロー関係でonboardingStep='completed'に自動昇格すると、
+          // スワイプ中にfollow-and-greetが作成された直後のJWTリフレッシュで
+          // nickname APIが400を返し、オンボーディングが進行不可になる。
+          // onboarding完了は /api/onboarding/complete で明示的にのみ行う。
 
           token.onboardingStep = dbUser?.onboardingStep ?? null;
           token.nickname = dbUser?.nickname ?? null;
