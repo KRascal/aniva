@@ -839,12 +839,17 @@ export default function ExplorePage() {
   useEffect(() => {
     if (status !== 'authenticated' || isLoading || discoverChecked) return;
     setDiscoverChecked(true);
+    // sessionStorageでスワイプ済みフラグを確認
+    try {
+      if (sessionStorage.getItem('aniva_swipe_shown') === '1') return;
+    } catch {}
     const hasFollowing = Array.from(relationships.values()).some(r => r.isFollowing);
     if (!hasFollowing && relationships.size === 0) {
       // フォロー0人 = 新規ユーザー → /discover
       const step = session?.user?.onboardingStep;
       if (step === 'completed') {
         // オンボーディング済みだがフォロー0 → モーダル表示
+        try { sessionStorage.setItem('aniva_swipe_shown', '1'); } catch {}
         setShowSwipeModal(true);
       } else {
         router.push('/discover');

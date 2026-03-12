@@ -582,6 +582,32 @@ function OnboardingInner() {
     }
   };
 
+  // Tinderスワイプ: チャットボタンで特定キャラを選択
+  const handleChatSelect = async (characterId: string) => {
+    setIsSelectingCharacter(true);
+    try {
+      const res = await fetch(`/api/characters/id/${characterId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const c = data.character ?? data;
+        const char: CharacterData = {
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          avatarUrl: c.avatarUrl ?? null,
+          franchise: c.franchise ?? '',
+        };
+        await selectCharacter(char);
+      } else {
+        advance();
+      }
+    } catch {
+      advance();
+    } finally {
+      setIsSelectingCharacter(false);
+    }
+  };
+
   // Tinderスワイプ完了: フォローしたキャラIDを保存して次のフェーズへ
   const handleTinderSwipeComplete = async (followedIds: string[]) => {
     setSwipeFollowedIds(followedIds);
@@ -737,6 +763,7 @@ function OnboardingInner() {
           <TinderSwipe
             key="character_select"
             onComplete={handleTinderSwipeComplete}
+            onChatSelect={handleChatSelect}
             isLoading={isSelectingCharacter}
           />
         )}
