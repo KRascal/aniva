@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import type { TutorialState } from '@/hooks/useTutorial';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -199,7 +200,7 @@ function RewardBadge({ label, coins, show }: { label: string; coins: number; sho
         >
           <span>🎉</span>
           <span>{label}</span>
-          <span className="text-yellow-200">+{coins}🪙</span>
+          <span className="inline-flex items-center gap-1 text-yellow-200">+{coins}<CoinIcon size={14} /></span>
         </motion.div>
       )}
     </AnimatePresence>
@@ -763,7 +764,7 @@ function Step5Card({
           </button>
 
           {/* Total rewards summary */}
-          <p className="text-white/40 text-xs pb-2">合計 +100🪙 ゲット！</p>
+          <p className="inline-flex items-center gap-1 text-white/40 text-xs pb-2">合計 +100<CoinIcon size={14} /> ゲット！</p>
         </div>
 
         {/* Step indicator — all filled */}

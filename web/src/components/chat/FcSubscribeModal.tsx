@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface FcSubscribeModalProps {
   characterName: string;
@@ -148,7 +149,7 @@ export function FcSubscribeModal({
               </div>
             </div>
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
-              <span className="text-xl">🪙</span>
+              <CoinIcon size={20} />
               <div>
                 <p className="text-white text-sm font-medium">毎月{fcMonthlyCoins}コイン付与</p>
                 <p className="text-gray-500 text-xs">ギフトや追加通話に使える</p>

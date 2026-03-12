@@ -160,9 +160,8 @@ function PollCard({
           </div>
           {/* カウントダウン */}
           <div className={`flex items-center gap-1 mt-0.5 text-xs font-semibold ${isUrgent ? 'text-red-400' : 'text-purple-400'}`}>
-            <span>⏰</span>
             <span>{countdown}</span>
-            {isUrgent && <span className="text-red-300 font-bold">🔥</span>}
+            {isUrgent && <span className="text-red-300 font-bold">!</span>}
           </div>
         </div>
         <div className="text-gray-500 text-xs flex-shrink-0">
@@ -309,11 +308,13 @@ function StoryCharacterCard({
               className="w-13 h-13 rounded-full object-cover border-2 border-gray-700"
             />
           ) : (
-            <div className="w-13 h-13 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-xl">
-              📖
+            <div className="w-13 h-13 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-base text-gray-500 font-bold">
+              {character.name.charAt(0)}
             </div>
           )}
-          {isCompleted && <span className="absolute -top-1 -right-1 text-sm">⭐</span>}
+          {isCompleted && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] text-black font-bold shadow-lg">✓</span>
+          )}
         </div>
 
         {/* 情報 */}
@@ -460,7 +461,7 @@ export default function StoryIndexPage() {
             ←
           </button>
           <div>
-            <h1 className="text-white font-bold text-xl">📖 ストーリー</h1>
+            <h1 className="text-white font-bold text-xl">ストーリー</h1>
             <p className="text-gray-400 text-xs">キャラクターとの物語を解き明かそう</p>
           </div>
         </div>
@@ -518,7 +519,7 @@ export default function StoryIndexPage() {
             {/* ─ 進行中の投票 ─ */}
             <section className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-white font-bold text-lg">🗳 進行中の投票</h2>
+                <h2 className="text-white font-bold text-lg">進行中の投票</h2>
                 {polls.length > 0 && (
                   <span
                     className="text-xs px-2 py-0.5 rounded-full font-bold"
@@ -538,7 +539,7 @@ export default function StoryIndexPage() {
                   className="text-center py-8 rounded-2xl"
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
-                  <div className="text-3xl mb-2">🗳</div>
+                  <div className="text-3xl mb-2 opacity-30">—</div>
                   <p className="text-gray-400 text-sm">現在受付中の投票はありません</p>
                   <p className="text-gray-600 text-xs mt-1">次の投票をお楽しみに！</p>
                 </div>
@@ -554,13 +555,13 @@ export default function StoryIndexPage() {
             {/* ─ 過去の投票結果 ─ */}
             <section className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-white font-bold text-lg">📜 過去の投票結果</h2>
+                <h2 className="text-white font-bold text-lg">過去の投票結果</h2>
               </div>
               <div
                 className="text-center py-8 rounded-2xl"
                 style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <div className="text-3xl mb-2">📜</div>
+                <div className="text-3xl mb-2 opacity-30">—</div>
                 <p className="text-gray-400 text-sm">過去の投票結果が蓄積されます</p>
                 <p className="text-gray-600 text-xs mt-1">投票に参加すると履歴が残ります</p>
               </div>
@@ -569,12 +570,12 @@ export default function StoryIndexPage() {
             {/* ─ キャラクターストーリー ─ */}
             <section>
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-white font-bold text-lg">📚 キャラクターストーリー</h2>
+                <h2 className="text-white font-bold text-lg">キャラクターストーリー</h2>
               </div>
 
               {characters.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-4xl mb-3">📖</div>
+                  <div className="text-4xl mb-3 opacity-30">—</div>
                   <p className="text-gray-400">新しい物語がもうすぐ始まる…</p>
                   <p className="text-gray-500 text-sm mt-1">キャラクターとチャットしてストーリーを解放しよう</p>
                   <button

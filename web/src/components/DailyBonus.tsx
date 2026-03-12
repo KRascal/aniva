@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface BonusData {
   alreadyClaimed: boolean;
@@ -95,7 +96,7 @@ export function DailyBonus() {
           <div className="p-6 text-center">
             {/* コインアイコン */}
             <div className="coin-bounce text-5xl mb-3">
-              {bonus.isStreakMilestone ? '👑' : '🪙'}
+              {bonus.isStreakMilestone ? '👑' : <CoinIcon size={40} />}
             </div>
 
             {/* タイトル */}
@@ -111,7 +112,7 @@ export function DailyBonus() {
             {/* コイン獲得表示 */}
             <div className="bg-white/10 rounded-2xl px-6 py-4 mb-4 border border-white/10">
               <div className="flex items-center justify-center gap-2">
-                <span className="text-3xl">🪙</span>
+                <CoinIcon size={28} />
                 <span className="text-yellow-300 font-black text-3xl">+{bonus.coins}</span>
               </div>
               {bonus.multiplier && bonus.multiplier > 1 && (
