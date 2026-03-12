@@ -15,8 +15,8 @@ export default function OnboardingProgress({ currentPhase, isDeepLink }: Onboard
   const phases = isDeepLink ? DEEPLINK_PHASES : GENERIC_PHASES;
   const currentIndex = phases.indexOf(currentPhase);
 
-  // Hide on welcome phase
-  if (currentPhase === 'welcome') return null;
+  // Hide on welcome and character_select phases (TinderSwipe has its own header)
+  if (currentPhase === 'welcome' || currentPhase === 'character_select') return null;
 
   return (
     <motion.div

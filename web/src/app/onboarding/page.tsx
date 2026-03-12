@@ -303,7 +303,7 @@ function OnboardingInner() {
   const [deeplinkCharacter, setDeeplinkCharacter] = useState<CharacterData | null>(null);
   const [deeplinkSlug, setDeeplinkSlug] = useState<string | undefined>(undefined);
   const [isSelectingCharacter, setIsSelectingCharacter] = useState(false);
-  const [isSavingNickname, setIsSavingNickname] = useState(false);
+  // isSavingNickname は廃止: UI遷移をAPI応答に依存させない
 
   // ── キャラクターリビール演出 ────────────────
   const [showCharacterReveal, setShowCharacterReveal] = useState(false);
@@ -377,21 +377,8 @@ function OnboardingInner() {
         }
       }
 
-      // 既存ユーザー検出: フォロー済みキャラがあればオンボーディングスキップ
-      try {
-        const relRes = await fetch('/api/relationship/all');
-        if (relRes.ok) {
-          const relData = await relRes.json();
-          const follows = (relData.relationships ?? []).filter((r: { isFollowing?: boolean }) => r.isFollowing);
-          if (follows.length > 0) {
-            // フォロー済みキャラがある = 既存ユーザー → onboarding完了としてDB更新 & リダイレクト
-            await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {});
-            await update();
-            window.location.href = '/explore';
-            return;
-          }
-        }
-      } catch { /* 取得失敗は無視して通常フローへ */ }
+      // 既存ユーザー検出: DBのonboardingStepが'completed'の場合のみスキップ
+      // ※ フォロー関係でのスキップは削除（スワイプ中にフォローが作られるため競合する）
 
       // 途中離脱のリカバリー: DBの状態を復元
       let stateRestored = false;
@@ -610,13 +597,15 @@ function OnboardingInner() {
     }
   };
 
-  const handleNicknameComplete = async (nickname: string) => {
-    setIsSavingNickname(true);
-    try {
-      await saveNickname(nickname);
-    } finally {
-      setIsSavingNickname(false);
-    }
+  const handleNicknameComplete = (nickname: string) => {
+    // UIは即座に進める（API成否に依存しない）
+    advance({ nickname });
+    // DBへの保存はバックグラウンド（失敗してもUI遷移に影響しない）
+    fetch('/api/onboarding/nickname', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname }),
+    }).catch(() => {});
   };
 
   const handleBirthdayComplete = async (birthday: string) => {
@@ -751,7 +740,7 @@ function OnboardingInner() {
             key="nickname"
             character={effectiveCharacter}
             onComplete={handleNicknameComplete}
-            isLoading={isSavingNickname}
+            isLoading={false}
           />
         )}
 
