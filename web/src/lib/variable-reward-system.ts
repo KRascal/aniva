@@ -104,7 +104,7 @@ export async function rollDailyEvent(
   let existing;
   try {
     existing = await prisma.userDailyEvent.findFirst({
-      where: { userId, date: today },
+      where: { userId, date: new Date(today) },
     });
   } catch {
     // DBマイグレーション未適用などの場合はフォールバック
@@ -147,7 +147,7 @@ export async function rollDailyEvent(
     await prisma.userDailyEvent.create({
       data: {
         userId,
-        date: today,
+        date: new Date(today),
         eventType: eventTypeStr,
         reward: rewardData as Prisma.InputJsonValue,
       },
@@ -201,7 +201,7 @@ export async function getUserDailyEvent(
   let record;
   try {
     record = await prisma.userDailyEvent.findFirst({
-      where: { userId, date: targetDate },
+      where: { userId, date: new Date(targetDate) },
     });
   } catch {
     return null;

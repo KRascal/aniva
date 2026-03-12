@@ -30,7 +30,7 @@ model User {
   bio                    String?
   profilePublic          Boolean                 @default(true)
   coverImageUrl          String?
-  birthday               String?                 // "YYYY-MM-DD" format
+  birthday               DateTime?               @db.Date
   locale                 String                  @default("ja")
   accounts               Account[]
   sessions               Session[]
@@ -176,7 +176,6 @@ model Character {
   feedbacks               CharacterFeedback[]
   rankingScores           RankingScore[]
   characterLetters        CharacterLetter[]
-  downloadContents        DownloadContent[]
   // Phase 3: IP管理
   tenantId                String?
   tenant                  Tenant?              @relation(fields: [tenantId], references: [id])
@@ -591,7 +590,7 @@ model UserGachaPity {
 model UserDailyEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      String // "YYYY-MM-DD"
+  date      DateTime @db.Date
   eventType String // "normal" | "good" | "rare" | "super_rare"
   reward    Json     @default("{}")
   createdAt DateTime @default(now())
@@ -744,7 +743,7 @@ model CharacterDailyState {
 model CharacterDiary {
   id          String   @id @default(uuid())
   characterId String
-  date        String   // "YYYY-MM-DD"
+  date        DateTime @db.Date
   content     String   @db.Text
   mood        String   // happy, sad, excited, tired, neutral 等
   imageUrl    String?
@@ -1055,25 +1054,6 @@ model LetterDelivery {
 
   @@unique([letterId, userId])
   @@index([userId, isRead])
-}
-
-// ═══════════════════════════════════════════════════
-// ダウンロードコンテンツ（FC限定可）
-// ═══════════════════════════════════════════════════
-model DownloadContent {
-  id          String   @id @default(uuid())
-  characterId String
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  title       String
-  description String?  @db.Text
-  fileUrl     String
-  thumbnailUrl String?
-  category    String   @default("wallpaper") // wallpaper | voice_clip | illustration | special
-  isFcOnly    Boolean  @default(true)
-  downloadCount Int    @default(0)
-  createdAt   DateTime @default(now())
-
-  @@index([characterId, category])
 }
 
 // ============================================

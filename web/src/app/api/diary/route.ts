@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -50,7 +51,7 @@ export async function GET(req: Request) {
     const result = diaries.map((d) => ({
       id: d.id,
       characterId: d.characterId,
-      date: d.date,
+      date: d.date instanceof Date ? d.date.toISOString().slice(0, 10) : d.date,
       content: d.content,
       mood: d.mood,
       imageUrl: d.imageUrl,
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error) {
-    console.error('[diary/all GET] Error:', error);
+    logger.error('[diary/all GET] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
