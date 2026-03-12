@@ -253,7 +253,21 @@ export default function GroupChatPage() {
   const [step, setStep] = useState<'select' | 'chat'>('select');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [messages, setMessagesRaw] = useState<GroupMessage[]>([]);
+  // localStorage永続化ラッパー
+  const setMessages: typeof setMessagesRaw = useCallback((action) => {
+    setMessagesRaw(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      // 保存は非同期で（UIブロックしない）
+      try {
+        const key = `group-chat-${selectedIds.sort().join('-')}`;
+        if (next.length > 0) {
+          localStorage.setItem(key, JSON.stringify(next.slice(-100))); // 最新100件
+        }
+      } catch { /* storage full — ignore */ }
+      return next;
+    });
+  }, [selectedIds]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [typingCharacter, setTypingCharacter] = useState<string | null>(null);
@@ -261,6 +275,7 @@ export default function GroupChatPage() {
   const [coinCostPerMsg, setCoinCostPerMsg] = useState(0);
   const [isLoadingChars, setIsLoadingChars] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isExtraRound, setIsExtraRound] = useState(false); // キャラ追加掛け合い中
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -331,7 +346,19 @@ export default function GroupChatPage() {
   // チャット開始
   const handleStartChat = () => {
     if (selectedIds.length < 1) return;
-    setMessages([]);
+    // localStorageから履歴を復元
+    try {
+      const key = `group-chat-${[...selectedIds].sort().join('-')}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved) as GroupMessage[];
+        setMessagesRaw(parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) })));
+      } else {
+        setMessagesRaw([]);
+      }
+    } catch {
+      setMessagesRaw([]);
+    }
     setStep('chat');
   };
 
@@ -409,6 +436,71 @@ export default function GroupChatPage() {
       setIsSending(false);
     }
   }, [inputText, isSending, selectedIds]);
+
+  // キャラ追加掛け合いラウンド（コイン消費あり）
+  const handleExtraRound = useCallback(async () => {
+    if (isExtraRound || isSending || selectedIds.length < 2) return;
+    setIsExtraRound(true);
+    setErrorMsg(null);
+
+    // 直近のやり取りをコンテキストに
+    const recentMessages = messages.slice(-6);
+    const contextSummary = recentMessages
+      .map(m => m.role === 'USER' ? `ユーザー:「${m.content}」` : `${m.characterName}:「${m.content}」`)
+      .join('\n');
+
+    try {
+      const res = await fetch('/api/chat/group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterIds: selectedIds,
+          message: `[直前の会話]\n${contextSummary}\n\n上記の会話を受けて、キャラクター同士でさらに自由に掛け合ってください。ユーザーへの返答より、お互いへのリアクションを重視して。`,
+          locale: 'ja',
+          isExtraRound: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'INSUFFICIENT_COINS') {
+          setErrorMsg(`コインが不足しています（必要: ${data.required}コイン）`);
+        } else {
+          setErrorMsg(data.error ?? 'エラーが発生しました');
+        }
+        return;
+      }
+
+      const charMessages: GroupMessage[] = (data.messages as Array<{
+        characterId: string;
+        characterName: string;
+        content: string;
+        emotion: string;
+      }>).map(m => ({
+        id: `extra-${m.characterId}-${Date.now()}-${Math.random()}`,
+        role: 'CHARACTER' as const,
+        characterId: m.characterId,
+        characterName: m.characterName,
+        content: m.content,
+        emotion: m.emotion,
+        timestamp: new Date(),
+      }));
+
+      for (const charMsg of charMessages) {
+        setTypingCharacter(charMsg.characterName ?? null);
+        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 500));
+        setTypingCharacter(null);
+        setMessages(prev => [...prev, charMsg]);
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+
+      if (data.coinBalance !== undefined) setCoinBalance(data.coinBalance);
+    } catch {
+      setErrorMsg('掛け合いの生成に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsExtraRound(false);
+    }
+  }, [isExtraRound, isSending, selectedIds, messages, setMessages]);
 
   // ─── キャラ選択画面 ──────────────────────────────────────────────────────────
 
@@ -759,6 +851,32 @@ export default function GroupChatPage() {
         className="sticky bottom-0 z-30 border-t border-white/5 px-4 pt-3 pb-6 flex-shrink-0"
         style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
       >
+        {/* 「もっと掛け合わせる」ボタン（2体以上かつメッセージあり） */}
+        {selectedIds.length >= 2 && messages.length > 0 && !isSending && (
+          <div className="max-w-lg mx-auto mb-2">
+            <button
+              onClick={handleExtraRound}
+              disabled={isExtraRound}
+              className="w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+              style={{
+                background: isExtraRound
+                  ? 'rgba(255,255,255,0.05)'
+                  : 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.15))',
+                border: '1px solid rgba(139,92,246,0.3)',
+                color: isExtraRound ? 'rgba(255,255,255,0.3)' : '#c4b5fd',
+              }}
+            >
+              {isExtraRound ? (
+                <span className="w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+              {isExtraRound ? '掛け合い中…' : `もっと掛け合わせる（${coinCostPerMsg}コイン）`}
+            </button>
+          </div>
+        )}
         <div className="max-w-lg mx-auto flex gap-2.5 items-end">
           <textarea
             value={inputText}
@@ -774,6 +892,7 @@ export default function GroupChatPage() {
             disabled={isSending}
             className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all"
             style={{
+              fontSize: '16px',
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',
               maxHeight: '120px',

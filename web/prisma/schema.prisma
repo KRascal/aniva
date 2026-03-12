@@ -251,6 +251,8 @@ model Conversation {
   metadata       Json         @default("{}")
   relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
+
+  @@index([relationshipId, updatedAt(sort: Desc)])
 }
 
 model Message {
@@ -263,6 +265,9 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([conversationId])
 }
 
 enum MessageRole {
@@ -290,6 +295,8 @@ model Moment {
   notifications  Notification[]
 
   @@index([characterId, locale])
+  @@index([characterId, publishedAt(sort: Desc)])
+  @@index([publishedAt(sort: Desc)])
 }
 
 enum MomentType {

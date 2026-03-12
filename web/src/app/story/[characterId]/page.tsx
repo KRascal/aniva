@@ -39,6 +39,7 @@ interface ChapterData {
 interface StoryData {
   chapters: ChapterData[];
   characterName: string;
+  characterAvatarUrl?: string | null;
   userLevel: number;
   isFcMember: boolean;
 }
@@ -168,11 +169,18 @@ export default function StoryPage() {
       <header className="relative z-10 border-b border-gray-800 bg-gray-950 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
-            onClick={() => router.back()}
-            className="text-gray-400 hover:text-white transition-colors p-1"
-            aria-label="戻る"
+            onClick={() => router.push(`/profile/${characterId}`)}
+            className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/30 hover:ring-purple-500/60 transition-all"
+            aria-label="キャラページへ"
           >
-            ← 戻る
+            {storyData.characterAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={storyData.characterAvatarUrl} alt={storyData.characterName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                {storyData.characterName?.charAt(0) ?? '?'}
+              </div>
+            )}
           </button>
           <div>
             <h1 className="text-white font-bold text-xl">

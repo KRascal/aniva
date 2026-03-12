@@ -777,6 +777,13 @@ export default function ChatPage() {
   const [dismissedCharMsgs, setDismissedCharMsgs] = useState<Set<string>>(new Set());
   const [proactiveMessages, setProactiveMessages] = useState<ProactiveMessage[]>([]);
   const [dismissedProactive, setDismissedProactive] = useState<Set<string>>(new Set());
+  const [groupChatSessions, setGroupChatSessions] = useState<{
+    key: string;
+    characterIds: string[];
+    lastMessage: string;
+    lastCharacterName: string;
+    timestamp: number;
+  }[]>([]);
 
   // Safari bfcache対策: ページ復元時にフルリロード
   useEffect(() => {
@@ -792,6 +799,33 @@ export default function ChatPage() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // localStorageからグループチャット履歴を読み込む
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sessions: typeof groupChatSessions = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('group-chat-')) {
+        try {
+          const raw = JSON.parse(localStorage.getItem(key) ?? '[]');
+          if (!Array.isArray(raw) || raw.length === 0) continue;
+          const lastMsg = raw[raw.length - 1];
+          const charIds = key.replace('group-chat-', '').split('-');
+          sessions.push({
+            key,
+            characterIds: charIds,
+            lastMessage: lastMsg.content ?? '',
+            lastCharacterName: lastMsg.characterName ?? lastMsg.role === 'USER' ? 'あなた' : '',
+            timestamp: new Date(lastMsg.timestamp).getTime() || Date.now(),
+          });
+        } catch { /* skip corrupt entries */ }
+      }
+    }
+    // 最新順
+    sessions.sort((a, b) => b.timestamp - a.timestamp);
+    setGroupChatSessions(sessions);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // localStorageから各キャラの最終訪問時刻を読み込む
   useEffect(() => {
@@ -990,6 +1024,67 @@ export default function ChatPage() {
             <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))', boxShadow: '0 2px 8px rgba(139,92,246,0.4)' }}>試す →</span>
           </div>
         </button>
+
+        {/* ══ グループチャット履歴 ══ */}
+        {groupChatSessions.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {groupChatSessions.slice(0, 3).map(session => {
+              // キャラ情報を取得
+              const sessionChars = session.characterIds
+                .map(id => characters.find(c => c.id === id))
+                .filter((c): c is Character => c != null);
+              if (sessionChars.length === 0) return null;
+
+              const names = sessionChars.map(c => c.name.split('・')[0]).join(' × ');
+              const timeDiff = Date.now() - session.timestamp;
+              const timeStr = timeDiff < 60000 ? 'たった今'
+                : timeDiff < 3600000 ? `${Math.floor(timeDiff / 60000)}分前`
+                : timeDiff < 86400000 ? `${Math.floor(timeDiff / 3600000)}時間前`
+                : `${Math.floor(timeDiff / 86400000)}日前`;
+
+              return (
+                <button
+                  key={session.key}
+                  onClick={() => router.push('/chat/group')}
+                  className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 transition-all active:scale-[0.98]"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(139,92,246,0.2)',
+                  }}
+                >
+                  {/* アバター重ね */}
+                  <div className="flex -space-x-2 flex-shrink-0">
+                    {sessionChars.slice(0, 3).map((c, i) => (
+                      c.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={c.id}
+                          src={c.avatarUrl}
+                          alt={c.name}
+                          className="w-9 h-9 rounded-full object-cover border-2 border-gray-950"
+                          style={{ zIndex: 3 - i }}
+                        />
+                      ) : (
+                        <div
+                          key={c.id}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-950"
+                          style={{ background: '#8b5cf6', zIndex: 3 - i }}
+                        >
+                          {c.name.charAt(0)}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm truncate">{names}</p>
+                    <p className="text-gray-400 text-xs truncate">{session.lastMessage}</p>
+                  </div>
+                  <span className="text-gray-500 text-[10px] flex-shrink-0">{timeStr}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ══ キャラからのメッセージバナー ══ */}
         {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {

@@ -1322,6 +1322,93 @@ export default function ChatCharacterPage() {
               : m,
           ),
         );
+
+        // 画像送信後にキャラクターの応答を生成（SSEストリーミング）
+        // Vision APIの解析結果がある場合はそれを使って的確な返信を生成
+        const imagePrompt = data.analysisHint
+          ? data.analysisHint
+          : '[ユーザーが画像を送りました。画像について自然にリアクションしてください。]';
+        try {
+          const streamRes = await fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              characterId,
+              message: imagePrompt,
+              isImageReaction: true,
+            }),
+          });
+
+          if (streamRes.ok && streamRes.body) {
+            const reader = streamRes.body.getReader();
+            const decoder = new TextDecoder();
+            let streamBuffer = '';
+            let streamingText = '';
+            const streamMsgId = `stream-img-${Date.now()}`;
+
+            // タイピング演出
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: streamMsgId,
+                role: 'CHARACTER' as const,
+                content: '',
+                createdAt: new Date().toISOString(),
+                metadata: { isStreaming: true, isTyping: true },
+              },
+            ]);
+            setTimeout(() => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamMsgId && m.metadata?.isTyping
+                    ? { ...m, metadata: { ...m.metadata, isTyping: false } }
+                    : m
+                )
+              );
+            }, 1500);
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              streamBuffer += decoder.decode(value, { stream: true });
+              const lines = streamBuffer.split('\n');
+              streamBuffer = lines.pop() || '';
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                  const parsed = JSON.parse(line.slice(6));
+                  if (parsed.type === 'token') {
+                    streamingText += parsed.token;
+                    setMessages((prev) =>
+                      prev.map((m) => m.id === streamMsgId ? { ...m, content: streamingText } : m)
+                    );
+                  } else if (parsed.type === 'done') {
+                    streamingText = parsed.text;
+                  } else if (parsed.type === 'complete') {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === streamMsgId
+                          ? {
+                              id: parsed.characterMessageId || streamMsgId,
+                              role: 'CHARACTER' as const,
+                              content: streamingText,
+                              createdAt: new Date().toISOString(),
+                              metadata: { emotion: parsed.emotion || 'neutral' },
+                            }
+                          : m
+                      )
+                    );
+                    if (parsed.emotion && parsed.emotion !== 'neutral') {
+                      setCurrentEmotion(parsed.emotion);
+                    }
+                  }
+                } catch { /* skip malformed SSE */ }
+              }
+            }
+          }
+        } catch (streamErr) {
+          console.error('画像応答ストリーム失敗:', streamErr);
+        }
       }
     } catch (e) {
       console.error('画像送信失敗:', e);

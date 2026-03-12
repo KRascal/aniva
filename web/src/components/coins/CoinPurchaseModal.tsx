@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface CoinPackage {
   id: string;
@@ -177,10 +178,7 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
                     )}
 
                     <div className="flex items-center gap-2 mb-2">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M12 6v12M8 10h8M8 14h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
+                      <CoinIcon size={16} />
                       <span className="text-yellow-300 text-lg font-black">{pkg.coinAmount.toLocaleString()}</span>
                     </div>
 

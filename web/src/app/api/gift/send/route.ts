@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { paymentLimiter } from '@/lib/rate-limit';
 
 // ギフト定義（将来的にDBに移行可能）
 const GIFT_CATALOG = [
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Rate limit: 5リクエスト/分
+  const { success: rlOk } = await paymentLimiter.check(userId);
+  if (!rlOk) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   try {
     const { characterId, giftType } = await req.json();

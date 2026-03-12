@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { playSound } from '@/lib/sound-effects';
 import { PackageDisplayItem } from './page';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface Props {
   packages: PackageDisplayItem[];
@@ -173,9 +174,7 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
       <div className="bg-gradient-to-b from-purple-950/60 to-gray-950 pb-8 pt-16">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 border border-yellow-500/30 flex items-center justify-center">
-            <svg className="w-7 h-7 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
-            </svg>
+            <CoinIcon size={28} />
           </div>
           <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             コインを購入

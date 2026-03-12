@@ -88,7 +88,7 @@ export async function GET(
     // キャラクター取得
     const character = await prisma.character.findUnique({
       where: { id: characterId },
-      select: { id: true, slug: true, name: true },
+      select: { id: true, slug: true, name: true, avatarUrl: true },
     });
     if (!character) {
       return NextResponse.json({ error: 'Character not found' }, { status: 404 });
@@ -174,7 +174,7 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({ chapters, characterName: character.name, userLevel, isFcMember });
+    return NextResponse.json({ chapters, characterName: character.name, characterAvatarUrl: character.avatarUrl, userLevel, isFcMember });
   } catch (error) {
     console.error('Story GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

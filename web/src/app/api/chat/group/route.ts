@@ -156,19 +156,29 @@ export async function POST(req: NextRequest) {
       .map(id => characters.find(c => c.id === id))
       .filter((c): c is NonNullable<typeof c> => c != null);
 
-    // 9. 各キャラが順番に応答生成（前のキャラの発言をコンテキストに含める）
+    // 9. 各キャラが順番に応答生成（双方向掛け合いプロンプト — 高品質版）
     const groupMessages: GroupCharacterMessage[] = [];
+    const charNames = orderedCharacters.map(c => c.name);
+    const isSameFranchise = new Set(orderedCharacters.map(c => c.slug?.split('-')[0])).size === 1;
 
-    for (const character of orderedCharacters) {
+    for (let idx = 0; idx < orderedCharacters.length; idx++) {
+      const character = orderedCharacters[idx];
       const relationshipId = relationshipMap.get(character.id)!;
+      const otherNames = charNames.filter((_, i) => i !== idx);
 
-      // 前キャラの発言をコンテキストとして付加
-      let contextMessage = message;
-      if (groupMessages.length > 0) {
+      // グループチャット共通ヘッダー
+      const header = `これはグループトークです。参加者: ${charNames.join('、')}、そしてユーザー。\nあなたは${character.name}として発言します。${isSameFranchise ? '仲間同士の気軽な会話です。' : '異なる世界のキャラ同士のクロスオーバー会話です。'}\n\n【ルール】\n- 必ずキャラクターの口調・性格で話すこと（一人称・語尾・口癖を守る）\n- 他のキャラの名前を呼んで直接話しかけること\n- 1〜3文で短く。長文禁止\n- 説明口調にならない。感情を込めた自然な会話`;
+
+      let contextMessage: string;
+
+      if (groupMessages.length === 0) {
+        contextMessage = `${header}\n\nユーザー:「${message}」\n\n→ ${character.name}、ユーザーに返しつつ${otherNames.length > 0 ? `、${otherNames.join('や')}にも振ってみて` : ''}。`;
+      } else {
         const prevTalks = groupMessages
           .map(m => `${m.characterName}:「${m.content}」`)
           .join('\n');
-        contextMessage = `[グループチャットの状況]\nユーザー:「${message}」\n${prevTalks}\n\n上記の会話を踏まえて、あなた（${character.name}）の視点から自然に応答してください。`;
+        const lastSpeaker = groupMessages[groupMessages.length - 1].characterName;
+        contextMessage = `${header}\n\nユーザー:「${message}」\n${prevTalks}\n\n→ ${character.name}の番。${lastSpeaker}に反応して（ツッコミ・同意・からかい・驚き等）。ユーザーへの返答だけで終わるのは禁止。${otherNames.filter(n => n !== lastSpeaker).length > 0 ? `${otherNames.filter(n => n !== lastSpeaker).join('にも')}にも絡んでOK。` : ''}`;
       }
 
       try {

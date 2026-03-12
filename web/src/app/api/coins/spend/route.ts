@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { CoinTxType, Prisma } from '@prisma/client';
+import { paymentLimiter } from '@/lib/rate-limit';
 
 interface SpendRequest {
   amount: number;
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getVerifiedUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limit: 5リクエスト/分
+    const { success } = await paymentLimiter.check(userId);
+    if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
     const body: SpendRequest = await req.json();
     const { amount, type, characterId, description, idempotencyKey, metadata } = body;

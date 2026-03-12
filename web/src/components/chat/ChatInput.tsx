@@ -5,6 +5,7 @@ import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
 import { StickerPicker } from './StickerPicker';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface Character {
   id: string;
@@ -230,9 +231,7 @@ export function ChatInput({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-amber-400/60">
                 <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
               </svg>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
-                <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
-              </svg>
+              <CoinIcon size={12} />
               <span className={`font-bold ml-0.5 ${coinBalance <= 5 ? 'text-red-300' : 'text-amber-300'}`}>{coinBalance}</span>
             </button>
             <button
@@ -309,11 +308,11 @@ export function ChatInput({
       )}
 
       <div className="relative flex items-end gap-1">
-        {/* 隠しファイル入力: +ボタン（全ファイル） */}
+        {/* 隠しファイル入力: +ボタン（ドキュメント/ファイル） */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="*/*"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.mp3,.mp4,.mov"
           onChange={handleImageSelect}
           className="hidden"
           aria-hidden="true"

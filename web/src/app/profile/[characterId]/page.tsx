@@ -371,6 +371,19 @@ export default function ProfilePage() {
   const [myRank, setMyRank] = useState<number | null>(null);
   const [rankingLoading, setRankingLoading] = useState(false);
 
+  // URLハッシュから自動タブ切替（#relationship → 関係値タブ）
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (hash === '#relationship' || hash === '#profile') {
+      setActiveTab('profile');
+    } else if (hash === '#fc') {
+      setActiveTab('fc');
+    } else if (hash === '#posts') {
+      setActiveTab('posts');
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);

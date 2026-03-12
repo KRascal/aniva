@@ -300,7 +300,7 @@ export function ChatMenu({
             }
             if (item.href && !item.comingSoon) {
               return (
-                <a key={item.label} href={item.href} className={`${baseClass} ${hoverClass}`}>
+                <a key={item.label} href={item.href} onClick={onClose} className={`${baseClass} ${hoverClass}`}>
                   {content}
                 </a>
               );

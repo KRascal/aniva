@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { analyzeImage, imageAnalysisToPromptHint } from '@/lib/image-analysis';
 
 const imageSendLimiter = createRateLimiter({ prefix: 'chat-image', limit: 10, windowSec: 60 });
 
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
       conversationId: conversation.id,
       role: 'USER',
       content: '[画像]',
+      imageUrl,
       metadata: { imageUrl },
     },
   });
@@ -123,6 +125,18 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
+  // 画像解析（バックグラウンドで実行、失敗してもレスポンスに影響なし）
+  let analysisHint: string | null = null;
+  try {
+    const fullImageUrl = `${req.nextUrl.origin}${imageUrl}`;
+    const analysis = await analyzeImage(fullImageUrl);
+    if (analysis) {
+      analysisHint = imageAnalysisToPromptHint(analysis);
+    }
+  } catch (err) {
+    console.warn('[send-image] Image analysis failed:', err);
+  }
+
   return NextResponse.json({
     message: {
       id: userMsg.id,
@@ -132,5 +146,7 @@ export async function POST(req: NextRequest) {
       createdAt: userMsg.createdAt.toISOString(),
     },
     imageUrl,
+    analysisHint,
+    imageCoinCost: 15, // 画像送信は通常チャット(10)より高い
   });
 }
