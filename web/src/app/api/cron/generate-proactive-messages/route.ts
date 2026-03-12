@@ -11,11 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
-import Anthropic from '@anthropic-ai/sdk';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // フォールバック用テンプレート（AI失敗時のみ使用）
 const FALLBACK_TEMPLATES_LOW_LEVEL = [
@@ -147,15 +144,59 @@ ${memoryContext}
 今すぐ1〜2文のメッセージを生成:`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 150,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : null;
-    return text && text.length > 0 ? text : null;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const xaiKey = process.env.XAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+    // Gemini 2.5 Flash (最安) → xAI → Anthropic フォールバック
+    if (geminiKey) {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${geminiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150,
+          temperature: 0.9,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text && text.length > 0) return text;
+      }
+    }
+    if (xaiKey) {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'grok-3-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150,
+          temperature: 0.9,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text && text.length > 0) return text;
+      }
+    }
+    if (anthropicKey) {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey: anthropicKey });
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : null;
+      if (text && text.length > 0) return text;
+    }
+    return null;
   } catch (e) {
-    console.error('[generate-proactive] Anthropic error:', e);
+    console.error('[generate-proactive] LLM error:', e);
     return null;
   }
 }

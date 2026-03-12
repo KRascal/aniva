@@ -8,6 +8,7 @@ interface MomentRow {
   content: string | null;
   mediaUrl: string | null;
   visibility: string;
+  isFcOnly: boolean;
   publishedAt: string | null;
   scheduledAt: string | null;
   createdAt: string;
@@ -30,6 +31,7 @@ const EMPTY_FORM = {
   content: '',
   mediaUrl: '',
   visibility: 'PUBLIC',
+  isFcOnly: false as boolean,
   scheduledAt: '',
 };
 
@@ -81,6 +83,7 @@ export default function MomentsPage() {
           content: form.content || null,
           mediaUrl: form.mediaUrl || null,
           visibility: form.visibility,
+          isFcOnly: form.isFcOnly,
           scheduledAt: form.scheduledAt || null,
         }),
       });
@@ -137,6 +140,7 @@ export default function MomentsPage() {
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">内容</th>
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">種別</th>
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">公開状態</th>
+                <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">FC限定</th>
                 <th className="text-left text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">日時</th>
                 <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">リアクション</th>
                 <th className="text-right text-gray-400 text-xs font-medium uppercase tracking-wider px-4 py-3">操作</th>
@@ -144,7 +148,7 @@ export default function MomentsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                   <div className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -154,7 +158,7 @@ export default function MomentsPage() {
                   </div>
                 </td></tr>
               ) : moments.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">投稿がありません</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">投稿がありません</td></tr>
               ) : (
                 moments.map((m) => (
                   <tr key={m.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
@@ -182,6 +186,13 @@ export default function MomentsPage() {
                       <span className={`text-xs px-2 py-1 rounded-full ${m.publishedAt ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}>
                         {m.publishedAt ? visibilityLabel(m.visibility) : '予約済み'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.isFcOnly ? (
+                        <span className="text-xs px-2 py-1 rounded-full bg-amber-900/50 text-amber-400">FC限定</span>
+                      ) : (
+                        <span className="text-xs text-gray-600">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
                       {new Date(m.publishedAt || m.scheduledAt || m.createdAt).toLocaleString('ja-JP')}
@@ -270,6 +281,19 @@ export default function MomentsPage() {
                     {VISIBILITY_OPTIONS.map((v) => <option key={v} value={v}>{visibilityLabel(v)}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    className={`relative w-11 h-6 rounded-full transition-colors ${form.isFcOnly ? 'bg-amber-500' : 'bg-gray-700'}`}
+                    onClick={() => setForm(prev => ({ ...prev, isFcOnly: !prev.isFcOnly }))}
+                  >
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow ${form.isFcOnly ? 'translate-x-5' : ''}`} />
+                  </div>
+                  <span className="text-white text-sm font-medium">ファンクラブ限定</span>
+                  {form.isFcOnly && <span className="text-amber-400 text-xs">FC会員のみ閲覧可能</span>}
+                </label>
               </div>
 
               <div>

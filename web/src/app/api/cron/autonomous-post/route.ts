@@ -182,6 +182,9 @@ ${recentTexts || '（なし）'}
       const randomMinutesAgo = Math.floor(Math.random() * 85) + 5; // 5〜90分前
       const staggeredPublishedAt = new Date(Date.now() - randomMinutesAgo * 60 * 1000);
 
+      // 15%の確率でFC限定投稿にする（限定感 + FC加入インセンティブ）
+      const isFcOnly = Math.random() < 0.15;
+
       // momentsに投稿
       await prisma.moment.create({
         data: {
@@ -189,6 +192,7 @@ ${recentTexts || '（なし）'}
           type: 'TEXT',
           content,
           visibility: 'PUBLIC',
+          isFcOnly,
           publishedAt: staggeredPublishedAt,
         },
       });
