@@ -30,7 +30,7 @@ model User {
   bio                    String?
   profilePublic          Boolean                 @default(true)
   coverImageUrl          String?
-  birthday               String?                 // "YYYY-MM-DD" format
+  birthday               DateTime?               @db.Date
   locale                 String                  @default("ja")
   accounts               Account[]
   sessions               Session[]
@@ -583,7 +583,7 @@ model UserGachaPity {
 model UserDailyEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      String // "YYYY-MM-DD"
+  date      DateTime @db.Date
   eventType String // "normal" | "good" | "rare" | "super_rare"
   reward    Json     @default("{}")
   createdAt DateTime @default(now())
@@ -736,7 +736,7 @@ model CharacterDailyState {
 model CharacterDiary {
   id          String   @id @default(uuid())
   characterId String
-  date        String   // "YYYY-MM-DD"
+  date        DateTime @db.Date
   content     String   @db.Text
   mood        String   // happy, sad, excited, tired, neutral 等
   imageUrl    String?
