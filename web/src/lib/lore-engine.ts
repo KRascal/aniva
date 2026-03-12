@@ -361,9 +361,12 @@ async function generateEmbedding(entryId: string, content: string) {
   try {
     const embedding = await getEmbedding(content);
     if (embedding && embedding.length > 0) {
-      await prisma.$executeRawUnsafe(`
-        UPDATE "LoreEntry" SET embedding = '[${embedding.join(',')}]'::vector WHERE id = '${entryId}'
-      `);
+      const vecStr = `[${embedding.join(',')}]`;
+      await prisma.$executeRawUnsafe(
+        `UPDATE "LoreEntry" SET embedding = $1::vector WHERE id = $2`,
+        vecStr,
+        entryId,
+      );
     }
   } catch (e) {
     console.warn('[LoreEngine] generateEmbedding error:', e);
