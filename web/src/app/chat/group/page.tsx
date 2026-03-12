@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -514,7 +515,7 @@ export default function GroupChatPage() {
               }}
             >
               <span className="text-white/60 text-xs">1メッセージのコスト</span>
-              <span className="text-yellow-400 text-sm font-bold">🪙 {coinCostPerMsg}コイン</span>
+              <span className="inline-flex items-center gap-1 text-yellow-400 text-sm font-bold"><CoinIcon size={14} /> {coinCostPerMsg}コイン</span>
             </div>
           )}
 
@@ -671,7 +672,7 @@ export default function GroupChatPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              <span className="text-yellow-400 text-xs">🪙</span>
+              <span className="text-yellow-400 text-xs"><CoinIcon size={14} /></span>
               <span className="text-white/70 text-xs font-semibold">{coinBalance.toLocaleString()}</span>
             </div>
           )}

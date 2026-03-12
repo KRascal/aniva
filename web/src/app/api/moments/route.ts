@@ -114,34 +114,46 @@ export async function GET(req: NextRequest) {
         : false;
 
       // アクセス権チェック
+      const isFc = fcSubscribedCharacterIds.has(moment.characterId);
+      const userLevel = userRelationships[moment.characterId] ?? 1; // 全ユーザーLv.1以上
       let isLocked = false;
-      if (moment.visibility === 'PUBLIC') {
-        isLocked = false;
-      } else if (moment.visibility === 'STANDARD') {
-        isLocked = !['STANDARD', 'PREMIUM'].includes(userPlan);
-      } else if (moment.visibility === 'PREMIUM') {
-        isLocked = !fcSubscribedCharacterIds.has(moment.characterId);
-      } else if (moment.visibility === 'LEVEL_LOCKED') {
-        const userLevel = userRelationships[moment.characterId] ?? 0;
-        isLocked = userLevel < moment.levelRequired;
+      let lockReason = '';
+
+      // FC限定コンテンツ
+      if (moment.isFcOnly) {
+        if (!isFc) {
+          isLocked = true;
+          lockReason = 'FC限定コンテンツ';
+        }
       }
-      // FC限定コンテンツ（isFcOnly=true はFC会員のみ）
-      if (moment.isFcOnly && !fcSubscribedCharacterIds.has(moment.characterId)) {
-        isLocked = true;
+      // レベルゲート（levelRequired >= 2のみ有効。FC会員はバイパス）
+      else if (moment.visibility === 'LEVEL_LOCKED' && moment.levelRequired >= 2) {
+        if (!isFc && userLevel < moment.levelRequired) {
+          isLocked = true;
+          lockReason = `Lv.${moment.levelRequired}で解放`;
+        }
       }
+      // PREMIUM = FC限定として扱う
+      else if (moment.visibility === 'PREMIUM') {
+        if (!isFc) {
+          isLocked = true;
+          lockReason = 'FC限定コンテンツ';
+        }
+      }
+      // PUBLIC/STANDARD = 常にアクセス可能
+      // levelRequired 0-1 = 全員Lv.1以上なのでロックしない
 
       return {
         id: moment.id,
         characterId: moment.characterId,
         character: moment.character,
         type: moment.type,
-        content: isLocked
-          ? (moment.isFcOnly ? 'FC限定コンテンツです。ファンクラブに加入すると閲覧できます。' : null)
-          : moment.content,
+        content: isLocked ? null : moment.content,
         mediaUrl: isLocked ? null : moment.mediaUrl,
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,
         isFcOnly: moment.isFcOnly,
+        lockReason,
         publishedAt: (moment.publishedAt ?? moment.createdAt).toISOString(),
         reactionCount,
         userHasLiked,

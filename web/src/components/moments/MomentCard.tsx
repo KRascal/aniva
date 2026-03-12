@@ -40,6 +40,7 @@ export interface Moment {
   reactionCount: number;
   userHasLiked: boolean;
   isLocked: boolean;
+  lockReason?: string;
   isFcOnly?: boolean;
   commentCount?: number;
   isFollowing?: boolean;
@@ -816,18 +817,18 @@ export function MomentCard({
         </button>
       </div>
 
-      {/* Visibility badge */}
-      {!moment.isLocked && moment.visibility === 'STANDARD' && (
+      {/* Content access badge */}
+      {!moment.isLocked && moment.isFcOnly && (
         <div className="px-4 mb-2">
-          <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
-            ⭐ STANDARDメンバー限定
+          <span className="inline-flex items-center gap-1 bg-purple-500/15 text-purple-300 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/20">
+            💜 FC限定
           </span>
         </div>
       )}
-      {!moment.isLocked && moment.visibility === 'PREMIUM' && (
+      {!moment.isLocked && !moment.isFcOnly && moment.visibility === 'LEVEL_LOCKED' && moment.levelRequired >= 2 && (
         <div className="px-4 mb-2">
-          <span className="inline-flex items-center gap-1 bg-yellow-500/15 text-yellow-300 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/20">
-            👑 PREMIUMメンバー限定
+          <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">
+            ⭐ Lv.{moment.levelRequired}限定
           </span>
         </div>
       )}
@@ -835,9 +836,8 @@ export function MomentCard({
       {/* Content */}
       <div className={moment.type === 'IMAGE' && !moment.isLocked ? '' : 'px-4 pb-1'}>
         {moment.isLocked ? (
-          moment.visibility === 'PREMIUM' || moment.visibility === 'STANDARD' ? (
+          moment.isFcOnly || moment.visibility === 'PREMIUM' ? (
             <div className="relative bg-gray-900/60 rounded-xl p-4 border border-purple-900/30 overflow-hidden mb-3">
-              {/* ぼかし背景 */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-sm" />
               <div className="relative z-10 flex flex-col items-center gap-3 py-4">
                 <div className="flex items-center gap-2">
@@ -856,15 +856,14 @@ export function MomentCard({
           ) : (
             <div className="relative rounded-2xl overflow-hidden mb-3">
               <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
-                ロックされたコンテンツです。レベルを上げることで解放されます。もう少し頑張ってみてください！
+                この特別なMomentを見るには、もっと仲良くなろう！
               </p>
               <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-[2px]">
-                <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl">
+                <div className="bg-gray-900/90 border border-white/10 rounded-2xl px-5 py-3 flex flex-col items-center gap-2 shadow-xl">
                   <span className="text-2xl">🔒</span>
-                  <div>
-                    <p className="text-white text-xs font-semibold">まだ見られません</p>
-                    <p className="text-white/50 text-[10px]">レベル {moment.levelRequired} 以上で解放</p>
-                  </div>
+                  <p className="text-white text-xs font-semibold">{moment.lockReason || `Lv.${moment.levelRequired}で解放`}</p>
+                  <p className="text-white/40 text-[10px]">チャットして関係を深めよう</p>
+                  <p className="text-purple-400 text-[10px]">※ FC会員なら即アンロック</p>
                 </div>
               </div>
             </div>

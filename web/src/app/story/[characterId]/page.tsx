@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useBGM } from '@/hooks/useBGM';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ユーザー名をストーリーテキストに挿入（{{userName}} → 実際の名前）
 function insertUserName(text: string, userName: string): string {
@@ -248,7 +249,7 @@ function RewardAnimation({
               className="text-2xl font-bold text-yellow-400 drop-shadow-lg"
               style={{ animation: 'reward-float 1.5s ease-out forwards' }}
             >
-              +{coinsEarned}🪙
+              <span className="inline-flex items-center gap-1">+{coinsEarned}<CoinIcon size={28} /></span>
             </div>
           )}
           {xpEarned > 0 && (

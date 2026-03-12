@@ -18,6 +18,7 @@ import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { LUFFY_MILESTONES, type Milestone } from '@/lib/milestones';
 import { getCharacterTheme } from '@/lib/character-themes';
 import { WelcomeBackModal } from '@/components/chat/WelcomeBackModal';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 import { WelcomeBackOverlay } from '@/components/chat/WelcomeBackOverlay';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatMenu } from '@/components/chat/ChatMenu';
@@ -1508,16 +1509,24 @@ export default function ChatCharacterPage() {
           characterName={character.name}
           isOpen={showGift}
           onClose={() => setShowGift(false)}
-          onGiftSent={(reaction, giftEmoji) => {
-            // ギフトリアクションをメッセージとして表示
-            const giftMsg: Message = {
-              id: `gift-${Date.now()}`,
+          onGiftSent={(reaction, giftEmoji, giftName) => {
+            // ユーザー側: ギフト送信メッセージ
+            const userGiftMsg: Message = {
+              id: `gift-sent-${Date.now()}`,
+              role: 'USER',
+              content: `${giftEmoji} ${giftName || 'ギフト'}を送りました`,
+              createdAt: new Date().toISOString(),
+              metadata: { isGift: true },
+            };
+            // キャラ側: リアクション
+            const charReactionMsg: Message = {
+              id: `gift-react-${Date.now()}`,
               role: 'CHARACTER',
               content: `${giftEmoji} ${reaction}`,
               createdAt: new Date().toISOString(),
               metadata: { emotion: 'excited' },
             };
-            setMessages((prev) => [...prev, giftMsg]);
+            setMessages((prev) => [...prev, userGiftMsg, charReactionMsg]);
             setCurrentEmotion('excited');
           }}
         />
@@ -2006,7 +2015,7 @@ export default function ChatCharacterPage() {
               <p className="text-xs font-black text-purple-300 uppercase tracking-wider">{randomEvent.title}</p>
               <p className="text-sm text-white/80 italic">「{randomEvent.message}」</p>
               {randomEvent.coinReward && (
-                <p className="text-xs text-yellow-400 mt-0.5">🪙 +{randomEvent.coinReward} コイン</p>
+                <p className="inline-flex items-center gap-1 text-xs text-yellow-400 mt-0.5"><CoinIcon size={14} /> +{randomEvent.coinReward} コイン</p>
               )}
             </div>
           </div>

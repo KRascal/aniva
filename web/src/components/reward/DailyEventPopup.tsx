@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ============================================================
 // 型定義
