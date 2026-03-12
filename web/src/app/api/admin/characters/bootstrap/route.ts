@@ -189,7 +189,7 @@ JSON形式: {"title":"10文字以内","synopsis":"100-200文字","triggerPrompt"
           characterId,
           mood: 'happy',
           content: text.slice(0, 300),
-          date: new Date().toISOString().slice(0, 10),
+          date: new Date(),
         },
       });
       results.diary = { count: 1 };
