@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
     });
     return NextResponse.json(banners);
   } catch (error) {
-    console.error('[admin/gacha/banners] GET error:', error);
+    logger.error('[admin/gacha/banners] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(banner, { status: 201 });
   } catch (error) {
-    console.error('[admin/gacha/banners] POST error:', error);
+    logger.error('[admin/gacha/banners] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

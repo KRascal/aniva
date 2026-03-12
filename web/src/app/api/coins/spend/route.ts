@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { CoinTxType, Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 interface SpendRequest {
   amount: number;
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (error?.message === 'INSUFFICIENT_COINS') {
       return NextResponse.json({ error: 'INSUFFICIENT_COINS', message: 'コインが不足しています' }, { status: 402 });
     }
-    console.error('Coin spend error:', error);
+    logger.error('Coin spend error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

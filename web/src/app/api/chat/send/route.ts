@@ -15,6 +15,7 @@ import { shouldUseDeepMode } from '@/lib/message-weight';
 import { getThinkingReaction } from '@/lib/thinking-reactions';
 import { getCharacterImagePrompt } from '@/lib/image-character-reaction';
 import { storeImageMemory } from '@/lib/multimodal-memory';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -299,7 +300,7 @@ export async function POST(req: NextRequest) {
     try {
       streakResult = await updateStreak(relationship.id);
     } catch (e) {
-      console.warn('Streak update failed (migration pending?):', e);
+      logger.warn('Streak update failed (migration pending?):', e);
     }
 
     // 7b. クリフハンガー設定（20%の確率、1日1回 — 会話が5往復以上の時のみ）
@@ -315,7 +316,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (e) {
-      console.warn('Cliffhanger set failed (migration pending?):', e);
+      logger.warn('Cliffhanger set failed (migration pending?):', e);
     }
 
     // 7c. FREE の場合、月次チャットカウントをインクリメント
@@ -381,7 +382,7 @@ export async function POST(req: NextRequest) {
       message,
       response.text,
       charMsg?.id,
-    ).catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
+    ).catch((e: unknown) => logger.warn('[SemanticMemory] store failed:', e));
 
     // 画像メモリ保存（画像が送られた場合）
     if (imageUrl) {
@@ -393,7 +394,7 @@ export async function POST(req: NextRequest) {
         enrichedMessage,
         message,
         response.text,
-      ).catch((e: unknown) => console.warn('[ImageMemory] store failed:', e));
+      ).catch((e: unknown) => logger.warn('[ImageMemory] store failed:', e));
     }
 
     return NextResponse.json({
@@ -420,7 +421,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Chat send error:', error);
+    logger.error('Chat send error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

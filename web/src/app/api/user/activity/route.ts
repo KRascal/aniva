@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/user/activity
@@ -84,7 +85,7 @@ export async function GET() {
 
     return NextResponse.json({ days, streak, totalDays, topCharacter });
   } catch (error) {
-    console.error('[/api/user/activity] Error:', error);
+    logger.error('[/api/user/activity] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

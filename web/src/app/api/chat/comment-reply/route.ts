@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '@/lib/logger';
 
 // Read SOUL.md for a character slug
 function readSoulMd(slug: string): string {
@@ -88,7 +89,7 @@ async function scheduleReply(opts: {
         },
       });
     } catch (err) {
-      console.error(`[comment-reply] reply failed for ${characterName}:`, err);
+      logger.error(`[comment-reply] reply failed for ${characterName}:`, err);
     }
   }, delayMs);
 }
@@ -252,7 +253,7 @@ export async function POST(req: NextRequest) {
       characters: scheduled,
     });
   } catch (err) {
-    console.error('[comment-reply] error:', err);
+    logger.error('[comment-reply] error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

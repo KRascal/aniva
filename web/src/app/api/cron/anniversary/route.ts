@@ -14,6 +14,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 const ANNIVERSARY_MESSAGES = [
   '覚えてるか？今日は俺たちが出会った日だ！🎉',
@@ -102,7 +103,7 @@ async function generateVoiceMessage(
     });
 
     if (!res.ok) {
-      console.warn('[anniversary] ElevenLabs TTS failed:', res.status, await res.text());
+      logger.warn('[anniversary] ElevenLabs TTS failed', { status: res.status, body: await res.text() });
       return null;
     }
 
@@ -111,7 +112,7 @@ async function generateVoiceMessage(
     writeFileSync(join(VOICE_MESSAGES_DIR, filename), buffer);
     return `/uploads/voice-messages/${filename}`;
   } catch (err) {
-    console.warn('[anniversary] ElevenLabs TTS error:', err);
+    logger.warn('[anniversary] ElevenLabs TTS error:', err);
     return null;
   }
 }

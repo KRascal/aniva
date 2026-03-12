@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { setCliffhanger, getCliffhangerTease } from '@/lib/cliffhanger-system';
+import { logger } from '@/lib/logger';
 
 const MAX_PER_RUN = 30;
 
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
-    console.error('Cliffhanger cron error:', error);
+    logger.error('Cliffhanger cron error:', error);
     return NextResponse.json({ error: 'Cliffhanger cron failed' }, { status: 500 });
   }
 }

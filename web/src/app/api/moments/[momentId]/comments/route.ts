@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{ momentId: string }>;
@@ -290,7 +291,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         }),
       }).catch(() => {});
     } catch (err) {
-      console.error('Character auto-reply error:', err);
+      logger.error('Character auto-reply error:', err);
     }
   };
   triggerCharacterReply(); // fire & forget

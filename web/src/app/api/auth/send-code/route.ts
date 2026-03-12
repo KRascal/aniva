@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Lazy init to avoid build-time crash when RESEND_API_KEY is not set
 let _resend: Resend | null = null;
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       console.info(`[ANIVA AUTH] Verification email sent to ${emailLower}`);
     } catch (emailError) {
       // Log error but don't fail — code is already saved in DB
-      console.error(`[ANIVA AUTH] Failed to send email to ${emailLower}:`, emailError);
+      logger.error(`[ANIVA AUTH] Failed to send email to ${emailLower}:`, emailError);
     }
 
     return NextResponse.json({
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
       message: 'コードを送信しました',
     });
   } catch (error) {
-    console.error('[send-code] Error:', error);
+    logger.error('[send-code] Error:', error);
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _req: NextRequest,
@@ -53,7 +54,7 @@ export async function GET(
       characterName: character?.name ?? '',
     });
   } catch (error) {
-    console.error('[memory API] error:', error);
+    logger.error('[memory API] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

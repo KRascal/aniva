@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const REQUIRED_PER_CHAR = 5;
 
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
-    console.error('[generate-secret-content] Error:', err);
+    logger.error('[generate-secret-content] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

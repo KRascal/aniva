@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import Anthropic from '@anthropic-ai/sdk';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -155,7 +156,7 @@ ${memoryContext}
     const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : null;
     return text && text.length > 0 ? text : null;
   } catch (e) {
-    console.error('[generate-proactive] Anthropic error:', e);
+    logger.error('[generate-proactive] Anthropic error:', e);
     return null;
   }
 }
@@ -413,7 +414,7 @@ export async function POST(req: NextRequest) {
       aiGenerated: dataToInsert.length,
     });
   } catch (error) {
-    console.error('[generate-proactive-messages] error:', error);
+    logger.error('[generate-proactive-messages] error:', error);
     return NextResponse.json(
       { error: 'Internal server error', detail: String(error) },
       { status: 500 }

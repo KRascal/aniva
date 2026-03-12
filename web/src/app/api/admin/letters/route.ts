@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 async function requireAdmin(req: NextRequest) {
   const session = await auth();
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ letter, deliveredCount, ok: true });
   } catch (error) {
-    console.error('[admin/letters] error:', error);
+    logger.error('[admin/letters] error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

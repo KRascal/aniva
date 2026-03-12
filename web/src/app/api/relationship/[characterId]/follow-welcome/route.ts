@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/relationship/[characterId]/follow-welcome
@@ -103,7 +104,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, message: welcomeContent });
   } catch (error) {
-    console.error('[follow-welcome POST] error:', error);
+    logger.error('[follow-welcome POST] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

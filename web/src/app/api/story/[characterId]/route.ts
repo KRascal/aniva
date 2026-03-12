@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 // ルフィのデフォルトチャプター定義
 const LUFFY_DEFAULT_CHAPTERS = [
@@ -176,7 +177,7 @@ export async function GET(
 
     return NextResponse.json({ chapters, characterName: character.name, userLevel, isFcMember });
   } catch (error) {
-    console.error('Story GET error:', error);
+    logger.error('Story GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

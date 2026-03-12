@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { logger } from '@/lib/logger';
 
 const DAILY_EARN_LIMIT = 50; // 1日の上限
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, earned: actualAmount });
   } catch (error) {
-    console.error('[coins/earn] error:', error);
+    logger.error('[coins/earn] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

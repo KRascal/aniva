@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ scenario }, { status: 201 });
   } catch (err) {
-    console.error('[admin/scenarios POST]', err);
+    logger.error('[admin/scenarios POST]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

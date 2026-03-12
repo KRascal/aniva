@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const BGM_BY_CHAPTER: Record<number, string> = {
   1: 'adventure',   // 出会い・導入
@@ -172,7 +173,7 @@ ${existingSynopses}
           charResult.push(chapterNum);
           generated++;
         } catch (err) {
-          console.error(`[story] ${char.name} ch${chapterNum}:`, err);
+          logger.error(`[story] ${char.name} ch${chapterNum}:`, err);
         }
       }
 
@@ -188,7 +189,7 @@ ${existingSynopses}
       bgreset: '既存章のBGMを設定済み',
     });
   } catch (err) {
-    console.error('[generate-story-chapters] Error:', err);
+    logger.error('[generate-story-chapters] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

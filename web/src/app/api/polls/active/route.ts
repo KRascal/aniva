@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   const session = await auth();
@@ -87,7 +88,7 @@ export async function GET() {
 
     return NextResponse.json({ polls: result });
   } catch (error) {
-    console.error('[polls/active] Error:', error);
+    logger.error('[polls/active] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

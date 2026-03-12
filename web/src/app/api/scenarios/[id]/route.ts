@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _req: Request,
@@ -65,7 +66,7 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error('[scenarios/get]', err);
+    logger.error('[scenarios/get]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

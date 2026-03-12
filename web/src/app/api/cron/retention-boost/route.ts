@@ -16,6 +16,7 @@ import {
 } from '@/lib/notification-personalization';
 import { sendPushNotification } from '@/lib/web-push-sender';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
           sent.push(`${target.characterName} → ${target.userId}`);
         }
       } catch (e) {
-        console.warn(`[RetentionBoost] Error for ${target.userId}:`, e);
+        logger.warn(`[RetentionBoost] Error for ${target.userId}:`, e);
       }
     }
 
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
       details: { sent, skipped },
     });
   } catch (error) {
-    console.error('[RetentionBoost cron] Error:', error);
+    logger.error('[RetentionBoost cron] Error:', error);
     return NextResponse.json(
       { success: false, error: String(error) },
       { status: 500 },

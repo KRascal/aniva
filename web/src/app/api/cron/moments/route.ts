@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
+import { logger } from '@/lib/logger';
 
 function getTimeOfDay(): string {
   // JST = UTC+9
@@ -103,7 +104,7 @@ ${recentTexts || '（なし）'}
 
         generated.push({ characterId: character.id, characterName: character.name, content });
       } catch (err) {
-        console.error(`Moment generation failed for ${character.name}:`, err);
+        logger.error(`Moment generation failed for ${character.name}:`, err);
       }
     }
 
@@ -115,7 +116,7 @@ ${recentTexts || '（なし）'}
       batch: `${maxPerRun} lowest-moment chars of ${characters.length}`,
     });
   } catch (err) {
-    console.error('Cron moments error:', err);
+    logger.error('Cron moments error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /** エピソード記憶エントリの型 */
 interface EpisodeEntry {
@@ -62,7 +63,7 @@ export async function GET(
       firstMessageAt: relationship.firstMessageAt?.toISOString() ?? null,
     });
   } catch (error) {
-    console.error('[memories API] error:', error);
+    logger.error('[memories API] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

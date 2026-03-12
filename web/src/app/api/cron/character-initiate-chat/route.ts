@@ -13,6 +13,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 function readSoulMd(slug: string): string {
   const paths = [
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
 
         results.push(`${rel.character.name} → ${userName} (conv: ${conversation.id})`);
       } catch (err) {
-        console.error(`[character-initiate-chat] Failed for ${rel.character.name}:`, err);
+        logger.error(`[character-initiate-chat] Failed for ${rel.character.name}:`, err);
       }
     }
 
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
       details: results,
     });
   } catch (error) {
-    console.error('[character-initiate-chat] error:', error);
+    logger.error('[character-initiate-chat] error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

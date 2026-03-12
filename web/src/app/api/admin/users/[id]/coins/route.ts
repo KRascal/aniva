@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -80,7 +81,7 @@ export async function POST(
       paidBalance: updated?.paidBalance ?? 0,
     });
   } catch (error) {
-    console.error('Admin coins grant error:', error);
+    logger.error('Admin coins grant error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

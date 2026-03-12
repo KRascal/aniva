@@ -1,6 +1,7 @@
 import webpush from 'web-push';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   webpush.setVapidDetails(
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success, failed, total: subscriptions.length });
   } catch (error) {
-    console.error('Push send error:', error);
+    logger.error('Push send error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

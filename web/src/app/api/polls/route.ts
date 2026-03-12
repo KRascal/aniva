@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 async function isAdmin(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
@@ -49,7 +50,7 @@ export async function GET(_request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('[polls GET] Error:', error);
+    logger.error('[polls GET] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ poll }, { status: 201 });
   } catch (error) {
-    console.error('[polls POST] Error:', error);
+    logger.error('[polls POST] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

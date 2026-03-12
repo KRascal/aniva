@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const MAX_PER_RUN = 30;
 const EXPIRES_IN_MS = 8 * 60 * 60 * 1000; // 8時間（次のcronサイクルで置き換え）
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest) {
     try {
       content = await generateProactiveMessage(rel.character.systemPrompt, userMessage);
     } catch (e) {
-      console.error('[proactive-messages] LLM error:', e);
+      logger.error('[proactive-messages] LLM error:', e);
       results.push({
         userId: rel.userId,
         characterId: rel.characterId,

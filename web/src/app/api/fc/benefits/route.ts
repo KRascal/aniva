@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 interface FcBenefit {
   icon: string;
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[FC Benefits] Error:', error);
+    logger.error('[FC Benefits] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

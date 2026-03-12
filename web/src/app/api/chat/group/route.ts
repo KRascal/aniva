@@ -4,6 +4,7 @@ import { characterEngine } from '@/lib/character-engine';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * グループチャットAPI
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
           emotion: response.emotion,
         });
       } catch (err) {
-        console.error(`[GroupChat] Failed to generate response for ${character.name}:`, err);
+        logger.error(`[GroupChat] Failed to generate response for ${character.name}:`, err);
         groupMessages.push({
           characterId: character.id,
           characterName: character.name,
@@ -209,7 +210,7 @@ export async function POST(req: NextRequest) {
       coinBalance: newBalance,
     });
   } catch (error) {
-    console.error('[GroupChat] Error:', error);
+    logger.error('[GroupChat] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

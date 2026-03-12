@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -59,7 +60,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ approval: updated });
   } catch (err) {
-    console.error('[admin/approvals PUT]', err);
+    logger.error('[admin/approvals PUT]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

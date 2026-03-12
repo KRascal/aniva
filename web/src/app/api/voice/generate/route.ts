@@ -5,6 +5,7 @@ import { audioStorage } from '@/lib/audio-storage';
 import { auth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ audioUrl });
   } catch (error) {
-    console.error('Voice generation error:', error);
+    logger.error('Voice generation error:', error);
     // 内部エラー詳細はクライアントに返さない
     return NextResponse.json(
       { audioUrl: null, reason: 'voice_error' },

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -56,7 +57,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[Community Thread] GET error:', error);
+    logger.error('[Community Thread] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -128,7 +129,7 @@ export async function POST(
           actorName: replierName,
           targetUrl: `/community/${updatedThread.character?.slug || ''}/${threadId}`,
         },
-      }).catch((e: unknown) => console.warn('[Notification] community reply:', e));
+      }).catch((e: unknown) => logger.warn('[Notification] community reply:', e));
     }
 
     // Also notify users mentioned with @ in the content
@@ -159,13 +160,13 @@ export async function POST(
             actorName: replierName,
             targetUrl: `/community/${updatedThread.character?.slug || ''}/${threadId}`,
           },
-        }).catch((e: unknown) => console.warn('[Notification] community mention:', e));
+        }).catch((e: unknown) => logger.warn('[Notification] community mention:', e));
       }
     }
 
     return NextResponse.json({ reply }, { status: 201 });
   } catch (error) {
-    console.error('[Community Thread] POST error:', error);
+    logger.error('[Community Thread] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

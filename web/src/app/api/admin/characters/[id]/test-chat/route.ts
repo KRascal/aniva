@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const INTIMACY_TONE: Record<number, string> = {
   1: '丁寧語で話してください。敬語を使い、距離感のある応対をしてください。',
@@ -203,7 +204,7 @@ export async function POST(
 
     if (!res.ok) {
       const err = await res.text();
-      console.error('[test-chat] xAI API error:', res.status, err);
+      logger.error('[test-chat] xAI API error', { status: res.status, error: err });
       return NextResponse.json({ error: 'AI API error', detail: err }, { status: 502 });
     }
 
@@ -215,7 +216,7 @@ export async function POST(
       systemPromptPreview: systemPrompt,
     });
   } catch (err) {
-    console.error('[test-chat] fetch error:', err);
+    logger.error('[test-chat] fetch error:', err);
     return NextResponse.json({ error: 'Failed to call AI API' }, { status: 500 });
   }
 }

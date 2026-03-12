@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { CoinTxType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 interface PurchaseRequest {
   packageId: string;
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ checkoutUrl: checkoutSession.url });
   } catch (error) {
-    console.error('Coin purchase error:', error);
+    logger.error('Coin purchase error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -96,7 +97,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Chat export error:', error);
+    logger.error('Chat export error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

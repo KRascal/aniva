@@ -4,6 +4,7 @@
  */
 
 import { appendFile } from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 const LOG_PATH = process.env.ERROR_LOG_PATH || '/tmp/aniva-errors.jsonl';
 const MAX_CONTEXT_LENGTH = 500;
@@ -84,7 +85,7 @@ export async function logError(
       await notifySlack(entry);
     }
   } catch {
-    console.error('[error-logger] Failed to write error log');
+    logger.error('[error-logger] Failed to write error log');
   }
 }
 

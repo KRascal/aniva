@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { requireAdmin } from '@/lib/admin';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
@@ -54,7 +55,7 @@ ${voiceModelId ? `ボイスモデルID: ${voiceModelId}` : ''}
     voice = parsed.voice || '';
     boundaries = parsed.boundaries || '';
   } catch (err) {
-    console.error('Claude API error:', err);
+    logger.error('Claude API error:', err);
     return NextResponse.json({ error: 'AI生成に失敗しました' }, { status: 500 });
   }
 
@@ -69,7 +70,7 @@ ${voiceModelId ? `ボイスモデルID: ${voiceModelId}` : ''}
     writeFileSync(join(charDir, 'VOICE.md'), `# VOICE - ${name}\n\n${voice}\n`, 'utf-8');
     writeFileSync(join(charDir, 'BOUNDARIES.md'), `# BOUNDARIES - ${name}\n\n${boundaries}\n`, 'utf-8');
   } catch (err) {
-    console.error('File write error:', err);
+    logger.error('File write error:', err);
     // Non-fatal: return the generated text anyway
   }
 

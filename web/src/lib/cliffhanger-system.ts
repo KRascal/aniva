@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 interface Cliffhanger {
   type: 'tease' | 'question' | 'story';
@@ -369,7 +370,7 @@ export async function resolveCliffhanger(
         if (generated) followUp = generated;
       }
     } catch (e) {
-      console.warn('[resolveCliffhanger] LLM generation failed, using template:', e);
+      logger.warn('[resolveCliffhanger] LLM generation failed, using template:', e);
     }
   }
 

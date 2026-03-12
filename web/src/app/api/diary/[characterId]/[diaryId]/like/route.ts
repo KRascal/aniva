@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   _req: Request,
@@ -59,7 +60,7 @@ export async function POST(
 
     return NextResponse.json({ liked, likes: newLikes });
   } catch (error) {
-    console.error('[diary like POST] Error:', error);
+    logger.error('[diary like POST] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

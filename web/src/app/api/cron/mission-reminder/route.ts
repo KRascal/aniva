@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * 未完了ミッション煽り通知 cron
@@ -158,7 +159,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[mission-reminder cron] Error:', error);
+    logger.error('[mission-reminder cron] Error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

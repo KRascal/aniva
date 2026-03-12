@@ -3,6 +3,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
 import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
+import { logger } from '@/lib/logger';
 
 /**
  * キャラ自律投稿 Cron
@@ -203,7 +204,7 @@ ${recentTexts || '（なし）'}
       weather: weather ? `${weather.description} ${weather.temperature}°C` : 'unavailable',
     });
   } catch (error) {
-    console.error('Autonomous post error:', error);
+    logger.error('Autonomous post error:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

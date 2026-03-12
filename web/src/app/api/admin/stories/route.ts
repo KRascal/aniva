@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ chapters, total });
   } catch (error) {
-    console.error('[GET /api/admin/stories]', error);
+    logger.error('[GET /api/admin/stories]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ chapter }, { status: 201 });
   } catch (error) {
-    console.error('[POST /api/admin/stories]', error);
+    logger.error('[POST /api/admin/stories]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -118,7 +119,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ chapter });
   } catch (error) {
-    console.error('[PUT /api/admin/stories]', error);
+    logger.error('[PUT /api/admin/stories]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -140,7 +141,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[DELETE /api/admin/stories]', error);
+    logger.error('[DELETE /api/admin/stories]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

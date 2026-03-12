@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
+import { logger } from '@/lib/logger';
 
 /**
  * ストーリーズ自発投稿Cron
@@ -115,7 +116,7 @@ ${recentTexts || '（なし）'}
 
         postedCount++;
       } catch (e) {
-        console.error(`[stories-post] ${character.name} error:`, e);
+        logger.error(`[stories-post] ${character.name} error:`, e);
         continue;
       }
     }
@@ -126,7 +127,7 @@ ${recentTexts || '（なし）'}
       timeOfDay,
     });
   } catch (error) {
-    console.error('[stories-post] Cron error:', error);
+    logger.error('[stories-post] Cron error:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

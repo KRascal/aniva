@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -15,7 +16,7 @@ export async function GET() {
     });
     return NextResponse.json({ packages });
   } catch (error) {
-    console.error('Failed to fetch coin packages:', error);
+    logger.error('Failed to fetch coin packages:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

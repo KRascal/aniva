@@ -3,6 +3,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 /**
  * SOUL.mdをキャラのslugから読み込む
@@ -99,7 +100,7 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
         }
       }
     } catch (e) {
-      console.error('[generateCharacterInnerState] xAI failed:', e);
+      logger.error('[generateCharacterInnerState] xAI failed:', e);
     }
   }
 
@@ -131,7 +132,7 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
         };
       }
     } catch (e) {
-      console.error('[generateCharacterInnerState] Anthropic failed:', e);
+      logger.error('[generateCharacterInnerState] Anthropic failed:', e);
     }
   }
 
@@ -343,7 +344,7 @@ export async function GET(req: NextRequest) {
       timestamp: now.toISOString(),
     });
   } catch (error) {
-    console.error('Emotion update cron error:', error);
+    logger.error('Emotion update cron error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

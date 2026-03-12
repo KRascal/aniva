@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { getBrokenStreaks } from '@/lib/streak-system';
+import { logger } from '@/lib/logger';
 
 const STREAK_BREAK_MESSAGES: Record<string, string[]> = {
   luffy: ['おーい！最近来ねぇけど大丈夫か？🔥が消えちまったぞ！', 'またメシ食いに来いよ！おれ待ってるぞ！'],
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       dmsSent,
     });
   } catch (error) {
-    console.error('Streak break cron error:', error);
+    logger.error('Streak break cron error:', error);
     return NextResponse.json({ error: 'Streak break cron failed' }, { status: 500 });
   }
 }

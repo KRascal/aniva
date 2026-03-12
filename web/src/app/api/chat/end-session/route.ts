@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
+import { logger } from '@/lib/logger';
 // CHARACTER_DEFINITIONS is the correct export name
 
 /* ─────────────── 型 ─────────────── */
@@ -44,10 +45,10 @@ async function callLLM(systemPrompt: string, userMessage: string): Promise<strin
         if (text) return text;
       } else {
         const errText = await res.text();
-        console.error(`[end-session] xAI error ${res.status}: ${errText}`);
+        logger.error(`[end-session] xAI error ${res.status}: ${errText}`);
       }
     } catch (e) {
-      console.error('[end-session] xAI fetch error:', e);
+      logger.error('[end-session] xAI fetch error:', e);
     }
   }
 
@@ -74,7 +75,7 @@ async function callLLM(systemPrompt: string, userMessage: string): Promise<strin
         if (text) return text;
       }
     } catch (e) {
-      console.error('[end-session] Anthropic fallback error:', e);
+      logger.error('[end-session] Anthropic fallback error:', e);
     }
   }
 
@@ -284,7 +285,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[chat/end-session] error:', error);
+    logger.error('[chat/end-session] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _request: NextRequest,
@@ -99,7 +100,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[polls/[id]] Error:', error);
+    logger.error('[polls/[id]] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -138,7 +139,7 @@ export async function PATCH(
     const updated = await prisma.storyPoll.update({ where: { id }, data: updateData });
     return NextResponse.json({ poll: updated });
   } catch (error) {
-    console.error('[polls/[id] PATCH] Error:', error);
+    logger.error('[polls/[id] PATCH] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -168,7 +169,7 @@ export async function DELETE(
     await prisma.storyPoll.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[polls/[id] DELETE] Error:', error);
+    logger.error('[polls/[id] DELETE] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

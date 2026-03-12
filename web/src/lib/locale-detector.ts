@@ -8,6 +8,7 @@
 
 import { prisma } from './prisma';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type SupportedLocale } from './types/i18n';
+import { logger } from '@/lib/logger';
 
 /**
  * Accept-Languageヘッダーをパースして優先順にロケールを返す
@@ -124,6 +125,6 @@ export async function updateUserLocale(
       data: { locale },
     });
   } catch (err) {
-    console.error('[locale-detector] Failed to update user locale:', err);
+    logger.error('[locale-detector] Failed to update user locale:', err);
   }
 }

@@ -4,6 +4,7 @@ import { join } from 'path';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
       writeFileSync(soulPath, soulContent, 'utf-8');
     }
   } catch (e) {
-    console.warn('[admin/characters] SOUL.md generation failed:', e);
+    logger.warn('[admin/characters] SOUL.md generation failed:', e);
   }
 
   await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_CREATE, admin.email, {

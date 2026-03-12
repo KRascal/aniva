@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { getFreeGachaAvailable } from '@/lib/gacha-system';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   const userId = await getVerifiedUserId();
@@ -49,7 +50,7 @@ export async function GET() {
   } catch (err) {
     // DB migration not yet applied (production pending)
     const message = err instanceof Error ? err.message : 'Service unavailable';
-    console.error('[gacha/banners] DB error:', message);
+    logger.error('[gacha/banners] DB error:', message);
     return NextResponse.json(
       { error: 'ガチャ機能は準備中です', banners: [], myCardCount: 0, freeGachaAvailable: false },
       { status: 503 },

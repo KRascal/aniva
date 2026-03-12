@@ -3,6 +3,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
+import { logger } from '@/lib/logger';
 
 const WELCOME_COINS = 500; // 初回登録ボーナス
 
@@ -25,7 +26,7 @@ async function grantWelcomeCoins(userId: string) {
       });
     });
   } catch (e) {
-    console.error('[grantWelcomeCoins] failed:', e);
+    logger.error('[grantWelcomeCoins] failed:', e);
   }
 }
 

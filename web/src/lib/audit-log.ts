@@ -6,6 +6,7 @@
  */
 import { appendFile } from 'fs/promises'
 import { join } from 'path'
+import { logger } from '@/lib/logger';
 
 const LOG_DIR = process.env.AUDIT_LOG_DIR || '/home/openclaw/.openclaw/workspace/logs'
 
@@ -37,7 +38,7 @@ export async function auditLog(
     await appendFile(logFile, line, 'utf-8')
   } catch {
     // ファイル書き込み失敗時はconsole.logにフォールバック
-    console.log('[AUDIT]', line)
+    logger.info('[AUDIT]', { line })
   }
 }
 

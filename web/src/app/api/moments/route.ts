@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -155,7 +156,7 @@ export async function GET(req: NextRequest) {
     const isFollowingNone = followingCharacterIds !== null && followingCharacterIds.length === 0;
     return NextResponse.json({ moments: result, nextCursor, isFollowingNone });
   } catch (error) {
-    console.error('GET /api/moments error:', error);
+    logger.error('GET /api/moments error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -193,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(moment, { status: 201 });
   } catch (error) {
-    console.error('POST /api/moments error:', error);
+    logger.error('POST /api/moments error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ rule }, { status: 201 });
   } catch (err) {
-    console.error('[admin/guardrails POST]', err);
+    logger.error('[admin/guardrails POST]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

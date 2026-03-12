@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET(_req: NextRequest) {
   const admin = await requireAdmin();
@@ -17,7 +18,7 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json({ packages, total });
   } catch (error) {
-    console.error('[GET /api/admin/coins]', error);
+    logger.error('[GET /api/admin/coins]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ package: pkg }, { status: 201 });
   } catch (error) {
-    console.error('[POST /api/admin/coins]', error);
+    logger.error('[POST /api/admin/coins]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -93,7 +94,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ package: pkg });
   } catch (error) {
-    console.error('[PUT /api/admin/coins]', error);
+    logger.error('[PUT /api/admin/coins]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -115,7 +116,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[DELETE /api/admin/coins]', error);
+    logger.error('[DELETE /api/admin/coins]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // ============================================================
 // LLM provider abstraction - supports Anthropic, xAI (Grok)
 // ============================================================
@@ -28,7 +29,7 @@ export async function callLLM(
       const text = response.content[0].type === 'text' ? response.content[0].text : '';
       if (text) return text;
     } catch (e) {
-      console.error('[callLLM] Anthropic FC model failed, falling back to xAI:', e);
+      logger.error('[callLLM] Anthropic FC model failed, falling back to xAI:', e);
     }
   }
 
@@ -47,14 +48,14 @@ export async function callLLM(
       });
       if (!res.ok) {
         const errText = await res.text();
-        console.error(`[callLLM] xAI error ${res.status}: ${errText} - falling back to Anthropic`);
+        logger.error(`[callLLM] xAI error ${res.status}: ${errText} - falling back to Anthropic`);
       } else {
         const data = await res.json();
         const text = data.choices?.[0]?.message?.content;
         if (text) return text;
       }
     } catch (e) {
-      console.error('[callLLM] xAI fetch failed, falling back to Anthropic:', e);
+      logger.error('[callLLM] xAI fetch failed, falling back to Anthropic:', e);
     }
   }
 

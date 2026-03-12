@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/admin/characters/[id]/ai-enrich
@@ -122,7 +123,7 @@ export async function POST(
     await Promise.all(updates);
     return NextResponse.json({ success: true, enriched, applied: updates.length > 0 });
   } catch (error) {
-    console.error('[ai-enrich] error:', error);
+    logger.error('[ai-enrich] error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

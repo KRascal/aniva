@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
@@ -106,7 +107,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
         });
 
         if (!res.ok) {
-          console.error(`[monthly-letter] API error for ${rel.character.name} → ${userName}: ${res.status}`);
+          logger.error(`[monthly-letter] API error for ${rel.character.name} → ${userName}: ${res.status}`);
           continue;
         }
 
@@ -127,7 +128,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
 
         generated++;
       } catch (err) {
-        console.error(`[monthly-letter] Failed for ${rel.id}:`, err);
+        logger.error(`[monthly-letter] Failed for ${rel.id}:`, err);
       }
     }
 
@@ -138,7 +139,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
       total: relationships.length,
     });
   } catch (err) {
-    console.error('[monthly-letter] Error:', err);
+    logger.error('[monthly-letter] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -80,7 +81,7 @@ export async function GET() {
       weeklyDau: weeklyDauRaw.reverse(), // 古い日付から昇順に
     });
   } catch (err) {
-    console.error('[dashboard] error:', err);
+    logger.error('[dashboard] error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

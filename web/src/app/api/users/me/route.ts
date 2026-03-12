@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -47,7 +48,7 @@ export async function GET() {
       avatarUrl: resolvedAvatarUrl,
     });
   } catch (error) {
-    console.error('[users/me] error:', error);
+    logger.error('[users/me] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -94,7 +95,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error('[users/me PUT] error:', error);
+    logger.error('[users/me PUT] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { rollDailyEvent } from '@/lib/variable-reward-system';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // キャラクター定義から eventType に応じた挨拶を生成する
 function generateEventGreeting(
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Daily event error:', error);
+    logger.error('Daily event error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

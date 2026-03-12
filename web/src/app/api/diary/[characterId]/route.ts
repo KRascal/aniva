@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: Request,
@@ -75,7 +76,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[diary GET] Error:', error);
+    logger.error('[diary GET] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

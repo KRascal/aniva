@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/onboarding/follow-and-greet
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       characterNames: characters.map(c => c.name),
     });
   } catch (error) {
-    console.error('[follow-and-greet] Error:', error);
+    logger.error('[follow-and-greet] Error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

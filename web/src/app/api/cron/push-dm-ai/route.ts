@@ -20,6 +20,7 @@ import { prisma } from '@/lib/prisma';
 import { generatePushDmMessage, getCurrentTimeSlot } from '@/lib/push-dm-generator';
 import { sendPushNotification } from '@/lib/web-push-sender';
 import { getRelevantMemories } from '@/lib/semantic-memory';
+import { logger } from '@/lib/logger';
 
 const MAX_PER_RUN = 50;
 const DAILY_LIMIT = 3;
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
         birthdayHint,
       });
     } catch (e) {
-      console.error('[push-dm-ai] LLM error:', e);
+      logger.error('[push-dm-ai] LLM error:', e);
       skipped.llmError++;
       errors++;
       continue;

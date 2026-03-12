@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/api-auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -81,7 +82,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ characters: enriched });
   } catch (error) {
-    console.error('[characters] error:', error);
+    logger.error('[characters] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 interface ChoiceItem {
   text: string;
@@ -151,7 +152,7 @@ export async function POST(
       rewards: isFirstCompletion ? { xpEarned, coinsEarned } : null,
     });
   } catch (error) {
-    console.error('Story choice POST error:', error);
+    logger.error('Story choice POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

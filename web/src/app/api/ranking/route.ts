@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/ranking
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
       periodType,
     });
   } catch (error) {
-    console.error('[ranking] error:', error);
+    logger.error('[ranking] error:', error);
     return NextResponse.json({ rankings: [], period, periodType });
   }
 }

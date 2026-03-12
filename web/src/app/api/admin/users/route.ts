@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -167,7 +168,7 @@ export async function GET(req: NextRequest) {
     totalPages: Math.ceil(total / limit),
   });
   } catch (error) {
-    console.error('[admin/users] GET error:', error);
+    logger.error('[admin/users] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

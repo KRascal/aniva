@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { logger } from '@/lib/logger';
 
 // ギフト定義（将来的にDBに移行可能）
 const GIFT_CATALOG = [
@@ -151,7 +152,7 @@ export async function POST(req: Request) {
       newBalance: newTotal,
     });
   } catch (error) {
-    console.error('Gift send error:', error);
+    logger.error('Gift send error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

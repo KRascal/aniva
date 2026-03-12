@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface FactEntry {
   fact: string;
@@ -211,7 +212,7 @@ export async function GET(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         errors.push(`${rel.id}: ${msg}`);
-        console.error(`[cron/letter] Failed for ${rel.id}:`, err);
+        logger.error(`[cron/letter] Failed for ${rel.id}:`, err);
       }
     }
 
@@ -222,7 +223,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length ? errors : undefined,
     });
   } catch (err) {
-    console.error('[cron/letter] Error:', err);
+    logger.error('[cron/letter] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

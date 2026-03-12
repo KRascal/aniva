@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     const url = `/uploads/${subPath}/${filename}`;
     return NextResponse.json({ url }, { status: 200 });
   } catch (err) {
-    console.error('Upload error:', err);
+    logger.error('Upload error:', err);
     return NextResponse.json({ error: 'アップロードに失敗しました' }, { status: 500 });
   }
 }

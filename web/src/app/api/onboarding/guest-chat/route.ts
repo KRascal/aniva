@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { CHARACTER_DEFINITIONS } from '@/lib/character-engine';
+import { logger } from '@/lib/logger';
 
 // ターン数を2に短縮（ユーザー体験の離脱防止）
 const MAX_TURNS = 2;
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
       const rawResponse = await callLLM(systemPrompt, llmMessages);
       characterMessage = rawResponse ? rawResponse.trim() : getFallbackResponse(characterSlug, turnNumber);
     } catch (err) {
-      console.error('[guest-chat] LLM error:', err);
+      logger.error('[guest-chat] LLM error:', err);
       characterMessage = getFallbackResponse(characterSlug, turnNumber);
     }
 
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
       farewellLine: isLastTurn ? buildFarewellLine(character.name, character.slug) : null,
     });
   } catch (err) {
-    console.error('[guest-chat] error:', err);
+    logger.error('[guest-chat] error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ import { updateRelationshipXP } from './xp-system';
 import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
 import { applyNGGuard, detectHiddenCommand } from './ng-guard';
 
+import { logger } from '@/lib/logger';
 import type {
   CharacterRecord,
   CharacterResponse,
@@ -163,14 +164,14 @@ export class CharacterEngine {
         });
       }
     } catch (e) {
-      console.warn('[CharacterEngine] Failed to get/create CharacterDailyState:', e);
+      logger.warn('[CharacterEngine] Failed to get/create CharacterDailyState:', e);
     }
 
     const memory = buildMemoryContext(relationship);
 
     let cliffhangerFollowUp: string | null = null;
     try { cliffhangerFollowUp = await consumeCliffhanger(relationshipId); } catch (e) {
-      console.warn('[CharacterEngine] consumeCliffhanger failed:', e);
+      logger.warn('[CharacterEngine] consumeCliffhanger failed:', e);
     }
 
     let dailyEventType: DailyEventType = 'normal';
@@ -178,7 +179,7 @@ export class CharacterEngine {
       const dailyEvent = await getUserDailyEvent(relationship.userId);
       dailyEventType = dailyEvent.eventType;
     } catch (e) {
-      console.warn('[CharacterEngine] getUserDailyEvent failed:', e);
+      logger.warn('[CharacterEngine] getUserDailyEvent failed:', e);
     }
 
     const hiddenCommandContext = detectHiddenCommand(userMessage, character.slug);
@@ -187,12 +188,12 @@ export class CharacterEngine {
     try {
       jealousyContext = await this._buildJealousyContext(characterId, relationship.level, memory.userName);
     } catch (e) {
-      console.warn('[CharacterEngine] buildJealousyContext failed:', e);
+      logger.warn('[CharacterEngine] buildJealousyContext failed:', e);
     }
 
     let characterContext;
     try { characterContext = await loadCharacterContext(character.slug, locale); } catch (e) {
-      console.warn('[CharacterEngine] loadCharacterContext failed, using hardcoded fallback:', e);
+      logger.warn('[CharacterEngine] loadCharacterContext failed, using hardcoded fallback:', e);
       characterContext = null;
     }
 
@@ -201,17 +202,17 @@ export class CharacterEngine {
       const { getRelevantMemories } = await import('../semantic-memory');
       semanticMemoryContext = await getRelevantMemories(relationship.userId, characterId, userMessage);
     } catch (e) {
-      console.warn('[CharacterEngine] getRelevantMemories failed:', e);
+      logger.warn('[CharacterEngine] getRelevantMemories failed:', e);
     }
 
     let dailyFanCount = 0;
     try { dailyFanCount = await getDailyFanCount(characterId); } catch (e) {
-      console.warn('[CharacterEngine] getDailyFanCount failed:', e);
+      logger.warn('[CharacterEngine] getDailyFanCount failed:', e);
     }
 
     let bibleCtx = '';
     try { bibleCtx = await buildBibleContext(characterId, locale); } catch (e) {
-      console.warn('[CharacterEngine] buildBibleContext failed:', e);
+      logger.warn('[CharacterEngine] buildBibleContext failed:', e);
     }
 
     let loreContext = '';
@@ -223,7 +224,7 @@ export class CharacterEngine {
         loreContext = formatLoreContext(loreEntries);
       }
     } catch (e) {
-      console.warn('[CharacterEngine] lore-engine failed:', e);
+      logger.warn('[CharacterEngine] lore-engine failed:', e);
     }
 
     const systemPrompt = buildSystemPrompt(
@@ -246,7 +247,7 @@ export class CharacterEngine {
     try {
       text = await callLLM(systemPrompt, llmMessages, { isFcMember: options?.isFcMember });
     } catch (llmError) {
-      console.error('[CharacterEngine] LLM call failed:', llmError);
+      logger.error('[CharacterEngine] LLM call failed:', llmError);
       const { CHARACTER_DEFINITIONS } = await import('./types');
       const charDef = Object.values(CHARACTER_DEFINITIONS).find(d => d.name === character.name);
       text = charDef?.ngFallback ?? '今はうまく答えられないぞ…また後で話しかけてくれ！';
@@ -266,7 +267,7 @@ export class CharacterEngine {
             .filter((v: { severity: string }) => v.severity === 'critical')
             .map((v: { detail: string }) => v.detail)
             .join(', ');
-          console.warn(`[CharacterEngine] Validation failed, retrying: ${retryHint}`);
+          logger.warn(`[CharacterEngine] Validation failed, retrying: ${retryHint}`);
           const retryMessages = [
             ...llmMessages.slice(0, -1),
             { role: 'user' as const, content: `${userMessage}\n\n【注意】前回の返答に問題がありました（${retryHint}）。キャラクターとして自然に回答してください。` },
@@ -277,7 +278,7 @@ export class CharacterEngine {
         }
       }
     } catch (validatorError) {
-      console.warn('[CharacterEngine] Validator failed, using legacy NGGuard:', validatorError);
+      logger.warn('[CharacterEngine] Validator failed, using legacy NGGuard:', validatorError);
     }
     cleanedText = applyNGGuard(cleanedText, character.name);
 
@@ -287,7 +288,7 @@ export class CharacterEngine {
         prisma.$executeRaw`
           INSERT INTO "CharacterFeedback" (id, "userId", "characterId", type, "aiResponse", "userMessage", status, "createdAt")
           VALUES (${crypto.randomUUID()}, ${'system'}, ${characterId}, ${'auto_validation'}, ${text}, ${userMessage}, ${'auto_fixed'}, NOW())
-        `.catch((e: unknown) => console.warn('[CharacterEngine] Feedback log failed:', e));
+        `.catch((e: unknown) => logger.warn('[CharacterEngine] Feedback log failed:', e));
       }
     } catch {
       // サイレント無視
@@ -300,7 +301,7 @@ export class CharacterEngine {
 
     import('../semantic-memory').then(({ extractAndStoreMemories }) => {
       extractAndStoreMemories(relationship.userId, characterId, userMessage, displayText)
-        .catch((e) => console.warn('[CharacterEngine] semantic memory store failed:', e));
+        .catch((e) => logger.warn('[CharacterEngine] semantic memory store failed:', e));
     }).catch(() => {});
 
     await updateRelationshipXP(

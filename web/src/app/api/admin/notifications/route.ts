@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin();
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ notifications, total });
   } catch (error) {
-    console.error('[GET /api/admin/notifications]', error);
+    logger.error('[GET /api/admin/notifications]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
       sentCount: userIds.length,
     });
   } catch (error) {
-    console.error('[POST /api/admin/notifications]', error);
+    logger.error('[POST /api/admin/notifications]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

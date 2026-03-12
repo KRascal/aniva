@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { logger } from '@/lib/logger';
 
 // デフォルトの音声モデルID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
         });
       } catch (voiceError) {
         // 音声生成失敗はサイレント（チャット体験は続行）
-        console.error('Voice generation failed in greet:', voiceError);
+        logger.error('Voice generation failed in greet:', voiceError);
       }
     }
 
@@ -191,7 +192,7 @@ export async function POST(req: NextRequest) {
       alreadyGreeted: false,
     });
   } catch (error) {
-    console.error('Greet error:', error);
+    logger.error('Greet error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

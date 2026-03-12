@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export interface MissionDef {
   id: string;
@@ -157,7 +158,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[missions] error:', error);
+    logger.error('[missions] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

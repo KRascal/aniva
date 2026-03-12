@@ -10,6 +10,7 @@
  */
 
 import { prisma } from './prisma';
+import { logger } from '@/lib/logger';
 
 // ============================================================
 // Types
@@ -103,7 +104,7 @@ export class CharacterValidator {
           }
         }
       } catch (e) {
-        console.warn('[Validator] LLM judge failed:', e);
+        logger.warn('[Validator] LLM judge failed:', e);
       }
     }
 
@@ -205,7 +206,7 @@ export class CharacterValidator {
       }
     } catch (e) {
       // DB接続エラー時はスキップ（バリデーション失敗でチャットを止めない）
-      console.warn('[Validator] Voice check failed:', e);
+      logger.warn('[Validator] Voice check failed:', e);
     }
 
     // Boundary チェック（hard severity のルールのみ）
@@ -225,7 +226,7 @@ export class CharacterValidator {
         }
       }
     } catch (e) {
-      console.warn('[Validator] Boundary check failed:', e);
+      logger.warn('[Validator] Boundary check failed:', e);
     }
 
     return { violations, firstPerson };

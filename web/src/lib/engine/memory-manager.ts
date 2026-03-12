@@ -12,6 +12,7 @@ import type {
   EmotionEntry,
 } from './types';
 import { detectEmotion } from './emotion';
+import { logger } from '@/lib/logger';
 
 /**
  * パーソナライズメモリを構築
@@ -435,7 +436,7 @@ export async function updateMemory(
         memo.emotionMemory = [...(memo.emotionMemory ?? []), emotionEntry].slice(-15);
       }
     } catch (err) {
-      console.error('[CharacterEngine] generateMemorySummary failed:', err);
+      logger.error('[CharacterEngine] generateMemorySummary failed:', err);
     }
   }
 
@@ -517,7 +518,7 @@ export async function generateMemorySummary(
   try {
     parsed = JSON.parse(jsonStr) as typeof parsed;
   } catch {
-    console.warn('[CharacterEngine] Failed to parse memory summary JSON, using fallback');
+    logger.warn('[CharacterEngine] Failed to parse memory summary JSON, using fallback');
   }
 
   return {

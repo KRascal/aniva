@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // GET: 商品一覧取得（アクティブな商品のみ）
 export async function GET(req: NextRequest) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ items });
   } catch (error) {
-    console.error('[GET /api/shop/items]', error);
+    logger.error('[GET /api/shop/items]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
-    console.error('[POST /api/shop/items]', error);
+    logger.error('[POST /api/shop/items]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

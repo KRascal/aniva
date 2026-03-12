@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 /** フォロー直後にウェルカムメッセージをDBに書く */
 async function sendFollowWelcome(userId: string, characterId: string, characterSlug: string, catchphrases: string[]) {
@@ -58,7 +59,7 @@ async function sendFollowWelcome(userId: string, characterId: string, characterS
       },
     });
   } catch (err) {
-    console.error('[follow] sendFollowWelcome error:', err);
+    logger.error('[follow] sendFollowWelcome error:', err);
   }
 }
 
@@ -132,7 +133,7 @@ export async function POST(
       followerCount,
     });
   } catch (error) {
-    console.error('[relationship/follow POST] error:', error);
+    logger.error('[relationship/follow POST] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -170,7 +171,7 @@ export async function GET(
       followerCount,
     });
   } catch (error) {
-    console.error('[relationship/follow GET] error:', error);
+    logger.error('[relationship/follow GET] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // デイリーミッションIDからコイン数を引くマップ（route.tsと同期）
 const MISSION_COINS: Record<string, number> = {
@@ -216,7 +217,7 @@ export async function POST(req: NextRequest) {
       message: `+${coins}コイン獲得！ミッション達成！ 🎉`,
     });
   } catch (error) {
-    console.error('[missions/complete] error:', error);
+    logger.error('[missions/complete] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

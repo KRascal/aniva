@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * image-analysis.ts — ユーザー画像認識
  * ユーザーが画像を送信したとき、Vision APIで解析してキャラのコメント材料を生成
@@ -63,7 +64,7 @@ JSONのみ返してください。`,
         }
       }
     } catch (err) {
-      console.warn('[ImageAnalysis] xAI Vision failed:', err);
+      logger.warn('[ImageAnalysis] xAI Vision failed:', err);
     }
   }
 
@@ -117,7 +118,7 @@ JSONのみ返してください。`,
         }
       }
     } catch (err) {
-      console.warn('[ImageAnalysis] Claude Vision failed:', err);
+      logger.warn('[ImageAnalysis] Claude Vision failed:', err);
     }
   }
 

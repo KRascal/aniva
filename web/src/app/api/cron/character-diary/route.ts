@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // mood別日記テンプレート（5パターンずつ）
 const DIARY_TEMPLATES: Record<string, string[]> = {
@@ -157,7 +158,7 @@ export async function POST(req: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('[character-diary cron] Error:', error);
+    logger.error('[character-diary cron] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
