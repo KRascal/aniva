@@ -223,8 +223,8 @@ export async function POST(req: NextRequest) {
       const bonusCoins = 50 * years; // 年数×50コイン
       await prisma.coinBalance.upsert({
         where: { userId: rel.userId },
-        create: { userId: rel.userId, balance: bonusCoins },
-        update: { balance: { increment: bonusCoins } },
+        create: { userId: rel.userId, balance: bonusCoins, freeBalance: bonusCoins, paidBalance: 0 },
+        update: { balance: { increment: bonusCoins }, freeBalance: { increment: bonusCoins } },
       });
       await prisma.coinTransaction.create({
         data: {

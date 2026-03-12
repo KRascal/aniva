@@ -120,8 +120,8 @@ export async function getUserDailyEvent(userId: string): Promise<DailyEventResul
   if (reward.coins) {
     await prisma.coinBalance.upsert({
       where: { userId },
-      create: { userId, balance: reward.coins },
-      update: { balance: { increment: reward.coins } },
+      create: { userId, balance: reward.coins, freeBalance: reward.coins, paidBalance: 0 },
+      update: { balance: { increment: reward.coins }, freeBalance: { increment: reward.coins } },
     });
   }
 
