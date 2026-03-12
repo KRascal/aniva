@@ -71,10 +71,7 @@ export async function GET(req: NextRequest) {
           : followingCharacterIds !== null
           ? { characterId: { in: followingCharacterIds } }
           : {}),
-        OR: [
-          { publishedAt: { lte: now } },
-          { publishedAt: null }, // publishedAt未設定の投稿も表示する
-        ],
+        publishedAt: { lte: now, not: null },
       },
       include: {
         character: { select: { id: true, name: true, avatarUrl: true } },
