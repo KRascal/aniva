@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { cacheInvalidate, CACHE_KEYS } from '@/lib/redis-cache';
 
 export async function GET(_req: NextRequest) {
   const admin = await requireAdmin();
@@ -58,6 +59,8 @@ export async function POST(req: NextRequest) {
       packageId: pkg.id, name, coinAmount: Number(coinAmount),
     });
 
+    await cacheInvalidate(CACHE_KEYS.COIN_PACKAGES);
+
     return NextResponse.json({ package: pkg }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/admin/coins]', error);
@@ -91,6 +94,8 @@ export async function PUT(req: NextRequest) {
       packageId: id,
     });
 
+    await cacheInvalidate(CACHE_KEYS.COIN_PACKAGES);
+
     return NextResponse.json({ package: pkg });
   } catch (error) {
     console.error('[PUT /api/admin/coins]', error);
@@ -112,6 +117,8 @@ export async function DELETE(req: NextRequest) {
     await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_DELETE, admin.email, {
       packageId: id,
     });
+
+    await cacheInvalidate(CACHE_KEYS.COIN_PACKAGES);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

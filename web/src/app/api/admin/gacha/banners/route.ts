@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { cacheInvalidate, CACHE_KEYS } from '@/lib/redis-cache';
 
 export async function GET() {
   try {
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
     await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_CREATE, admin.email, {
       bannerId: banner.id, name,
     });
+
+    // ガチャバナーキャッシュを破棄
+    await cacheInvalidate(CACHE_KEYS.GACHA_BANNERS);
 
     return NextResponse.json(banner, { status: 201 });
   } catch (error) {
