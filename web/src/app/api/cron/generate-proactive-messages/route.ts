@@ -5,18 +5,15 @@
  *
  * 各キャラのフォロワーに対して24h有効のメッセージをAI生成する。
  * キャラのSOUL.md + 感情状態 + 関係レベル + 最後の会話内容を考慮し、
- * 「24時間で消える緊急性」を持つ個別メッセージをAnthropicで生成する。
+ * 「24時間で消える緊急性」を持つ個別メッセージをxAI(grok)で生成する。
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
-import Anthropic from '@anthropic-ai/sdk';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // フォールバック用テンプレート（AI失敗時のみ使用）
 const FALLBACK_TEMPLATES_LOW_LEVEL = [
@@ -148,15 +145,28 @@ ${memoryContext}
 今すぐ1〜2文のメッセージを生成:`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
-      max_tokens: 150,
-      messages: [{ role: 'user', content: prompt }],
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }],
+      }),
     });
-    const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : null;
+    if (!res.ok) {
+      const errBody = await res.text();
+      logger.error(`[generate-proactive] xAI error ${res.status}:`, errBody);
+      return null;
+    }
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content?.trim() ?? null;
     return text && text.length > 0 ? text : null;
   } catch (e) {
-    logger.error('[generate-proactive] Anthropic error:', e);
+    logger.error('[generate-proactive] xAI error:', e);
     return null;
   }
 }
