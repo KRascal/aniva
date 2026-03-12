@@ -642,7 +642,11 @@ function OnboardingInner() {
   const handleNicknameComplete = async (nickname: string) => {
     setIsSavingNickname(true);
     try {
-      await saveNickname(nickname);
+      const ok = await saveNickname(nickname);
+      if (!ok) {
+        // API失敗でもフェーズを進める（ニックネームはローカルstateに保持）
+        advance({ nickname });
+      }
     } finally {
       setIsSavingNickname(false);
     }
