@@ -115,16 +115,16 @@ export async function GET(req: NextRequest) {
         const cleaned = cleanGeneratedText(rawContent);
         if (!cleaned) continue;
 
-        // パース: "タイトル: xxx\n本文: yyy"
-        const titleMatch = cleaned.match(/タイトル[:：]\s*(.+)/);
+        // パース: "タイトル: xxx\n本文: yyy" or "タイトル: xxx 本文: yyy"
+        const titleMatch = cleaned.match(/タイトル[:：]\s*(.+?)(?:\s*本文[:：]|$)/);
         const bodyMatch = cleaned.match(/本文[:：]\s*([\s\S]+)/);
 
         const title = titleMatch
-          ? titleMatch[1].trim().slice(0, 100)
-          : cleaned.split('\n')[0].slice(0, 100);
+          ? titleMatch[1].trim().replace(/\s*本文[:：].*/, '').slice(0, 100)
+          : cleaned.split(/\n/)[0].slice(0, 50);
         const content = bodyMatch
           ? bodyMatch[1].trim().slice(0, 500)
-          : cleaned.slice(0, 500);
+          : cleaned.replace(/^タイトル[:：].*?\n?/, '').slice(0, 500);
 
         await prisma.fanThread.create({
           data: {
