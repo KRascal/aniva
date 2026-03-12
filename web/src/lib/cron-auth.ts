@@ -6,10 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Cronリクエストの認証を検証する。
- * 以下の順でシークレットを探す:
+ * ヘッダーのみ許可（URLにシークレットを露出させない）:
  * 1. x-cron-secret ヘッダー
  * 2. Authorization: Bearer <secret> ヘッダー
- * 3. ?secret= クエリパラメータ
  *
  * @returns null = 認証成功、NextResponse = 401エラー（そのままreturnすること）
  */
@@ -21,8 +20,7 @@ export function verifyCronAuth(req: NextRequest): NextResponse | null {
 
   const secret =
     req.headers.get('x-cron-secret') ||
-    req.headers.get('authorization')?.replace('Bearer ', '') ||
-    req.nextUrl.searchParams.get('secret');
+    req.headers.get('authorization')?.replace('Bearer ', '');
 
   if (!secret || secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
