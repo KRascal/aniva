@@ -573,6 +573,16 @@ function OnboardingInner() {
   // Tinderスワイプ完了: フォローしたキャラIDを保存して次のフェーズへ
   const handleTinderSwipeComplete = async (followedIds: string[]) => {
     setSwipeFollowedIds(followedIds);
+
+    // スワイプで選んだキャラを即座にDBフォロー（onboarding完了を待たない）
+    if (followedIds.length > 0) {
+      fetch('/api/onboarding/follow-and-greet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterIds: followedIds }),
+      }).catch(() => {});
+    }
+
     // 最初のフォローしたキャラを「選択キャラ」にする（キャラリビール演出用）
     if (followedIds.length > 0) {
       try {
@@ -588,12 +598,11 @@ function OnboardingInner() {
             franchise: c.franchise ?? '',
           };
           const ok = await selectCharacter(char);
-          if (!ok) advance(); // selectCharacter失敗時もフェーズを進める
+          if (!ok) advance();
         } else {
-          advance(); // fetch失敗時もフェーズを進める
+          advance();
         }
       } catch {
-        // fallback: 何もなくても次へ進む
         advance();
       }
     } else {
