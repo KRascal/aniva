@@ -138,8 +138,9 @@ export async function POST(req: NextRequest) {
   try {
     // 認証（CRON_SECRETまたはINTERNAL_SECRETを受け付ける）
     const token = req.headers.get('x-internal-secret') || req.headers.get('x-cron-secret');
-    const validSecret = process.env.INTERNAL_SECRET || process.env.CRON_SECRET;
-    if (!token || token !== validSecret) {
+    const internalSecret = process.env.INTERNAL_SECRET;
+    const cronSecret = process.env.CRON_SECRET;
+    if (!token || (token !== internalSecret && token !== cronSecret)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

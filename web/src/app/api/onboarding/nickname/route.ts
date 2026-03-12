@@ -72,8 +72,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ディープリンク由来かどうかで次ステップを判定
-    const isDeepLink = !!user?.onboardingDeeplinkSlug;
-    const nextStep = isDeepLink ? 'approval' : 'character_select';
+    // 汎用流入: welcome → character_select → nickname → birthday → approval
+    // ディープリンク: welcome → nickname → birthday → approval
+    const nextStep = 'birthday';
 
     const updated = await prisma.user.update({
       where: { id: user.id },
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
       data: {
         nickname: updated.nickname,
         nextStep,
-        characterId: isDeepLink ? user?.onboardingCharacterId : undefined,
+        characterId: user?.onboardingCharacterId ?? undefined,
       },
     });
   } catch (error) {

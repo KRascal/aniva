@@ -27,13 +27,13 @@ export async function callLLMStream(
       try {
         let fullText = '';
 
-        // FC会員 → Anthropic claude-sonnet-4-5 ストリーミング
+        // FC会員 → Anthropic claude-sonnet-4-6 ストリーミング
         if (isFc && anthropicKey) {
           try {
             const Anthropic = (await import('@anthropic-ai/sdk')).default;
             const client = new Anthropic({ apiKey: anthropicKey });
             const stream = client.messages.stream({
-              model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-5',
+              model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-6',
               max_tokens: 600,
               system: systemPrompt,
               messages,
