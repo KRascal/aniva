@@ -18,7 +18,13 @@ export function DailyBonus() {
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
-    // ページロード時にボーナスチェック
+    // オンボーディング直後はポップアップを遅延（UX阻害防止）
+    let justOnboarded = false;
+    try { justOnboarded = !!sessionStorage.getItem('aniva_just_onboarded'); } catch {}
+    if (justOnboarded) {
+      try { sessionStorage.removeItem('aniva_just_onboarded'); } catch {}
+    }
+
     const checkBonus = async () => {
       try {
         const res = await fetch('/api/daily-bonus', { method: 'POST' });
@@ -28,15 +34,14 @@ export function DailyBonus() {
           setBonus(data);
           setShow(true);
           setAnimating(true);
-          // 自動で閉じる（5秒後）
           setTimeout(() => setShow(false), 5000);
         }
       } catch {
         // サイレントフェイル
       }
     };
-    // 少し遅延させてUXを阻害しない
-    const timer = setTimeout(checkBonus, 1500);
+    // オンボ直後は5秒、通常は1.5秒遅延
+    const timer = setTimeout(checkBonus, justOnboarded ? 5000 : 1500);
     return () => clearTimeout(timer);
   }, []);
 

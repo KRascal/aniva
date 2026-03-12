@@ -551,21 +551,9 @@ function OnboardingInner() {
     setRevealShown(true);
   }, []);
 
-  // ── nicknameフェーズ自動スキップ（既にnickname/nameがある場合） ──────
-  // ゲスト体験で名前入力済みのユーザーがsignup後にオンボーディングに来た場合、
-  // session.user.name または state.nickname が存在すればnicknameフェーズを自動スキップする
-  useEffect(() => {
-    if (!initialized || state.phase !== 'nickname') return;
-    const sessionName = (session?.user as { name?: string | null })?.name;
-    const existingNickname = state.nickname || sessionName;
-    if (existingNickname) {
-      setState(prev => ({
-        ...prev,
-        nickname: prev.nickname || existingNickname,
-        phase: 'birthday',
-      }));
-    }
-  }, [initialized, state.phase, state.nickname, session?.user]);
+  // nicknameフェーズ自動スキップは削除。
+  // session.user.name（= メールプレフィックス）とsaveNicknameのレースコンディションが
+  // フェーズ遷移を壊していた。ゲストニックネームは init 内で処理済み。
 
   // ── Phase遷移ハンドラー ─────────────────────
 
@@ -635,29 +623,37 @@ function OnboardingInner() {
   };
 
   const handleApprovalComplete = async () => {
-    track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
+    try {
+      track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
 
-    // ── フォロー + キャラからメッセージ送信 ──
-    // Tinderスワイプで選んだキャラ + 最初に会話したキャラをフォロー
-    const allFollowIds = [...new Set([
-      ...swipeFollowedIds,
-      ...(state.selectedCharacter?.id ? [state.selectedCharacter.id] : []),
-      ...(deeplinkCharacter?.id ? [deeplinkCharacter.id] : []),
-    ])];
+      // ── フォロー + キャラからメッセージ送信 ──
+      const allFollowIds = [...new Set([
+        ...swipeFollowedIds,
+        ...(state.selectedCharacter?.id ? [state.selectedCharacter.id] : []),
+        ...(deeplinkCharacter?.id ? [deeplinkCharacter.id] : []),
+      ])];
 
-    // バックグラウンドでフォロー + メッセージ送信（完了を待たない）
-    if (allFollowIds.length > 0) {
-      fetch('/api/onboarding/follow-and-greet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterIds: allFollowIds }),
-      }).catch(() => {});
+      if (allFollowIds.length > 0) {
+        fetch('/api/onboarding/follow-and-greet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ characterIds: allFollowIds }),
+        }).catch(() => {});
+      }
+
+      // コインポップアップ抑制フラグ（DailyBonusが即表示されるのを防ぐ）
+      try { sessionStorage.setItem('aniva_just_onboarded', '1'); } catch {}
+
+      const redirectTo = await completeOnboarding(null);
+      await update();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      window.location.href = redirectTo;
+    } catch (e) {
+      console.error('handleApprovalComplete error:', e);
+      // エラー時もリダイレクト（ユーザーが詰まらないように）
+      await update().catch(() => {});
+      window.location.href = state.redirectTo || '/explore';
     }
-
-    const redirectTo = await completeOnboarding(null);
-    await update();
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    window.location.href = redirectTo;
   };
 
   const handleFirstChatComplete = async (history: ChatMessage[]) => {
