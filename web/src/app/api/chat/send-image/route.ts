@@ -147,6 +147,6 @@ export async function POST(req: NextRequest) {
     },
     imageUrl,
     analysisHint,
-    imageCoinCost: 15, // 画像送信は通常チャット(10)より高い
+    imageCoinCost: 20, // 画像解析付き: 通常チャット(10)の2倍
   });
 }
