@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     } else if (access.type === 'COIN_REQUIRED') {
-      const coinCost = cachedCharacter.chatCoinPerMessage ?? 3;
+      const coinCost = cachedCharacter.chatCoinPerMessage ?? 10;
       try {
         await prisma.$transaction(async (tx) => {
           const coinBalance = await tx.coinBalance.upsert({
