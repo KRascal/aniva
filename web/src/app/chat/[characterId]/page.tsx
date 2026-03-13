@@ -1086,6 +1086,21 @@ export default function ChatCharacterPage() {
               if (parsed.levelUp) {
                 // レベルアップ演出（既存があれば呼ぶ）
               }
+            } else if (parsed.type === 'deep_mode') {
+              // Deep Mode: 考え中メッセージに置換してストリーム終了
+              setMessages((prev) => [
+                ...prev.filter((m) => m.id !== tempUserMsg.id && m.id !== streamMsgId),
+                { ...tempUserMsg, id: parsed.userMessageId || tempUserMsg.id },
+                {
+                  id: parsed.characterMessageId || `thinking-${Date.now()}`,
+                  role: 'CHARACTER' as const,
+                  content: parsed.thinkingText || '…少し考えさせて。',
+                  createdAt: new Date().toISOString(),
+                  metadata: { isThinking: true, emotion: 'thinking' },
+                },
+              ]);
+              setIsSending(false);
+              break;
             } else if (parsed.type === 'meta') {
               // userMsgのIDを正式IDに更新（サーバーが返したuserMessageId）
               if (parsed.userMessageId) {
