@@ -58,8 +58,20 @@ export async function GET(req: NextRequest) {
     });
     const charMap = new Map(characters.map(c => [c.id, c]));
 
+    // 同じキャラ組み合わせの会話を統合（最新のみ表示）
+    const seenCombinations = new Map<string, boolean>();
+    const deduped = conversations.filter(conv => {
+      const metadata = conv.metadata as ConversationMetadata | null;
+      const charIds = metadata?.characterIds ?? [];
+      // キャラIDをソートしてキーにする（順番違いも同一とみなす）
+      const key = [...charIds].sort().join(',');
+      if (seenCombinations.has(key)) return false;
+      seenCombinations.set(key, true);
+      return true;
+    });
+
     return NextResponse.json({
-      conversations: conversations.map(conv => {
+      conversations: deduped.map(conv => {
         const metadata = conv.metadata as ConversationMetadata | null;
         const charIds = metadata?.characterIds ?? [];
         const lastMsg = conv.messages[0] ?? null;

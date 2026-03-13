@@ -109,7 +109,7 @@ function CharacterRevealOverlay({ character, onComplete }: CharacterRevealOverla
 
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden cursor-pointer select-none"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden cursor-pointer select-none bg-black"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -627,7 +627,14 @@ function OnboardingInner() {
   const handleNicknameComplete = async (nickname: string) => {
     setIsSavingNickname(true);
     try {
-      await saveNickname(nickname);
+      const success = await saveNickname(nickname);
+      if (!success) {
+        // API失敗時もフェーズを進める（ニックネームはローカルステートに保持、後で再送可能）
+        advance({ nickname });
+      }
+    } catch {
+      // エラー時もフェーズを進める（ユーザーを止めない）
+      advance({ nickname });
     } finally {
       setIsSavingNickname(false);
     }
@@ -721,8 +728,7 @@ function OnboardingInner() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      {/* プログレスインジケーター */}
-      <OnboardingProgress currentPhase={phase} isDeepLink={isDeepLink} />
+      {/* プログレスインジケーター: 削除（Keisuke指示: 邪魔） */}
 
       {/* ── キャラクターリビール演出オーバーレイ ── */}
       <AnimatePresence>

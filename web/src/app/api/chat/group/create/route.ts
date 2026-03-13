@@ -42,18 +42,34 @@ export async function POST(req: NextRequest) {
       .map(id => characters.find(c => c.id === id))
       .filter((c): c is NonNullable<typeof c> => c != null);
 
-    // Conversation作成
-    const conversation = await prisma.conversation.create({
-      data: {
-        type: 'group',
-        userId,
-        metadata: {
-          characterIds: orderedCharacters.map(c => c.id),
-          characterNames: orderedCharacters.map(c => c.name),
-          characterSlugs: orderedCharacters.map(c => c.slug),
-        } as Prisma.InputJsonValue,
-      },
+    // 既存の同じキャラ組み合わせの会話を検索（再利用）
+    const sortedCharIds = [...orderedCharacters.map(c => c.id)].sort();
+    const existingConversations = await prisma.conversation.findMany({
+      where: { userId, type: 'group', isActive: true },
+      select: { id: true, metadata: true },
     });
+
+    let conversation = existingConversations.find(conv => {
+      const meta = conv.metadata as { characterIds?: string[] } | null;
+      const ids = meta?.characterIds ?? [];
+      return [...ids].sort().join(',') === sortedCharIds.join(',');
+    });
+
+    if (!conversation) {
+      // 新規作成
+      conversation = await prisma.conversation.create({
+        data: {
+          type: 'group',
+          userId,
+          metadata: {
+            characterIds: orderedCharacters.map(c => c.id),
+            characterNames: orderedCharacters.map(c => c.name),
+            characterSlugs: orderedCharacters.map(c => c.slug),
+          } as Prisma.InputJsonValue,
+        },
+        select: { id: true, metadata: true },
+      });
+    }
 
     // 各キャラのRelationship取得 or 作成
     for (const character of orderedCharacters) {

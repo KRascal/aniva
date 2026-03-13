@@ -951,13 +951,18 @@ export default function ExplorePage() {
     );
   }
 
-  // Empty state when no characters loaded (show only after confirmed fetch completion)
+  // Empty state: 通常40キャラ存在するため、空は一時的な読み込みエラー → リロード促す
   if (!isLoading && characters.length === 0 && status === 'authenticated') {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center pb-24 px-4">
-        <div className="text-6xl mb-4">🌊</div>
-        <h2 className="text-white text-xl font-bold mb-2">キャラクターを準備中です</h2>
-        <p className="text-gray-400 text-sm text-center">もうしばらくお待ちください。<br />新しいキャラクターが間もなく登場します！</p>
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+        <p className="text-gray-400 text-sm text-center mb-4">読み込み中...</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-purple-400 text-sm underline"
+        >
+          再読み込み
+        </button>
       </div>
     );
   }

@@ -278,48 +278,7 @@ export default function ChatPage() {
 
         {/* グループチャット履歴は1on1チャットリストに統合表示（下のチャット一覧セクションで時系列ソート） */}
 
-        {/* ══ キャラからのメッセージバナー ══ */}
-        {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {
-          const remainMs = new Date(msg.expiresAt).getTime() - now;
-          const remainH = Math.floor(remainMs / 3600000);
-          const remainM = Math.floor((remainMs % 3600000) / 60000);
-          const remainS = Math.floor((remainMs % 60000) / 1000);
-          const pad = (n: number) => String(n).padStart(2, '0');
-          const countdownStr = `${pad(remainH)}:${pad(remainM)}:${pad(remainS)}`;
-          const isUrgent = remainMs < 3600000;
-          return (
-            <div
-              key={msg.characterId}
-              className="mb-3 bg-gradient-to-r from-purple-900/70 to-pink-900/50 border border-purple-500/40 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all animate-in fade-in slide-in-from-top-2 duration-300"
-              onClick={() => router.push(`/chat/${msg.characterId}`)}
-            >
-              <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-400/50">
-                  {msg.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={msg.avatarUrl} alt={msg.characterName} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-purple-700 flex items-center justify-center text-white font-bold">{msg.characterName.charAt(0)}</div>
-                  )}
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 text-xs">💬</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-purple-300 font-bold mb-0.5">{msg.characterName} からメッセージ</p>
-                <p className="text-sm text-white/90 italic truncate">「{msg.message}」</p>
-              </div>
-              <div className="flex flex-col gap-1 flex-shrink-0 items-end">
-                <span className={`text-[10px] font-bold font-mono ${isUrgent ? 'text-red-400 animate-pulse' : 'text-amber-400'}`}>
-                  {countdownStr}
-                </span>
-                <button
-                  className="text-gray-500 hover:text-gray-300 text-xs"
-                  onClick={e => { e.stopPropagation(); setDismissedCharMsgs(prev => new Set([...prev, msg.characterId])); }}
-                >✕</button>
-              </div>
-            </div>
-          );
-        })}
+        {/* キャラからの消えるメッセージバナー: 削除済み（Keisuke指示: キャラからチャットに直接メッセージを送るため不要） */}
 
         {/* ══ キャラ主導メッセージ（Proactive Messages）バナー ══ */}
         {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).map(msg => {
