@@ -1,7 +1,23 @@
 /**
- * Character Agent Phase 1 — 型定義
- * キャラクターを「自律エージェント」として動作させるための型
+ * Character Agent Types — Phase 1
+ *
+ * キャラクターが「自分の意志で」ユーザーに連絡する判断エンジンの型定義。
+ * cronベースの確率送信から、LLM判断ベースの意図的送信への移行。
  */
+
+// ── メッセージタイプ ──────────────────────────────────────────
+
+export type MessageType =
+  | 'check_in'           // 元気？系
+  | 'miss_you'           // 久しぶり系
+  | 'share_thought'      // キャラが思ったことをシェア
+  | 'follow_up_concern'  // 以前の悩みへのフォローアップ
+  | 'celebrate'          // 何かめでたいことへの祝福
+  | 'initiate_topic';    // 新しい話題を振る
+
+export type Urgency = 'low' | 'normal' | 'high';
+
+// ── ユーザー状態スナップショット ───────────────────────────────
 
 export interface UserStateSnapshot {
   userId: string;
@@ -32,32 +48,29 @@ export interface UserStateSnapshot {
   // 今日のエージェント接触数
   agentContactCountToday: number;
 
-  // ユーザー名
-  userName: string;
-
-  // 関係レベル
+  // 関係性レベル
   relationshipLevel: number;
+  totalMessages: number;
+  streakDays: number;
 }
 
-export type MessageType =
-  | 'check_in'
-  | 'miss_you'
-  | 'share_thought'
-  | 'follow_up_concern'
-  | 'celebrate'
-  | 'initiate_topic';
+// ── エージェント判断結果 ──────────────────────────────────────
 
 export interface AgentDecision {
   should: boolean;
   reason: string;
   messageType: MessageType | null;
-  urgency: 'low' | 'normal' | 'high';
+  urgency: Urgency;
 }
+
+// ── タイミングガード結果 ──────────────────────────────────────
 
 export interface TimingGuardResult {
   allowed: boolean;
   reason?: string;
 }
+
+// ── パイプライン実行結果 ──────────────────────────────────────
 
 export interface AgentPipelineResult {
   relationshipId: string;
@@ -69,24 +82,48 @@ export interface AgentPipelineResult {
   messageGenerated?: string;
   delivered: boolean;
   dryRun: boolean;
+  durationMs: number;
 }
 
-export interface AgentLoopConfig {
+// ── ループ実行サマリー ───────────────────────────────────────
+
+export interface AgentLoopSummary {
+  startedAt: string;
+  completedAt: string;
+  totalPairsProcessed: number;
+  decisionsToContact: number;
+  messagesDelivered: number;
+  skippedByTiming: number;
+  errors: number;
   dryRun: boolean;
-  maxPairsPerRun: number;
-  dailyContactLimit: number;
-  minIntervalHours: number;
-  quietHoursStart: number; // JST hour
-  quietHoursEnd: number;   // JST hour
-  maxUnreadBeforeSkip: number;
+  results: AgentPipelineResult[];
 }
 
-export const DEFAULT_AGENT_CONFIG: AgentLoopConfig = {
-  dryRun: true, // Phase 1a: ログのみ
-  maxPairsPerRun: 50,
-  dailyContactLimit: 2,
-  minIntervalHours: 3,
-  quietHoursStart: 23,
-  quietHoursEnd: 6,
-  maxUnreadBeforeSkip: 2,
-};
+// ── 設定定数 ────────────────────────────────────────────────
+
+export const AGENT_CONFIG = {
+  /** 1回のcron実行で処理する最大ペア数 */
+  MAX_PAIRS_PER_RUN: 50,
+
+  /** 1日にキャラ→ユーザーに送れる最大数 */
+  DAILY_CONTACT_LIMIT: 2,
+
+  /** エージェント送信の最小インターバル（時間） */
+  MIN_INTERVAL_HOURS: 3,
+
+  /** 深夜時間帯（JST）— この時間帯はurgency:high以外ブロック */
+  LATE_NIGHT_START: 23,
+  LATE_NIGHT_END: 6,
+
+  /** 未読がこの数以上ならスキップ */
+  MAX_UNREAD_BEFORE_SKIP: 2,
+
+  /** 1ペアあたりの処理タイムアウト（ms） */
+  PER_PAIR_TIMEOUT_MS: 25_000,
+
+  /** 判断用軽量モデル */
+  DECISION_MODEL: 'grok-3-mini',
+
+  /** 生成用重量モデル */
+  GENERATION_MODEL: 'grok-3',
+} as const;
