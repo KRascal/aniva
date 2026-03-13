@@ -79,59 +79,68 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Characters not found' }, { status: 404 });
     }
 
-    // 6. コイン消費: キャラ数 × 10コイン
-    const totalCoinCost = characters.length * COIN_PER_CHARACTER;
-
-    // 7. コイン残高確認・消費
-    const coinBalance = await prisma.coinBalance.upsert({
-      where: { userId },
-      create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
-      update: {},
+    // 6. FC会員チェック — FC会員は掛け合い無料
+    const hasActiveFC = await prisma.characterSubscription.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      select: { id: true },
     });
+    const isFcFree = !!hasActiveFC;
 
-    const totalBalance = coinBalance.freeBalance + coinBalance.paidBalance;
-    if (totalBalance < totalCoinCost) {
-      return NextResponse.json(
-        {
-          error: 'INSUFFICIENT_COINS',
-          required: totalCoinCost,
-          current: totalBalance,
-        },
-        { status: 402 }
-      );
-    }
+    // 7. コイン消費: キャラ数 × 10コイン（FC会員は無料）
+    const totalCoinCost = isFcFree ? 0 : characters.length * COIN_PER_CHARACTER;
 
-    // コイン消費トランザクション
-    await prisma.$transaction(async (tx) => {
-      const cb = await tx.coinBalance.findUniqueOrThrow({ where: { userId } });
-      const freeSpent = Math.min(cb.freeBalance, totalCoinCost);
-      const paidSpent = totalCoinCost - freeSpent;
-
-      await tx.coinBalance.update({
+    // 8. コイン残高確認・消費（FC会員はスキップ）
+    if (!isFcFree) {
+      const coinBalance = await prisma.coinBalance.upsert({
         where: { userId },
-        data: {
-          freeBalance: cb.freeBalance - freeSpent,
-          paidBalance: cb.paidBalance - paidSpent,
-          balance: cb.freeBalance + cb.paidBalance - totalCoinCost,
-        },
+        create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
+        update: {},
       });
 
-      await tx.coinTransaction.create({
-        data: {
-          userId,
-          type: 'CHAT_EXTRA',
-          amount: -totalCoinCost,
-          balanceAfter: totalBalance - totalCoinCost,
-          description: `掛け合い (${characters.map(c => c.name).join('・')})`,
-          metadata: {
-            crosstalk: true,
-            characterIds,
-            freeSpent,
-            paidSpent,
-          } as Prisma.InputJsonValue,
-        },
+      const totalBalance = coinBalance.freeBalance + coinBalance.paidBalance;
+      if (totalBalance < totalCoinCost) {
+        return NextResponse.json(
+          {
+            error: 'INSUFFICIENT_COINS',
+            required: totalCoinCost,
+            current: totalBalance,
+          },
+          { status: 402 }
+        );
+      }
+
+      // コイン消費トランザクション
+      await prisma.$transaction(async (tx) => {
+        const cb = await tx.coinBalance.findUniqueOrThrow({ where: { userId } });
+        const freeSpent = Math.min(cb.freeBalance, totalCoinCost);
+        const paidSpent = totalCoinCost - freeSpent;
+
+        await tx.coinBalance.update({
+          where: { userId },
+          data: {
+            freeBalance: cb.freeBalance - freeSpent,
+            paidBalance: cb.paidBalance - paidSpent,
+            balance: cb.freeBalance + cb.paidBalance - totalCoinCost,
+          },
+        });
+
+        await tx.coinTransaction.create({
+          data: {
+            userId,
+            type: 'CHAT_EXTRA',
+            amount: -totalCoinCost,
+            balanceAfter: totalBalance - totalCoinCost,
+            description: `掛け合い (${characters.map(c => c.name).join('・')})`,
+            metadata: {
+              crosstalk: true,
+              characterIds,
+              freeSpent,
+              paidSpent,
+            } as Prisma.InputJsonValue,
+          },
+        });
       });
-    });
+    }
 
     // 8. Relationship取得
     const relationshipMap = new Map<string, string>();

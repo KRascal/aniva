@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       );
     } else if (access.type === 'COIN_REQUIRED') {
       // コイン消費: freeBalance優先 → paidBalance消費
-      const coinCost = cachedCharacter.chatCoinPerMessage ?? 10;
+      const coinCost = cachedCharacter.chatCoinPerMessage ?? 3;
       try {
         await prisma.$transaction(async (tx) => {
           const coinBalance = await tx.coinBalance.upsert({

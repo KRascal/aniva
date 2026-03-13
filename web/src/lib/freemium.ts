@@ -180,7 +180,7 @@ export async function checkChatAccess(
     select: { chatCoinPerMessage: true },
   });
 
-  const chatCoinPerMessage = character?.chatCoinPerMessage ?? 10;
+  const chatCoinPerMessage = character?.chatCoinPerMessage ?? 3;
 
   // 3. コイン残高チェック（freeBalance + paidBalance合算）
   const coin = await prisma.coinBalance.findUnique({
