@@ -1,77 +1,96 @@
-// ============================================================
-// Message Weight Classifier — Deep Chat判定
-// メッセージの「重さ」を数値化し、Deep Modeを発動するか判定する
-// ============================================================
+/**
+ * Message Weight Classifier
+ * チャットメッセージの「重さ」を計算し、Deep Reply が必要かどうかを判定する。
+ *
+ * スコア >= DEEP_THRESHOLD で Deep Mode に切り替わる。
+ */
 
-/** Deep Mode発動閾値 */
 export const DEEP_THRESHOLD = 3;
 
-/** 感情キーワード（+2） */
+/** 感情キーワード（重みスコア: +2） */
 const EMOTION_KEYWORDS = [
-  '辛い', 'つらい', '悩んでる', '悩み', '嬉しい', 'うれしい',
-  '怖い', 'こわい', '寂しい', 'さみしい', '不安', '苦しい', 'くるしい',
-  '泣きたい', '死にたい', '消えたい', '助けて', 'たすけて',
-  '悲しい', 'かなしい', 'しんどい', '疲れた', 'つかれた',
-  '落ち込', 'イライラ', 'むかつく', '許せない', '後悔',
-  '孤独', '絶望', '限界',
+  '辛い', 'つらい', '悲しい', '悲しくて', '寂しい', 'さびしい',
+  '嬉しい', 'うれしい', '幸せ', 'しあわせ', '怖い', 'こわい',
+  '不安', '心配', 'イライラ', 'むかつく', '怒り', 'がっかり',
+  '泣いて', 'なきたい', '落ち込んで', 'へこんで', '疲れた', 'つかれた',
+  '苦しい', 'くるしい', '孤独', 'ひとりぼっち', '絶望',
+  'やばい', 'ヤバい', 'すごい', 'すごく', '感動',
 ];
 
-/** 人生相談キーワード（+3） */
-const LIFE_ADVICE_KEYWORDS = [
-  '仕事', '恋愛', '将来', '夢', '仲間',
-  '結婚', '転職', '人間関係', 'お金',
-  '家族', '親', '友達', '彼氏', '彼女',
-  '就活', '受験', '進路', '離婚', '別れ',
-  '生き方', '人生', '目標', '挫折', '失敗',
+/** 人生相談キーワード（重みスコア: +3） */
+const LIFE_KEYWORDS = [
+  '仕事', 'しごと', '転職', 'てんしょく', '就職', 'しゅうしょく',
+  '恋愛', 'れんあい', '彼氏', 'かれし', '彼女', 'かのじょ', '好き', '失恋',
+  '将来', 'しょうらい', '夢', 'ゆめ', '目標', 'もくひょう',
+  '仲間', 'なかま', '友達', '友人', '家族', 'かぞく',
+  '悩み', 'なやみ', '相談', 'そうだん', 'どうしたら', 'どうすれば',
+  '死にたい', '生きる', 'いきる', '人生', 'じんせい', '意味',
+  'お金', 'おかね', '借金', 'しゃっきん', '貧乏', '節約',
 ];
 
-/**
- * メッセージの重みスコアを計算する
- * @param message ユーザーのメッセージ本文
- * @returns 重みスコア（0以上の整数）
- */
-export function calculateMessageWeight(message: string): number {
-  let weight = 0;
+/** 深い質問パターン（重みスコア: +2） */
+const DEEP_QUESTION_PATTERNS = [
+  /なぜ|なんで|どうして/,
+  /どう思う|どう思うか/,
+  /教えて|おしえて/,
+  /どうしたら|どうすれば|どうしよう/,
+  /あなたは.*どう|キャラ.*思う/,
+  /本当に|ほんとうに|実際|じっさい/,
+];
 
-  // メッセージ長 > 80文字: +2
-  if (message.length > 80) {
-    weight += 2;
+/** メッセージの重みスコアを計算する */
+export function calculateMessageWeight(
+  message: string,
+  recentDeepReplied: boolean = false,
+  userPreferInstant: boolean = false,
+): number {
+  if (userPreferInstant) return 0;
+
+  let score = 0;
+
+  // 長文ボーナス
+  if (message.length > 80) score += 2;
+  else if (message.length > 40) score += 1;
+
+  // 疑問文
+  if (message.includes('？') || message.includes('?')) score += 1;
+
+  // 感情キーワード
+  const lowerMsg = message.toLowerCase();
+  for (const kw of EMOTION_KEYWORDS) {
+    if (message.includes(kw)) {
+      score += 2;
+      break; // 1回だけカウント
+    }
   }
 
-  // 疑問文（？含む）: +1
-  if (message.includes('？') || message.includes('?')) {
-    weight += 1;
+  // 人生相談キーワード
+  for (const kw of LIFE_KEYWORDS) {
+    if (message.includes(kw)) {
+      score += 3;
+      break;
+    }
   }
 
-  // 感情キーワード: +2（1つでもヒットしたら）
-  if (EMOTION_KEYWORDS.some((kw) => message.includes(kw))) {
-    weight += 2;
+  // 深い質問パターン
+  for (const pattern of DEEP_QUESTION_PATTERNS) {
+    if (pattern.test(message)) {
+      score += 2;
+      break;
+    }
   }
 
-  // 人生相談キーワード: +3（1つでもヒットしたら）
-  if (LIFE_ADVICE_KEYWORDS.some((kw) => message.includes(kw))) {
-    weight += 3;
-  }
+  // 連続Deep防止: 直近にDeep Reply済みなら抑制
+  if (recentDeepReplied) score -= 3;
 
-  return weight;
+  return Math.max(0, score);
 }
 
-/**
- * Deep Modeを使うべきかどうかを判定する
- * @param message ユーザーのメッセージ本文
- * @param recentDeepReplyCount 直近5往復以内のDeep Reply回数
- * @returns true = Deep Mode発動
- */
-export function shouldUseDeepMode(
+/** Deep Mode が必要かどうかを判定する */
+export function isDeepMode(
   message: string,
-  recentDeepReplyCount: number,
+  recentDeepReplied: boolean = false,
+  userPreferInstant: boolean = false,
 ): boolean {
-  let weight = calculateMessageWeight(message);
-
-  // 連続Deep防止: 直近5往復以内にDeep Replyが2回以上 → -3ペナルティ
-  if (recentDeepReplyCount >= 2) {
-    weight -= 3;
-  }
-
-  return weight >= DEEP_THRESHOLD;
+  return calculateMessageWeight(message, recentDeepReplied, userPreferInstant) >= DEEP_THRESHOLD;
 }

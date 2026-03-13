@@ -2,118 +2,76 @@
  * Deep Reply Cron エンドポイント
  * GET/POST /api/cron/deep-reply
  *
- * DeepReplyQueueからQUEUEDジョブを1件取得し、processDeepReplyを実行する。
- * 外部cronから定期的に叩かれる想定（10秒〜1分間隔）。
+ * DeepReplyQueueからQUEUEDジョブを最大2件処理する。
+ * 外部cronから1分間隔で叩かれる想定。
+ * 実際の処理はlib/deep-reply-processor.tsに委譲。
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
-import { processDeepReply } from '@/lib/deep-reply-processor';
+import { processDeepReply, DEEP_QUEUE_STATUS } from '@/lib/deep-reply-processor';
 import { logger } from '@/lib/logger';
 
 async function handleDeepReply(req: NextRequest) {
-  // 認証チェック
   const authError = verifyCronAuth(req);
   if (authError) return authError;
 
   try {
-    // QUEUEDジョブを1件取得（priority desc, scheduledAt asc）
-    const job = await prisma.deepReplyQueue.findFirst({
+    // QUEUEDジョブを最大2件取得
+    const jobs = await prisma.deepReplyQueue.findMany({
       where: {
-        status: 'QUEUED',
+        status: DEEP_QUEUE_STATUS.QUEUED,
         scheduledAt: { lte: new Date() },
       },
       orderBy: [
         { priority: 'desc' },
         { scheduledAt: 'asc' },
       ],
+      take: 2,
     });
 
-    if (!job) {
+    if (jobs.length === 0) {
       return NextResponse.json({ status: 'no_jobs' });
     }
 
-    // ステータスをPROCESSINGに更新
-    await prisma.deepReplyQueue.update({
-      where: { id: job.id },
-      data: {
-        status: 'PROCESSING',
-        startedAt: new Date(),
-      },
-    });
-
-    try {
-      // Deep Reply処理実行
-      await processDeepReply({
-        id: job.id,
-        userId: job.userId,
-        characterId: job.characterId,
-        relationshipId: job.relationshipId,
-        conversationId: job.conversationId,
-        userMessageId: job.userMessageId,
-        thinkingMsgId: job.thinkingMsgId,
-        status: job.status,
-        priority: job.priority,
-        attempts: job.attempts,
-        maxAttempts: job.maxAttempts,
-      });
-
-      // 完了
+    // PROCESSING に更新してから処理
+    for (const job of jobs) {
       await prisma.deepReplyQueue.update({
         where: { id: job.id },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-        },
+        data: { status: DEEP_QUEUE_STATUS.PROCESSING, startedAt: new Date() },
       });
-
-      return NextResponse.json({
-        status: 'completed',
-        jobId: job.id,
-      });
-    } catch (processError) {
-      // 処理失敗
-      const newAttempts = job.attempts + 1;
-      const newStatus = newAttempts >= job.maxAttempts ? 'FAILED' : 'QUEUED';
-
-      await prisma.deepReplyQueue.update({
-        where: { id: job.id },
-        data: {
-          status: newStatus,
-          attempts: newAttempts,
-          error:
-            processError instanceof Error
-              ? processError.message
-              : String(processError),
-        },
-      });
-
-      logger.error('[DeepReply Cron] Job failed', { jobId: job.id, error: processError });
-
-      return NextResponse.json(
-        {
-          status: 'failed',
-          jobId: job.id,
-          attempts: newAttempts,
-          willRetry: newStatus === 'QUEUED',
-        },
-        { status: 500 },
-      );
     }
-  } catch (error) {
-    logger.error('[DeepReply Cron] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 },
+
+    // 並列処理（最大2件）
+    const results = await Promise.allSettled(
+      jobs.map((job) =>
+        processDeepReply({
+          id: job.id,
+          userId: job.userId,
+          characterId: job.characterId,
+          conversationId: job.conversationId,
+          thinkingMessageId: job.thinkingMessageId,
+          userMessage: job.userMessage,
+          attempts: job.attempts,
+        }),
+      ),
     );
+
+    const processed = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+
+    return NextResponse.json({
+      status: 'ok',
+      processed,
+      failed,
+      total: jobs.length,
+    });
+  } catch (error) {
+    logger.error('[deep-reply cron] Unexpected error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
-  return handleDeepReply(req);
-}
-
-export async function POST(req: NextRequest) {
-  return handleDeepReply(req);
-}
+export async function GET(req: NextRequest) { return handleDeepReply(req); }
+export async function POST(req: NextRequest) { return handleDeepReply(req); }
