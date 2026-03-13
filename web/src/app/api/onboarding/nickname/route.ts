@@ -65,12 +65,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (user?.onboardingStep === 'completed') {
-      return NextResponse.json(
-        { success: false, error: { code: 'ALREADY_COMPLETED', message: 'オンボーディング完了済みです' } },
-        { status: 400 },
-      );
-    }
+    // completed でも再設定可能にする（テスト・再オンボーディング対応）
 
     // ディープリンク由来かどうかで次ステップを判定
     const isDeepLink = !!user?.onboardingDeeplinkSlug;

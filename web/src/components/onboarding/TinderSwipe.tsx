@@ -316,18 +316,9 @@ export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Header */}
       <div className="relative z-30 pt-safe-top px-5 pt-3 pb-1">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <h1 className="text-white font-black text-base">気になるキャラをフォロー</h1>
           <span className="text-white/40 text-xs font-bold">{currentIndex + 1}/{characters.length}</span>
-        </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'linear-gradient(90deg, #8b5cf6, #ec4899)' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
         </div>
       </div>
 
