@@ -153,14 +153,14 @@ export function ChatMenu({
     {
       icon: <IconBrain />,
       label: '記憶',
-      sublabel: 'あなたについての記憶',
+      sublabel: 'キャラが覚えていること',
       href: `/chat/${characterId}/memory`,
       accent: 'text-purple-400 bg-purple-500/15',
     },
     {
       icon: <IconMemory />,
       label: '思い出',
-      sublabel: '二人の会話ハイライト',
+      sublabel: 'エピソードタイムライン',
       accent: 'text-amber-400 bg-amber-500/15',
       onClick: () => setShowMemory((v) => !v),
     },
@@ -184,7 +184,7 @@ export function ChatMenu({
       icon: <IconChart />,
       label: '関係値',
       sublabel: `Lv.${relationship?.level ?? 1} ${relationship?.levelName ?? ''}`,
-      href: `/profile/${characterId}#relationship`,
+      href: `/profile/${characterId}?tab=profile`,
       accent: 'text-green-400 bg-green-500/15',
     },
     {

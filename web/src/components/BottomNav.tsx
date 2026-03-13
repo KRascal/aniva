@@ -9,8 +9,8 @@ import { track, EVENTS } from '@/lib/analytics';
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 // チャット中（個別チャット・グループチャット内）はBottomNavを非表示
 // /chat は表示、/chat/group は表示、/chat/group/[id] は非表示、/chat/[slug] は非表示
-const CHAT_VISIBLE_EXACT = ['/chat', '/chat/group'];
-const HIDDEN_PREFIXES = ['/chat/'];
+const CHAT_VISIBLE_EXACT = ['/chat'];
+const HIDDEN_PREFIXES = ['/chat/', '/group-chat'];
 
 const navItems = [
   {
@@ -208,7 +208,11 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {isTimeline && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
-              {/* タイムラインにはソーシャルバッジなし — 通知はMyPageで表示 */}
+              {notifUnreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full leading-none border border-gray-950">
+                  {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
+                </span>
+              )}
             </div>
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>
@@ -269,9 +273,9 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               {isMypage && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
-              {(unreadLetters + notifUnreadCount) > 0 && (
+              {unreadLetters > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full leading-none border border-gray-950">
-                  {(unreadLetters + notifUnreadCount) > 9 ? '9+' : (unreadLetters + notifUnreadCount)}
+                  {unreadLetters > 9 ? '9+' : unreadLetters}
                 </span>
               )}
             </div>

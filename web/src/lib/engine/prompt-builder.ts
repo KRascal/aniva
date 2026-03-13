@@ -17,7 +17,6 @@ import { getCharacterEmotionContext } from './emotion';
 import { getSeasonalPromptContext } from '../seasonal-event-system';
 import { getGrowthContext } from '../character-growth-system';
 import { buildImageMemoryContext } from '../multimodal-memory';
-import { getUserProfile, buildUserProfilePrompt } from './user-profile-engine';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -516,23 +515,6 @@ export function getDailyEventInstruction(eventType: DailyEventType): string {
   }
 }
 
-/**
- * ユーザープロファイルコンテキストを取得してプロンプト注入用テキストを返す
- * buildPromptContext() から呼ばれる想定
- */
-export async function loadUserProfileContext(
-  userId: string,
-  characterId: string,
-): Promise<string> {
-  try {
-    const profile = await getUserProfile(userId, characterId);
-    return buildUserProfilePrompt(profile);
-  } catch (e) {
-    // プロファイル取得失敗時は空文字（既存動作に影響しない）
-    return '';
-  }
-}
-
 // ── Main builder ─────────────────────────────────────────────
 
 /**
@@ -608,7 +590,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況
@@ -626,7 +608,6 @@ ${levelInstructions}
 
 ## 相手について記憶していること
 ${memoryInstructions}
-${userProfileContext ? `\n${userProfileContext}` : ''}
 ${semanticMemoryContext ? `\n## 過去の会話から思い出したこと（セマンティックメモリ）${semanticMemoryContext}\n【記憶の引用ルール】
 - 上記の記憶が存在する場合、「そういえば前に〜って言ってたよね」「あの時の話、覚えてるよ」のように**自然に**過去を参照する
 - 毎回ではなく、会話の流れに合う時だけ引用する（頻度: 3-4回に1回程度）

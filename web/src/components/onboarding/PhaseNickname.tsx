@@ -166,20 +166,29 @@ export default function PhaseNickname({ character, onComplete, isLoading }: Phas
                 className="flex-1 bg-transparent text-white text-xl text-center placeholder-white/25 focus:outline-none disabled:opacity-50"
                 autoComplete="off"
               />
-              <motion.button
-                type="submit"
-                disabled={isLoading || !nickname.trim()}
-                className="text-white/60 hover:text-white disabled:opacity-30 transition-all duration-200 text-xl pb-0.5"
-                whileHover={{ x: 3 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                {isLoading ? (
-                  <span className="inline-block w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                ) : (
-                  '→'
-                )}
-              </motion.button>
             </div>
+            {/* 送信ボタン（大きく・タップしやすく） */}
+            <motion.button
+              type="submit"
+              disabled={isLoading || !nickname.trim()}
+              className="mt-6 w-full py-3 rounded-2xl font-bold text-white text-sm transition-all disabled:opacity-30"
+              style={{
+                background: nickname.trim()
+                  ? 'linear-gradient(135deg, #7c3aed, #db2777)'
+                  : 'rgba(255,255,255,0.1)',
+                boxShadow: nickname.trim() ? '0 4px 20px rgba(139,92,246,0.4)' : 'none',
+              }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  保存中...
+                </span>
+              ) : (
+                '次へ →'
+              )}
+            </motion.button>
 
             {error && (
               <motion.p

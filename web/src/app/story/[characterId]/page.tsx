@@ -62,7 +62,6 @@ export default function StoryPage() {
 
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<ChapterData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastMsg>({ message: '', visible: false });
@@ -80,21 +79,10 @@ export default function StoryPage() {
         router.push('/');
         return;
       }
-      if (!res.ok) {
-        console.error('Story fetch failed:', res.status);
-        setError('ストーリーの読み込みに失敗しました');
-        return;
-      }
       const data = await res.json() as StoryData;
-      if (!data.chapters || data.chapters.length === 0) {
-        setError('この子のストーリーは準備中です');
-        return;
-      }
       setStoryData(data);
-      setError(null);
     } catch (err) {
       console.error('Failed to fetch story:', err);
-      setError('ネットワークエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -156,24 +144,10 @@ export default function StoryPage() {
     );
   }
 
-  if (error || !storyData) {
+  if (!storyData) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 px-6">
-        <div className="text-gray-400 text-lg text-center">{error ?? 'この子の物語はまだ始まっていない…'}</div>
-        {error && (
-          <button
-            onClick={() => { setLoading(true); setError(null); void fetchStory(); }}
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all"
-          >
-            もう一度試す
-          </button>
-        )}
-        <button
-          onClick={() => router.back()}
-          className="text-gray-500 text-sm hover:text-gray-300 transition-colors"
-        >
-          ← 戻る
-        </button>
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-gray-400 text-lg">この子の物語はまだ始まっていない…</div>
       </div>
     );
   }

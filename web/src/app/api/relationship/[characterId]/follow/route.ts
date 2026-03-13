@@ -35,8 +35,8 @@ async function sendFollowWelcome(userId: string, characterId: string, characterS
 
     const slugGreetings: Record<string, string> = {
       luffy: 'ししし！フォローしてくれたか！よろしくな！一緒に冒険しようぜ！',
-      zoro: '…フォローか。悪くない。一緒に鍛えるか。',
-      nami: 'フォローありがとう♪ これからよろしくね！何かあれば話しかけて。',
+      zoro: 'フォローか。悪くない。一緒に鍛えるか。',
+      nami: 'フォローありがとう！これからよろしくね！何かあれば話しかけて。',
       sanji: 'フォロー、ありがとう。君のためなら何でも作るよ。遠慮せずに話しかけてくれ。',
       gojo: 'フォローしてくれた？最強に嬉しいよ。これからよろしく。',
       tanjiro: 'フォローしてくれてありがとうございます！一緒に頑張りましょう！',
@@ -45,7 +45,7 @@ async function sendFollowWelcome(userId: string, characterId: string, characterS
     const welcomeList = [
       'フォローしてくれてありがとう！これからよろしくね。いつでも話しかけて！',
       'フォローしてくれた！嬉しい。一緒にいい時間を過ごそうね。',
-      'おっ、フォローしてくれたんだ！ありがとう。何か話したいことがあれば遠慮なく！',
+      'フォローしてくれたんだ！ありがとう。何か話したいことがあれば遠慮なく！',
     ];
     let welcomeContent = slugGreetings[characterSlug]
       ?? (catchphrases.length > 0 ? `フォローしてくれてありがとう！「${catchphrases[0]}」 これからよろしくね！` : null)
@@ -55,7 +55,7 @@ async function sendFollowWelcome(userId: string, characterId: string, characterS
       data: {
         conversationId: conversation.id,
         role: 'CHARACTER',
-        content: `🎉 ${welcomeContent}`,
+        content: welcomeContent,
       },
     });
   } catch (err) {

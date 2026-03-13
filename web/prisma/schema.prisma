@@ -59,7 +59,8 @@ model User {
   deepReplyQueue         DeepReplyQueue[]
   fanThreads             FanThread[]
   fanReplies             FanReply[]
-  userProfile            UserProfile[]
+  userProfile            UserProfile?
+  groupConversations     Conversation[]
 }
 
 model PushSubscription {
@@ -191,7 +192,6 @@ model Character {
   relationshipGraph       CharacterRelationshipGraph[]
   fanThreads              FanThread[]
   fanReplies              FanReply[]     @relation("FanReplyCharacter")
-  userProfiles            UserProfile[]
 }
 
 model SecretContent {
@@ -244,14 +244,19 @@ model Relationship {
 }
 
 model Conversation {
-  id             String       @id @default(uuid())
-  relationshipId String
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  metadata       Json         @default("{}")
-  relationship   Relationship @relation(fields: [relationshipId], references: [id])
+  id             String        @id @default(uuid())
+  relationshipId String?
+  userId         String?
+  type           String        @default("direct") // "direct" | "group"
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  metadata       Json          @default("{}")
+  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
   messages       Message[]
+
+  @@index([userId, type])
 }
 
 model Message {
@@ -1353,25 +1358,37 @@ model FanReply {
 }
 
 // ============================================
-// ユーザー理解エンジン（UserProfile）
+// ユーザー理解エンジン（User Understanding Engine）
 // ============================================
 
 model UserProfile {
-  id           String     @id @default(uuid())
-  userId       String
-  characterId  String?    // nullの場合はグローバルプロファイル
-  basics       Json       @default("{}")
-  personality  Json       @default("{}")
-  interests    Json       @default("{}")
-  currentState Json       @default("{}")
-  topics       Json       @default("{}")
-  updatedAt    DateTime   @updatedAt
-  createdAt    DateTime   @default(now())
+  id                 String                 @id @default(uuid())
+  userId             String                 @unique
+  basics             Json                   @default("{}")
+  interests          Json                   @default("[]")
+  concerns           Json                   @default("[]")
+  emotionalBaseline  Json                   @default("{}")
+  communicationStyle Json                   @default("{}")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characterProfiles  CharacterUserProfile[]
 
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character    Character? @relation(fields: [characterId], references: [id])
-
-  @@unique([userId, characterId])
   @@index([userId])
+}
+
+model CharacterUserProfile {
+  id                 String      @id @default(uuid())
+  userProfileId      String
+  characterId        String
+  sharedTopics       Json        @default("[]")
+  sharedSecrets      Json        @default("[]")
+  emotionalHistory   Json        @default("[]")
+  interactionPattern Json        @default("{}")
+  milestoneMemories  Json        @default("[]")
+  lastUpdated        DateTime    @default(now())
+  userProfile        UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, characterId])
   @@index([characterId])
 }

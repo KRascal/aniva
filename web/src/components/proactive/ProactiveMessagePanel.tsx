@@ -12,7 +12,9 @@ export function ProactiveMessagePanel() {
     return <div className="p-4 text-center text-gray-500 text-sm">読み込み中…</div>;
   }
 
-  const unreadMessages = messages.filter(m => !m.isRead);
+  const unreadMessages = messages
+    .filter(m => !m.isRead)
+    .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
 
   if (unreadMessages.length === 0) {
     return null;

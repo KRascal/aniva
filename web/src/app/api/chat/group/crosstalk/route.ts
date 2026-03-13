@@ -7,23 +7,15 @@ import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 /**
- * グループチャットAPI
- * POST /api/chat/group
+ * POST /api/chat/group/crosstalk
+ * キャラ同士の掛け合いを1往復生成する（ユーザーメッセージなし）
  *
- * body: {
- *   conversationId?: string  // 既存会話に追加（未指定なら自動作成）
- *   characterIds: string[]   // 参加キャラIDリスト (最大3体)
- *   message: string          // ユーザーメッセージ
- *   locale?: string
- * }
- *
- * response: {
- *   conversationId: string
- *   messages: Array<{ characterId, characterName, content, emotion }>
- *   coinCost: number
- *   coinBalance: number
- * }
+ * body: { conversationId: string }
+ * コイン消費: characterCount * 3
  */
+
+const COIN_PER_CHARACTER = 3;
+const HISTORY_CONTEXT_LIMIT = 10;
 
 interface GroupCharacterMessage {
   characterId: string;
@@ -38,10 +30,6 @@ interface ConversationMetadata {
   characterSlugs?: string[];
 }
 
-const DEFAULT_COIN_PER_MESSAGE = 10;
-const MAX_CHARACTERS = 3;
-const HISTORY_CONTEXT_LIMIT = 20;
-
 export async function POST(req: NextRequest) {
   try {
     // 1. 認証
@@ -51,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Rate Limit
-    const rl = await checkRateLimit(`group-chat:${userId}`, 10, 60_000);
+    const rl = await checkRateLimit(`group-crosstalk:${userId}`, 5, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many requests', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
@@ -61,43 +49,40 @@ export async function POST(req: NextRequest) {
 
     // 3. バリデーション
     const body = await req.json();
-    const { conversationId: reqConversationId, characterIds, message, locale = 'ja' } = body as {
-      conversationId?: string;
-      characterIds: string[];
-      message: string;
-      locale?: string;
-    };
+    const { conversationId } = body as { conversationId: string };
 
-    if (!Array.isArray(characterIds) || characterIds.length < 1) {
-      return NextResponse.json({ error: 'characterIds must be a non-empty array' }, { status: 400 });
-    }
-    if (characterIds.length > MAX_CHARACTERS) {
-      return NextResponse.json({ error: `Max ${MAX_CHARACTERS} characters allowed` }, { status: 400 });
-    }
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'message is required' }, { status: 400 });
-    }
-    if (message.length > 1000) {
-      return NextResponse.json({ error: 'Message too long (max 1000 chars)' }, { status: 400 });
+    if (!conversationId || typeof conversationId !== 'string') {
+      return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
     }
 
-    // 4. キャラクター情報取得
+    // 4. Conversation取得・オーナーチェック
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+    if (!conversation || conversation.userId !== userId || conversation.type !== 'group') {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    const metadata = conversation.metadata as ConversationMetadata | null;
+    const characterIds = metadata?.characterIds ?? [];
+    if (characterIds.length < 2) {
+      return NextResponse.json({ error: 'At least 2 characters required for crosstalk' }, { status: 400 });
+    }
+
+    // 5. キャラクター情報取得
     const characters = await prisma.character.findMany({
       where: { id: { in: characterIds } },
-      select: { id: true, name: true, slug: true, chatCoinPerMessage: true },
+      select: { id: true, name: true, slug: true },
     });
 
-    if (characters.length !== characterIds.length) {
-      return NextResponse.json({ error: 'Some characters not found' }, { status: 404 });
+    if (characters.length < 2) {
+      return NextResponse.json({ error: 'Characters not found' }, { status: 404 });
     }
 
-    // 5. コイン消費計算
-    const totalCoinCost = characters.reduce(
-      (sum, c) => sum + (c.chatCoinPerMessage ?? DEFAULT_COIN_PER_MESSAGE),
-      0
-    );
+    // 6. コイン消費計算: characterCount * 3
+    const totalCoinCost = characters.length * COIN_PER_CHARACTER;
 
-    // 6. コイン残高確認・消費
+    // 7. コイン残高確認・消費
     const coinBalance = await prisma.coinBalance.upsert({
       where: { userId },
       create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
@@ -137,9 +122,9 @@ export async function POST(req: NextRequest) {
           type: 'CHAT_EXTRA',
           amount: -totalCoinCost,
           balanceAfter: totalBalance - totalCoinCost,
-          description: `グループチャット (${characters.map(c => c.name).join('・')})`,
+          description: `掛け合い (${characters.map(c => c.name).join('・')})`,
           metadata: {
-            groupChat: true,
+            crosstalk: true,
             characterIds,
             freeSpent,
             paidSpent,
@@ -148,7 +133,7 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    // 7. 各キャラのRelationship取得 or 作成
+    // 8. Relationship取得
     const relationshipMap = new Map<string, string>();
     for (const character of characters) {
       let rel = await prisma.relationship.findUnique({
@@ -162,47 +147,7 @@ export async function POST(req: NextRequest) {
       relationshipMap.set(character.id, rel.id);
     }
 
-    // 8. Conversation解決（なければ新規作成）
-    let conversationId = reqConversationId;
-
-    if (conversationId) {
-      // 既存Conversationのオーナーチェック
-      const existing = await prisma.conversation.findUnique({
-        where: { id: conversationId },
-      });
-      if (!existing || existing.userId !== userId || existing.type !== 'group') {
-        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-      }
-    } else {
-      // 自動作成（後方互換）
-      const orderedChars = characterIds
-        .map(id => characters.find(c => c.id === id))
-        .filter((c): c is NonNullable<typeof c> => c != null);
-
-      const conversation = await prisma.conversation.create({
-        data: {
-          type: 'group',
-          userId,
-          metadata: {
-            characterIds: orderedChars.map(c => c.id),
-            characterNames: orderedChars.map(c => c.name),
-            characterSlugs: orderedChars.map(c => c.slug),
-          } as Prisma.InputJsonValue,
-        },
-      });
-      conversationId = conversation.id;
-    }
-
-    // 9. ユーザーメッセージをDB保存
-    await prisma.message.create({
-      data: {
-        conversationId,
-        role: 'USER',
-        content: message,
-      },
-    });
-
-    // 10. 過去メッセージ取得（直近20件、コンテキスト用）
+    // 9. 過去メッセージ取得（直近10件、コンテキスト用）
     const recentMessages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'desc' },
@@ -210,7 +155,6 @@ export async function POST(req: NextRequest) {
     });
     const historyContext = recentMessages
       .reverse()
-      .slice(0, -1) // 今送ったばかりのメッセージは除外
       .map(m => {
         if (m.role === 'USER') return `ユーザー: ${m.content}`;
         const meta = m.metadata as Record<string, unknown> | null;
@@ -219,12 +163,12 @@ export async function POST(req: NextRequest) {
       })
       .join('\n');
 
-    // 11. キャラIDリストをリクエスト順に並べる
+    // 10. キャラ順序を元のcharacterIdsの順で維持
     const orderedCharacters = characterIds
       .map(id => characters.find(c => c.id === id))
       .filter((c): c is NonNullable<typeof c> => c != null);
 
-    // 12. 各キャラが順番に応答生成（掛け合わせプロンプト付き）
+    // 11. 各キャラが順番に掛け合い生成
     const groupMessages: GroupCharacterMessage[] = [];
 
     for (let i = 0; i < orderedCharacters.length; i++) {
@@ -235,35 +179,33 @@ export async function POST(req: NextRequest) {
       let contextMessage: string;
 
       if (i === 0) {
-        // 1体目: ユーザーメッセージ + グループ設定 + 過去履歴
+        // 1体目: 会話の流れを自然に続ける
         contextMessage = `[グループチャット設定]
 あなたは${character.name}です。${otherChars.map(c => c.name).join('と')}と一緒にユーザーとグループチャットしています。
 
-${historyContext ? `[過去の会話]\n${historyContext}\n\n` : ''}[ルール]
-- ユーザーのメッセージに自然に応答してください
-- 1〜3文で返答
-- キャラクターの口調を完全に維持
-
-ユーザー: ${message}`;
+${historyContext ? `[これまでの会話]\n${historyContext}\n\n` : ''}[指示]
+- ユーザーからの新しいメッセージはありません
+- これまでの会話の流れを受けて、自然に話題を続けてください
+- 他のキャラに話しかけたり、感想を言ったり、新しい話題を振ったりしてOK
+- 1〜3文で自然に発言
+- キャラクターの口調を完全に維持`;
       } else {
-        // 2体目以降: 掛け合わせプロンプト
+        // 2体目以降: 前のキャラの発言に反応
         const previousResponses = groupMessages.map(r => `${r.characterName}: 「${r.content}」`).join('\n');
         const lastCharName = groupMessages[groupMessages.length - 1]?.characterName;
 
         contextMessage = `[グループチャット設定]
 あなたは${character.name}です。${otherChars.map(c => c.name).join('と')}と一緒にユーザーとグループチャットしています。
 
-${historyContext ? `[過去の会話]\n${historyContext}\n\n` : ''}[直前の発言]
+${historyContext ? `[これまでの会話]\n${historyContext}\n\n` : ''}[直前の発言]
 ${previousResponses}
 
-[ルール]
-- ユーザーのメッセージに応答しつつ、直前の他キャラの発言にも反応してください
-- ツッコミ、同意、驚き、対抗意識など自然な掛け合いを入れてください
-- 「${lastCharName}」の発言を無視しないでください
+[指示]
+- ユーザーからの新しいメッセージはありません。キャラ同士で自然に会話を続けてください
+- 「${lastCharName}」の発言に反応してください
+- ツッコミ、同意、驚き、対抗意識、茶化しなど自然な掛け合いをしてください
 - 1〜3文で返答
-- キャラクターの口調を完全に維持
-
-ユーザー: ${message}`;
+- キャラクターの口調を完全に維持`;
       }
 
       try {
@@ -271,7 +213,7 @@ ${previousResponses}
           character.id,
           relationshipId,
           contextMessage,
-          locale,
+          'ja',
           { isFcMember: false }
         );
 
@@ -282,7 +224,7 @@ ${previousResponses}
           emotion: response.emotion,
         });
       } catch (err) {
-        logger.error(`[GroupChat] Failed to generate response for ${character.name}:`, err);
+        logger.error(`[Crosstalk] Failed to generate response for ${character.name}:`, err);
         groupMessages.push({
           characterId: character.id,
           characterName: character.name,
@@ -292,7 +234,7 @@ ${previousResponses}
       }
     }
 
-    // 13. 各キャラメッセージをDB保存
+    // 12. メッセージをDB保存
     for (const gm of groupMessages) {
       await prisma.message.create({
         data: {
@@ -303,18 +245,19 @@ ${previousResponses}
             characterId: gm.characterId,
             characterName: gm.characterName,
             emotion: gm.emotion,
+            crosstalk: true,
           } as Prisma.InputJsonValue,
         },
       });
     }
 
-    // 14. Conversation.updatedAt更新
+    // 13. Conversation.updatedAt更新
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     });
 
-    // 15. 最新コイン残高取得
+    // 14. 最新コイン残高取得
     const updatedBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const newBalance = updatedBalance
       ? updatedBalance.freeBalance + updatedBalance.paidBalance
@@ -327,7 +270,7 @@ ${previousResponses}
       coinBalance: newBalance,
     });
   } catch (error) {
-    logger.error('[GroupChat] Error:', error);
+    logger.error('[Crosstalk] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

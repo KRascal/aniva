@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /** エピソード記憶エントリの型 */
 interface EpisodeEntry {
@@ -31,7 +32,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = (await resolveCharacterId(rawCharacterId)) ?? rawCharacterId;
 
     // Relationship取得（locale: 'ja' で検索）
     const relationship = await prisma.relationship.findUnique({

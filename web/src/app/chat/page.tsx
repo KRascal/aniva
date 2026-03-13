@@ -23,6 +23,12 @@ export default function ChatPage() {
   const [dismissedCharMsgs, setDismissedCharMsgs] = useState<Set<string>>(new Set());
   const [proactiveMessages, setProactiveMessages] = useState<ProactiveMessage[]>([]);
   const [dismissedProactive, setDismissedProactive] = useState<Set<string>>(new Set());
+  const [groupChats, setGroupChats] = useState<Array<{
+    id: string;
+    characters: Array<{ id: string; name: string; avatarUrl: string | null }>;
+    lastMessage?: { content: string; createdAt: string };
+    updatedAt: string;
+  }>>([]);
 
   // Safari bfcache対策: ページ復元時にフルリロード
   useEffect(() => {
@@ -104,6 +110,14 @@ export default function ChatPage() {
       if (proRes.ok) {
         const data = await proRes.json();
         if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const groupRes = await fetch('/api/chat/group/list');
+      if (groupRes.ok) {
+        const groupData = await groupRes.json();
+        if (groupData.conversations) setGroupChats(groupData.conversations);
       }
     } catch { /* ignore */ }
 
@@ -262,6 +276,8 @@ export default function ChatPage() {
           </div>
         </button>
 
+        {/* グループチャット履歴は1on1チャットリストに統合表示（下のチャット一覧セクションで時系列ソート） */}
+
         {/* ══ キャラからのメッセージバナー ══ */}
         {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {
           const remainMs = new Date(msg.expiresAt).getTime() - now;
@@ -350,8 +366,8 @@ export default function ChatPage() {
           );
         })}
 
-        {/* チャット一覧 */}
-        {charsWithHistory.length === 0 ? (
+        {/* チャット一覧（1on1 + グループを時系列統合） */}
+        {charsWithHistory.length === 0 && groupChats.length === 0 ? (
           <EmptyState
             characters={characters}
             relationships={relationships}
@@ -359,82 +375,123 @@ export default function ChatPage() {
           />
         ) : (
           <div className="space-y-1">
-            {charsWithHistory.map((character) => {
-              const rel = relationships.get(character.id)!;
-              const lastVisited = lastVisitMap.get(character.id) ?? 0;
-              const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
-              const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
-              const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
-              const charProactiveCount = proactiveMessages.filter(m => m.character?.id === character.id && !dismissedProactive.has(m.id)).length;
-              const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
-              return (
-                <SwipeableChatRow
-                  key={character.id}
-                  character={character}
-                  relationship={rel}
-                  hasUnread={hasUnread || charProactiveCount > 0}
-                  unreadCount={totalUnread}
-                  isPinned={!!rel.isPinned}
-                  isMuted={!!rel.isMuted}
-                  isFanclub={!!rel.isFanclub}
-                  onClick={() => router.push(`/chat/${character.slug || character.id}`)}
-                  onPin={async () => {
-                    const newPin = !rel.isPinned;
-                    try {
-                      const res = await fetch('/api/relationship/pin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ characterId: character.id, pin: newPin }),
-                      });
-                      if (res.ok) {
-                        setRelationships(prev => {
-                          const next = new Map(prev);
-                          const updated = { ...rel, isPinned: newPin, pinnedAt: newPin ? new Date().toISOString() : null };
-                          next.set(character.id, updated);
-                          return next;
-                        });
-                      }
-                    } catch (err) {
-                      console.error('[ChatPage] pin error:', err);
-                    }
-                  }}
-                  onMute={async () => {
-                    const newMute = !rel.isMuted;
-                    try {
-                      const res = await fetch('/api/relationship/mute', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ characterId: character.id, mute: newMute }),
-                      });
-                      if (res.ok) {
-                        setRelationships(prev => {
-                          const next = new Map(prev);
-                          const updated = { ...rel, isMuted: newMute };
-                          next.set(character.id, updated);
-                          return next;
-                        });
-                      }
-                    } catch (err) {
-                      console.error('[ChatPage] mute error:', err);
-                    }
-                  }}
-                  onUnfollow={async () => {
-                    try {
-                      const res = await fetch(`/api/relationship/${character.id}/follow`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ follow: false }),
-                      });
-                      if (res.ok) {
-                        loadChatList();
-                      }
-                    } catch (err) {
-                      console.error('[ChatPage] unfollow error:', err);
-                    }
-                  }}
-                />
+            {/* 統合リスト: ピン留め→時系列降順で1on1とグループを混合 */}
+            {(() => {
+              type UnifiedItem = { key: string; sortTime: number; isPinned: boolean } & (
+                | { type: 'direct'; character: (typeof charsWithHistory)[0] }
+                | { type: 'group'; conv: (typeof groupChats)[0] }
               );
-            })}
+              const directItems: UnifiedItem[] = charsWithHistory.map(c => {
+                const rel = relationships.get(c.id);
+                const msgTime = rel?.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
+                const latestProactive = proactiveMessages.filter(m => m.character?.id === c.id).reduce((max, m) => Math.max(max, new Date(m.createdAt).getTime()), 0);
+                return { key: `d-${c.id}`, type: 'direct' as const, character: c, sortTime: Math.max(msgTime, latestProactive), isPinned: !!rel?.isPinned };
+              });
+              const groupItems: UnifiedItem[] = groupChats.map(conv => ({
+                key: `g-${conv.id}`, type: 'group' as const, conv, sortTime: new Date(conv.updatedAt).getTime(), isPinned: false,
+              }));
+              const all = [...directItems, ...groupItems];
+              const pinned = all.filter(i => i.isPinned).sort((a, b) => b.sortTime - a.sortTime);
+              const unpinned = all.filter(i => !i.isPinned).sort((a, b) => b.sortTime - a.sortTime);
+              return [...pinned, ...unpinned].map(item => {
+                if (item.type === 'group') {
+                  const conv = item.conv;
+                  const diff = Date.now() - new Date(conv.updatedAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const timeAgo = mins < 1 ? 'たった今' : mins < 60 ? `${mins}分前` : mins < 1440 ? `${Math.floor(mins / 60)}時間前` : `${Math.floor(mins / 1440)}日前`;
+                  return (
+                    <button key={item.key} onClick={() => router.push(`/chat/group/${conv.id}`)}
+                      className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all duration-200"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center flex-shrink-0" style={{ width: `${24 + conv.characters.length * 24}px` }}>
+                        {conv.characters.slice(0, 3).map((c, i) => (
+                          c.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={c.id} src={c.avatarUrl} alt={c.name} className="w-9 h-9 rounded-full object-cover border-2 border-gray-950"
+                              style={{ marginLeft: i > 0 ? '-8px' : '0', zIndex: conv.characters.length - i, position: 'relative' }} />
+                          ) : (
+                            <div key={c.id} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-950"
+                              style={{ background: ['#8b5cf6', '#ec4899', '#f97316'][i] ?? '#8b5cf6', marginLeft: i > 0 ? '-8px' : '0', zIndex: conv.characters.length - i, position: 'relative' }}>
+                              {c.name.charAt(0)}
+                            </div>
+                          )
+                        ))}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-white font-bold text-sm truncate">{conv.characters.map(c => c.name.split('・')[0]).join(' × ')}</p>
+                          <span className="text-white/30 text-xs flex-shrink-0">{timeAgo}</span>
+                        </div>
+                        {conv.lastMessage && <p className="text-white/50 text-xs truncate mt-0.5">{conv.lastMessage.content}</p>}
+                      </div>
+                    </button>
+                  );
+                }
+                // 1on1 chat row
+                const character = item.character;
+                const rel = relationships.get(character.id)!;
+                const lastVisited = lastVisitMap.get(character.id) ?? 0;
+                const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
+                const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
+                const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
+                const charProactiveCount = proactiveMessages.filter(m => m.character?.id === character.id && !dismissedProactive.has(m.id)).length;
+                const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
+                return (
+                  <SwipeableChatRow
+                    key={item.key}
+                    character={character}
+                    relationship={rel}
+                    hasUnread={hasUnread || charProactiveCount > 0}
+                    unreadCount={totalUnread}
+                    isPinned={!!rel.isPinned}
+                    isMuted={!!rel.isMuted}
+                    isFanclub={!!rel.isFanclub}
+                    onClick={() => router.push(`/chat/${character.slug || character.id}`)}
+                    onPin={async () => {
+                      const newPin = !rel.isPinned;
+                      try {
+                        const res = await fetch('/api/relationship/pin', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ characterId: character.id, pin: newPin }),
+                        });
+                        if (res.ok) {
+                          setRelationships(prev => {
+                            const next = new Map(prev);
+                            next.set(character.id, { ...rel, isPinned: newPin, pinnedAt: newPin ? new Date().toISOString() : null });
+                            return next;
+                          });
+                        }
+                      } catch (err) { console.error('[ChatPage] pin error:', err); }
+                    }}
+                    onMute={async () => {
+                      const newMute = !rel.isMuted;
+                      try {
+                        const res = await fetch('/api/relationship/mute', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ characterId: character.id, mute: newMute }),
+                        });
+                        if (res.ok) {
+                          setRelationships(prev => {
+                            const next = new Map(prev);
+                            next.set(character.id, { ...rel, isMuted: newMute });
+                            return next;
+                          });
+                        }
+                      } catch (err) { console.error('[ChatPage] mute error:', err); }
+                    }}
+                    onUnfollow={async () => {
+                      try {
+                        const res = await fetch(`/api/relationship/${character.id}/follow`, {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ follow: false }),
+                        });
+                        if (res.ok) loadChatList();
+                      } catch (err) { console.error('[ChatPage] unfollow error:', err); }
+                    }}
+                  />
+                );
+              });
+            })()}
           </div>
         )}
       </main>

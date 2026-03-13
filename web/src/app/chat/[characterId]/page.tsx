@@ -526,12 +526,18 @@ export default function ChatCharacterPage() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refetchState();
     };
+    // popstate（ブラウザ戻るボタン）でもstateを再取得（ストーリーなど別ページから戻った時対策）
+    const handlePopState = () => refetchState();
     window.addEventListener('pageshow', handlePageShow);
     window.addEventListener('focus', refetchState);
+    window.addEventListener('popstate', handlePopState);
     document.addEventListener('visibilitychange', handleVisibility);
+    // マウント時にも即座にrefetch（Next.jsクライアントナビゲーションで戻った場合のstate復元）
+    refetchState();
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
       window.removeEventListener('focus', refetchState);
+      window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [characterId]);
@@ -623,11 +629,17 @@ export default function ChatCharacterPage() {
   }, [characterId]);
 
   // チャット画面を開いた時刻をlocalStorageに記録（未読バッジのクリア用）
+  // slug と UUID の両方でキーを保存（一覧ページがUUIDで参照するため）
   useEffect(() => {
     if (!characterId || typeof window === 'undefined') return;
-    localStorage.setItem(`aniva_chat_visited_${characterId}`, Date.now().toString());
+    const now = Date.now().toString();
+    localStorage.setItem(`aniva_chat_visited_${characterId}`, now);
+    // character.id (UUID) でも保存 — chat一覧の未読判定はUUIDで参照する
+    if (character?.id && character.id !== characterId) {
+      localStorage.setItem(`aniva_chat_visited_${character.id}`, now);
+    }
     track(EVENTS.CHAT_OPENED, { characterId });
-  }, [characterId]);
+  }, [characterId, character?.id]);
 
   // プレゼンス（オンライン状態）取得
   useEffect(() => {
@@ -1314,7 +1326,7 @@ export default function ChatCharacterPage() {
         console.error('画像送信エラー:', err);
       } else {
         const data = await res.json();
-        // 楽観的メッセージを実際のメッセージに差し替え
+        // 楽観的メッセージをサーバーのpermanent URLで差し替え（blob失効対策）
         setMessages((prev) =>
           prev.map((m) =>
             m.id === tempMsg.id
@@ -1322,6 +1334,17 @@ export default function ChatCharacterPage() {
               : m,
           ),
         );
+        // キャラクターの画像返信を追加
+        if (data.characterMessage) {
+          const charMsg: Message = {
+            id: data.characterMessage.id,
+            role: 'CHARACTER',
+            content: data.characterMessage.content,
+            metadata: data.characterMessage.metadata as Message['metadata'],
+            createdAt: data.characterMessage.createdAt,
+          };
+          setMessages((prev) => [...prev, charMsg]);
+        }
       }
     } catch (e) {
       console.error('画像送信失敗:', e);
@@ -1944,17 +1967,7 @@ export default function ChatCharacterPage() {
         proactiveUnreadCount={charProactiveUnread}
       />
 
-      {/* ══════════════ プロアクティブメッセージバナー ══════════════ */}
-      {proactiveMessages.filter(m => m.characterId === characterId && !m.isRead).map(msg => (
-        <div
-          key={msg.id}
-          className="mx-3 my-1 p-2.5 bg-purple-900/30 border border-purple-500/20 rounded-2xl cursor-pointer hover:bg-purple-900/50 transition-colors"
-          onClick={async () => { await markProactiveRead(msg.id); }}
-        >
-          <p className="text-sm text-purple-200/80">{msg.content}</p>
-          <CountdownTimer expiresAt={msg.expiresAt} className="mt-1" />
-        </div>
-      ))}
+      {/* プロアクティブメッセージはチャット一覧バナー経由で表示。チャット画面内バナーは不要（キャラからのDMとして直接チャットに送られるため） */}
 
       {/* ══════════════ 共有トピック（覚えてくれてる記憶） ══════════════ */}
       {relationship?.sharedTopics && relationship.sharedTopics.length > 0 && (

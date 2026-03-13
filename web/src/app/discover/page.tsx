@@ -51,13 +51,23 @@ export default function DiscoverPage() {
     track(EVENTS.DISCOVER_VIEWED);
     (async () => {
       try {
-        const res = await fetch('/api/characters?limit=20&random=1');
+        // フォロー済みキャラIDを取得（除外するため）
+        let followedCharIds: Set<string> = new Set();
+        try {
+          const followedRes = await fetch('/api/relationship/following');
+          if (followedRes.ok) {
+            const followedData = await followedRes.json();
+            followedCharIds = new Set((followedData.characters ?? []).map((c: { id: string }) => c.id));
+          }
+        } catch { /* ignore: フォロー取得失敗は無視してフィルタなしで表示 */ }
+
+        const res = await fetch('/api/characters?limit=50&random=1');
         if (res.ok) {
           const data = await res.json();
           const skipped = getSkippedSlugs();
-          // Filter out skipped chars, then shuffle and limit to 10
+          // フォロー済み・スキップ済みを除外、シャッフル（0枚でも表示する）
           const chars = (data.characters ?? [])
-            .filter((c: DiscoverCharacter) => !skipped.includes(c.slug))
+            .filter((c: DiscoverCharacter) => !skipped.includes(c.slug) && !followedCharIds.has(c.id))
             .sort(() => Math.random() - 0.5)
             .slice(0, 10);
           setCharacters(chars);

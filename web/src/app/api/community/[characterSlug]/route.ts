@@ -28,19 +28,18 @@ export async function GET(
     const category = url.searchParams.get('category');
     const offset = (page - 1) * limit;
 
+    const isPopular = category === 'popular';
     const where: Record<string, unknown> = { characterId };
-    if (category && category !== 'all') {
+    if (category && category !== 'all' && !isPopular) {
       where.category = category;
     }
 
     const [threads, total] = await Promise.all([
       prisma.fanThread.findMany({
         where,
-        orderBy: [
-          { isPinned: 'desc' },
-          { lastReplyAt: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: isPopular
+          ? [{ isPinned: 'desc' }, { replyCount: 'desc' }, { viewCount: 'desc' }, { lastReplyAt: 'desc' }]
+          : [{ isPinned: 'desc' }, { lastReplyAt: 'desc' }, { createdAt: 'desc' }],
         skip: offset,
         take: limit,
         include: {

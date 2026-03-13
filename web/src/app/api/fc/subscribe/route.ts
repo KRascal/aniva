@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +13,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await req.json() as { characterId?: string };
-    if (!characterId) {
+    const { characterId: rawCharacterId, returnUrl } = await req.json() as { characterId?: string; returnUrl?: string };
+    if (!rawCharacterId) {
       return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
     }
+    const characterId = (await resolveCharacterId(rawCharacterId)) ?? rawCharacterId;
 
     // キャラクター情報取得（スキーマ最新版フィールドはanyで取得）
     const character = await (prisma.character.findUnique as Function)({
@@ -106,8 +108,8 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/chat/${characterId}?fc_success=1`,
-      cancel_url: `${baseUrl}/chat/${characterId}`,
+      success_url: returnUrl ? `${baseUrl}${returnUrl}?fc_success=1` : `${baseUrl}/chat/${characterId}?fc_success=1`,
+      cancel_url: returnUrl ? `${baseUrl}${returnUrl}` : `${baseUrl}/chat/${characterId}`,
       metadata: { userId, characterId, type: 'fc_subscription' },
       subscription_data: {
         metadata: { userId, characterId, type: 'fc_subscription' },

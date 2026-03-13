@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -15,32 +15,12 @@ interface Character {
   catchphrases: string[];
 }
 
-interface GroupMessage {
-  id: string;
-  role: 'USER' | 'CHARACTER';
-  characterId?: string;
-  characterName?: string;
-  emotion?: string;
-  content: string;
-  timestamp: Date;
-}
-
 // キャラごとのアクセントカラー（最大3体）
 const CHAR_COLORS = [
   { bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.4)', text: '#c4b5fd', dot: '#8b5cf6' },
   { bg: 'rgba(236,72,153,0.15)', border: 'rgba(236,72,153,0.4)', text: '#f9a8d4', dot: '#ec4899' },
   { bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.4)', text: '#fcd34d', dot: '#f97316' },
 ];
-
-const EMOTION_EMOJI: Record<string, string> = {
-  excited: '🔥',
-  happy: '😊',
-  sad: '😢',
-  angry: '😤',
-  shy: '😳',
-  neutral: '😐',
-  love: '💕',
-};
 
 // ─── サブコンポーネント ─────────────────────────────────────────────────────────
 
@@ -128,140 +108,19 @@ function CharacterSelectCard({
   );
 }
 
-function MessageBubble({
-  message,
-  colorMap,
-  characters,
-}: {
-  message: GroupMessage;
-  colorMap: Map<string, number>;
-  characters: Character[];
-}) {
-  const isUser = message.role === 'USER';
-
-  if (isUser) {
-    return (
-      <div className="flex justify-end mb-3">
-        <div
-          className="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-md text-sm text-white leading-relaxed"
-          style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.85), rgba(236,72,153,0.85))',
-            boxShadow: '0 2px 12px rgba(139,92,246,0.3)',
-          }}
-        >
-          {message.content}
-        </div>
-      </div>
-    );
-  }
-
-  // キャラメッセージ
-  const cidx = colorMap.get(message.characterId ?? '') ?? 0;
-  const color = CHAR_COLORS[cidx] ?? CHAR_COLORS[0];
-  const char = characters.find(c => c.id === message.characterId);
-  const emotionEmoji = EMOTION_EMOJI[message.emotion ?? 'neutral'] ?? '😐';
-
-  return (
-    <div className="flex items-start gap-2.5 mb-4">
-      {/* アバター */}
-      <div className="flex-shrink-0">
-        {char?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={char.avatarUrl}
-            alt={char.name}
-            className="w-9 h-9 rounded-full object-cover"
-            style={{ boxShadow: `0 0 0 2px ${color.dot}` }}
-          />
-        ) : (
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-            style={{ background: color.dot }}
-          >
-            {message.characterName?.charAt(0) ?? '?'}
-          </div>
-        )}
-      </div>
-
-      {/* バブル */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-xs font-bold" style={{ color: color.text }}>
-            {message.characterName}
-          </span>
-          <span className="text-xs">{emotionEmoji}</span>
-        </div>
-        <div
-          className="inline-block max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tl-md text-sm text-white leading-relaxed"
-          style={{
-            background: color.bg,
-            border: `1px solid ${color.border}`,
-          }}
-        >
-          {message.content}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TypingIndicator({
-  characterName,
-  color,
-}: {
-  characterName: string;
-  color: { bg: string; border: string; text: string; dot: string };
-}) {
-  return (
-    <div className="flex items-center gap-2.5 mb-3">
-      <div
-        className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
-        style={{ background: color.dot }}
-      >
-        …
-      </div>
-      <div>
-        <p className="text-xs font-bold mb-1" style={{ color: color.text }}>{characterName}</p>
-        <div
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl rounded-tl-md"
-          style={{ background: color.bg, border: `1px solid ${color.border}` }}
-        >
-          {[0, 1, 2].map(i => (
-            <span
-              key={i}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: color.dot,
-                animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── メインページ ──────────────────────────────────────────────────────────────
 
 export default function GroupChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // ステップ: 'select' | 'chat'
-  const [step, setStep] = useState<'select' | 'chat'>('select');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [typingCharacter, setTypingCharacter] = useState<string | null>(null);
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [coinCostPerMsg, setCoinCostPerMsg] = useState(0);
   const [isLoadingChars, setIsLoadingChars] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   // 認証チェック
   useEffect(() => {
@@ -301,14 +160,9 @@ export default function GroupChatPage() {
 
   // selectedIdsが変わったらコスト再計算
   useEffect(() => {
-    const cost = selectedIds.length * 10; // 簡易計算（実際はキャラのchatCoinPerMessage）
+    const cost = selectedIds.length * 10;
     setCoinCostPerMsg(cost);
   }, [selectedIds]);
-
-  // メッセージ末尾にスクロール
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingCharacter]);
 
   // キャラ選択トグル
   const handleToggleChar = useCallback((id: string) => {
@@ -319,100 +173,43 @@ export default function GroupChatPage() {
     });
   }, []);
 
-  // キャラのカラーマップ（selected順）
-  const colorMap = new Map(selectedIds.map((id, i) => [id, i]));
-
   // 選択されたキャラ
   const selectedChars = selectedIds
     .map(id => characters.find(c => c.id === id))
     .filter((c): c is Character => c != null);
 
-  // チャット開始
-  const handleStartChat = () => {
-    if (selectedIds.length < 1) return;
-    setMessages([]);
-    setStep('chat');
-  };
+  // チャット開始 → API でConversation作成 → ルーム遷移
+  const handleStartChat = useCallback(async () => {
+    if (selectedIds.length < 1 || isStarting) return;
 
-  // メッセージ送信
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
-    if (!text || isSending || selectedIds.length === 0) return;
-
-    setIsSending(true);
-    setInputText('');
-    setErrorMsg(null);
-
-    // ユーザーメッセージを追加
-    const userMsg: GroupMessage = {
-      id: `user-${Date.now()}`,
-      role: 'USER',
-      content: text,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMsg]);
+    setIsStarting(true);
+    setStartError(null);
 
     try {
-      const res = await fetch('/api/chat/group', {
+      const res = await fetch('/api/chat/group/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          characterIds: selectedIds,
-          message: text,
-          locale: 'ja',
-        }),
+        body: JSON.stringify({ characterIds: selectedIds }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.error === 'INSUFFICIENT_COINS') {
-          setErrorMsg(`コインが不足しています（必要: ${data.required}コイン、残高: ${data.current}コイン）`);
-        } else {
-          setErrorMsg(data.error ?? 'エラーが発生しました');
-        }
+        setStartError(data.error ?? 'チャットの作成に失敗しました');
         return;
       }
 
-      // キャラメッセージを順番に表示（ローディング演出）
-      const charMessages: GroupMessage[] = (data.messages as Array<{
-        characterId: string;
-        characterName: string;
-        content: string;
-        emotion: string;
-      }>).map(m => ({
-        id: `char-${m.characterId}-${Date.now()}-${Math.random()}`,
-        role: 'CHARACTER' as const,
-        characterId: m.characterId,
-        characterName: m.characterName,
-        content: m.content,
-        emotion: m.emotion,
-        timestamp: new Date(),
-      }));
-
-      // 順番にtypingIndicatorを表示してからメッセージを追加
-      for (const charMsg of charMessages) {
-        setTypingCharacter(charMsg.characterName ?? null);
-        await new Promise(resolve => setTimeout(resolve, 900 + Math.random() * 600));
-        setTypingCharacter(null);
-        setMessages(prev => [...prev, charMsg]);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      if (data.coinBalance !== undefined) {
-        setCoinBalance(data.coinBalance);
-      }
+      router.push(`/chat/group/${data.conversationId}`);
     } catch {
-      setErrorMsg('送信エラーが発生しました。もう一度お試しください。');
+      setStartError('チャットの作成に失敗しました。もう一度お試しください。');
     } finally {
-      setIsSending(false);
+      setIsStarting(false);
     }
-  }, [inputText, isSending, selectedIds]);
+  }, [selectedIds, isStarting, router]);
 
   // ─── キャラ選択画面 ──────────────────────────────────────────────────────────
 
-  if (step === 'select') {
-    return (
+  return (
       <div className="min-h-screen bg-gray-950 pb-24">
         <style>{`
           @keyframes bounce {
@@ -514,7 +311,7 @@ export default function GroupChatPage() {
               }}
             >
               <span className="text-white/60 text-xs">1メッセージのコスト</span>
-              <span className="text-yellow-400 text-sm font-bold">🪙 {coinCostPerMsg}コイン</span>
+              <span className="text-yellow-400 text-sm font-bold">{coinCostPerMsg}コイン</span>
             </div>
           )}
 
@@ -560,23 +357,40 @@ export default function GroupChatPage() {
 
         {/* 下部CTAボタン */}
         <div
-          className="fixed bottom-[4.5rem] left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-safe-bottom pb-3"
           style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
         >
           <div className="max-w-lg mx-auto">
+            {startError && (
+              <div
+                className="mb-2 rounded-xl px-4 py-2 text-sm text-center"
+                style={{
+                  background: 'rgba(239,68,68,0.15)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: 'rgba(252,165,165,0.9)',
+                }}
+              >
+                ⚠️ {startError}
+              </div>
+            )}
             <button
               onClick={handleStartChat}
-              disabled={selectedIds.length < 1}
+              disabled={selectedIds.length < 1 || isStarting}
               className="w-full py-4 rounded-2xl font-bold text-base text-white transition-all active:scale-[0.97]"
               style={{
-                background: selectedIds.length >= 1
+                background: selectedIds.length >= 1 && !isStarting
                   ? 'linear-gradient(135deg, #8b5cf6, #ec4899)'
                   : 'rgba(255,255,255,0.08)',
                 color: selectedIds.length >= 1 ? 'white' : 'rgba(255,255,255,0.3)',
-                boxShadow: selectedIds.length >= 1 ? '0 4px 24px rgba(139,92,246,0.4)' : 'none',
+                boxShadow: selectedIds.length >= 1 && !isStarting ? '0 4px 24px rgba(139,92,246,0.4)' : 'none',
               }}
             >
-              {selectedIds.length < 1
+              {isStarting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  作成中…
+                </span>
+              ) : selectedIds.length < 1
                 ? 'キャラを選択してください'
                 : `${selectedChars.map(c => c.name.split('・')[0]).join('・')}とチャット開始`}
             </button>
@@ -584,227 +398,4 @@ export default function GroupChatPage() {
         </div>
       </div>
     );
-  }
-
-  // ─── チャット画面 ────────────────────────────────────────────────────────────
-
-  const typingChar = typingCharacter
-    ? selectedChars.find(c => c.name === typingCharacter)
-    : null;
-  const typingColorIdx = typingChar ? colorMap.get(typingChar.id) ?? 0 : 0;
-  const typingColor = CHAR_COLORS[typingColorIdx] ?? CHAR_COLORS[0];
-
-  return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      <style>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-5px); }
-        }
-      `}</style>
-
-      {/* 背景 */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-purple-600/08 blur-3xl" />
-        <div className="absolute top-1/2 right-0 w-64 h-64 rounded-full bg-pink-600/06 blur-3xl" />
-      </div>
-
-      {/* ヘッダー */}
-      <header
-        className="sticky top-0 z-30 border-b border-white/5 flex-shrink-0"
-        style={{ background: 'rgba(3,7,18,0.95)', backdropFilter: 'blur(20px)' }}
-      >
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          {/* 戻るボタン */}
-          <button
-            onClick={() => setStep('select')}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
-          >
-            ←
-          </button>
-
-          {/* 参加キャラのアバター */}
-          <div className="flex items-center -space-x-2 flex-shrink-0">
-            {selectedChars.map((c, i) => {
-              const color = CHAR_COLORS[i] ?? CHAR_COLORS[0];
-              return c.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={c.id}
-                  src={c.avatarUrl}
-                  alt={c.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                  style={{
-                    boxShadow: `0 0 0 2px ${color.dot}`,
-                    zIndex: selectedChars.length - i,
-                  }}
-                />
-              ) : (
-                <div
-                  key={c.id}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                  style={{
-                    background: color.dot,
-                    zIndex: selectedChars.length - i,
-                  }}
-                >
-                  {c.name.charAt(0)}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* タイトル */}
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-bold text-sm truncate">
-              {selectedChars.map(c => c.name.split('・')[0]).join(' × ')}
-            </p>
-            <p className="text-white/40 text-[10px]">グループチャット</p>
-          </div>
-
-          {/* コイン残高 */}
-          {coinBalance !== null && (
-            <div
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <span className="text-yellow-400 text-xs">🪙</span>
-              <span className="text-white/70 text-xs font-semibold">{coinBalance.toLocaleString()}</span>
-            </div>
-          )}
-        </div>
-
-        {/* コスト表示 */}
-        <div className="max-w-lg mx-auto px-4 pb-2.5">
-          <p className="text-white/30 text-[10px]">
-            💬 1メッセージ = <span className="text-yellow-400/70">{coinCostPerMsg}コイン</span>（{selectedChars.length}体参加）
-          </p>
-        </div>
-      </header>
-
-      {/* メッセージエリア */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full relative z-10">
-        {messages.length === 0 && !isSending && (
-          <div className="text-center py-12">
-            <div className="flex justify-center mb-4 -space-x-3">
-              {selectedChars.map((c, i) => {
-                const color = CHAR_COLORS[i] ?? CHAR_COLORS[0];
-                return c.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={c.id}
-                    src={c.avatarUrl}
-                    alt={c.name}
-                    className="w-14 h-14 rounded-full object-cover"
-                    style={{ boxShadow: `0 0 0 3px ${color.dot}` }}
-                  />
-                ) : (
-                  <div
-                    key={c.id}
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white"
-                    style={{ background: color.dot }}
-                  >
-                    {c.name.charAt(0)}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-white font-bold mb-1">
-              {selectedChars.map(c => c.name.split('・')[0]).join('・')}が待ってる！
-            </p>
-            <p className="text-white/40 text-sm">メッセージを送って会話を始めよう✨</p>
-          </div>
-        )}
-
-        {messages.map(msg => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            colorMap={colorMap}
-            characters={selectedChars}
-          />
-        ))}
-
-        {/* タイピングインジケーター */}
-        {typingCharacter && (
-          <TypingIndicator
-            characterName={typingCharacter}
-            color={typingColor}
-          />
-        )}
-
-        {/* エラー表示 */}
-        {errorMsg && (
-          <div
-            className="mx-auto max-w-sm rounded-2xl px-4 py-3 mb-3 text-sm text-center"
-            style={{
-              background: 'rgba(239,68,68,0.15)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              color: 'rgba(252,165,165,0.9)',
-            }}
-          >
-            ⚠️ {errorMsg}
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </main>
-
-      {/* 入力エリア */}
-      <div
-        className="sticky bottom-0 z-30 border-t border-white/5 px-4 pt-3 pb-6 flex-shrink-0"
-        style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
-      >
-        <div className="max-w-lg mx-auto flex gap-2.5 items-end">
-          <textarea
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={`${selectedChars.map(c => c.name.split('・')[0]).join('・')}にメッセージ…`}
-            rows={1}
-            disabled={isSending}
-            className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              maxHeight: '120px',
-              overflow: 'auto',
-            }}
-            onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.5)'; }}
-            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!inputText.trim() || isSending}
-            className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center transition-all active:scale-95"
-            style={{
-              background: inputText.trim() && !isSending
-                ? 'linear-gradient(135deg, #8b5cf6, #ec4899)'
-                : 'rgba(255,255,255,0.08)',
-              boxShadow: inputText.trim() && !isSending
-                ? '0 4px 16px rgba(139,92,246,0.4)'
-                : 'none',
-            }}
-          >
-            {isSending ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }

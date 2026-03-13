@@ -10,6 +10,7 @@ export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
+  imageUrl?: string | null; // DBカラム（imageUrl）— metadata.imageUrlのフォールバック
   metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean };
   createdAt: string;
   audioUrl?: string | null;
@@ -616,31 +617,30 @@ export function ChatMessageList({
                           style={{ objectFit: 'contain' }}
                           unoptimized
                         />
-                      ) : /* 画像メッセージ表示 */
-                      msg.metadata?.imageUrl ? (
-                        <button
-                          className="block focus:outline-none"
-                          onClick={() => {
-                            // フルスクリーン表示時も旧パスをAPI経由に変換
-                            const imgUrl = msg.metadata!.imageUrl!.startsWith('/uploads/')
-                              ? msg.metadata!.imageUrl!.replace('/uploads/', '/api/uploads/')
-                              : msg.metadata!.imageUrl!;
-                            setFullscreenImage(imgUrl);
-                          }}
-                          aria-label="画像を拡大表示"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={
-                              msg.metadata.imageUrl.startsWith('/uploads/')
-                                ? msg.metadata.imageUrl.replace('/uploads/', '/api/uploads/')
-                                : msg.metadata.imageUrl
-                            }
-                            alt="送信した画像"
-                            className="rounded-xl object-cover"
-                            style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
-                          />
-                        </button>
+                      ) : /* 画像メッセージ表示（metadata.imageUrl または imageUrlカラムを参照） */
+                      (msg.metadata?.imageUrl || msg.imageUrl) ? (
+                        (() => {
+                          const rawUrl = msg.metadata?.imageUrl || msg.imageUrl!;
+                          // /uploads/ → /api/uploads/ 変換（旧パス対応）
+                          const displayUrl = rawUrl.startsWith('/uploads/')
+                            ? rawUrl.replace('/uploads/', '/api/uploads/')
+                            : rawUrl;
+                          return (
+                            <button
+                              className="block focus:outline-none"
+                              onClick={() => setFullscreenImage(displayUrl)}
+                              aria-label="画像を拡大表示"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={displayUrl}
+                                alt="送信した画像"
+                                className="rounded-xl object-cover"
+                                style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
+                              />
+                            </button>
+                          );
+                        })()
                       ) : (
                         <span className="whitespace-pre-wrap break-words">{displayContent}</span>
                       )}

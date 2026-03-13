@@ -582,32 +582,43 @@ function OnboardingInner() {
     }
   };
 
-  // Tinderスワイプ完了: フォローしたキャラIDを保存して次のフェーズへ
-  const handleTinderSwipeComplete = async (followedIds: string[]) => {
-    setSwipeFollowedIds(followedIds);
-    // 最初のフォローしたキャラを「選択キャラ」にする（キャラリビール演出用）
-    if (followedIds.length > 0) {
-      try {
-        const res = await fetch(`/api/characters/id/${followedIds[0]}`);
-        if (res.ok) {
-          const data = await res.json();
-          const c = data.character ?? data;
-          const char: CharacterData = {
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            avatarUrl: c.avatarUrl ?? null,
-            franchise: c.franchise ?? '',
-          };
-          const ok = await selectCharacter(char);
-          if (!ok) advance(); // selectCharacter失敗時もフェーズを進める
-        } else {
-          advance(); // fetch失敗時もフェーズを進める
-        }
-      } catch {
-        // fallback: 何もなくても次へ進む
+  // Explore風グリッドでチャットボタン押下: そのキャラでオンボーディング開始
+  const handleGridChatSelect = async (characterId: string, gridFollowedIds?: string[]) => {
+    if (gridFollowedIds && gridFollowedIds.length > 0) {
+      setSwipeFollowedIds(gridFollowedIds);
+    }
+    setIsSelectingCharacter(true);
+    try {
+      const res = await fetch(`/api/characters/id/${characterId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const c = data.character ?? data;
+        const char: CharacterData = {
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          avatarUrl: c.avatarUrl ?? null,
+          franchise: c.franchise ?? '',
+        };
+        // このキャラでオンボーディング継続
+        const ok = await selectCharacter(char);
+        if (!ok) advance();
+      } else {
         advance();
       }
+    } catch {
+      advance();
+    } finally {
+      setIsSelectingCharacter(false);
+    }
+  };
+
+  // スキップ: フォローだけして次へ
+  const handleGridFollowsComplete = async (followedIds: string[]) => {
+    setSwipeFollowedIds(followedIds);
+    if (followedIds.length > 0) {
+      // 最初のフォローキャラを選択キャラにする
+      await handleGridChatSelect(followedIds[0]);
     } else {
       advance();
     }
@@ -736,7 +747,8 @@ function OnboardingInner() {
         {phase === 'character_select' && (
           <TinderSwipe
             key="character_select"
-            onComplete={handleTinderSwipeComplete}
+            onComplete={handleGridFollowsComplete}
+            onSelectCharacter={handleGridChatSelect}
             isLoading={isSelectingCharacter}
           />
         )}
