@@ -536,6 +536,7 @@ export function buildSystemPrompt(
   bibleContext: string = '',
   loreContext: string = '',
   memorySummary?: Record<string, unknown> | null,
+  userProfileContext: string = '',
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -589,7 +590,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況

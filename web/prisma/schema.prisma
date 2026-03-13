@@ -59,6 +59,7 @@ model User {
   deepReplyQueue         DeepReplyQueue[]
   fanThreads             FanThread[]
   fanReplies             FanReply[]
+  userProfile            UserProfile?
 }
 
 model PushSubscription {
@@ -1348,4 +1349,40 @@ model FanReply {
   @@index([threadId, createdAt])
   @@index([userId])
   @@index([quotedReplyId])
+}
+
+// ============================================
+// ユーザー理解エンジン（User Understanding Engine）
+// ============================================
+
+model UserProfile {
+  id                 String                 @id @default(uuid())
+  userId             String                 @unique
+  basics             Json                   @default("{}")
+  interests          Json                   @default("[]")
+  concerns           Json                   @default("[]")
+  emotionalBaseline  Json                   @default("{}")
+  communicationStyle Json                   @default("{}")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characterProfiles  CharacterUserProfile[]
+
+  @@index([userId])
+}
+
+model CharacterUserProfile {
+  id                 String      @id @default(uuid())
+  userProfileId      String
+  characterId        String
+  sharedTopics       Json        @default("[]")
+  sharedSecrets      Json        @default("[]")
+  emotionalHistory   Json        @default("[]")
+  interactionPattern Json        @default("{}")
+  milestoneMemories  Json        @default("[]")
+  lastUpdated        DateTime    @default(now())
+  userProfile        UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, characterId])
+  @@index([characterId])
 }
