@@ -514,7 +514,7 @@ export default function GroupChatPage() {
               }}
             >
               <span className="text-white/60 text-xs">1メッセージのコスト</span>
-              <span className="text-yellow-400 text-sm font-bold">🪙 {coinCostPerMsg}コイン</span>
+              <span className="text-yellow-400 text-sm font-bold">{coinCostPerMsg}コイン</span>
             </div>
           )}
 
@@ -560,7 +560,7 @@ export default function GroupChatPage() {
 
         {/* 下部CTAボタン */}
         <div
-          className="fixed bottom-[4.5rem] left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-safe-bottom pb-3"
           style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
         >
           <div className="max-w-lg mx-auto">
@@ -664,23 +664,30 @@ export default function GroupChatPage() {
 
           {/* コイン残高 */}
           {coinBalance !== null && (
-            <div
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full"
+            <button
+              onClick={() => router.push('/coins')}
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full transition-all active:scale-95"
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              <span className="text-yellow-400 text-xs">🪙</span>
+              <svg className="w-3.5 h-3.5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                <text x="12" y="16" textAnchor="middle" fontSize="12" fill="currentColor" fontWeight="bold">C</text>
+              </svg>
               <span className="text-white/70 text-xs font-semibold">{coinBalance.toLocaleString()}</span>
-            </div>
+              <svg className="w-3 h-3 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           )}
         </div>
 
         {/* コスト表示 */}
         <div className="max-w-lg mx-auto px-4 pb-2.5">
           <p className="text-white/30 text-[10px]">
-            💬 1メッセージ = <span className="text-yellow-400/70">{coinCostPerMsg}コイン</span>（{selectedChars.length}体参加）
+            1メッセージ = <span className="text-yellow-400/70">{coinCostPerMsg}コイン</span>（{selectedChars.length}体参加）
           </p>
         </div>
       </header>
@@ -771,12 +778,13 @@ export default function GroupChatPage() {
             placeholder={`${selectedChars.map(c => c.name.split('・')[0]).join('・')}にメッセージ…`}
             rows={1}
             disabled={isSending}
-            className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all"
+            className="flex-1 resize-none rounded-2xl px-4 py-3 text-white placeholder-white/30 focus:outline-none transition-all"
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',
               maxHeight: '120px',
               overflow: 'auto',
+              fontSize: '16px',
             }}
             onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.5)'; }}
             onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}
