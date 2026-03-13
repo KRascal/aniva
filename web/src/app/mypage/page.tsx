@@ -859,9 +859,20 @@ export default function MyPage() {
           {/* 利用規約 */}
           <a
             href="/terms"
-            className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
             <p className="text-sm text-white">利用規約</p>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+
+          {/* 特定商取引法に基づく表記 */}
+          <a
+            href="/legal/tokushoho"
+            className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+          >
+            <p className="text-sm text-white">特定商取引法に基づく表記</p>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
