@@ -13,8 +13,8 @@ interface CharacterInfo {
   systemPrompt: string;
 }
 
-const DECISION_MODEL = 'grok-3-mini-fast';
-const MAX_TOKENS = 400;
+const DECISION_MODEL = 'grok-3-mini';
+const MAX_TOKENS = 300;
 
 function buildDecisionPrompt(
   character: CharacterInfo,
@@ -120,7 +120,7 @@ export async function decideContact(
         temperature: 0.3,
         response_format: { type: 'json_object' },
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!res.ok) {
