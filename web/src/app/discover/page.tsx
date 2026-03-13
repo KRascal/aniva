@@ -57,7 +57,8 @@ export default function DiscoverPage() {
           const followedRes = await fetch('/api/relationship/following');
           if (followedRes.ok) {
             const followedData = await followedRes.json();
-            followedCharIds = new Set((followedData.characters ?? []).map((c: { id: string }) => c.id));
+            const followedList = followedData.following ?? followedData.characters ?? [];
+            followedCharIds = new Set(followedList.map((c: { id: string }) => c.id));
           }
         } catch { /* ignore: フォロー取得失敗は無視してフィルタなしで表示 */ }
 
@@ -65,11 +66,10 @@ export default function DiscoverPage() {
         if (res.ok) {
           const data = await res.json();
           const skipped = getSkippedSlugs();
-          // フォロー済み・スキップ済みを除外、シャッフル（0枚でも表示する）
+          // フォロー済み・スキップ済みを除外、残りをシャッフル（数が少なくても全員表示）
           const chars = (data.characters ?? [])
             .filter((c: DiscoverCharacter) => !skipped.includes(c.slug) && !followedCharIds.has(c.id))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 10);
+            .sort(() => Math.random() - 0.5);
           setCharacters(chars);
         }
       } catch { /* ignore */ }
@@ -196,7 +196,11 @@ export default function DiscoverPage() {
       <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center z-50 px-6">
         <div className="text-4xl mb-4">💌</div>
         <h2 className="text-white text-xl font-black mb-2">
-          {followedChars.length > 0 ? `${followedChars.length}人をフォロー！` : '探索完了！'}
+          {characters.length === 0
+            ? 'フォローできるキャラはいません'
+            : followedChars.length > 0
+              ? `${followedChars.length}人をフォロー！`
+              : '探索完了！'}
         </h2>
         {followedChars.length > 0 && (
           <>

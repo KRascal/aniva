@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { SwipeableChatRow } from '@/components/chat-list/SwipeableChatRow';
+import { SwipeableRow } from '@/components/chat-list/SwipeableRow';
 import { EmptyState } from '@/components/chat-list/EmptyState';
 import type { Character, ProactiveMessage, RelationshipInfo } from '@/components/chat-list/types';
 
@@ -28,6 +29,8 @@ export default function ChatPage() {
     characters: Array<{ id: string; name: string; avatarUrl: string | null }>;
     lastMessage?: { content: string; createdAt: string };
     updatedAt: string;
+    isPinned?: boolean;
+    pinnedAt?: string | null;
   }>>([]);
 
   // Safari bfcache対策: ページ復元時にフルリロード
@@ -347,7 +350,7 @@ export default function ChatPage() {
                 return { key: `d-${c.id}`, type: 'direct' as const, character: c, sortTime: Math.max(msgTime, latestProactive), isPinned: !!rel?.isPinned };
               });
               const groupItems: UnifiedItem[] = groupChats.map(conv => ({
-                key: `g-${conv.id}`, type: 'group' as const, conv, sortTime: new Date(conv.updatedAt).getTime(), isPinned: false,
+                key: `g-${conv.id}`, type: 'group' as const, conv, sortTime: new Date(conv.updatedAt).getTime(), isPinned: !!conv.isPinned,
               }));
               const all = [...directItems, ...groupItems];
               const pinned = all.filter(i => i.isPinned).sort((a, b) => b.sortTime - a.sortTime);
@@ -359,7 +362,23 @@ export default function ChatPage() {
                   const mins = Math.floor(diff / 60000);
                   const timeAgo = mins < 1 ? 'たった今' : mins < 60 ? `${mins}分前` : mins < 1440 ? `${Math.floor(mins / 60)}時間前` : `${Math.floor(mins / 1440)}日前`;
                   return (
-                    <button key={item.key} onClick={() => router.push(`/chat/group/${conv.id}`)}
+                    <SwipeableRow
+                      key={item.key}
+                      isPinned={!!conv.isPinned}
+                      onPin={async () => {
+                        const newPin = !conv.isPinned;
+                        try {
+                          const res = await fetch('/api/chat/group/conversation-pin', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ conversationId: conv.id, pin: newPin }),
+                          });
+                          if (res.ok) {
+                            setGroupChats(prev => prev.map(g => g.id === conv.id ? { ...g, isPinned: newPin, pinnedAt: newPin ? new Date().toISOString() : null } : g));
+                          }
+                        } catch { /* ignore */ }
+                      }}
+                    >
+                    <button onClick={() => router.push(`/chat/group/${conv.id}`)}
                       className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all duration-200"
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="flex items-center flex-shrink-0" style={{ width: `${24 + conv.characters.length * 24}px` }}>
@@ -384,6 +403,7 @@ export default function ChatPage() {
                         {conv.lastMessage && <p className="text-white/50 text-xs truncate mt-0.5">{conv.lastMessage.content}</p>}
                       </div>
                     </button>
+                    </SwipeableRow>
                   );
                 }
                 // 1on1 chat row

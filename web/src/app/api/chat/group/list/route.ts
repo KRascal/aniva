@@ -95,6 +95,8 @@ export async function GET(req: NextRequest) {
               }
             : null,
           updatedAt: conv.updatedAt,
+          isPinned: !!(metadata as Record<string, unknown>)?.isPinned,
+          pinnedAt: ((metadata as Record<string, unknown>)?.pinnedAt as string | null) ?? null,
         };
       }),
     });

@@ -108,7 +108,6 @@ function FollowButton({
   initialFollowing: boolean;
   onFollow: (id: string, following: boolean) => void;
 }) {
-  const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -118,15 +117,13 @@ function FollowButton({
       const res = await fetch(`/api/relationship/${characterId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ follow: !following }),
+        body: JSON.stringify({ follow: !initialFollowing }),
       });
       if (res.ok) {
-        const newFollowing = !following;
-        setFollowing(newFollowing);
+        const newFollowing = !initialFollowing;
         onFollow(characterId, newFollowing);
         if (newFollowing) {
           track(EVENTS.CHARACTER_FOLLOWED, { characterId });
-          // フォロー時にウェルカムメッセージ送信
           fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
         }
       }
@@ -143,18 +140,18 @@ function FollowButton({
       disabled={loading}
       className={`
         flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 active:scale-95
-        ${following
+        ${initialFollowing
           ? 'bg-white/10 text-white border border-white/25 hover:bg-red-900/30 hover:text-red-300 hover:border-red-500/40 hover:scale-105'
           : 'text-white hover:scale-105'
         }
         ${loading ? 'opacity-50' : ''}
       `}
-      style={!following ? {
+      style={!initialFollowing ? {
         background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
         boxShadow: '0 2px 12px rgba(139,92,246,0.4)',
       } : undefined}
     >
-      {loading ? '…' : following ? 'フォロー中' : 'フォローする'}
+      {loading ? '…' : initialFollowing ? 'フォロー中' : 'フォローする'}
     </button>
   );
 }

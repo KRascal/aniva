@@ -595,31 +595,34 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 )}
 
-                {/* Results overlay — centered on screen (hidden during pack opening) */}
+                {/* ガチャ結果オーバーレイ — 全画面3層構成(固定ヘッダ+スクロール本体+固定フッター) */}
                 {pullResults.length > 0 && !showPackOpening && (
-                  <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
-                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
-                      <div className="flex items-center justify-between mb-4 pt-2">
-                        <h2 className="text-white font-bold text-base">結果</h2>
-                        <div className="flex items-center gap-2">
-                          {hasAnyUnflipped && (
-                            <button
-                              onClick={flipAll}
-                              className="text-xs px-3 py-1.5 rounded-full text-purple-300 font-semibold"
-                              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
-                            >
-                              全部開く
-                            </button>
-                          )}
+                  <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'rgba(3,7,18,0.98)', backdropFilter: 'blur(12px)' }}>
+                    {/* 固定ヘッダ */}
+                    <div className="flex-shrink-0 flex items-center justify-between px-5 pt-safe pt-4 pb-3 border-b border-white/8">
+                      <h2 className="text-white font-bold text-base">ガチャ結果</h2>
+                      <div className="flex items-center gap-2">
+                        {hasAnyUnflipped && (
                           <button
-                            onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                            className="text-xs px-3 py-1.5 rounded-full text-white/60 font-semibold"
-                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                            onClick={flipAll}
+                            className="text-xs px-3 py-1.5 rounded-full text-purple-300 font-semibold"
+                            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
                           >
-                            閉じる
+                            全部開く
                           </button>
-                        </div>
+                        )}
+                        <button
+                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                          className="text-xs px-3 py-1.5 rounded-full text-white/60 font-semibold"
+                          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                        >
+                          閉じる
+                        </button>
                       </div>
+                    </div>
+
+                    {/* スクロール可能な結果エリア */}
+                    <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 max-w-lg w-full mx-auto">
                       <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
@@ -654,16 +657,17 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           </div>
                         ))}
                       </div>
-                      {/* もう一回引くボタン */}
-                      <div className="mt-6 pb-4">
-                        <button
-                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                          className="w-full py-3 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                        >
-                          もう一度引く
-                        </button>
-                      </div>
+                    </div>
+
+                    {/* 固定フッター — もう一度引くボタン */}
+                    <div className="flex-shrink-0 px-4 pb-safe pb-6 pt-3 border-t border-white/8 max-w-lg w-full mx-auto">
+                      <button
+                        onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                        className="w-full py-3.5 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                      >
+                        もう一度引く
+                      </button>
                     </div>
                   </div>
                 )}
