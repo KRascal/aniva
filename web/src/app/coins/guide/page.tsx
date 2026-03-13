@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 const COIN_TABLE = [
   { feature: 'チャット（1通）', free: '10コイン', fc: '無料', icon: '💬' },
-  { feature: '深い会話（AI Pro）', free: '15コイン', fc: '無料', icon: '🧠' },
+  { feature: '深い会話（AI Pro）', free: '20コイン', fc: '無料', icon: '🧠' },
   { feature: '画像送信（Vision）', free: '15コイン', fc: '無料', icon: '📸' },
   { feature: '掛け合い（2キャラ）', free: '20コイン', fc: '無料', icon: '⚡' },
   { feature: '掛け合い（3キャラ）', free: '30コイン', fc: '無料', icon: '⚡' },
