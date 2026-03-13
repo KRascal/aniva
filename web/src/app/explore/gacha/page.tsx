@@ -594,9 +594,9 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
 
                 {/* Results overlay — centered on screen (hidden during pack opening) */}
                 {pullResults.length > 0 && !showPackOpening && (
-                  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
-                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
-                      <div className="flex items-center justify-between mb-4 pt-2">
+                  <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
+                    <div className="w-full max-w-lg mx-auto flex flex-col h-full">
+                      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0 border-b border-white/5">
                         <h2 className="text-white font-bold text-base">結果</h2>
                         <div className="flex items-center gap-2">
                           {hasAnyUnflipped && (
@@ -617,6 +617,7 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           </button>
                         </div>
                       </div>
+                      <div className="flex-1 overflow-y-auto px-4 pb-6">
                       <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
@@ -652,7 +653,7 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                         ))}
                       </div>
                       {/* もう一回引くボタン */}
-                      <div className="mt-6 pb-4">
+                      <div className="mt-6">
                         <button
                           onClick={() => { setPullResults([]); setFlippedCards([]); }}
                           className="w-full py-3 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
@@ -661,6 +662,7 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           もう一度引く
                         </button>
                       </div>
+                      </div>{/* /overflow scroll */}
                     </div>
                   </div>
                 )}
