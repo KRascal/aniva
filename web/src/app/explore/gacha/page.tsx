@@ -617,8 +617,8 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           </button>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto px-4 pb-6">
-                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
+                      <div className={`flex-1 overflow-y-auto px-4 pb-6 ${pullResults.length === 1 ? 'flex flex-col items-center justify-center' : ''}`}>
+                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[280px] mx-auto' : 'grid-cols-2'} gap-3 ${pullResults.length === 1 ? 'pt-4' : ''}`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
                             {(result.rarity === 'SSR' || result.rarity === 'UR') && flippedCards[i] && (

@@ -129,23 +129,34 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showResult, setShowResult] = useState(false);
 
-  // キャラクター取得（10体）
+  // キャラクター取得（10体）— フォロー済みをclient-sideでも除外
   useEffect(() => {
     const fetchCharacters = async () => {
       try {
-        const res = await fetch('/api/characters?limit=10&excludeFollowing=true');
+        const [res, followRes] = await Promise.all([
+          fetch('/api/characters?limit=20&excludeFollowing=true', { credentials: 'include' }),
+          fetch('/api/characters?followingOnly=true', { credentials: 'include' }),
+        ]);
+        let followedCharIds: string[] = [];
+        if (followRes.ok) {
+          const followData = await followRes.json();
+          followedCharIds = (followData.characters ?? []).map((c: { id: string }) => c.id);
+        }
         if (res.ok) {
           const data = await res.json();
-          const chars: SwipeCharacter[] = (data.characters ?? data ?? []).map((c: Record<string, unknown>) => ({
-            id: c.id as string,
-            name: c.name as string,
-            nameEn: c.nameEn as string | null,
-            slug: c.slug as string,
-            franchise: c.franchise as string,
-            avatarUrl: (c.avatarUrl as string | null) ?? null,
-            description: (c.description as string | null) ?? null,
-            catchphrases: (c.catchphrases as string[]) ?? [],
-          }));
+          const chars: SwipeCharacter[] = (data.characters ?? data ?? [])
+            .filter((c: Record<string, unknown>) => !followedCharIds.includes(c.id as string))
+            .map((c: Record<string, unknown>) => ({
+              id: c.id as string,
+              name: c.name as string,
+              nameEn: c.nameEn as string | null,
+              slug: c.slug as string,
+              franchise: c.franchise as string,
+              avatarUrl: (c.avatarUrl as string | null) ?? null,
+              description: (c.description as string | null) ?? null,
+              catchphrases: (c.catchphrases as string[]) ?? [],
+            }))
+            .slice(0, 10);
           setCharacters(chars);
         }
       } catch {
