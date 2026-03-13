@@ -22,9 +22,10 @@ export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
   if (authError) return authError;
 
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
-  if (!xaiKey) {
-    return NextResponse.json({ error: 'XAI_API_KEY not set' }, { status: 500 });
+  if (!geminiKey && !xaiKey) {
+    return NextResponse.json({ error: 'No LLM API key set (GEMINI/XAI)' }, { status: 500 });
   }
 
   try {
@@ -53,30 +54,62 @@ export async function GET(req: NextRequest) {
 
       for (const tmpl of templates) {
         try {
-          const res = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: process.env.LLM_MODEL || 'grok-3-mini',
-              messages: [
-                {
-                  role: 'system',
-                  content: `あなたは${char.name}です。\n\n${char.systemPrompt.slice(0, 2000)}\n\n以下の形式でFC限定コンテンツを生成してください:\nTITLE: (タイトル、10文字以内)\nCONTENT: (本文、${char.name}の口調で200-400文字)`,
-                },
-                { role: 'user', content: tmpl.prompt },
-              ],
-              max_tokens: 600,
-              temperature: 0.9,
-            }),
-          });
+          const secretSystemPrompt = `あなたは${char.name}です。\n\n${char.systemPrompt.slice(0, 2000)}\n\n以下の形式でFC限定コンテンツを生成してください:\nTITLE: (タイトル、10文字以内)\nCONTENT: (本文、${char.name}の口調で200-400文字)`;
+          let text = '';
 
-          if (!res.ok) {
-            errors.push(`${char.name}: API ${res.status}`);
-            continue;
+          // 1st: Gemini 2.5 Flash
+          if (geminiKey && !text) {
+            try {
+              const gRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: secretSystemPrompt }] },
+                    contents: [{ parts: [{ text: tmpl.prompt }] }],
+                    generationConfig: { maxOutputTokens: 600, temperature: 0.85 },
+                  }),
+                },
+              );
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                text = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+              }
+            } catch (e) {
+              console.error(`[generate-secret-content] Gemini failed for ${char.name}:`, e);
+            }
           }
 
-          const data = await res.json();
-          const text = data.choices?.[0]?.message?.content?.trim() || '';
+          // 2nd: xAI fallback
+          if (!text && xaiKey) {
+            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: process.env.LLM_MODEL || 'grok-3-mini',
+                messages: [
+                  { role: 'system', content: secretSystemPrompt },
+                  { role: 'user', content: tmpl.prompt },
+                ],
+                max_tokens: 600,
+                temperature: 0.9,
+              }),
+            });
+
+            if (!res.ok) {
+              errors.push(`${char.name}: API ${res.status}`);
+              continue;
+            }
+
+            const data = await res.json();
+            text = data.choices?.[0]?.message?.content?.trim() || '';
+          }
+
+          if (!text) {
+            errors.push(`${char.name}: empty response from all LLMs`);
+            continue;
+          }
 
           // TITLE: と CONTENT: をパース
           const titleMatch = text.match(/TITLE:\s*(.+)/);

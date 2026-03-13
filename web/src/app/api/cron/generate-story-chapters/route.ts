@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
 
   const maxChars = parseInt(req.nextUrl.searchParams.get('max') || '5', 10);
 
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
-  if (!xaiKey) {
-    return NextResponse.json({ error: 'XAI_API_KEY not set' }, { status: 500 });
+  if (!geminiKey && !xaiKey) {
+    return NextResponse.json({ error: 'No LLM API key set (GEMINI/XAI)' }, { status: 500 });
   }
 
   try {
@@ -109,24 +110,55 @@ ${existingSynopses}
 }`;
 
         try {
-          const res = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: process.env.LLM_MODEL || 'grok-3-mini',
-              messages: [
-                { role: 'system', content: prompt },
-                { role: 'user', content: `第${chapterNum}章を生成してください。` },
-              ],
-              max_tokens: 600,
-              temperature: 0.85,
-            }),
-          });
+          let text = '';
 
-          if (!res.ok) continue;
+          // 1st: Gemini 2.5 Flash
+          if (geminiKey && !text) {
+            try {
+              const gRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: prompt }] },
+                    contents: [{ parts: [{ text: `第${chapterNum}章を生成してください。` }] }],
+                    generationConfig: { maxOutputTokens: 600, temperature: 0.85 },
+                  }),
+                },
+              );
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                text = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+              }
+            } catch (e) {
+              console.error(`[story] Gemini failed for ${char.name} ch${chapterNum}:`, e);
+            }
+          }
 
-          const data = await res.json();
-          const text = data.choices?.[0]?.message?.content?.trim() || '';
+          // 2nd: xAI fallback
+          if (!text && xaiKey) {
+            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: process.env.LLM_MODEL || 'grok-3-mini',
+                messages: [
+                  { role: 'system', content: prompt },
+                  { role: 'user', content: `第${chapterNum}章を生成してください。` },
+                ],
+                max_tokens: 600,
+                temperature: 0.85,
+              }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              text = data.choices?.[0]?.message?.content?.trim() || '';
+            }
+          }
+
+          if (!text) continue;
 
           // JSON解析
           let parsed: { title?: string; synopsis?: string; triggerPrompt?: string } = {};
