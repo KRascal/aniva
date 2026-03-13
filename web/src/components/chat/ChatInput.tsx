@@ -328,11 +328,11 @@ export function ChatInput({
           className="hidden"
           aria-hidden="true"
         />
-        {/* カメラフォルダ（画像+動画） */}
+        {/* 写真ライブラリ（画像のみ） */}
         <input
           ref={mediaInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*"
           onChange={handleImageSelect}
           className="hidden"
           aria-hidden="true"

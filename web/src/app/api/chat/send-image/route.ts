@@ -87,25 +87,29 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 保存先ディレクトリの確保
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'chat', conversation.id);
-  await mkdir(uploadDir, { recursive: true });
+  // 保存先: デプロイで消えない永続ディレクトリ + public（静的配信互換）
+  const persistentUploadDir = path.resolve('/home/openclaw/.openclaw/workspace/uploads/chat', conversation.id);
+  const publicUploadDir = path.join(process.cwd(), 'public', 'uploads', 'chat', conversation.id);
+  await mkdir(persistentUploadDir, { recursive: true });
+  await mkdir(publicUploadDir, { recursive: true });
 
-  // ファイル書き込み
+  // ファイル書き込み（両方に保存）
   const timestamp = Date.now();
   const filename = `${timestamp}.${ext}`;
-  const filepath = path.join(uploadDir, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filepath, buffer);
+  await writeFile(path.join(persistentUploadDir, filename), buffer);
+  await writeFile(path.join(publicUploadDir, filename), buffer);
 
-  const imageUrl = `/uploads/chat/${conversation.id}/${filename}`;
+  // API経由で配信（デプロイ後も消えない）
+  const imageUrl = `/api/uploads/chat/${conversation.id}/${filename}`;
 
-  // Messageレコード作成
+  // Messageレコード作成（imageUrlカラム + metadata両方にセット → アルバムAPIでも取得可能）
   const userMsg = await prisma.message.create({
     data: {
       conversationId: conversation.id,
       role: 'USER',
       content: '[画像]',
+      imageUrl,
       metadata: { imageUrl },
     },
   });

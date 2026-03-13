@@ -247,6 +247,7 @@ interface RelationshipInfo {
   isFollowing?: boolean;
   sharedTopics?: { type: string; text: string }[];
   streakDays?: number;
+  previousStreakDays?: number;
   isStreakActive?: boolean;
 }
 
@@ -714,8 +715,8 @@ export default function ChatCharacterPage() {
             sessionStorage.setItem(fcPromptKey, '1');
           }
         }
-        // ストリーク途切れチェック（会話したことがあるキャラのみ）
-        if (relData.streakDays === 0 && relData.isStreakActive === false && relData.totalMessages > 0) {
+        // ストリーク途切れチェック（3日以上連続していた場合のみ表示。0-2日は表示不要）
+        if ((relData.previousStreakDays ?? 0) >= 3 && relData.isStreakActive === false && relData.totalMessages > 0) {
           const streakKey = `streakBreak_${characterId}_${new Date().toDateString()}`;
           if (!sessionStorage.getItem(streakKey)) {
             setShowStreakBreak(true);
@@ -1801,7 +1802,7 @@ export default function ChatCharacterPage() {
           characterSlug={character.slug ?? 'luffy'}
           characterName={character.name}
           relationshipId={relationshipId ?? ''}
-          previousStreak={relationship.streakDays ?? 0}
+          previousStreak={relationship.previousStreakDays ?? relationship.streakDays ?? 0}
           onClose={() => setShowStreakBreak(false)}
           onRecovered={(newStreak) => {
             setShowStreakBreak(false);
@@ -1876,9 +1877,10 @@ export default function ChatCharacterPage() {
               }
             } catch (err) {
               console.error('FC subscribe error:', err);
-              // フォールバック: プロフィールページへ
+              // エラー時: モーダルを閉じてトーストで通知（プロフィールページに飛ばさない）
               setShowFcModal(false);
-              router.push(`/profile/${characterId}#fc`);
+              setShareToast('FC加入処理でエラーが発生しました。しばらくしてから再度お試しください。');
+              setTimeout(() => setShareToast(null), 4000);
             }
           }}
         />

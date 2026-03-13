@@ -73,6 +73,7 @@ export async function GET(
       isFollowing: relationship.isFollowing,
       sharedTopics, // 覚えてくれてる記憶の可視化
       streakDays: isStreakActive ? streakDays : 0,
+      previousStreakDays: streakDays, // UI用: ストリーク途切れ時に元の日数を表示
       isStreakActive,
       preferences, // あなただけの設定（IKEA効果）
     });

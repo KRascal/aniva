@@ -120,7 +120,7 @@ function SwipeCard({
 }
 
 // ---- Main Component ----
-export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps) {
+export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }: TinderSwipeProps & { onSelectCharacter?: (charId: string) => void }) {
   const [characters, setCharacters] = useState<SwipeCharacter[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
@@ -182,10 +182,19 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
     handleSwipe(direction);
   }, [handleSwipe]);
 
+  // 結果画面でキャラをタップ → そのキャラを先頭にして完了
+  const [selectedCharForChat, setSelectedCharForChat] = useState<string | null>(null);
+
   // 結果確定
   const handleConfirm = useCallback(() => {
-    onComplete(followedIds);
-  }, [followedIds, onComplete]);
+    // 選択されたキャラを先頭に並べ替え
+    if (selectedCharForChat && followedIds.includes(selectedCharForChat)) {
+      const reordered = [selectedCharForChat, ...followedIds.filter(id => id !== selectedCharForChat)];
+      onComplete(reordered);
+    } else {
+      onComplete(followedIds);
+    }
+  }, [followedIds, onComplete, selectedCharForChat]);
 
   // ---- Loading ----
   if (fetchLoading) {
@@ -235,27 +244,37 @@ export default function TinderSwipe({ onComplete, isLoading }: TinderSwipeProps)
         )}
 
         {followedChars.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-sm">
-            {followedChars.map((c, i) => (
-              <motion.div
-                key={c.id}
-                className="flex flex-col items-center gap-1"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1, duration: 0.3 }}
-              >
-                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-purple-500/50">
-                  {c.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-purple-900 flex items-center justify-center text-lg">✨</div>
-                  )}
-                </div>
-                <span className="text-white/70 text-[10px] font-medium">{c.name}</span>
-              </motion.div>
-            ))}
-          </div>
+          <>
+            <p className="text-white/40 text-xs mb-3">タップして最初に話すキャラを選ぼう</p>
+            <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-sm">
+              {followedChars.map((c, i) => {
+                const isSelected = selectedCharForChat === c.id || (!selectedCharForChat && i === 0);
+                return (
+                  <motion.button
+                    key={c.id}
+                    className="flex flex-col items-center gap-1"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1, duration: 0.3 }}
+                    onClick={() => setSelectedCharForChat(c.id)}
+                  >
+                    <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                      isSelected ? 'border-purple-400 ring-2 ring-purple-500/50 scale-110' : 'border-white/20'
+                    }`}>
+                      {c.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-purple-900 flex items-center justify-center text-lg">✨</div>
+                      )}
+                    </div>
+                    <span className={`text-[10px] font-medium ${isSelected ? 'text-purple-300' : 'text-white/70'}`}>{c.name}</span>
+                    {isSelected && <span className="text-[9px] text-purple-400">💬</span>}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <p className="text-white/30 text-sm mb-8">
             スキップしたキャラも後からフォローできます
