@@ -35,12 +35,12 @@ async function handleDeepReply(req: NextRequest) {
       return NextResponse.json({ status: 'no_jobs' });
     }
 
-    // PROCESSING に更新してから処理
+    // PROCESSING にマーク、その後 processDeepReply に委譲（内部でDONE/FAILEDを更新）
     for (const job of jobs) {
       await prisma.deepReplyQueue.update({
         where: { id: job.id },
         data: { status: DEEP_QUEUE_STATUS.PROCESSING, startedAt: new Date() },
-      });
+      }).catch(() => {});
     }
 
     // 並列処理（最大2件）
@@ -51,8 +51,8 @@ async function handleDeepReply(req: NextRequest) {
           userId: job.userId,
           characterId: job.characterId,
           conversationId: job.conversationId,
-          thinkingMessageId: job.thinkingMessageId,
-          userMessage: job.userMessage,
+          thinkingMessageId: job.thinkingMsgId,
+          userMessage: job.userMessageId, // processorがIDからテキストを解決する
           attempts: job.attempts,
         }),
       ),

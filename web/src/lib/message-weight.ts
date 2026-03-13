@@ -94,3 +94,12 @@ export function isDeepMode(
 ): boolean {
   return calculateMessageWeight(message, recentDeepReplied, userPreferInstant) >= DEEP_THRESHOLD;
 }
+
+/** chat/send/route.ts との互換エイリアス */
+export function shouldUseDeepMode(
+  message: string,
+  recentDeepReplyCount: number = 0,
+  userPreferInstant: boolean = false,
+): boolean {
+  return isDeepMode(message, recentDeepReplyCount > 0, userPreferInstant);
+}

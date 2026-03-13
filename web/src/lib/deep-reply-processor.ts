@@ -28,8 +28,8 @@ interface DeepReplyJob {
   userId: string;
   characterId: string;
   conversationId: string;
-  thinkingMessageId: string;
-  userMessage: string;
+  thinkingMessageId: string; // DB: thinkingMsgId
+  userMessage: string;       // ユーザーメッセージのテキスト or MessageID
   attempts: number;
 }
 
@@ -161,6 +161,17 @@ export async function processDeepReply(job: DeepReplyJob): Promise<void> {
   logger.info(`[deep-reply] Processing job ${job.id} for user ${job.userId}`);
 
   try {
+    // userMessage がMessageIDの場合、DBからテキストを取得
+    let userMessageText = job.userMessage;
+    if (job.userMessage.length < 50 && !job.userMessage.includes(' ')) {
+      // UUIDっぽい → DBから取得
+      const msg = await prisma.message.findUnique({
+        where: { id: job.userMessage },
+        select: { content: true },
+      });
+      userMessageText = msg?.content ?? job.userMessage;
+    }
+
     // キャラクター情報取得
     const character = await prisma.character.findUnique({
       where: { id: job.characterId },
@@ -182,17 +193,17 @@ export async function processDeepReply(job: DeepReplyJob): Promise<void> {
 
     // Step 1: メッセージ分析
     const analysis = await analyzeUserMessage(
-      job.userMessage,
+      userMessageText,
       recentContext,
       character.name,
     );
 
     // Step 2: 記憶検索
-    const memories = await searchRelevantMemories(job.userId, job.characterId, job.userMessage);
+    const memories = await searchRelevantMemories(job.userId, job.characterId, userMessageText);
 
     // Step 5: Deep Reply 生成
     const { reply, emotion } = await generateDeepReply(
-      job.userMessage,
+      userMessageText,
       analysis,
       memories,
       recentContext,
