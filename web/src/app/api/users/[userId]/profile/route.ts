@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // レベル名マッピング
 const LEVEL_NAMES: Record<number, string> = {
@@ -242,7 +243,7 @@ export async function GET(
       })),
     });
   } catch (error) {
-    console.error('[users/[userId]/profile] error:', error);
+    logger.error('[users/[userId]/profile] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

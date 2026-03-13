@@ -17,7 +17,6 @@ interface SwipeCharacter {
 
 interface TinderSwipeProps {
   onComplete: (followedIds: string[]) => void;
-  onChatSelect?: (characterId: string) => void;
   isLoading?: boolean;
 }
 
@@ -121,7 +120,7 @@ function SwipeCard({
 }
 
 // ---- Main Component ----
-export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: TinderSwipeProps) {
+export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }: TinderSwipeProps & { onSelectCharacter?: (charId: string) => void }) {
   const [characters, setCharacters] = useState<SwipeCharacter[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
@@ -129,34 +128,23 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showResult, setShowResult] = useState(false);
 
-  // キャラクター取得（10体）— フォロー済みをclient-sideでも除外
+  // キャラクター取得（10体）
   useEffect(() => {
     const fetchCharacters = async () => {
       try {
-        const [res, followRes] = await Promise.all([
-          fetch('/api/characters?limit=20&excludeFollowing=true', { credentials: 'include' }),
-          fetch('/api/characters?followingOnly=true', { credentials: 'include' }),
-        ]);
-        let followedCharIds: string[] = [];
-        if (followRes.ok) {
-          const followData = await followRes.json();
-          followedCharIds = (followData.characters ?? []).map((c: { id: string }) => c.id);
-        }
+        const res = await fetch('/api/characters?limit=10');
         if (res.ok) {
           const data = await res.json();
-          const chars: SwipeCharacter[] = (data.characters ?? data ?? [])
-            .filter((c: Record<string, unknown>) => !followedCharIds.includes(c.id as string))
-            .map((c: Record<string, unknown>) => ({
-              id: c.id as string,
-              name: c.name as string,
-              nameEn: c.nameEn as string | null,
-              slug: c.slug as string,
-              franchise: c.franchise as string,
-              avatarUrl: (c.avatarUrl as string | null) ?? null,
-              description: (c.description as string | null) ?? null,
-              catchphrases: (c.catchphrases as string[]) ?? [],
-            }))
-            .slice(0, 10);
+          const chars: SwipeCharacter[] = (data.characters ?? data ?? []).map((c: Record<string, unknown>) => ({
+            id: c.id as string,
+            name: c.name as string,
+            nameEn: c.nameEn as string | null,
+            slug: c.slug as string,
+            franchise: c.franchise as string,
+            avatarUrl: (c.avatarUrl as string | null) ?? null,
+            description: (c.description as string | null) ?? null,
+            catchphrases: (c.catchphrases as string[]) ?? [],
+          }));
           setCharacters(chars);
         }
       } catch {
@@ -194,10 +182,19 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
     handleSwipe(direction);
   }, [handleSwipe]);
 
+  // 結果画面でキャラをタップ → そのキャラを先頭にして完了
+  const [selectedCharForChat, setSelectedCharForChat] = useState<string | null>(null);
+
   // 結果確定
   const handleConfirm = useCallback(() => {
-    onComplete(followedIds);
-  }, [followedIds, onComplete]);
+    // 選択されたキャラを先頭に並べ替え
+    if (selectedCharForChat && followedIds.includes(selectedCharForChat)) {
+      const reordered = [selectedCharForChat, ...followedIds.filter(id => id !== selectedCharForChat)];
+      onComplete(reordered);
+    } else {
+      onComplete(followedIds);
+    }
+  }, [followedIds, onComplete, selectedCharForChat]);
 
   // ---- Loading ----
   if (fetchLoading) {
@@ -247,27 +244,37 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
         )}
 
         {followedChars.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-sm">
-            {followedChars.map((c, i) => (
-              <motion.div
-                key={c.id}
-                className="flex flex-col items-center gap-1"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1, duration: 0.3 }}
-              >
-                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-purple-500/50">
-                  {c.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-purple-900 flex items-center justify-center text-lg">✨</div>
-                  )}
-                </div>
-                <span className="text-white/70 text-[10px] font-medium">{c.name}</span>
-              </motion.div>
-            ))}
-          </div>
+          <>
+            <p className="text-white/40 text-xs mb-3">タップして最初に話すキャラを選ぼう</p>
+            <div className="flex flex-wrap justify-center gap-3 mb-8 max-w-sm">
+              {followedChars.map((c, i) => {
+                const isSelected = selectedCharForChat === c.id || (!selectedCharForChat && i === 0);
+                return (
+                  <motion.button
+                    key={c.id}
+                    className="flex flex-col items-center gap-1"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1, duration: 0.3 }}
+                    onClick={() => setSelectedCharForChat(c.id)}
+                  >
+                    <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                      isSelected ? 'border-purple-400 ring-2 ring-purple-500/50 scale-110' : 'border-white/20'
+                    }`}>
+                      {c.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-purple-900 flex items-center justify-center text-lg">✨</div>
+                      )}
+                    </div>
+                    <span className={`text-[10px] font-medium ${isSelected ? 'text-purple-300' : 'text-white/70'}`}>{c.name}</span>
+                    {isSelected && <span className="text-[9px] text-purple-400">💬</span>}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <p className="text-white/30 text-sm mb-8">
             スキップしたキャラも後からフォローできます
@@ -349,68 +356,55 @@ export default function TinderSwipe({ onComplete, onChatSelect, isLoading }: Tin
       </div>
 
       {/* Action buttons */}
-      <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-7">
+      <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-5">
         {/* Skip button */}
         <motion.button
           onClick={() => handleButtonSwipe('left')}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
+          className="w-13 h-13 rounded-full flex items-center justify-center"
           style={{
-            width: 56, height: 56,
+            width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
             border: '2px solid rgba(239,68,68,0.4)',
           }}
           whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </motion.button>
-
-        {/* Chat button */}
-        <motion.button
-          onClick={() => {
-            const char = characters[currentIndex];
-            if (!char) return;
-            // フォローに追加
-            setFollowedIds(prev => [...prev, char.id]);
-            // onChatSelectがあれば呼ぶ
-            if (onChatSelect) {
-              onChatSelect(char.id);
-            } else {
-              onComplete([...followedIds, char.id]);
-            }
-          }}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
-          style={{
-            width: 60, height: 60,
-            background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-            boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
-            border: '2px solid rgba(255,255,255,0.2)',
-          }}
-          whileTap={{ scale: 0.85 }}
-        >
-          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </motion.button>
 
         {/* Follow button */}
         <motion.button
           onClick={() => handleButtonSwipe('right')}
-          className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
+          className="rounded-full flex items-center justify-center"
           style={{
-            width: 56, height: 56,
-            background: 'rgba(255,255,255,0.06)',
-            border: '2px solid rgba(34,197,94,0.4)',
+            width: 64, height: 64,
+            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+            boxShadow: '0 4px 16px rgba(34,197,94,0.35)',
           }}
           whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </motion.button>
+
+        {/* Info button */}
+        <motion.button
+          onClick={() => handleButtonSwipe('left')}
+          className="rounded-full flex items-center justify-center"
+          style={{
+            width: 52, height: 52,
+            background: 'rgba(255,255,255,0.06)',
+            border: '2px solid rgba(59,130,246,0.4)',
+          }}
+          whileTap={{ scale: 0.85 }}
+        >
+          <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+        </motion.button>
       </div>
-      <p className="relative z-30 text-center text-white/20 text-[10px] pb-2">← スキップ ・ チャット ・ フォロー →</p>
     </div>
   );
 }

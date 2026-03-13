@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/shop/purchase
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('[POST /api/shop/purchase]', error);
+    logger.error('[POST /api/shop/purchase]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

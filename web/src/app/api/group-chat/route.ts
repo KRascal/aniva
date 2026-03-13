@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const MAX_CHARACTERS = 3;
 const RESPONSE_MAX_TOKENS = 200;
@@ -146,7 +147,7 @@ ${char.personalityTraits && Array.isArray(char.personalityTraits) ? `性格: ${(
         responses.push({ characterId: char.id, characterName: char.name, content, emotion });
       }
     } catch (err) {
-      console.error(`[GroupChat] ${char.name} generation failed:`, err);
+      logger.error(`[GroupChat] ${char.name} generation failed:`, err);
     }
   }
 

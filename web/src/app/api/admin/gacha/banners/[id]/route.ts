@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
-import { cacheInvalidate, CACHE_KEYS } from '@/lib/redis-cache';
 
 export async function PATCH(
   req: NextRequest,
@@ -27,8 +26,6 @@ export async function PATCH(
     bannerId: id,
   });
 
-  await cacheInvalidate(CACHE_KEYS.GACHA_BANNERS);
-
   return NextResponse.json(updated);
 }
 
@@ -45,8 +42,6 @@ export async function DELETE(
   await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_DELETE, admin.email, {
     bannerId: id,
   });
-
-  await cacheInvalidate(CACHE_KEYS.GACHA_BANNERS);
 
   return NextResponse.json({ ok: true });
 }

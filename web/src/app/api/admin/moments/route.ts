@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ moments, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.error('[admin/moments] GET error:', error);
+    logger.error('[admin/moments] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(moment, { status: 201 });
   } catch (error) {
-    console.error('[admin/moments] POST error:', error);
+    logger.error('[admin/moments] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -90,7 +91,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[admin/moments] DELETE error:', error);
+    logger.error('[admin/moments] DELETE error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@
  */
 
 import { prisma } from './prisma';
+import { logger } from '@/lib/logger';
 
 // Local embedding server: intfloat/multilingual-e5-small = 1536dim
 // DB column: vector(1536) — matched to local server output
@@ -85,7 +86,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
     }
   }
 
-  console.warn('[SemanticMemory] No embedding provider available — set VOYAGE_API_KEY or OPENAI_API_KEY');
+  logger.warn('[SemanticMemory] No embedding provider available — set VOYAGE_API_KEY or OPENAI_API_KEY');
   return [];
 }
 
@@ -134,7 +135,7 @@ export async function storeMemory(input: MemoryInput): Promise<string | null> {
 
     return result[0]?.id || null;
   } catch (err) {
-    console.error('storeMemory error:', err);
+    logger.error('storeMemory error:', err);
     return null;
   }
 }
@@ -181,7 +182,7 @@ export async function searchMemories(
 
     return results;
   } catch (err) {
-    console.error('searchMemories error:', err);
+    logger.error('searchMemories error:', err);
     return [];
   }
 }

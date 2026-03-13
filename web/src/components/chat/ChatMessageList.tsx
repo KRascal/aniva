@@ -10,7 +10,7 @@ export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isGift?: boolean };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -620,18 +620,25 @@ export function ChatMessageList({
                       msg.metadata?.imageUrl ? (
                         <button
                           className="block focus:outline-none"
-                          onClick={() => setFullscreenImage(msg.metadata!.imageUrl!)}
+                          onClick={() => {
+                            // フルスクリーン表示時も旧パスをAPI経由に変換
+                            const imgUrl = msg.metadata!.imageUrl!.startsWith('/uploads/')
+                              ? msg.metadata!.imageUrl!.replace('/uploads/', '/api/uploads/')
+                              : msg.metadata!.imageUrl!;
+                            setFullscreenImage(imgUrl);
+                          }}
                           aria-label="画像を拡大表示"
                         >
-                          <Image
-                            src={msg.metadata.imageUrl}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              msg.metadata.imageUrl.startsWith('/uploads/')
+                                ? msg.metadata.imageUrl.replace('/uploads/', '/api/uploads/')
+                                : msg.metadata.imageUrl
+                            }
                             alt="送信した画像"
-                            width={0}
-                            height={0}
-                            sizes="250px"
                             className="rounded-xl object-cover"
                             style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
-                            unoptimized
                           />
                         </button>
                       ) : (

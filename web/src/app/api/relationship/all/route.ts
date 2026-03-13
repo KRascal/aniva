@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/relationship/all
@@ -82,7 +83,7 @@ export async function GET() {
 
     return NextResponse.json({ relationships: result });
   } catch (error) {
-    console.error('[relationship/all] error:', error);
+    logger.error('[relationship/all] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

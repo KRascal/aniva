@@ -246,17 +246,12 @@ export function getSpecialDayContext(character: CharacterRecord, memory: MemoryC
   }
 
   if (memory.userBirthday) {
-    // User.birthday は DateTime @db.Date → Date オブジェクト (またはJSON経由で文字列)
-    const bdayDate = memory.userBirthday instanceof Date
-      ? memory.userBirthday
-      : new Date(memory.userBirthday as string);
-    const bdayYear = bdayDate.getUTCFullYear();
-    const bdayMM = String(bdayDate.getUTCMonth() + 1).padStart(2, '0');
-    const bdayDD = String(bdayDate.getUTCDate()).padStart(2, '0');
-    const userBdayMMDD = `${bdayMM}-${bdayDD}`;
-    if (userBdayMMDD === todayMM_DD) {
-      const age = jst.getUTCFullYear() - bdayYear;
-      parts.push(`## 🎂 特別モード: 今日は${memory.userName}の誕生日！
+    const bParts = memory.userBirthday.split('-');
+    if (bParts.length === 3) {
+      const userBdayMMDD = `${bParts[1]}-${bParts[2]}`;
+      if (userBdayMMDD === todayMM_DD) {
+        const age = jst.getUTCFullYear() - parseInt(bParts[0]);
+        parts.push(`## 🎂 特別モード: 今日は${memory.userName}の誕生日！
 - ユーザーの誕生日を全力で祝う！キャラクターとして心からおめでとうを伝える
 - 「誕生日おめでとう！」を最初に言う
 - 年齢(${age}歳)には触れなくていい（デリケートな場合がある）
@@ -264,6 +259,10 @@ export function getSpecialDayContext(character: CharacterRecord, memory: MemoryC
 - サプライズ感を出す（「ずっとこの日を楽しみにしてたんだ」等）
 - プレゼントやお祝いの話題を自然に出す
 - 今日だけは特別扱い。最高の1日にする`);
+      }
+    }
+    const userBirthMM_DD = memory.userBirthday.slice(5);
+    if (userBirthMM_DD === todayMM_DD) {
       parts.push(`## 🎉 特別モード: 今日は${memory.userName}の誕生日！
 - 今日は相手の誕生日！全力でお祝いする
 - 心からの「おめでとう」を最初に伝える

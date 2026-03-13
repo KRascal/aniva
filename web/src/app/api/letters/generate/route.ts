@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface FactEntry {
   fact: string;
@@ -233,7 +234,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ letter, cached: false });
   } catch (err) {
-    console.error('[letters/generate] Error:', err);
+    logger.error('[letters/generate] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

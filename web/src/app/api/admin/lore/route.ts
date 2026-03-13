@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listFranchises, listLoreEntries, createLoreEntry } from '@/lib/lore-engine';
-import { requireAdmin } from '@/lib/admin';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 // GET /api/admin/lore?franchiseId=xxx&category=yyy
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const franchiseId = searchParams.get('franchiseId');
 
@@ -24,8 +21,6 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/lore
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json();
   const { franchiseId, title, content, category, keywords, importance, spoilerLevel } = body;
 

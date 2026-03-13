@@ -1,13 +1,11 @@
 'use client';
 
-import { CoinIcon } from '@/components/ui/CoinIcon';
-
 export default function CoinsError({ reset }: { error: Error; reset: () => void }) {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
         <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mx-auto mb-4">
-          <CoinIcon size={32} />
+          <span className="text-3xl">🪙</span>
         </div>
         <h2 className="text-white font-bold text-lg mb-2">コインページを読み込めませんでした</h2>
         <p className="text-gray-400 text-sm mb-6">しばらく時間をおいて再度お試しください</p>

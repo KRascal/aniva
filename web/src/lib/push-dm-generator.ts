@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * push-dm-generator.ts
  * プッシュDM用 AI メッセージ生成ロジック
@@ -160,7 +161,7 @@ async function callLLM(systemPrompt: string, userMessage: string): Promise<strin
       if (text) return text;
     } else {
       const errText = await res.text();
-      console.error(`[push-dm-generator] xAI error ${res.status}: ${errText}`);
+      logger.error(`[push-dm-generator] xAI error ${res.status}: ${errText}`);
     }
   }
 

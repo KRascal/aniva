@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -71,7 +72,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[Community] GET error:', error);
+    logger.error('[Community] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -122,7 +123,7 @@ export async function POST(
 
     return NextResponse.json({ thread }, { status: 201 });
   } catch (error) {
-    console.error('[Community] POST error:', error);
+    logger.error('[Community] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -153,14 +153,14 @@ export function ChatMenu({
     {
       icon: <IconBrain />,
       label: '記憶',
-      sublabel: 'キャラが覚えていること',
+      sublabel: 'あなたについての記憶',
       href: `/chat/${characterId}/memory`,
       accent: 'text-purple-400 bg-purple-500/15',
     },
     {
       icon: <IconMemory />,
       label: '思い出',
-      sublabel: 'エピソードタイムライン',
+      sublabel: '二人の会話ハイライト',
       accent: 'text-amber-400 bg-amber-500/15',
       onClick: () => setShowMemory((v) => !v),
     },
@@ -300,7 +300,7 @@ export function ChatMenu({
             }
             if (item.href && !item.comingSoon) {
               return (
-                <a key={item.label} href={item.href} onClick={onClose} className={`${baseClass} ${hoverClass}`}>
+                <a key={item.label} href={item.href} className={`${baseClass} ${hoverClass}`}>
                   {content}
                 </a>
               );

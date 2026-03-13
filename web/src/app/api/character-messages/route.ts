@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // キャラ別の「呼びかけメッセージ」テンプレート（24h/48h/72h）
 const CHARACTER_CALL_MESSAGES: Record<string, { h24: string[]; h48: string[]; h72: string[] }> = {
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
     // 最大3件まで（圧迫しない）
     return NextResponse.json(notifications.slice(0, 3));
   } catch (error) {
-    console.error('[character-messages] error:', error);
+    logger.error('[character-messages] error:', error);
     return NextResponse.json([], { status: 200 });
   }
 }

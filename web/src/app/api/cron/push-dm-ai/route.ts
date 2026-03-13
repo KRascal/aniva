@@ -133,12 +133,10 @@ export async function POST(req: NextRequest) {
     // 5. 誕生日チェック
     let birthdayHint = '';
     if (rel.user.birthday) {
-      const bday = rel.user.birthday instanceof Date ? rel.user.birthday : new Date(rel.user.birthday);
+      const [, bm, bd] = rel.user.birthday.split('-');
       const nowJst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
       const todayMM = String(nowJst.getUTCMonth() + 1).padStart(2, '0');
       const todayDD = String(nowJst.getUTCDate()).padStart(2, '0');
-      const bm = String(bday.getUTCMonth() + 1).padStart(2, '0');
-      const bd = String(bday.getUTCDate()).padStart(2, '0');
       if (bm === todayMM && bd === todayDD) {
         birthdayHint = `\n[特別指示] 今日は${userName}の誕生日！全力でおめでとうを伝えてください。サプライズ感を出して。`;
       }

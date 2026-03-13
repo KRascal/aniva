@@ -4,7 +4,7 @@ import { join } from 'path';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
-import { cacheInvalidate, CACHE_KEYS } from '@/lib/redis-cache';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -129,16 +129,12 @@ export async function POST(req: NextRequest) {
       writeFileSync(soulPath, soulContent, 'utf-8');
     }
   } catch (e) {
-    console.warn('[admin/characters] SOUL.md generation failed:', e);
+    logger.warn('[admin/characters] SOUL.md generation failed:', e);
   }
 
   await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_CREATE, admin.email, {
     characterId: character.id, name, slug, franchise,
   });
-
-  // キャラ一覧キャッシュを破棄
-  await cacheInvalidate(CACHE_KEYS.CHARACTERS_LIST);
-  await cacheInvalidate('characters:search:*');
 
   return NextResponse.json(character, { status: 201 });
 }
@@ -219,10 +215,6 @@ export async function PUT(req: NextRequest) {
     { characterId: id, ...changes }
   );
 
-  // キャラ一覧キャッシュを破棄
-  await cacheInvalidate(CACHE_KEYS.CHARACTERS_LIST);
-  await cacheInvalidate('characters:search:*');
-
   return NextResponse.json(character);
 }
 
@@ -240,10 +232,6 @@ export async function DELETE(req: NextRequest) {
   await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_DELETE, admin.email, {
     characterId: id, name: char?.name, slug: char?.slug,
   });
-
-  // キャラ一覧キャッシュを破棄
-  await cacheInvalidate(CACHE_KEYS.CHARACTERS_LIST);
-  await cacheInvalidate('characters:search:*');
 
   return NextResponse.json({ ok: true });
 }

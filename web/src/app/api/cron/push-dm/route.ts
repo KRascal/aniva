@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   // CRON_SECRET 認証チェック
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const body = await res.text();
-      console.error('[cron/push-dm] character-notify failed:', res.status, body);
+      logger.error('[cron/push-dm] character-notify failed', { status: res.status, body });
       return NextResponse.json(
         { error: 'character-notify returned non-OK', status: res.status, body },
         { status: 502 },
@@ -38,10 +39,10 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log('[cron/push-dm] push sent:', JSON.stringify(data));
+    logger.info('[cron/push-dm] push sent', { data });
     return NextResponse.json({ ok: true, result: data });
   } catch (err) {
-    console.error('[cron/push-dm] unexpected error:', err);
+    logger.error('[cron/push-dm] unexpected error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

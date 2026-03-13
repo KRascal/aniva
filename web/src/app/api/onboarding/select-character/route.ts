@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const DEFAULT_GREETINGS = ['…ねぇ', '…やっと来たね', '…気がついた？'];
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Verify user exists in DB — auto-create if missing (JWT strategy can skip adapter)
     let userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
     if (!userExists) {
-      console.warn('[select-character] User not found in DB, auto-creating:', userId);
+      logger.warn('[select-character] User not found in DB, auto-creating:', userId);
       const email = session?.user?.email;
       const name = session?.user?.name as string | undefined;
       // Check if user exists by email (prevent duplicates)
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
         if (byEmail) {
           // Email already exists with different ID — use that user
           // Note: JWT has wrong ID, but we proceed with the correct DB user
-          console.warn('[select-character] Found existing user by email, using:', byEmail.id);
+          logger.warn('[select-character] Found existing user by email, using:', byEmail.id);
           userExists = byEmail as any;
         }
       }
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
             },
           }) as any;
         } catch (e) {
-          console.error('[select-character] Failed to auto-create user:', e);
+          logger.error('[select-character] Failed to auto-create user:', e);
           return NextResponse.json(
             { success: false, error: { code: 'USER_NOT_FOUND', message: 'ユーザー作成に失敗しました。再ログインしてください。' } },
             { status: 404 },
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Onboarding select-character error:', error);
+    logger.error('Onboarding select-character error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'サーバーエラーが発生しました' } },
       { status: 500 },

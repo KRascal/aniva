@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 type EmotionKey = 'happy' | 'excited' | 'sad' | 'angry' | 'embarrassed' | 'love' | 'neutral';
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   if (!response.ok) {
     const err = await response.text();
-    console.error('[VoiceStream] ElevenLabs error:', response.status, err);
+    logger.error('[VoiceStream] ElevenLabs error', { status: response.status, error: err });
     return NextResponse.json({ error: 'Voice generation failed' }, { status: 502 });
   }
 

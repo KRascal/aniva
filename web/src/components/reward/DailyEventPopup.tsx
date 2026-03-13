@@ -11,7 +11,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ============================================================
 // 型定義
@@ -263,7 +262,7 @@ function RareDayModal({
             <div className="mt-4 flex justify-center gap-4 text-sm">
               {bonusCoins && (
                 <span className="rounded-full bg-purple-700/60 px-3 py-1 text-purple-100">
-                  <span className="inline-flex items-center gap-1"><CoinIcon size={14} /> +{bonusCoins} コイン</span>
+                  🪙 +{bonusCoins} コイン
                 </span>
               )}
               {bonusXpMultiplier && bonusXpMultiplier > 1 && (
@@ -415,7 +414,7 @@ function UltraRareDayScreen({
                 <div className="mt-4 flex justify-center gap-3 text-sm">
                   {bonusCoins && (
                     <span className="rounded-full bg-amber-200 px-3 py-1 text-amber-800 font-semibold">
-                      <span className="inline-flex items-center gap-1"><CoinIcon size={14} /> +{bonusCoins} コイン</span>
+                      🪙 +{bonusCoins} コイン
                     </span>
                   )}
                   {bonusXpMultiplier && bonusXpMultiplier > 1 && (

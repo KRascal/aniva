@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const EMOJI_CONTEXT: Record<string, string> = {
   '❤️': 'ユーザーがハートのリアクションを送った（愛情・好き・照れ）',
@@ -94,7 +95,7 @@ ${lastMessage ? `直前のメッセージ: 「${lastMessage}」` : ''}
 
     return NextResponse.json({ response });
   } catch (err) {
-    console.error('[reaction-response] Error:', err);
+    logger.error('[reaction-response] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

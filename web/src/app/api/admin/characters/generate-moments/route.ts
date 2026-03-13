@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
@@ -59,7 +60,7 @@ ${catchphrasesText ? `キャッチフレーズ: ${catchphrasesText}` : ''}
       momentsData = [];
     }
   } catch (err) {
-    console.error('Claude API error:', err);
+    logger.error('Claude API error:', err);
     return NextResponse.json({ error: 'AI生成に失敗しました' }, { status: 500 });
   }
 
@@ -86,7 +87,7 @@ ${catchphrasesText ? `キャッチフレーズ: ${catchphrasesText}` : ''}
       select: { id: true, mediaUrl: true, content: true },
     });
   } catch (err) {
-    console.error('DB insert error:', err);
+    logger.error('DB insert error:', err);
     return NextResponse.json({ error: 'DBへの書き込みに失敗しました' }, { status: 500 });
   }
 

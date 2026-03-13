@@ -12,6 +12,7 @@
 
 import { prisma } from './prisma';
 import { getEmbedding } from './semantic-memory';
+import { logger } from '@/lib/logger';
 
 // ============================================================
 // Types
@@ -139,7 +140,7 @@ export async function getRelevantLore(
         LIMIT $3
       `, franchiseId, keywords, limit * 2);
     } catch (e) {
-      console.warn('[LoreEngine] Keyword search failed:', e);
+      logger.warn('[LoreEngine] Keyword search failed:', e);
     }
   }
 
@@ -161,7 +162,7 @@ export async function getRelevantLore(
       `, `[${embedding.join(',')}]`, franchiseId, limit * 2);
     }
   } catch (e) {
-    console.warn('[LoreEngine] Semantic search failed (falling back to keyword only):', e);
+    logger.warn('[LoreEngine] Semantic search failed (falling back to keyword only):', e);
   }
 
   // Phase 3: マージ + ランキング
@@ -309,7 +310,7 @@ export async function createLoreEntry(data: {
 
   // 非同期でembedding生成
   generateEmbedding(id, data.content).catch(e => 
-    console.warn('[LoreEngine] Embedding generation failed:', e)
+    logger.warn('[LoreEngine] Embedding generation failed:', e)
   );
 
   return { id };
@@ -341,7 +342,7 @@ export async function updateLoreEntry(id: string, data: Partial<{
   // contentが更新されたらembeddingも再生成
   if (data.content) {
     generateEmbedding(id, data.content).catch(e =>
-      console.warn('[LoreEngine] Embedding re-generation failed:', e)
+      logger.warn('[LoreEngine] Embedding re-generation failed:', e)
     );
   }
 }
@@ -361,14 +362,11 @@ async function generateEmbedding(entryId: string, content: string) {
   try {
     const embedding = await getEmbedding(content);
     if (embedding && embedding.length > 0) {
-      const vecStr = `[${embedding.join(',')}]`;
-      await prisma.$executeRawUnsafe(
-        `UPDATE "LoreEntry" SET embedding = $1::vector WHERE id = $2`,
-        vecStr,
-        entryId,
-      );
+      await prisma.$executeRawUnsafe(`
+        UPDATE "LoreEntry" SET embedding = '[${embedding.join(',')}]'::vector WHERE id = '${entryId}'
+      `);
     }
   } catch (e) {
-    console.warn('[LoreEngine] generateEmbedding error:', e);
+    logger.warn('[LoreEngine] generateEmbedding error:', e);
   }
 }

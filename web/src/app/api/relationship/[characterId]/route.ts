@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -72,11 +73,12 @@ export async function GET(
       isFollowing: relationship.isFollowing,
       sharedTopics, // 覚えてくれてる記憶の可視化
       streakDays: isStreakActive ? streakDays : 0,
+      previousStreakDays: streakDays, // UI用: ストリーク途切れ時に元の日数を表示
       isStreakActive,
       preferences, // あなただけの設定（IKEA効果）
     });
   } catch (error) {
-    console.error('[relationship/characterId] error:', error);
+    logger.error('[relationship/characterId] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -133,7 +135,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, preferences: updatedMemo.preferences });
   } catch (error) {
-    console.error('[relationship/characterId PATCH] error:', error);
+    logger.error('[relationship/characterId PATCH] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   // 本番環境では無効化（L-3修正）
@@ -74,7 +75,7 @@ export async function POST() {
 
     return NextResponse.json({ message: `Created ${created.length} moments`, moments: created });
   } catch (error) {
-    console.error('POST /api/moments/seed error:', error);
+    logger.error('POST /api/moments/seed error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

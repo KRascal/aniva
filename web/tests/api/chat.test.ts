@@ -39,6 +39,7 @@ vi.mock('@/lib/prisma', () => ({
     relationship: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
     conversation: {
       findFirst: vi.fn(),
@@ -48,6 +49,7 @@ vi.mock('@/lib/prisma', () => ({
     message: {
       create: vi.fn(),
       count: vi.fn(),
+      findMany: vi.fn(),
     },
     coinBalance: {
       upsert: vi.fn(),
@@ -89,6 +91,37 @@ vi.mock('@/lib/resolve-character', () => ({
 // ── Semantic Memory モック ─────────────────────────────────────────────────────
 vi.mock('@/lib/semantic-memory', () => ({
   extractAndStoreMemories: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ── Message Weight モック ──────────────────────────────────────────────────────
+vi.mock('@/lib/message-weight', () => ({
+  shouldUseDeepMode: vi.fn().mockReturnValue(false),
+}));
+
+// ── Thinking Reactions モック ──────────────────────────────────────────────────
+vi.mock('@/lib/thinking-reactions', () => ({
+  getThinkingReaction: vi.fn().mockReturnValue('考え中...'),
+}));
+
+// ── Ranking System モック ─────────────────────────────────────────────────────
+vi.mock('@/lib/ranking-system', () => ({
+  addChatScore: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ── Image Analysis モック ─────────────────────────────────────────────────────
+vi.mock('@/lib/image-analysis', () => ({
+  analyzeImage: vi.fn().mockResolvedValue(null),
+  imageAnalysisToPromptHint: vi.fn().mockReturnValue(''),
+}));
+
+// ── Image Character Reaction モック ───────────────────────────────────────────
+vi.mock('@/lib/image-character-reaction', () => ({
+  getCharacterImagePrompt: vi.fn().mockReturnValue(null),
+}));
+
+// ── Multimodal Memory モック ──────────────────────────────────────────────────
+vi.mock('@/lib/multimodal-memory', () => ({
+  storeImageMemory: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { auth } from '@/lib/auth';
@@ -139,6 +172,7 @@ function setupDefaultMocks() {
     .mockResolvedValueOnce(userMsg as any)
     .mockResolvedValueOnce(charMsg as any);
   vi.mocked(prisma.message.count).mockResolvedValue(2);
+  vi.mocked(prisma.message.findMany).mockResolvedValue([]);
 
   vi.mocked(prisma.coinBalance.findUnique).mockResolvedValue({
     userId: 'user1', balance: 100, freeBalance: 50, paidBalance: 50,

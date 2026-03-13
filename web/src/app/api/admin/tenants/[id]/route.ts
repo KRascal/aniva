@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ tenant: updated });
   } catch (err) {
-    console.error('[admin/tenants PUT]', err);
+    logger.error('[admin/tenants PUT]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -44,7 +45,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     await prisma.tenant.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[admin/tenants DELETE]', err);
+    logger.error('[admin/tenants DELETE]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

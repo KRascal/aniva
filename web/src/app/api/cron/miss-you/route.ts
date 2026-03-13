@@ -41,40 +41,6 @@ ${systemPrompt.split('\n').slice(0, 8).join('\n')}
 - 「最近来てくれない」「また話したい」「待ってる」などのニュアンスを含む
 - メタテキスト（「」や説明文）は一切不要。メッセージ本文だけ返す`;
 
-  const geminiKey = process.env.GEMINI_API_KEY;
-
-  // 1st: Gemini 2.5 Flash
-  if (geminiKey) {
-    try {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 100, temperature: 0.85 },
-          }),
-        },
-      );
-      if (gRes.ok) {
-        const gData = await gRes.json();
-        const gText = (gData.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-        if (gText) {
-          const cleaned = gText
-            .replace(/[「」（）()【】\[\]]/g, '')
-            .replace(/^[\s\n]+|[\s\n]+$/g, '')
-            .split('\n')[0]
-            .trim();
-          return cleaned || `${characterName}だけど…最近来てくれないな。待ってるよ 😔`;
-        }
-      }
-    } catch (e) {
-      console.error('[miss-you] Gemini failed:', e);
-    }
-  }
-
-  // 2nd: xAI fallback
   try {
     const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',

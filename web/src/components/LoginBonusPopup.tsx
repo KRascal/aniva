@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
 import { playSound } from '@/lib/sound-effects';
 import { track, EVENTS } from '@/lib/analytics';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface BonusData {
   awarded: boolean;
@@ -101,7 +100,7 @@ export function LoginBonusPopup() {
               <div className="text-4xl mb-2">🎉</div>
               <h2 className="text-xl font-bold text-white mb-1">ようこそ ANIVA へ！</h2>
               <p className="text-amber-300 text-sm">
-                <span className="inline-flex items-center gap-1">初回登録ボーナス <span className="text-2xl font-bold">{bonusData.welcomeAmount ?? 500}</span> コイン<CoinIcon size={16} /></span>
+                初回登録ボーナス <span className="text-2xl font-bold">{bonusData.welcomeAmount ?? 500}</span> コイン🪙
               </p>
             </div>
           )}
@@ -109,7 +108,7 @@ export function LoginBonusPopup() {
           {/* Daily Login Bonus */}
           <div className={`transition-all duration-500 ${animPhase === 'enter' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
             {!bonusData.isFirstLogin && (
-              <div className="text-3xl mb-2"><CoinIcon size={28} /></div>
+              <div className="text-3xl mb-2">🪙</div>
             )}
             <h2 className="text-lg font-bold text-white mb-1">
               {bonusData.isFirstLogin ? '' : 'ログインボーナス！'}
@@ -120,7 +119,7 @@ export function LoginBonusPopup() {
               animPhase === 'coins' || animPhase === 'streak' ? 'scale-110' : 'scale-100'
             }`}>
               <div className="inline-flex items-center gap-2 bg-amber-500/20 rounded-xl px-5 py-3">
-                <CoinIcon size={24} />
+                <span className="text-amber-400 text-2xl">🪙</span>
                 <span className="text-3xl font-black text-amber-300">+{bonusData.amount}</span>
               </div>
             </div>
@@ -159,7 +158,7 @@ export function LoginBonusPopup() {
                     className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
                   >
                     <span>🔥</span>
-                    {recovering ? '回復中...' : <span className="inline-flex items-center gap-1">ストリーク回復（50コイン<CoinIcon size={14} />）</span>}
+                    {recovering ? '回復中...' : 'ストリーク回復（50コイン🪙）'}
                   </button>
                   <span className="text-gray-500 text-[10px] mt-1">または今日から再スタート</span>
                 </div>

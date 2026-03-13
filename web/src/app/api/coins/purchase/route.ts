@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { CoinTxType } from '@prisma/client';
-import { paymentLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 interface PurchaseRequest {
   packageId: string;
@@ -18,10 +18,6 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const userId = session?.user?.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Rate limit: 5リクエスト/分
-    const { success: rlOk } = await paymentLimiter.check(userId);
-    if (!rlOk) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
     const body: PurchaseRequest = await req.json();
     const { packageId, successUrl, cancelUrl } = body;
@@ -123,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ checkoutUrl: checkoutSession.url });
   } catch (error) {
-    console.error('Coin purchase error:', error);
+    logger.error('Coin purchase error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

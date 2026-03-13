@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/voice/session
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
-      console.error('[Voice Session] Failed to get ephemeral token:', tokenRes.status, errText);
+      logger.error('[Voice Session] Failed to get ephemeral token', { status: tokenRes.status, error: errText });
       return NextResponse.json({ error: 'Failed to create voice session' }, { status: 502 });
     }
 
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
       wsUrl: 'wss://api.x.ai/v1/realtime',
     });
   } catch (error) {
-    console.error('[Voice Session] Error:', error);
+    logger.error('[Voice Session] Error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

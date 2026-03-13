@@ -5,7 +5,7 @@
  * - POST /api/fc/subscribe
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // ── Prisma モック ──────────────────────────────────────────────────────────────
@@ -21,6 +21,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     characterSubscription: {
       findFirst: vi.fn(),
+      create: vi.fn(),
     },
   },
 }));
@@ -150,11 +151,23 @@ describe('POST /api/subscription/create', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('POST /api/fc/subscribe', () => {
   let POST: (req: NextRequest) => Promise<Response>;
+  const origEnv = { ...process.env };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Stripe Checkout フローをテストするため DEMO_MODE を無効化
+    process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
+    process.env.DEMO_MODE = 'false';
     const mod = await import('@/app/api/fc/subscribe/route');
     POST = mod.POST;
+  });
+
+  afterEach(() => {
+    // 環境変数を元に戻す
+    if (origEnv.STRIPE_SECRET_KEY === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = origEnv.STRIPE_SECRET_KEY;
+    if (origEnv.DEMO_MODE === undefined) delete process.env.DEMO_MODE;
+    else process.env.DEMO_MODE = origEnv.DEMO_MODE;
   });
 
   it('未認証 → 401', async () => {

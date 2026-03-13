@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
@@ -20,10 +21,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'No relationships found', count: 0 });
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY;
     const xaiKey = process.env.XAI_API_KEY;
-    if (!geminiKey && !xaiKey) {
-      return NextResponse.json({ error: 'No LLM API key set (GEMINI/XAI)' }, { status: 500 });
+    if (!xaiKey) {
+      return NextResponse.json({ error: 'XAI_API_KEY not set' }, { status: 500 });
     }
 
     let generated = 0;
@@ -92,56 +92,27 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
 - 温かく短い手紙`;
 
       try {
-        let letterContent: string | null = null;
+        const res = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: process.env.LLM_MODEL || 'grok-3-mini',
+            messages: [
+              { role: 'system', content: letterPrompt },
+              { role: 'user', content: `${currentMonth}の手紙を書いてください。` },
+            ],
+            max_tokens: isFc ? 900 : 500,
+            temperature: 0.9,
+          }),
+        });
 
-        // 1st: Gemini 2.5 Flash
-        if (geminiKey && !letterContent) {
-          try {
-            const gRes = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  systemInstruction: { parts: [{ text: letterPrompt }] },
-                  contents: [{ parts: [{ text: `${currentMonth}の手紙を書いてください。` }] }],
-                  generationConfig: { maxOutputTokens: isFc ? 900 : 500, temperature: 0.85 },
-                }),
-              },
-            );
-            if (gRes.ok) {
-              const gData = await gRes.json();
-              letterContent = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-            }
-          } catch (e) {
-            console.error(`[monthly-letter] Gemini failed for ${rel.character.name}:`, e);
-          }
+        if (!res.ok) {
+          logger.error(`[monthly-letter] API error for ${rel.character.name} → ${userName}: ${res.status}`);
+          continue;
         }
 
-        // 2nd: xAI fallback
-        if (!letterContent && xaiKey) {
-          const res = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: process.env.LLM_MODEL || 'grok-3-mini',
-              messages: [
-                { role: 'system', content: letterPrompt },
-                { role: 'user', content: `${currentMonth}の手紙を書いてください。` },
-              ],
-              max_tokens: isFc ? 900 : 500,
-              temperature: 0.9,
-            }),
-          });
-
-          if (!res.ok) {
-            console.error(`[monthly-letter] xAI error for ${rel.character.name} → ${userName}: ${res.status}`);
-          } else {
-            const data = await res.json();
-            letterContent = data.choices?.[0]?.message?.content?.trim() || null;
-          }
-        }
-
+        const data = await res.json();
+        const letterContent = data.choices?.[0]?.message?.content;
         if (!letterContent) continue;
 
         await prisma.letter.create({
@@ -157,7 +128,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
 
         generated++;
       } catch (err) {
-        console.error(`[monthly-letter] Failed for ${rel.id}:`, err);
+        logger.error(`[monthly-letter] Failed for ${rel.id}:`, err);
       }
     }
 
@@ -168,7 +139,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
       total: relationships.length,
     });
   } catch (err) {
-    console.error('[monthly-letter] Error:', err);
+    logger.error('[monthly-letter] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

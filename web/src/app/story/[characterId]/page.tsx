@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useBGM } from '@/hooks/useBGM';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ユーザー名をストーリーテキストに挿入（{{userName}} → 実際の名前）
 function insertUserName(text: string, userName: string): string {
@@ -39,7 +38,6 @@ interface ChapterData {
 interface StoryData {
   chapters: ChapterData[];
   characterName: string;
-  characterAvatarUrl?: string | null;
   userLevel: number;
   isFcMember: boolean;
 }
@@ -64,6 +62,7 @@ export default function StoryPage() {
 
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<ChapterData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastMsg>({ message: '', visible: false });
@@ -81,10 +80,21 @@ export default function StoryPage() {
         router.push('/');
         return;
       }
+      if (!res.ok) {
+        console.error('Story fetch failed:', res.status);
+        setError('ストーリーの読み込みに失敗しました');
+        return;
+      }
       const data = await res.json() as StoryData;
+      if (!data.chapters || data.chapters.length === 0) {
+        setError('この子のストーリーは準備中です');
+        return;
+      }
       setStoryData(data);
+      setError(null);
     } catch (err) {
       console.error('Failed to fetch story:', err);
+      setError('ネットワークエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -146,10 +156,24 @@ export default function StoryPage() {
     );
   }
 
-  if (!storyData) {
+  if (error || !storyData) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400 text-lg">この子の物語はまだ始まっていない…</div>
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 px-6">
+        <div className="text-gray-400 text-lg text-center">{error ?? 'この子の物語はまだ始まっていない…'}</div>
+        {error && (
+          <button
+            onClick={() => { setLoading(true); setError(null); void fetchStory(); }}
+            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all"
+          >
+            もう一度試す
+          </button>
+        )}
+        <button
+          onClick={() => router.back()}
+          className="text-gray-500 text-sm hover:text-gray-300 transition-colors"
+        >
+          ← 戻る
+        </button>
       </div>
     );
   }
@@ -169,18 +193,11 @@ export default function StoryPage() {
       <header className="relative z-10 border-b border-gray-800 bg-gray-950 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
-            onClick={() => router.push(`/profile/${characterId}`)}
-            className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/30 hover:ring-purple-500/60 transition-all"
-            aria-label="キャラページへ"
+            onClick={() => router.back()}
+            className="text-gray-400 hover:text-white transition-colors p-1"
+            aria-label="戻る"
           >
-            {storyData.characterAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={storyData.characterAvatarUrl} alt={storyData.characterName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
-                {storyData.characterName?.charAt(0) ?? '?'}
-              </div>
-            )}
+            ← 戻る
           </button>
           <div>
             <h1 className="text-white font-bold text-xl">
@@ -257,7 +274,7 @@ function RewardAnimation({
               className="text-2xl font-bold text-yellow-400 drop-shadow-lg"
               style={{ animation: 'reward-float 1.5s ease-out forwards' }}
             >
-              <span className="inline-flex items-center gap-1">+{coinsEarned}<CoinIcon size={28} /></span>
+              +{coinsEarned}🪙
             </div>
           )}
           {xpEarned > 0 && (

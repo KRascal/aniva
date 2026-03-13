@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/feedback — ユーザーからの違和感報告
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id, ok: true }, { status: 201 });
   } catch (e) {
-    console.error('[Feedback API] Error:', e);
+    logger.error('[Feedback API] Error:', e);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

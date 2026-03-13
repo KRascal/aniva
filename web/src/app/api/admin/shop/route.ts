@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 // GET: 商品一覧（管理者用・全件、非アクティブ含む）
 export async function GET(req: NextRequest) {
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ items, total });
   } catch (error) {
-    console.error('[GET /api/admin/shop]', error);
+    logger.error('[GET /api/admin/shop]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
-    console.error('[POST /api/admin/shop]', error);
+    logger.error('[POST /api/admin/shop]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -143,7 +144,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ item });
   } catch (error) {
-    console.error('[PUT /api/admin/shop]', error);
+    logger.error('[PUT /api/admin/shop]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -178,7 +179,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true, item });
   } catch (error) {
-    console.error('[DELETE /api/admin/shop]', error);
+    logger.error('[DELETE /api/admin/shop]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -35,20 +35,10 @@ export function SwipeModal({ onClose }: SwipeModalProps) {
   useEffect(() => {
     (async () => {
       try {
-        // フォロー済みキャラIDを取得してclient-sideでも除外する（API認証漏れ対策）
-        const [charRes, followRes] = await Promise.all([
-          fetch('/api/characters?limit=30&random=1&excludeFollowing=true', { credentials: 'include' }),
-          fetch('/api/characters?followingOnly=true', { credentials: 'include' }),
-        ]);
-        let followedCharIds: string[] = [];
-        if (followRes.ok) {
-          const followData = await followRes.json();
-          followedCharIds = (followData.characters ?? []).map((c: { id: string }) => c.id);
-        }
-        if (charRes.ok) {
-          const data = await charRes.json();
+        const res = await fetch('/api/characters?limit=20&random=1');
+        if (res.ok) {
+          const data = await res.json();
           const chars = (data.characters ?? [])
-            .filter((c: { id: string }) => !followedCharIds.includes(c.id))
             .sort(() => Math.random() - 0.5)
             .slice(0, 10);
           setCharacters(chars);

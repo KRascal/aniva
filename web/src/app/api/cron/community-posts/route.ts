@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
+import { logger } from '@/lib/logger';
 
 /**
  * コミュニティ掲示板 キャラ自発書き込みCron
@@ -114,7 +115,7 @@ ${recentTitles || '（なし）'}
 
         postedCount++;
       } catch (e) {
-        console.error(`[community-posts] ${character.name} error:`, e);
+        logger.error(`[community-posts] ${character.name} error:`, e);
         continue;
       }
     }
@@ -125,7 +126,7 @@ ${recentTitles || '（なし）'}
       timeOfDay,
     });
   } catch (error) {
-    console.error('[community-posts] Cron error:', error);
+    logger.error('[community-posts] Cron error:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/moments/[momentId]/comments/[commentId]/like
@@ -72,7 +73,7 @@ export async function POST(
     const likeCount = await prisma.commentLike.count({ where: { commentId } });
     return NextResponse.json({ liked, likeCount });
   } catch (error) {
-    console.error('Comment like error:', error);
+    logger.error('Comment like error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

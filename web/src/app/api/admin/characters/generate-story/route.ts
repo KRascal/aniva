@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,7 +102,7 @@ ${catchphrasesText ? `キャッチフレーズ: ${catchphrasesText}` : ''}
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('xAI API error:', err);
+      logger.error('xAI API error:', err);
       return NextResponse.json({ error: 'AI生成に失敗しました' }, { status: 500 });
     }
 
@@ -113,7 +114,7 @@ ${catchphrasesText ? `キャッチフレーズ: ${catchphrasesText}` : ''}
     chaptersData = JSON.parse(jsonStr);
     if (!Array.isArray(chaptersData)) chaptersData = [];
   } catch (err) {
-    console.error('xAI parse error:', err);
+    logger.error('xAI parse error:', err);
     return NextResponse.json({ error: 'AI生成の解析に失敗しました' }, { status: 500 });
   }
 
@@ -138,7 +139,7 @@ ${catchphrasesText ? `キャッチフレーズ: ${catchphrasesText}` : ''}
       created.push(chapter);
     }
   } catch (err) {
-    console.error('DB insert error:', err);
+    logger.error('DB insert error:', err);
     return NextResponse.json({ error: 'DBへの書き込みに失敗しました' }, { status: 500 });
   }
 

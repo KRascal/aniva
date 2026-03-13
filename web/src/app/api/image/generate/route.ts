@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/image/generate
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('[ImageGenerate] xAI error:', res.status, errText);
+      logger.error('[ImageGenerate] xAI error', { status: res.status, error: errText });
       return NextResponse.json({ imageUrl: null, reason: 'generation_failed' });
     }
 
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ imageUrl });
   } catch (error) {
-    console.error('[ImageGenerate] error:', error);
+    logger.error('[ImageGenerate] error:', error);
     return NextResponse.json({ imageUrl: null, reason: 'internal_error' });
   }
 }

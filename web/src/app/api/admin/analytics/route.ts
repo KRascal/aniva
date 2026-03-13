@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -163,7 +164,7 @@ export async function GET() {
     totalConversations: (conversationsRaw as { day: string; count: string }[]).reduce((s, r) => s + Number(r.count), 0),
   });
   } catch (error) {
-    console.error('[admin/analytics] GET error:', error);
+    logger.error('[admin/analytics] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

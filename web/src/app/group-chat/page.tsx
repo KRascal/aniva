@@ -55,25 +55,6 @@ export default function GroupChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // メッセージ変更時にlocalStorageに保存（chat/page.tsx の読み込みと互換フォーマット）
-  useEffect(() => {
-    if (typeof window === 'undefined' || selectedChars.length < 2 || messages.length === 0) return;
-    // 空の初期メッセージ（チャット開始トリガー）は除外
-    const savableMessages = messages.filter(m => m.content);
-    if (savableMessages.length === 0) return;
-    const sortedIds = selectedChars.map(c => c.id).sort();
-    const key = `group-chat-${sortedIds.join('-')}`;
-    const serialized = savableMessages.map(m => ({
-      content: m.content,
-      characterName: m.type === 'character' ? (m.characterName ?? '') : '',
-      role: m.type === 'user' ? 'USER' : 'CHARACTER',
-      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : new Date(m.timestamp).toISOString(),
-    }));
-    try {
-      localStorage.setItem(key, JSON.stringify(serialized));
-    } catch { /* quota exceeded — ignore */ }
-  }, [messages, selectedChars]);
-
   const toggleCharacter = (char: GroupCharacter) => {
     setSelectedChars(prev => {
       if (prev.find(c => c.id === char.id)) {
@@ -142,7 +123,7 @@ export default function GroupChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col max-w-md mx-auto pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col max-w-md mx-auto">
       {/* ヘッダー */}
       <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-3">
@@ -261,7 +242,7 @@ export default function GroupChatPage() {
 
       {/* 入力エリア */}
       {messages.length > 0 && (
-        <div className="sticky bottom-[72px] bg-[#0a0a0a]/95 backdrop-blur border-t border-white/5 p-4 z-10">
+        <div className="sticky bottom-0 bg-[#0a0a0a]/95 backdrop-blur border-t border-white/5 p-4">
           <div className="flex gap-2">
             <input
               type="text"

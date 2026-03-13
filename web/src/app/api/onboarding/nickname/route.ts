@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Onboarding nickname error:', error);
+    logger.error('Onboarding nickname error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'サーバーエラーが発生しました' } },
       { status: 500 },

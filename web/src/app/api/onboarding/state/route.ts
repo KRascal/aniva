@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -59,7 +60,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Onboarding state error:', error);
+    logger.error('Onboarding state error:', error);
     return NextResponse.json({ success: true, data: { phase: 'welcome' } });
   }
 }

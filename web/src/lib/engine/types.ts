@@ -27,7 +27,7 @@ export interface UserRecord {
   id: string;
   displayName?: string | null;
   nickname?: string | null;
-  birthday?: Date | string | null;
+  birthday?: string | null;
 }
 
 /** DBから取得する関係性レコードの型 */
@@ -125,7 +125,7 @@ export interface MemoryContext {
   characterEmotion?: string;
   characterEmotionNote?: string | null;
   emotionUpdatedAt?: Date | null;
-  userBirthday?: Date | string | null;
+  userBirthday?: string | null;
   factMemory?: FactEntry[];
   episodeMemory?: EpisodeEntry[];
   emotionMemory?: EmotionEntry[];

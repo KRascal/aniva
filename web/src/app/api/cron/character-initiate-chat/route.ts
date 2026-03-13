@@ -13,6 +13,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 function readSoulMd(slug: string): string {
   const paths = [
@@ -27,7 +28,6 @@ function readSoulMd(slug: string): string {
 }
 
 async function generateMessage(systemPrompt: string, soulMd: string, characterName: string, userName: string): Promise<string> {
-  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
@@ -43,32 +43,6 @@ ${soulMd ? `\n[キャラ詳細]\n${soulMd.split(/\n##/)[0].trim()}` : ''}
 
   const userMsg = `${characterName}が${userName}に、久しぶりに（または日常的に）DMで話しかける最初のメッセージを生成せよ。短く自然に。`;
 
-  // 1st: Gemini 2.5 Flash
-  if (geminiKey) {
-    try {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: system }] },
-            contents: [{ parts: [{ text: userMsg }] }],
-            generationConfig: { maxOutputTokens: 150, temperature: 0.85 },
-          }),
-        },
-      );
-      if (gRes.ok) {
-        const gData = await gRes.json();
-        const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        if (gText) return gText;
-      }
-    } catch (e) {
-      console.error('[character-initiate-chat] Gemini failed:', e);
-    }
-  }
-
-  // 2nd: xAI fallback
   if (xaiKey) {
     const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -83,14 +57,11 @@ ${soulMd ? `\n[キャラ詳細]\n${soulMd.split(/\n##/)[0].trim()}` : ''}
         temperature: 0.95,
       }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content?.trim() || '';
-      if (text) return text;
-    }
+    if (!res.ok) throw new Error(`xAI error ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
   }
 
-  // 3rd: Anthropic fallback
   if (anthropicKey) {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: anthropicKey });
@@ -186,7 +157,7 @@ export async function POST(req: NextRequest) {
 
         results.push(`${rel.character.name} → ${userName} (conv: ${conversation.id})`);
       } catch (err) {
-        console.error(`[character-initiate-chat] Failed for ${rel.character.name}:`, err);
+        logger.error(`[character-initiate-chat] Failed for ${rel.character.name}:`, err);
       }
     }
 
@@ -197,7 +168,7 @@ export async function POST(req: NextRequest) {
       details: results,
     });
   } catch (error) {
-    console.error('[character-initiate-chat] error:', error);
+    logger.error('[character-initiate-chat] error:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

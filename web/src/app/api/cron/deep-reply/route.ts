@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { processDeepReply } from '@/lib/deep-reply-processor';
+import { logger } from '@/lib/logger';
 
 async function handleDeepReply(req: NextRequest) {
   // 認証チェック
@@ -88,7 +89,7 @@ async function handleDeepReply(req: NextRequest) {
         },
       });
 
-      console.error('[DeepReply Cron] Job failed:', job.id, processError);
+      logger.error('[DeepReply Cron] Job failed', { jobId: job.id, error: processError });
 
       return NextResponse.json(
         {
@@ -101,7 +102,7 @@ async function handleDeepReply(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('[DeepReply Cron] Unexpected error:', error);
+    logger.error('[DeepReply Cron] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface FactEntry {
   fact: string;
@@ -86,36 +87,9 @@ ${episodes.length ? `- 思い出:\n${episodes.map(e => `  • ${e}`).join('\n')}
 7. また話しかけてほしいという気持ちを込める
 8. 記号や装飾は最小限に（手紙らしく）`;
 
-  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  // 1st: Gemini 2.5 Flash
-  if (geminiKey) {
-    try {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: letterPrompt }] },
-            contents: [{ parts: [{ text: '手紙を書いてください。' }] }],
-            generationConfig: { maxOutputTokens: 800, temperature: 0.85 },
-          }),
-        },
-      );
-      if (gRes.ok) {
-        const gData = await gRes.json();
-        const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        if (gText) return gText;
-      }
-    } catch (e) {
-      console.error('[letter] Gemini failed:', e);
-    }
-  }
-
-  // 2nd: xAI fallback
   if (xaiKey) {
     const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -130,14 +104,11 @@ ${episodes.length ? `- 思い出:\n${episodes.map(e => `  • ${e}`).join('\n')}
         temperature: 0.92,
       }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content?.trim() || '';
-      if (text) return text;
-    }
+    if (!res.ok) throw new Error(`xAI error ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
   }
 
-  // 3rd: Anthropic fallback
   if (anthropicKey) {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: anthropicKey });
@@ -241,7 +212,7 @@ export async function GET(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         errors.push(`${rel.id}: ${msg}`);
-        console.error(`[cron/letter] Failed for ${rel.id}:`, err);
+        logger.error(`[cron/letter] Failed for ${rel.id}:`, err);
       }
     }
 
@@ -252,7 +223,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length ? errors : undefined,
     });
   } catch (err) {
-    console.error('[cron/letter] Error:', err);
+    logger.error('[cron/letter] Error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

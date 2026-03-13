@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,10 +9,7 @@ export async function GET(req: NextRequest) {
     const userId = session?.user?.id;
 
     const url = new URL(req.url);
-    const rawCharacterId = url.searchParams.get('characterId') ?? undefined;
-    const characterId = rawCharacterId
-      ? ((await resolveCharacterId(rawCharacterId)) ?? rawCharacterId)
-      : undefined;
+    const characterId = url.searchParams.get('characterId') ?? undefined;
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 50);
     const cursor = url.searchParams.get('cursor') ?? undefined;
     const mode = url.searchParams.get('mode') ?? 'following'; // 'following' | 'recommend'
@@ -118,46 +115,34 @@ export async function GET(req: NextRequest) {
         : false;
 
       // アクセス権チェック
-      const isFc = fcSubscribedCharacterIds.has(moment.characterId);
-      const userLevel = userRelationships[moment.characterId] ?? 1; // 全ユーザーLv.1以上
       let isLocked = false;
-      let lockReason = '';
-
-      // FC限定コンテンツ
-      if (moment.isFcOnly) {
-        if (!isFc) {
-          isLocked = true;
-          lockReason = 'FC限定コンテンツ';
-        }
+      if (moment.visibility === 'PUBLIC') {
+        isLocked = false;
+      } else if (moment.visibility === 'STANDARD') {
+        isLocked = !['STANDARD', 'PREMIUM'].includes(userPlan);
+      } else if (moment.visibility === 'PREMIUM') {
+        isLocked = !fcSubscribedCharacterIds.has(moment.characterId);
+      } else if (moment.visibility === 'LEVEL_LOCKED') {
+        const userLevel = userRelationships[moment.characterId] ?? 0;
+        isLocked = userLevel < moment.levelRequired;
       }
-      // レベルゲート（levelRequired >= 2のみ有効。FC会員はバイパス）
-      else if (moment.visibility === 'LEVEL_LOCKED' && moment.levelRequired >= 2) {
-        if (!isFc && userLevel < moment.levelRequired) {
-          isLocked = true;
-          lockReason = `Lv.${moment.levelRequired}で解放`;
-        }
+      // FC限定コンテンツ（isFcOnly=true はFC会員のみ）
+      if (moment.isFcOnly && !fcSubscribedCharacterIds.has(moment.characterId)) {
+        isLocked = true;
       }
-      // PREMIUM = FC限定として扱う
-      else if (moment.visibility === 'PREMIUM') {
-        if (!isFc) {
-          isLocked = true;
-          lockReason = 'FC限定コンテンツ';
-        }
-      }
-      // PUBLIC/STANDARD = 常にアクセス可能
-      // levelRequired 0-1 = 全員Lv.1以上なのでロックしない
 
       return {
         id: moment.id,
         characterId: moment.characterId,
         character: moment.character,
         type: moment.type,
-        content: isLocked ? null : moment.content,
+        content: isLocked
+          ? (moment.isFcOnly ? 'FC限定コンテンツです。ファンクラブに加入すると閲覧できます。' : null)
+          : moment.content,
         mediaUrl: isLocked ? null : moment.mediaUrl,
         visibility: moment.visibility,
         levelRequired: moment.levelRequired,
         isFcOnly: moment.isFcOnly,
-        lockReason,
         publishedAt: (moment.publishedAt ?? moment.createdAt).toISOString(),
         reactionCount,
         userHasLiked,
@@ -171,7 +156,7 @@ export async function GET(req: NextRequest) {
     const isFollowingNone = followingCharacterIds !== null && followingCharacterIds.length === 0;
     return NextResponse.json({ moments: result, nextCursor, isFollowingNone });
   } catch (error) {
-    console.error('GET /api/moments error:', error);
+    logger.error('GET /api/moments error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -209,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(moment, { status: 201 });
   } catch (error) {
-    console.error('POST /api/moments error:', error);
+    logger.error('POST /api/moments error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

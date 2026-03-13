@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: { conversationId: result.id } });
   } catch (error) {
-    console.error('Onboarding persist-chat error:', error);
+    logger.error('Onboarding persist-chat error:', error);
     return NextResponse.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

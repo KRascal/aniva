@@ -21,6 +21,7 @@ import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { callLLMStream } from '@/lib/llm-stream';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -250,12 +251,12 @@ export async function POST(req: NextRequest) {
 
           // ── セマンティックメモリ保存（非同期） ──
           extractAndStoreMemories(userId, characterId, message, fullText, charMsg?.id)
-            .catch((e: unknown) => console.warn('[SemanticMemory] store failed:', e));
+            .catch((e: unknown) => logger.warn('[SemanticMemory] store failed:', e));
 
           controller.close();
         } catch (error) {
           const errMsg = error instanceof Error ? error.message : 'Unknown streaming error';
-          console.error('[chat/stream] Error:', errMsg);
+          logger.error('[chat/stream] Error:', errMsg);
           controller.enqueue(sseEvent({ type: 'error', error: errMsg }));
           controller.close();
         }
@@ -271,7 +272,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[chat/stream] Fatal error:', error);
+    logger.error('[chat/stream] Fatal error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },

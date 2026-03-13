@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -281,7 +282,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Onboarding first-chat error:', error);
+    logger.error('Onboarding first-chat error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'サーバーエラーが発生しました' } },
       { status: 500 },

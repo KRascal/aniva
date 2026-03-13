@@ -86,12 +86,11 @@ function pickTemplate(mood: string): string {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-function todayJst(): Date {
+function todayJst(): string {
   const now = new Date();
   // JST = UTC+9
   const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  // Return as Date with time zeroed (Date @db.Date only stores date part)
-  return new Date(jst.toISOString().slice(0, 10));
+  return jst.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
 export async function POST(req: NextRequest) {
@@ -152,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      date: today.toISOString().slice(0, 10),
+      date: today,
       total: results.length,
       created: results.filter((r) => !r.skipped).length,
       skipped: results.filter((r) => r.skipped).length,

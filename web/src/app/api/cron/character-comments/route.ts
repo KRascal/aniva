@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText, cleanGeneratedText } from '@/lib/llm';
+import { logger } from '@/lib/logger';
 
 // キャラの返信率マップ（キャラ名の部分一致で照合）
 const CHARACTER_REPLY_RATES: Array<{ match: string; rate: number }> = [
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
 
         generated.push({ momentId: moment.id, commenterName: commenter.name, content });
       } catch (err) {
-        console.error(`Comment generation failed for ${commenter.name}:`, err);
+        logger.error(`Comment generation failed for ${commenter.name}:`, err);
       }
     }
 
@@ -201,12 +202,12 @@ export async function GET(req: NextRequest) {
           });
           replyCount++;
         } catch (err) {
-          console.error(`Reply generation failed for ${replier.name}:`, err);
+          logger.error(`Reply generation failed for ${replier.name}:`, err);
         }
       }
     } catch (err) {
       // replyチェーンのエラーはPhase 1の結果を壊さない
-      console.error('Reply chain generation error:', err);
+      logger.error('Reply chain generation error:', err);
     }
 
     // ──────────────────────────────────────────────────
@@ -324,11 +325,11 @@ export async function GET(req: NextRequest) {
             }),
           }).catch(() => {});
         } catch (err) {
-          console.error(`Owner reply generation failed for ${ownerChar.name}:`, err);
+          logger.error(`Owner reply generation failed for ${ownerChar.name}:`, err);
         }
       }
     } catch (err) {
-      console.error('Phase 2.5 owner reply error:', err);
+      logger.error('Phase 2.5 owner reply error:', err);
     }
 
     // ──────────────────────────────────────────────────
@@ -400,12 +401,12 @@ export async function GET(req: NextRequest) {
             momentCrashCount++;
             crashInCount++;
           } catch (err) {
-            console.error(`Phase 3 crash-in failed for ${crasher.name}:`, err);
+            logger.error(`Phase 3 crash-in failed for ${crasher.name}:`, err);
           }
         }
       }
     } catch (err) {
-      console.error('Phase 3 crash-in error:', err);
+      logger.error('Phase 3 crash-in error:', err);
     }
 
     return NextResponse.json({
@@ -417,7 +418,7 @@ export async function GET(req: NextRequest) {
       crashInCount,
     });
   } catch (err) {
-    console.error('Cron character-comments error:', err);
+    logger.error('Cron character-comments error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

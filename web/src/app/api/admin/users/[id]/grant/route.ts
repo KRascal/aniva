@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { CoinTxType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   } catch (error) {
-    console.error('Admin grant error:', error);
+    logger.error('Admin grant error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

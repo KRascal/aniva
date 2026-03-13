@@ -8,7 +8,6 @@ import { GachaFlipCard, type GachaRarity } from '@/components/gacha/GachaFlipCar
 import { GachaPackOpening } from '@/components/gacha/GachaPackOpening';
 import { playSound } from '@/lib/sound-effects';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface GachaBanner {
@@ -388,10 +387,12 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
               className="flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full transition-all active:scale-95"
               style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-amber-400/60">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-yellow-400/60">
                 <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
               </svg>
-              <CoinIcon size={14} />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-400">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8M8 14h8" strokeLinecap="round"/>
+              </svg>
               <span className="text-yellow-300 text-sm font-bold ml-0.5">{coinBalance.toLocaleString()}</span>
             </button>
           </div>
@@ -406,10 +407,12 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
             className="flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full transition-all active:scale-95"
             style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(245,158,11,0.1))', border: '1px solid rgba(250,204,21,0.3)' }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-amber-400/60">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-yellow-400/60">
               <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
             </svg>
-            <CoinIcon size={14} />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-400">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8M8 14h8" strokeLinecap="round"/>
+            </svg>
             <span className="text-yellow-300 text-sm font-bold ml-0.5">{coinBalance.toLocaleString()}</span>
           </button>
         </div>
@@ -594,9 +597,9 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
 
                 {/* Results overlay — centered on screen (hidden during pack opening) */}
                 {pullResults.length > 0 && !showPackOpening && (
-                  <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
-                    <div className="w-full max-w-lg mx-auto flex flex-col h-full">
-                      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0 border-b border-white/5">
+                  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
+                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
+                      <div className="flex items-center justify-between mb-4 pt-2">
                         <h2 className="text-white font-bold text-base">結果</h2>
                         <div className="flex items-center gap-2">
                           {hasAnyUnflipped && (
@@ -617,8 +620,7 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           </button>
                         </div>
                       </div>
-                      <div className={`flex-1 overflow-y-auto px-4 pb-6 ${pullResults.length === 1 ? 'flex flex-col items-center justify-center' : ''}`}>
-                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[280px] mx-auto' : 'grid-cols-2'} gap-3 ${pullResults.length === 1 ? 'pt-4' : ''}`}>
+                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
                             {(result.rarity === 'SSR' || result.rarity === 'UR') && flippedCards[i] && (
@@ -653,7 +655,7 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                         ))}
                       </div>
                       {/* もう一回引くボタン */}
-                      <div className="mt-6">
+                      <div className="mt-6 pb-4">
                         <button
                           onClick={() => { setPullResults([]); setFlippedCards([]); }}
                           className="w-full py-3 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
@@ -662,7 +664,6 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           もう一度引く
                         </button>
                       </div>
-                      </div>{/* /overflow scroll */}
                     </div>
                   </div>
                 )}

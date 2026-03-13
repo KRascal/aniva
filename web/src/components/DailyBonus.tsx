@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface BonusData {
   alreadyClaimed: boolean;
@@ -19,13 +18,7 @@ export function DailyBonus() {
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
-    // オンボーディング直後はポップアップを遅延（UX阻害防止）
-    let justOnboarded = false;
-    try { justOnboarded = !!sessionStorage.getItem('aniva_just_onboarded'); } catch {}
-    if (justOnboarded) {
-      try { sessionStorage.removeItem('aniva_just_onboarded'); } catch {}
-    }
-
+    // ページロード時にボーナスチェック
     const checkBonus = async () => {
       try {
         const res = await fetch('/api/daily-bonus', { method: 'POST' });
@@ -35,14 +28,15 @@ export function DailyBonus() {
           setBonus(data);
           setShow(true);
           setAnimating(true);
+          // 自動で閉じる（5秒後）
           setTimeout(() => setShow(false), 5000);
         }
       } catch {
         // サイレントフェイル
       }
     };
-    // オンボ直後は5秒、通常は1.5秒遅延
-    const timer = setTimeout(checkBonus, justOnboarded ? 5000 : 1500);
+    // 少し遅延させてUXを阻害しない
+    const timer = setTimeout(checkBonus, 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -96,7 +90,7 @@ export function DailyBonus() {
           <div className="p-6 text-center">
             {/* コインアイコン */}
             <div className="coin-bounce text-5xl mb-3">
-              {bonus.isStreakMilestone ? '👑' : <CoinIcon size={40} />}
+              {bonus.isStreakMilestone ? '👑' : '🪙'}
             </div>
 
             {/* タイトル */}
@@ -112,7 +106,7 @@ export function DailyBonus() {
             {/* コイン獲得表示 */}
             <div className="bg-white/10 rounded-2xl px-6 py-4 mb-4 border border-white/10">
               <div className="flex items-center justify-center gap-2">
-                <CoinIcon size={28} />
+                <span className="text-3xl">🪙</span>
                 <span className="text-yellow-300 font-black text-3xl">+{bonus.coins}</span>
               </div>
               {bonus.multiplier && bonus.multiplier > 1 && (

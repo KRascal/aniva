@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/chat/history-by-user?characterId=...&limit=50
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
       relationship: { id: relationship.id, level: relationship.level, xp: relationship.experiencePoints },
     });
   } catch (error) {
-    console.error('Chat history-by-user error:', error);
+    logger.error('Chat history-by-user error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

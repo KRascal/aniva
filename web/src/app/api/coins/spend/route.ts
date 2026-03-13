@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { CoinTxType, Prisma } from '@prisma/client';
-import { paymentLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 interface SpendRequest {
   amount: number;
@@ -17,10 +17,6 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getVerifiedUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Rate limit: 5リクエスト/分
-    const { success } = await paymentLimiter.check(userId);
-    if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
     const body: SpendRequest = await req.json();
     const { amount, type, characterId, description, idempotencyKey, metadata } = body;
@@ -109,11 +105,11 @@ export async function POST(req: NextRequest) {
       balance: result.newBalance,
       transactionId: result.transactionId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error?.message === 'INSUFFICIENT_COINS') {
       return NextResponse.json({ error: 'INSUFFICIENT_COINS', message: 'コインが不足しています' }, { status: 402 });
     }
-    console.error('Coin spend error:', error);
+    logger.error('Coin spend error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

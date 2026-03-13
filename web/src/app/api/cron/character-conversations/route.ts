@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { runCharacterConversations } from '@/lib/character-conversation-engine';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
       ...result,
     });
   } catch (error) {
-    console.error('[CharConversations cron] Error:', error);
+    logger.error('[CharConversations cron] Error:', error);
     return NextResponse.json(
       { success: false, error: String(error) },
       { status: 500 },

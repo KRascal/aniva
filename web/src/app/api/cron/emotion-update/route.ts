@@ -3,6 +3,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 /**
  * SOUL.mdをキャラのslugから読み込む
@@ -40,7 +41,6 @@ async function generateCharacterInnerState(
 }> {
   const soulMd = loadCharacterSoulMd(characterSlug);
 
-  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
@@ -64,54 +64,7 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
 
   const userMsg = '今日の内面状態をJSONで教えて';
 
-  let llmRaw: string | null = null;
-
-  // 1st: Gemini 2.5 Flash
-  if (geminiKey && !llmRaw) {
-    try {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userMsg }] }],
-            generationConfig: { maxOutputTokens: 300, temperature: 0.85 },
-          }),
-        },
-      );
-      if (gRes.ok) {
-        const gData = await gRes.json();
-        llmRaw = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-      }
-    } catch (e) {
-      console.error('[emotion-update] Gemini failed:', e);
-    }
-  }
-
-  // Parse Gemini result if available
-  if (llmRaw) {
-    try {
-      const jsonMatch = llmRaw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as {
-          innerThoughts?: string;
-          dailyActivity?: string;
-          currentConcern?: string;
-          moodScore?: number;
-        };
-        return {
-          innerThoughts: parsed.innerThoughts ?? '',
-          dailyActivity: parsed.dailyActivity ?? '',
-          currentConcern: parsed.currentConcern ?? '',
-          moodScore: typeof parsed.moodScore === 'number' ? Math.min(10, Math.max(1, parsed.moodScore)) : 5,
-        };
-      }
-    } catch { /* fall through to xAI */ }
-  }
-
-  // 2nd: xAI fallback
+  // Try xAI first
   if (xaiKey) {
     try {
       const res = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -147,7 +100,7 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
         }
       }
     } catch (e) {
-      console.error('[generateCharacterInnerState] xAI failed:', e);
+      logger.error('[generateCharacterInnerState] xAI failed:', e);
     }
   }
 
@@ -179,7 +132,7 @@ ${soulMd ? `\n## キャラクター定義\n${soulMd.slice(0, 2000)}\n` : ''}
         };
       }
     } catch (e) {
-      console.error('[generateCharacterInnerState] Anthropic failed:', e);
+      logger.error('[generateCharacterInnerState] Anthropic failed:', e);
     }
   }
 
@@ -391,7 +344,7 @@ export async function GET(req: NextRequest) {
       timestamp: now.toISOString(),
     });
   } catch (error) {
-    console.error('Emotion update cron error:', error);
+    logger.error('Emotion update cron error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

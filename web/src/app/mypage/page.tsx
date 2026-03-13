@@ -351,6 +351,9 @@ export default function MyPage() {
                     // 旧パス(/uploads/...)が404の場合、API経由(/api/uploads/...)にフォールバック
                     if (editAvatarUrl.startsWith('/uploads/')) {
                       setEditAvatarUrl(editAvatarUrl.replace('/uploads/', '/api/uploads/'));
+                    } else if (editAvatarUrl.includes('/api/uploads/') && !editAvatarUrl.includes('?')) {
+                      // キャッシュバスト: タイムスタンプ追加で再取得
+                      setEditAvatarUrl(`${editAvatarUrl}?t=${Date.now()}`);
                     } else {
                       setEditAvatarUrl('');
                     }

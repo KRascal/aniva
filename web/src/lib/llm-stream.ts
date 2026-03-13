@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * LLM Streaming — SSE対応のストリーミングLLM呼び出し
  * xAI (grok) / Anthropic 両対応
@@ -51,7 +52,7 @@ export async function callLLMStream(
             controller.close();
             return;
           } catch (e) {
-            console.error('[llm-stream] Anthropic FC stream failed, falling back:', e);
+            logger.error('[llm-stream] Anthropic FC stream failed, falling back:', e);
           }
         }
 
@@ -112,7 +113,7 @@ export async function callLLMStream(
             controller.close();
             return;
           } catch (e) {
-            console.error('[llm-stream] xAI stream failed, falling back:', e);
+            logger.error('[llm-stream] xAI stream failed, falling back:', e);
           }
         }
 

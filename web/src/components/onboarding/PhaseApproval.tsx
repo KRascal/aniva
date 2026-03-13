@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { CharacterData } from '@/hooks/useOnboarding';
 import { runTypewriter } from '@/lib/onboarding-utils';
@@ -12,9 +12,6 @@ interface PhaseApprovalProps {
 }
 
 export default function PhaseApproval({ character, nickname, onComplete }: PhaseApprovalProps) {
-  // onCompleteをrefで安定化: 親の再レンダー（useSession等）でタイマーがリセットされるのを防ぐ
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
   const [showApproval, setShowApproval] = useState(false);
   const [line1, setLine1] = useState('');
   const [showLine2, setShowLine2] = useState(false);
@@ -47,18 +44,17 @@ export default function PhaseApproval({ character, nickname, onComplete }: Phase
       setShowLine2(true);
       await runTypewriter(approvalLine2, setLine2, 55);
 
-      // 3秒後に自動遷移（refで安定化、親の再レンダーでリセットされない）
-      setTimeout(() => onCompleteRef.current(), 3000);
+      // 3秒後に自動遷移
+      setTimeout(onComplete, 3000);
     }, 800);
 
     return () => clearTimeout(silenceTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [approvalLine1, approvalLine2]);
+  }, [approvalLine1, approvalLine2, onComplete]);
 
   return (
     <motion.div
       className="fixed inset-0 bg-black flex flex-col items-center justify-center px-6 cursor-pointer"
-      onClick={() => onCompleteRef.current()}
+      onClick={onComplete}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

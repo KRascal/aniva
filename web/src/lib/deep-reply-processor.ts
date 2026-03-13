@@ -8,6 +8,7 @@ import { callLLM } from '@/lib/engine/llm';
 import { applyNGGuard } from '@/lib/engine/ng-guard';
 import { searchMemories } from '@/lib/semantic-memory';
 import { loadSoulMd } from '@/lib/engine/prompt-builder';
+import { logger } from '@/lib/logger';
 
 /** DeepReplyQueueのジョブ型 */
 export interface DeepReplyQueueJob {
@@ -101,7 +102,7 @@ export async function processDeepReply(job: DeepReplyQueueJob): Promise<void> {
         ],
       );
     } catch (e) {
-      console.error('[DeepReply] User profile analysis failed:', e);
+      logger.error('[DeepReply] User profile analysis failed:', e);
     }
   }
 
@@ -129,7 +130,7 @@ export async function processDeepReply(job: DeepReplyQueueJob): Promise<void> {
       }
     }
   } catch (e) {
-    console.error('[DeepReply] Semantic memory search failed (skipping):', e);
+    logger.error('[DeepReply] Semantic memory search failed (skipping):', e);
   }
 
   // ─── Step 3: TODO — 関係性グラフ参照（MVP後） ──────────────────
@@ -222,6 +223,6 @@ ${semanticMemoryContext ? `【過去の記憶・エピソード】\n${semanticMe
       `/chat/${character.slug}`,
     );
   } catch (e) {
-    console.warn('[DeepReply] Push notification failed:', e);
+    logger.warn('[DeepReply] Push notification failed:', e);
   }
 }

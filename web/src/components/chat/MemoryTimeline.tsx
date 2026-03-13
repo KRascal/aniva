@@ -73,15 +73,11 @@ export function MemoryTimeline({ characterId }: MemoryTimelineProps) {
     setLoading(true);
     setError(null);
     fetch(`/api/memories/${characterId}`)
-      .then(async (res) => {
-        if (res.status === 404) {
-          // まだ会話がない場合 — 空データとして扱う
-          setData({ memories: [], totalMessages: 0, bondLevel: 1, firstMessageAt: null });
-          setLoading(false);
-          return;
-        }
+      .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json() as MemoriesResponse;
+        return res.json() as Promise<MemoriesResponse>;
+      })
+      .then((json) => {
         setData(json);
         setLoading(false);
       })

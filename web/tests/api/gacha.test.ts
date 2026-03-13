@@ -14,6 +14,11 @@ vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
 }));
 
+// ── Auth Helpers モック ────────────────────────────────────────────────────────
+vi.mock('@/lib/auth-helpers', () => ({
+  getVerifiedUserId: vi.fn(),
+}));
+
 // ── Rate Limit モック ──────────────────────────────────────────────────────────
 vi.mock('@/lib/rate-limit', () => ({
   gachaLimiter: {
@@ -51,6 +56,7 @@ vi.mock('@/lib/gacha-system', () => ({
 }));
 
 import { auth } from '@/lib/auth';
+import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { gachaLimiter } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { pullGacha, getFreeGachaAvailable } from '@/lib/gacha-system';
@@ -92,7 +98,7 @@ describe('POST /api/gacha/pull', () => {
 
   // 未認証 ──────────────────────────────────────────────────────────────────
   it('未認証 → 401', async () => {
-    vi.mocked(auth).mockResolvedValue(null as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue(null);
     const req = makeRequest({ bannerId: 'banner1', count: 1 });
     const res = await POST(req);
     expect(res.status).toBe(401);
@@ -102,7 +108,7 @@ describe('POST /api/gacha/pull', () => {
 
   // レート制限 ───────────────────────────────────────────────────────────────
   it('レート制限超過 → 429', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: false, remaining: 0, resetAt: Date.now() + 60000 });
     const req = makeRequest({ bannerId: 'banner1', count: 1 });
     const res = await POST(req);
@@ -111,7 +117,7 @@ describe('POST /api/gacha/pull', () => {
 
   // バリデーション ───────────────────────────────────────────────────────────
   it('bannerId 未指定 → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     const req = makeRequest({ count: 1 });
@@ -122,7 +128,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('count 未指定 → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     const req = makeRequest({ bannerId: 'banner1' });
@@ -131,7 +137,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('count が不正な値 (5) → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({ userId: 'user1', balance: 1000, freeBalance: 500, paidBalance: 500 } as any);
@@ -144,7 +150,7 @@ describe('POST /api/gacha/pull', () => {
 
   // ガチャテーブル未準備 ──────────────────────────────────────────────────────
   it('ガチャテーブルが存在しない → 503', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockRejectedValue(new Error('Table does not exist'));
     const req = makeRequest({ bannerId: 'banner1', count: 1 });
@@ -156,7 +162,7 @@ describe('POST /api/gacha/pull', () => {
 
   // コイン不足 ──────────────────────────────────────────────────────────────
   it('コイン残高不足 (1連: cost=100, balance=50) → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({
@@ -172,7 +178,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('コイン残高不足 (10連: cost=900, balance=800) → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({
@@ -188,7 +194,7 @@ describe('POST /api/gacha/pull', () => {
 
   // 正常系 ──────────────────────────────────────────────────────────────────
   it('正常系 1連ガチャ → 200 でカード結果を返す', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({
@@ -211,7 +217,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('正常系 10連ガチャ → 200 で10枚のカード結果を返す', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({
@@ -235,7 +241,7 @@ describe('POST /api/gacha/pull', () => {
 
   // 天井システム ─────────────────────────────────────────────────────────────
   it('天井進捗が正しく含まれる (pityProgress)', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({ userId: 'user1', balance: 500 } as any);
@@ -255,7 +261,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('天井レコードが存在しない場合 → pityProgress.current = 0', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({ userId: 'user1', balance: 500 } as any);
@@ -273,7 +279,7 @@ describe('POST /api/gacha/pull', () => {
 
   // ガチャ失敗時のコインロールバック ─────────────────────────────────────────
   it('pullGacha失敗時 → コインが返還される (increment)', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(prisma.coinBalance.upsert).mockResolvedValue({ userId: 'user1', balance: 500 } as any);
@@ -297,7 +303,7 @@ describe('POST /api/gacha/pull', () => {
 
   // 無料ガチャ ───────────────────────────────────────────────────────────────
   it('無料ガチャ: 本日分が利用可能 → 200', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(getFreeGachaAvailable).mockResolvedValue(true);
@@ -315,7 +321,7 @@ describe('POST /api/gacha/pull', () => {
   });
 
   it('無料ガチャ: 本日分が使用済み → 400', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user1' } } as any);
+    vi.mocked(getVerifiedUserId).mockResolvedValue('user1');
     vi.mocked(gachaLimiter.check).mockResolvedValue({ success: true, remaining: 9, resetAt: Date.now() + 60000 });
     vi.mocked(prisma.gachaBanner.count).mockResolvedValue(1);
     vi.mocked(getFreeGachaAvailable).mockResolvedValue(false);

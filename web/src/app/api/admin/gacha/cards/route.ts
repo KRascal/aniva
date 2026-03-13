@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { GachaRarity } from '@prisma/client';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(cards);
   } catch (error) {
-    console.error('[admin/gacha/cards] GET error:', error);
+    logger.error('[admin/gacha/cards] GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(card, { status: 201 });
   } catch (error) {
-    console.error('[admin/gacha/cards] POST error:', error);
+    logger.error('[admin/gacha/cards] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

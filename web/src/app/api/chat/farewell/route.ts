@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateFarewell } from '@/lib/farewell-system';
 import { getStreak } from '@/lib/streak-system';
+import { logger } from '@/lib/logger';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night' | 'latenight';
 type Mood = 'high' | 'normal' | 'low' | 'melancholy';
@@ -95,13 +96,13 @@ export async function POST(req: Request) {
           },
         });
       } catch (dbErr) {
-        console.warn('[chat/farewell] DB save failed (non-critical):', dbErr);
+        logger.warn('[chat/farewell] DB save failed (non-critical):', dbErr);
       }
     }
 
     return NextResponse.json({ message, shouldSend: true });
   } catch (error) {
-    console.error('[chat/farewell] error:', error);
+    logger.error('[chat/farewell] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

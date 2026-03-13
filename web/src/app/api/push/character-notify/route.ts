@@ -2,6 +2,7 @@ import webpush from 'web-push';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentWeather, getWeatherReaction } from '@/lib/weather';
+import { logger } from '@/lib/logger';
 
 // 全キャラクターのプロアクティブメッセージ
 const CHARACTER_MESSAGES: Record<string, Record<'morning' | 'afternoon' | 'evening', string[]>> = {
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
       cleanedUp: failedEndpoints.length,
     });
   } catch (error) {
-    console.error('Character notify error:', error);
+    logger.error('Character notify error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

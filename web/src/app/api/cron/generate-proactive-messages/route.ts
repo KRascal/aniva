@@ -145,63 +145,28 @@ ${memoryContext}
 今すぐ1〜2文のメッセージを生成:`;
 
   try {
-    // Gemini 2.5 Flash → xAI → null のフォールバック
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const xaiKey = process.env.XAI_API_KEY;
-
-    // 1st: Gemini 2.5 Flash
-    if (geminiKey) {
-      try {
-        const gRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 150, temperature: 0.85 },
-            }),
-          },
-        );
-        if (gRes.ok) {
-          const gData = await gRes.json();
-          const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          if (gText && gText.length > 0) return gText;
-        } else {
-          logger.error(`[generate-proactive] Gemini error ${gRes.status}: ${await gRes.text()}`);
-        }
-      } catch (ge) {
-        logger.error('[generate-proactive] Gemini fetch failed:', ge);
-      }
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) {
+      const errBody = await res.text();
+      logger.error(`[generate-proactive] xAI error ${res.status}:`, errBody);
+      return null;
     }
-
-    // 2nd: xAI (Grok)
-    if (xaiKey) {
-      const res = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${xaiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'grok-3-mini',
-          max_tokens: 150,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content?.trim() ?? null;
-        if (text && text.length > 0) return text;
-      } else {
-        const errBody = await res.text();
-        logger.error(`[generate-proactive] xAI error ${res.status}:`, errBody);
-      }
-    }
-
-    return null;
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content?.trim() ?? null;
+    return text && text.length > 0 ? text : null;
   } catch (e) {
-    logger.error('[generate-proactive] LLM error:', e);
+    logger.error('[generate-proactive] xAI error:', e);
     return null;
   }
 }

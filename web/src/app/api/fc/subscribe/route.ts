@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ checkoutUrl: checkoutSession.url });
   } catch (error) {
-    console.error('FC subscribe error:', error);
+    logger.error('FC subscribe error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

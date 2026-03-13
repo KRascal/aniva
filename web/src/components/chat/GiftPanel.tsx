@@ -16,7 +16,7 @@ interface GiftPanelProps {
   characterName: string;
   isOpen: boolean;
   onClose: () => void;
-  onGiftSent: (reaction: string, giftEmoji: string, giftName?: string) => void;
+  onGiftSent: (reaction: string, giftEmoji: string) => void;
 }
 
 export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftSent }: GiftPanelProps) {
@@ -53,7 +53,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
       const data = await res.json();
       if (data.success) {
         setBalance(data.newBalance);
-        onGiftSent(data.reaction, gift.emoji, gift.name);
+        onGiftSent(data.reaction, gift.emoji);
         onClose();
       } else {
         setError(data.error || '送信に失敗しました');

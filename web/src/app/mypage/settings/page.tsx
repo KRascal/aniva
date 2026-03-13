@@ -5,7 +5,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type LangOption = 'ja' | 'en' | 'ko' | 'zh';
@@ -378,7 +377,7 @@ export default function SettingsPage() {
             <div>
               <p className="text-xs text-[var(--color-muted)]">コイン・ファンクラブ</p>
               <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">
-                <span className="inline-flex items-center gap-1"><CoinIcon size={14} /> コインを購入・FCに加入</span>
+                🪙 コインを購入・FCに加入
               </p>
             </div>
             <span className="text-xs text-purple-400 font-medium">詳細 →</span>

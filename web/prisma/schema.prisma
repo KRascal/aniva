@@ -30,7 +30,7 @@ model User {
   bio                    String?
   profilePublic          Boolean                 @default(true)
   coverImageUrl          String?
-  birthday               DateTime?               @db.Date
+  birthday               String?                 // "YYYY-MM-DD" format
   locale                 String                  @default("ja")
   accounts               Account[]
   sessions               Session[]
@@ -250,8 +250,6 @@ model Conversation {
   metadata       Json         @default("{}")
   relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
-
-  @@index([relationshipId, updatedAt(sort: Desc)])
 }
 
 model Message {
@@ -264,9 +262,6 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
-
-  @@index([conversationId, createdAt(sort: Desc)])
-  @@index([conversationId])
 }
 
 enum MessageRole {
@@ -294,8 +289,6 @@ model Moment {
   notifications  Notification[]
 
   @@index([characterId, locale])
-  @@index([characterId, publishedAt(sort: Desc)])
-  @@index([publishedAt(sort: Desc)])
 }
 
 enum MomentType {
@@ -590,7 +583,7 @@ model UserGachaPity {
 model UserDailyEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      DateTime @db.Date
+  date      String // "YYYY-MM-DD"
   eventType String // "normal" | "good" | "rare" | "super_rare"
   reward    Json     @default("{}")
   createdAt DateTime @default(now())
@@ -743,7 +736,7 @@ model CharacterDailyState {
 model CharacterDiary {
   id          String   @id @default(uuid())
   characterId String
-  date        DateTime @db.Date
+  date        String   // "YYYY-MM-DD"
   content     String   @db.Text
   mood        String   // happy, sad, excited, tired, neutral 等
   imageUrl    String?
@@ -1056,6 +1049,10 @@ model LetterDelivery {
   @@index([userId, isRead])
 }
 
+// ═══════════════════════════════════════════════════
+// ダウンロードコンテンツ（FC限定可）
+// ═══════════════════════════════════════════════════
+
 // ============================================
 // Phase 3: RBAC & マルチテナント
 // ============================================
@@ -1331,20 +1328,24 @@ model FanThread {
 }
 
 model FanReply {
-  id           String       @id @default(cuid())
-  threadId     String
-  thread       FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  userId       String?      // null = キャラの返信
-  user         User?        @relation(fields: [userId], references: [id])
-  characterId  String?      // non-null = キャラの返信
-  character    Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
-  content      String       @db.Text
-  parentId     String?      // ネスト返信用
-  parent       FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
-  children     FanReply[]   @relation("FanReplyNested")
-  likes        Int          @default(0)
-  createdAt    DateTime     @default(now())
+  id            String       @id @default(cuid())
+  threadId      String
+  thread        FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId        String?      // null = キャラの返信
+  user          User?        @relation(fields: [userId], references: [id])
+  characterId   String?      // non-null = キャラの返信
+  character     Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
+  content       String       @db.Text
+  parentId      String?      // ネスト返信用
+  parent        FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
+  children      FanReply[]   @relation("FanReplyNested")
+  quotedReplyId String?      // 引用元コメントID
+  quotedReply   FanReply?    @relation("FanReplyQuote", fields: [quotedReplyId], references: [id])
+  quotedBy      FanReply[]   @relation("FanReplyQuote")
+  likes         Int          @default(0)
+  createdAt     DateTime     @default(now())
 
   @@index([threadId, createdAt])
   @@index([userId])
+  @@index([quotedReplyId])
 }

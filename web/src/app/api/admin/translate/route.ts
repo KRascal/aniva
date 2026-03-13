@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireAdmin } from '@/lib/admin';
 import { SupportedLocale } from '@/types/character-locale';
+import { logger } from '@/lib/logger';
 
 const LOCALE_NAMES: Record<string, string> = {
   ja: '日本語',
@@ -73,7 +74,7 @@ ${targetLangs.map((l) => `    "${l}": "（${LOCALE_NAMES[l] ?? l}の翻訳）"`)
     // Extract JSON from response
     const jsonMatch = raw.match(/\{[\s\S]*"translations"[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('Translation API: no JSON found in response', raw);
+      logger.error('Translation API: no JSON found in response', raw);
       return NextResponse.json({ error: 'APIレスポンスのパースに失敗しました' }, { status: 500 });
     }
 
@@ -81,7 +82,7 @@ ${targetLangs.map((l) => `    "${l}": "（${LOCALE_NAMES[l] ?? l}の翻訳）"`)
 
     return NextResponse.json(parsed);
   } catch (err) {
-    console.error('Translation API error:', err);
+    logger.error('Translation API error:', err);
     return NextResponse.json({ error: '翻訳に失敗しました' }, { status: 500 });
   }
 }

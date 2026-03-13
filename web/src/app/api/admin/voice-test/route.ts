@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('[voice-test] error:', err);
+    logger.error('[voice-test] error:', err);
     return NextResponse.json({ error: 'Failed to generate voice' }, { status: 500 });
   }
 }

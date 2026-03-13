@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // ElevenLabs APIを使ったボイス生成エンジン
 
 interface VoiceGenerateOptions {
@@ -67,7 +68,7 @@ export class VoiceEngine {
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
     if (!apiKey) {
-      console.warn('[VoiceEngine] ELEVENLABS_API_KEY is not set — skipping voice generation');
+      logger.warn('[VoiceEngine] ELEVENLABS_API_KEY is not set — skipping voice generation');
       return null;
     }
 
@@ -108,17 +109,17 @@ export class VoiceEngine {
         // 401: 認証エラー（APIキー無効）, 403: 権限なし, 429: レート制限
         // これらはリトライしても解決しないので null を返す（graceful fallback）
         if (response.status === 401 || response.status === 403) {
-          console.error(
+          logger.error(
             `[VoiceEngine] ElevenLabs auth error (${response.status}) — voice disabled. Check ELEVENLABS_API_KEY.`,
           );
           return null;
         }
         if (response.status === 429) {
-          console.warn('[VoiceEngine] ElevenLabs rate limit exceeded — skipping voice generation');
+          logger.warn('[VoiceEngine] ElevenLabs rate limit exceeded — skipping voice generation');
           return null;
         }
         // その他のエラーもクライアントには伝播させず null を返す
-        console.error(`[VoiceEngine] ElevenLabs API error ${response.status}: ${errorText}`);
+        logger.error(`[VoiceEngine] ElevenLabs API error ${response.status}: ${errorText}`);
         return null;
       }
 
@@ -129,7 +130,7 @@ export class VoiceEngine {
       return { audioBuffer, durationMs };
     } catch (err) {
       // ネットワーク障害・タイムアウト等
-      console.error('[VoiceEngine] Failed to call ElevenLabs API:', err);
+      logger.error('[VoiceEngine] Failed to call ElevenLabs API:', err);
       return null;
     }
   }

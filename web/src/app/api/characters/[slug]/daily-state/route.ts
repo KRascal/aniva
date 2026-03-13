@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateDailyEmotionForEngine } from '@/lib/character-engine';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/characters/[characterId]/daily-state
@@ -66,7 +67,7 @@ export async function GET(
       isBonus: dailyState.bonusXpMultiplier > 1.0,
     });
   } catch (error) {
-    console.error('[daily-state API] Error:', error);
+    logger.error('[daily-state API] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

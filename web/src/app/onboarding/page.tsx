@@ -303,7 +303,7 @@ function OnboardingInner() {
   const [deeplinkCharacter, setDeeplinkCharacter] = useState<CharacterData | null>(null);
   const [deeplinkSlug, setDeeplinkSlug] = useState<string | undefined>(undefined);
   const [isSelectingCharacter, setIsSelectingCharacter] = useState(false);
-  // isSavingNickname は廃止: UI遷移をAPI応答に依存させない
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
 
   // ── キャラクターリビール演出 ────────────────
   const [showCharacterReveal, setShowCharacterReveal] = useState(false);
@@ -377,8 +377,21 @@ function OnboardingInner() {
         }
       }
 
-      // 既存ユーザー検出: DBのonboardingStepが'completed'の場合のみスキップ
-      // ※ フォロー関係でのスキップは削除（スワイプ中にフォローが作られるため競合する）
+      // 既存ユーザー検出: フォロー済みキャラがあればオンボーディングスキップ
+      try {
+        const relRes = await fetch('/api/relationship/all');
+        if (relRes.ok) {
+          const relData = await relRes.json();
+          const follows = (relData.relationships ?? []).filter((r: { isFollowing?: boolean }) => r.isFollowing);
+          if (follows.length > 0) {
+            // フォロー済みキャラがある = 既存ユーザー → onboarding完了としてDB更新 & リダイレクト
+            await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {});
+            await update();
+            window.location.href = '/explore';
+            return;
+          }
+        }
+      } catch { /* 取得失敗は無視して通常フローへ */ }
 
       // 途中離脱のリカバリー: DBの状態を復元
       let stateRestored = false;
@@ -538,9 +551,21 @@ function OnboardingInner() {
     setRevealShown(true);
   }, []);
 
-  // nicknameフェーズ自動スキップは削除。
-  // session.user.name（= メールプレフィックス）とsaveNicknameのレースコンディションが
-  // フェーズ遷移を壊していた。ゲストニックネームは init 内で処理済み。
+  // ── nicknameフェーズ自動スキップ（既にnickname/nameがある場合） ──────
+  // ゲスト体験で名前入力済みのユーザーがsignup後にオンボーディングに来た場合、
+  // session.user.name または state.nickname が存在すればnicknameフェーズを自動スキップする
+  useEffect(() => {
+    if (!initialized || state.phase !== 'nickname') return;
+    const sessionName = (session?.user as { name?: string | null })?.name;
+    const existingNickname = state.nickname || sessionName;
+    if (existingNickname) {
+      setState(prev => ({
+        ...prev,
+        nickname: prev.nickname || existingNickname,
+        phase: 'birthday',
+      }));
+    }
+  }, [initialized, state.phase, state.nickname, session?.user]);
 
   // ── Phase遷移ハンドラー ─────────────────────
 
@@ -560,16 +585,6 @@ function OnboardingInner() {
   // Tinderスワイプ完了: フォローしたキャラIDを保存して次のフェーズへ
   const handleTinderSwipeComplete = async (followedIds: string[]) => {
     setSwipeFollowedIds(followedIds);
-
-    // スワイプで選んだキャラを即座にDBフォロー（onboarding完了を待たない）
-    if (followedIds.length > 0) {
-      fetch('/api/onboarding/follow-and-greet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterIds: followedIds }),
-      }).catch(() => {});
-    }
-
     // 最初のフォローしたキャラを「選択キャラ」にする（キャラリビール演出用）
     if (followedIds.length > 0) {
       try {
@@ -585,11 +600,12 @@ function OnboardingInner() {
             franchise: c.franchise ?? '',
           };
           const ok = await selectCharacter(char);
-          if (!ok) advance();
+          if (!ok) advance(); // selectCharacter失敗時もフェーズを進める
         } else {
-          advance();
+          advance(); // fetch失敗時もフェーズを進める
         }
       } catch {
+        // fallback: 何もなくても次へ進む
         advance();
       }
     } else {
@@ -597,15 +613,13 @@ function OnboardingInner() {
     }
   };
 
-  const handleNicknameComplete = (nickname: string) => {
-    // UIは即座に進める（API成否に依存しない）
-    advance({ nickname });
-    // DBへの保存はバックグラウンド（失敗してもUI遷移に影響しない）
-    fetch('/api/onboarding/nickname', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname }),
-    }).catch(() => {});
+  const handleNicknameComplete = async (nickname: string) => {
+    setIsSavingNickname(true);
+    try {
+      await saveNickname(nickname);
+    } finally {
+      setIsSavingNickname(false);
+    }
   };
 
   const handleBirthdayComplete = async (birthday: string) => {
@@ -621,37 +635,29 @@ function OnboardingInner() {
   };
 
   const handleApprovalComplete = async () => {
-    try {
-      track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
+    track(EVENTS.ONBOARDING_COMPLETED, { selectedCharacterId: state.selectedCharacter?.id ?? deeplinkCharacter?.id });
 
-      // ── フォロー + キャラからメッセージ送信 ──
-      const allFollowIds = [...new Set([
-        ...swipeFollowedIds,
-        ...(state.selectedCharacter?.id ? [state.selectedCharacter.id] : []),
-        ...(deeplinkCharacter?.id ? [deeplinkCharacter.id] : []),
-      ])];
+    // ── フォロー + キャラからメッセージ送信 ──
+    // Tinderスワイプで選んだキャラ + 最初に会話したキャラをフォロー
+    const allFollowIds = [...new Set([
+      ...swipeFollowedIds,
+      ...(state.selectedCharacter?.id ? [state.selectedCharacter.id] : []),
+      ...(deeplinkCharacter?.id ? [deeplinkCharacter.id] : []),
+    ])];
 
-      if (allFollowIds.length > 0) {
-        fetch('/api/onboarding/follow-and-greet', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ characterIds: allFollowIds }),
-        }).catch(() => {});
-      }
-
-      // コインポップアップ抑制フラグ（DailyBonusが即表示されるのを防ぐ）
-      try { sessionStorage.setItem('aniva_just_onboarded', '1'); } catch {}
-
-      const redirectTo = await completeOnboarding(null);
-      await update();
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      window.location.href = redirectTo;
-    } catch (e) {
-      console.error('handleApprovalComplete error:', e);
-      // エラー時もリダイレクト（ユーザーが詰まらないように）
-      await update().catch(() => {});
-      window.location.href = state.redirectTo || '/explore';
+    // バックグラウンドでフォロー + メッセージ送信（完了を待たない）
+    if (allFollowIds.length > 0) {
+      fetch('/api/onboarding/follow-and-greet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterIds: allFollowIds }),
+      }).catch(() => {});
     }
+
+    const redirectTo = await completeOnboarding(null);
+    await update();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    window.location.href = redirectTo;
   };
 
   const handleFirstChatComplete = async (history: ChatMessage[]) => {
@@ -740,7 +746,7 @@ function OnboardingInner() {
             key="nickname"
             character={effectiveCharacter}
             onComplete={handleNicknameComplete}
-            isLoading={false}
+            isLoading={isSavingNickname}
           />
         )}
 

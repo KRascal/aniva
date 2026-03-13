@@ -1,4 +1,5 @@
 import { fal } from "@fal-ai/client";
+import { logger } from '@/lib/logger';
 
 // Configure fal.ai with FAL_KEY from environment
 fal.config({
@@ -42,7 +43,7 @@ export class ImageEngine {
     
     const charConfig = CHARACTER_PROMPTS[characterSlug];
     if (!charConfig) {
-      console.error(`No character config for: ${characterSlug}`);
+      logger.error(`No character config for: ${characterSlug}`);
       return null;
     }
     
@@ -73,7 +74,7 @@ export class ImageEngine {
       
       return null;
     } catch (error) {
-      console.error('Image generation error:', error);
+      logger.error('Image generation error:', error);
       return null;
     }
   }

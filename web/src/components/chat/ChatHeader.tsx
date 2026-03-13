@@ -239,12 +239,9 @@ export function ChatHeader({
           className="overflow-hidden transition-all duration-300 ease-out"
           style={{ maxHeight: collapsed ? 0 : 60, opacity: collapsed ? 0 : 1 }}
         >
-          {/* ── 2行目: 関係値ゲージ（タップでプロフィール関係値セクションへ） ── */}
+          {/* ── 2行目: 関係値ゲージ ── */}
           {relationship && (
-            <div
-              className="flex items-center gap-2 mt-1 pl-[60px] pr-1 cursor-pointer active:opacity-70"
-              onClick={() => window.location.href = `/profile/${characterId}#relationship`}
-            >
+            <div className="flex items-center gap-2 mt-1 pl-[60px] pr-1">
               <span
                 className="flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md tracking-wide"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}

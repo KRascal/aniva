@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // デイリーミッションIDからコイン数を引くマップ（route.tsと同期）
 const MISSION_COINS: Record<string, number> = {
@@ -156,8 +157,8 @@ export async function POST(req: NextRequest) {
 
       const balance = await prisma.coinBalance.upsert({
         where: { userId },
-        create: { userId, balance: def.coins },
-        update: { balance: { increment: def.coins } },
+        create: { userId, balance: def.coins, freeBalance: def.coins, paidBalance: 0 },
+        update: { balance: { increment: def.coins }, freeBalance: { increment: def.coins } },
       });
       await prisma.coinTransaction.create({
         data: { userId, type: 'BONUS', amount: def.coins, balanceAfter: balance.balance, description: descKey },
@@ -195,8 +196,8 @@ export async function POST(req: NextRequest) {
     // コイン付与
     const balance = await prisma.coinBalance.upsert({
       where: { userId },
-      create: { userId, balance: coins },
-      update: { balance: { increment: coins } },
+      create: { userId, balance: coins, freeBalance: coins, paidBalance: 0 },
+      update: { balance: { increment: coins }, freeBalance: { increment: coins } },
     });
 
     await prisma.coinTransaction.create({
@@ -216,7 +217,7 @@ export async function POST(req: NextRequest) {
       message: `+${coins}コイン獲得！ミッション達成！ 🎉`,
     });
   } catch (error) {
-    console.error('[missions/complete] error:', error);
+    logger.error('[missions/complete] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

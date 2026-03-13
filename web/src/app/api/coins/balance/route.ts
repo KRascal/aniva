@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -28,7 +29,7 @@ export async function GET() {
       updatedAt: coinBalance.updatedAt,
     });
   } catch (error) {
-    console.error('[coins/balance] error:', error);
+    logger.error('[coins/balance] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

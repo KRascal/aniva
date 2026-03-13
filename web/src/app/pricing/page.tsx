@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { track, EVENTS } from '@/lib/analytics';
-import { CoinIcon } from '@/components/ui/CoinIcon';
 
 interface CoinPackage {
   id: string;
@@ -280,7 +279,7 @@ export default function PricingPage() {
           <p className="text-gray-400 text-sm">毎日ログインで自動付与！コインが貯まり続ける</p>
           <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full"
             style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <span className="inline-flex items-center gap-1 text-yellow-400 text-xs font-bold"><CoinIcon size={14} /> 毎日ログインで○コインもらえる！</span>
+            <span className="text-yellow-400 text-xs font-bold">🪙 毎日ログインで○コインもらえる！</span>
           </div>
         </div>
 

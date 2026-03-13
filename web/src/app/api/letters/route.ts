@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
       unreadCount: filtered.filter((d: any) => !d.isRead).length,
     });
   } catch (error) {
-    console.error('[letters] error:', error);
+    logger.error('[letters] error:', error);
     return NextResponse.json({ letters: [], unreadCount: 0 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * ファン統計API — 嫉妬メカニクス
@@ -111,7 +112,7 @@ export async function GET(
       weeklyTop,
     });
   } catch (error) {
-    console.error('Fan stats error:', error);
+    logger.error('Fan stats error:', error);
     return NextResponse.json({ error: 'Failed to fetch fan stats' }, { status: 500 });
   }
 }

@@ -12,6 +12,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { apiLimiter, rateLimitResponse } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const BASE_COINS = 10;
 const STREAK_MULTIPLIERS: Record<number, number> = {
@@ -263,7 +264,7 @@ export async function POST() {
       isStreakMilestone: !!streakMessage,
     });
   } catch (error) {
-    console.error('[daily-bonus] error:', error);
+    logger.error('[daily-bonus] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

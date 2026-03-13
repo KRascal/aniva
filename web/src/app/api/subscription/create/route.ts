@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
-    // セッションから認証済みユーザーIDを取得（bodyのuserIdは信頼しない）
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const userId = session.user.id;
-
-    const { plan, priceId } = await req.json();
+    const { userId, plan, priceId } = await req.json();
     
-    if (!plan || !priceId) {
+    if (!userId || !plan || !priceId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
@@ -35,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Checkout Session作成
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -45,9 +38,9 @@ export async function POST(req: NextRequest) {
       metadata: { userId, plan },
     });
     
-    return NextResponse.json({ url: checkoutSession.url });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Subscription create error:', error);
+    logger.error('Subscription create error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

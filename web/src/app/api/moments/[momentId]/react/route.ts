@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -57,7 +58,7 @@ export async function POST(
 
     return NextResponse.json({ liked, reactionCount });
   } catch (error) {
-    console.error('POST /api/moments/[momentId]/react error:', error);
+    logger.error('POST /api/moments/[momentId]/react error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

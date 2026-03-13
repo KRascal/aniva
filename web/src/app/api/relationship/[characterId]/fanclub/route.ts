@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/relationship/[characterId]/fanclub
@@ -70,7 +71,7 @@ export async function POST(
       characterId,
     });
   } catch (error) {
-    console.error('[relationship/fanclub] error:', error);
+    logger.error('[relationship/fanclub] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
