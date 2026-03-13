@@ -48,25 +48,68 @@ function MessageBubble({
   message,
   colorMap,
   characters,
+  conversationId,
+  onPinToggle,
 }: {
   message: GroupMessage;
   colorMap: Map<string, number>;
   characters: Character[];
+  conversationId: string;
+  onPinToggle?: (messageId: string, pinned: boolean) => void;
 }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPinned = !!(message.metadata as Record<string, unknown>)?.pinned;
   const isUser = message.role === 'USER';
+
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => setShowMenu(true), 500);
+  };
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const handlePin = async () => {
+    setShowMenu(false);
+    try {
+      const res = await fetch('/api/chat/group/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: message.id, conversationId, action: isPinned ? 'unpin' : 'pin' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onPinToggle?.(message.id, data.pinned);
+      }
+    } catch { /* ignore */ }
+  };
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-3">
+      <div className="flex justify-end mb-3 relative">
         <div
           className="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-md text-sm text-white leading-relaxed"
           style={{
             background: 'linear-gradient(135deg, rgba(139,92,246,0.85), rgba(236,72,153,0.85))',
             boxShadow: '0 2px 12px rgba(139,92,246,0.3)',
           }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onContextMenu={e => { e.preventDefault(); setShowMenu(true); }}
         >
+          {isPinned && <span className="text-[10px] text-white/50 block mb-1">pinned</span>}
           {message.content}
         </div>
+        {showMenu && (
+          <div className="absolute top-0 right-0 -mt-10 z-50 bg-gray-800 rounded-xl border border-white/10 shadow-xl overflow-hidden">
+            <button onClick={handlePin} className="px-4 py-2 text-xs text-white hover:bg-white/10 whitespace-nowrap">
+              {isPinned ? 'ピン解除' : 'ピン留め'}
+            </button>
+            <button onClick={() => setShowMenu(false)} className="px-4 py-2 text-xs text-white/40 hover:bg-white/10">
+              閉じる
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -77,7 +120,7 @@ function MessageBubble({
   const emotionEmoji = EMOTION_EMOJI[message.emotion ?? 'neutral'] ?? '😐';
 
   return (
-    <div className="flex items-start gap-2.5 mb-4">
+    <div className="flex items-start gap-2.5 mb-4 relative">
       <div className="flex-shrink-0">
         {char?.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -102,16 +145,30 @@ function MessageBubble({
             {message.characterName}
           </span>
           <span className="text-xs">{emotionEmoji}</span>
+          {isPinned && <span className="text-[10px] text-yellow-500/60 ml-1">pinned</span>}
         </div>
         <div
           className="inline-block max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tl-md text-sm text-white leading-relaxed"
           style={{
             background: color.bg,
-            border: `1px solid ${color.border}`,
+            border: `1px solid ${isPinned ? 'rgba(234,179,8,0.4)' : color.border}`,
           }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onContextMenu={e => { e.preventDefault(); setShowMenu(true); }}
         >
           {message.content}
         </div>
+        {showMenu && (
+          <div className="absolute top-0 left-12 z-50 bg-gray-800 rounded-xl border border-white/10 shadow-xl overflow-hidden">
+            <button onClick={handlePin} className="px-4 py-2 text-xs text-white hover:bg-white/10 whitespace-nowrap">
+              {isPinned ? 'ピン解除' : 'ピン留め'}
+            </button>
+            <button onClick={() => setShowMenu(false)} className="px-4 py-2 text-xs text-white/40 hover:bg-white/10">
+              閉じる
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -583,6 +640,14 @@ export default function GroupChatRoomPage() {
             message={msg}
             colorMap={colorMap}
             characters={characters}
+            conversationId={conversationId}
+            onPinToggle={(messageId, pinned) => {
+              setMessages(prev => prev.map(m =>
+                m.id === messageId
+                  ? { ...m, metadata: { ...(m.metadata as Record<string, unknown> ?? {}), pinned } }
+                  : m
+              ));
+            }}
           />
         ))}
 
@@ -620,19 +685,23 @@ export default function GroupChatRoomPage() {
             <button
               onClick={handleCrossTalk}
               disabled={isCrossTalking || isSending}
-              title={`掛け合い（${characters.length * 3}コイン）`}
-              className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center transition-all active:scale-95"
+              className="flex-shrink-0 h-11 px-3.5 rounded-2xl flex items-center gap-1.5 transition-all active:scale-95"
               style={{
                 background: isCrossTalking
                   ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(251,191,36,0.15)',
-                border: '1px solid rgba(251,191,36,0.3)',
+                  : 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.15))',
+                border: '1px solid rgba(251,191,36,0.35)',
               }}
             >
               {isCrossTalking ? (
                 <span className="w-4 h-4 border-2 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin" />
               ) : (
-                <span className="text-base leading-none">⚡</span>
+                <>
+                  <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                  <span className="text-yellow-400 text-xs font-bold whitespace-nowrap">掛け合い</span>
+                </>
               )}
             </button>
           )}

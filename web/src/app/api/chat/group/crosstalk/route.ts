@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger';
  * コイン消費: characterCount * 3
  */
 
-const COIN_PER_CHARACTER = 3;
+const COIN_PER_CHARACTER = 10; // 掛け合いコスト: キャラ数×10（2キャラ=20, 3キャラ=30）
 const HISTORY_CONTEXT_LIMIT = 10;
 
 interface GroupCharacterMessage {
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Characters not found' }, { status: 404 });
     }
 
-    // 6. コイン消費計算: characterCount * 3
+    // 6. コイン消費: キャラ数 × 10コイン
     const totalCoinCost = characters.length * COIN_PER_CHARACTER;
 
     // 7. コイン残高確認・消費
