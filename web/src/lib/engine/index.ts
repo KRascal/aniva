@@ -9,7 +9,8 @@ import { getUserDailyEvent, type DailyEventType } from '../daily-event-system';
 import { loadCharacterContext, getDailyFanCount } from '../character-loader';
 
 import { callLLM } from './llm';
-import { buildSystemPrompt, buildBibleContext } from './prompt-builder';
+import { buildSystemPrompt, buildBibleContext, loadUserProfileContext } from './prompt-builder';
+import { extractAndUpdateProfile, getUserProfile } from './user-profile-engine';
 import { buildMemoryContext, updateMemory } from './memory-manager';
 import { updateRelationshipXP } from './xp-system';
 import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
@@ -98,12 +99,15 @@ export class CharacterEngine {
     let bibleCtx = '';
     try { bibleCtx = await buildBibleContext(character.id, locale); } catch { /* */ }
 
+    let userProfileCtx = '';
+    try { userProfileCtx = await loadUserProfileContext(relationship.userId, character.id); } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
-      bibleCtx,
+      bibleCtx, '', null, userProfileCtx,
     );
 
     const llmMessages = [
@@ -227,12 +231,15 @@ export class CharacterEngine {
       logger.warn('[CharacterEngine] lore-engine failed:', e);
     }
 
+    let userProfileCtx = '';
+    try { userProfileCtx = await loadUserProfileContext(relationship.userId, character.id); } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, dailyEventType,
       hiddenCommandContext, jealousyContext, characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState,
-      semanticMemoryContext, bibleCtx, loreContext,
+      semanticMemoryContext, bibleCtx, loreContext, null, userProfileCtx,
     );
 
     const llmMessages = [
@@ -298,6 +305,23 @@ export class CharacterEngine {
     const displayText = cleanedText.replace(/\s*\[emotion:\w[\w-]*\]\s*/g, '').trim();
 
     await updateMemory(relationshipId, userMessage, displayText, recentMessages);
+
+    // ユーザープロファイル抽出（5メッセージごと、非同期・fire-and-forget）
+    if (relationship.totalMessages % 5 === 0) {
+      setImmediate(async () => {
+        try {
+          const profile = await getUserProfile(relationship.userId, characterId);
+          await extractAndUpdateProfile(
+            relationship.userId,
+            characterId,
+            recentMessages.map((m: { role: string; content: string }) => m),
+            profile,
+          );
+        } catch (e) {
+          logger.warn('[CharacterEngine] profile extraction failed:', e);
+        }
+      });
+    }
 
     import('../semantic-memory').then(({ extractAndStoreMemories }) => {
       extractAndStoreMemories(relationship.userId, characterId, userMessage, displayText)
