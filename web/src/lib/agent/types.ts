@@ -52,6 +52,9 @@ export interface UserStateSnapshot {
   relationshipLevel: number;
   totalMessages: number;
   streakDays: number;
+
+  // ユーザー名（表示・プロンプト用）
+  userName: string;
 }
 
 // ── エージェント判断結果 ──────────────────────────────────────
@@ -99,31 +102,64 @@ export interface AgentLoopSummary {
   results: AgentPipelineResult[];
 }
 
-// ── 設定定数 ────────────────────────────────────────────────
+// ── エージェントループ設定 ───────────────────────────────────
 
-export const AGENT_CONFIG = {
+export interface AgentLoopConfig {
   /** 1回のcron実行で処理する最大ペア数 */
-  MAX_PAIRS_PER_RUN: 50,
+  maxPairsPerRun: number;
 
   /** 1日にキャラ→ユーザーに送れる最大数 */
-  DAILY_CONTACT_LIMIT: 2,
+  dailyContactLimit: number;
 
   /** エージェント送信の最小インターバル（時間） */
-  MIN_INTERVAL_HOURS: 3,
+  minIntervalHours: number;
 
-  /** 深夜時間帯（JST）— この時間帯はurgency:high以外ブロック */
-  LATE_NIGHT_START: 23,
-  LATE_NIGHT_END: 6,
+  /** 深夜開始時間（JST）— この時間帯はurgency:high以外ブロック */
+  quietHoursStart: number;
+
+  /** 深夜終了時間（JST） */
+  quietHoursEnd: number;
 
   /** 未読がこの数以上ならスキップ */
-  MAX_UNREAD_BEFORE_SKIP: 2,
+  maxUnreadBeforeSkip: number;
 
   /** 1ペアあたりの処理タイムアウト（ms） */
-  PER_PAIR_TIMEOUT_MS: 25_000,
+  perPairTimeoutMs: number;
+
+  /** DRY_RUNモード: trueなら送信せずログのみ */
+  dryRun: boolean;
 
   /** 判断用軽量モデル */
-  DECISION_MODEL: 'grok-3-mini',
+  decisionModel: string;
 
   /** 生成用重量モデル */
-  GENERATION_MODEL: 'grok-3',
+  generationModel: string;
+}
+
+export const DEFAULT_AGENT_CONFIG: AgentLoopConfig = {
+  maxPairsPerRun: 50,
+  dailyContactLimit: 2,
+  minIntervalHours: 3,
+  quietHoursStart: 23,
+  quietHoursEnd: 6,
+  maxUnreadBeforeSkip: 2,
+  perPairTimeoutMs: 25_000,
+  dryRun: process.env.AGENT_DRY_RUN === 'true',
+  decisionModel: 'grok-3-mini',
+  generationModel: 'grok-3',
+};
+
+// ── 後方互換エイリアス ────────────────────────────────────────
+
+/** @deprecated USE DEFAULT_AGENT_CONFIG instead */
+export const AGENT_CONFIG = {
+  MAX_PAIRS_PER_RUN: DEFAULT_AGENT_CONFIG.maxPairsPerRun,
+  DAILY_CONTACT_LIMIT: DEFAULT_AGENT_CONFIG.dailyContactLimit,
+  MIN_INTERVAL_HOURS: DEFAULT_AGENT_CONFIG.minIntervalHours,
+  LATE_NIGHT_START: DEFAULT_AGENT_CONFIG.quietHoursStart,
+  LATE_NIGHT_END: DEFAULT_AGENT_CONFIG.quietHoursEnd,
+  MAX_UNREAD_BEFORE_SKIP: DEFAULT_AGENT_CONFIG.maxUnreadBeforeSkip,
+  PER_PAIR_TIMEOUT_MS: DEFAULT_AGENT_CONFIG.perPairTimeoutMs,
+  DECISION_MODEL: DEFAULT_AGENT_CONFIG.decisionModel,
+  GENERATION_MODEL: DEFAULT_AGENT_CONFIG.generationModel,
 } as const;

@@ -43,6 +43,7 @@ async function runPipelineForRelationship(
   relationshipId: string,
   config: AgentLoopConfig,
 ): Promise<AgentPipelineResult> {
+  const pipelineStart = Date.now();
   const base: Omit<AgentPipelineResult, 'decision'> = {
     relationshipId,
     characterId: '',
@@ -50,6 +51,7 @@ async function runPipelineForRelationship(
     timingAllowed: false,
     delivered: false,
     dryRun: config.dryRun,
+    durationMs: 0,
   };
 
   // 1. ユーザー状態収集

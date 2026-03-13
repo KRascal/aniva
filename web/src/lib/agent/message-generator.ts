@@ -24,7 +24,7 @@ interface AgentRelationship {
   characterEmotionNote?: string | null;
   emotionUpdatedAt?: Date | null;
   character: { id: string; name: string; systemPrompt: string; slug: string };
-  user?: { id: string; nickname?: string | null; displayName?: string | null; birthday?: string | null } | null;
+  user?: { id: string; nickname?: string | null; displayName?: string | null; birthday?: string | null } | undefined;
 }
 
 /** messageType ごとのメッセージ生成ガイドライン */
@@ -97,7 +97,8 @@ export async function generateAgentMessage(
   state: UserStateSnapshot,
 ): Promise<string | null> {
   try {
-    const memory = buildMemoryContext(relationship);
+    // RelationshipRecord互換キャスト（agentDecisionsフィールド等は不要）
+    const memory = buildMemoryContext(relationship as Parameters<typeof buildMemoryContext>[0]);
     const memoryInstructions = getMemoryInstructions(memory);
     const intimacyTone = getIntimacyToneInstruction(relationship.level);
 

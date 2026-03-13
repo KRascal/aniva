@@ -65,14 +65,16 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
     let recentTopics: string[] = [];
     try {
       const { userProfileEngine } = await import('../engine/user-profile-engine');
-      const profile = await userProfileEngine.getProfile(relationship.userId);
+      const profile = await userProfileEngine.getOrCreateProfile(relationship.userId);
       if (profile) {
-        activeConcerns = (profile.concerns ?? [])
-          .filter((c: { status: string }) => c.status === 'active')
-          .map((c: { topic: string }) => c.topic);
-        recentTopics = (profile.interests ?? [])
+        const concerns = (profile.concerns ?? []) as Array<{ status: string; topic: string }>;
+        activeConcerns = concerns
+          .filter(c => c.status === 'active')
+          .map(c => c.topic);
+        const interests = (profile.interests ?? []) as Array<{ topic: string }>;
+        recentTopics = interests
           .slice(0, 5)
-          .map((i: { topic: string }) => i.topic);
+          .map(i => i.topic);
       }
     } catch {
       // プロファイル取得失敗は無視
@@ -129,6 +131,8 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
       agentContactCountToday,
       userName,
       relationshipLevel: relationship.level,
+      totalMessages: relationship.totalMessages,
+      streakDays: relationship.streakDays,
     };
   } catch (error) {
     logger.error('[UserStateCollector] Failed to collect state:', error);
