@@ -1,28 +1,17 @@
 'use client';
 
-import type { Character } from './ChatMessageList';
-
-interface MemoryData {
-  factMemory: { fact: string; source: string; confidence: number; updatedAt: string }[];
-  episodeMemory: { summary: string; date: string; emotion: string; importance: number }[];
-  emotionMemory: { topic: string; userEmotion: string; characterReaction: string; date: string }[];
-  preferences: { likes: string[]; dislikes: string[] };
-  userName?: string;
-  totalMessages: number;
-  firstMessageAt: string | null;
-}
+import type { MemoryData } from '@/types/chat';
 
 interface Props {
-  show: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  characterName?: string;
   memoryData: MemoryData | null;
   memoryLoading: boolean;
-  character: Character | null;
-  onClose: () => void;
 }
 
-export function MemoryPeekModal({ show, memoryData, memoryLoading, character, onClose }: Props) {
-  if (!show) return null;
-
+export function MemoryPeekModal({ isOpen, onClose, characterName, memoryData, memoryLoading }: Props) {
+  if (!isOpen) return null;
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
@@ -35,16 +24,9 @@ export function MemoryPeekModal({ show, memoryData, memoryLoading, character, on
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-lg">🧠</span>
-            <h3 className="font-bold text-white text-sm">
-              {character?.name ?? 'キャラ'}の記憶
-            </h3>
+            <h3 className="font-bold text-white text-sm">{characterName ?? 'キャラ'}の記憶</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 text-xs p-1"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xs p-1">✕</button>
         </div>
 
         {memoryLoading ? (
@@ -97,15 +79,15 @@ export function MemoryPeekModal({ show, memoryData, memoryLoading, character, on
                   <span>✨</span> 大切な思い出
                 </p>
                 <div className="space-y-1.5">
-                  {memoryData.episodeMemory.map((e, i) => (
+                  {memoryData.episodeMemory.map((ep, i) => (
                     <div key={i} className="bg-gray-900/70 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-sm">{e.emotion}</span>
+                        <span className="text-sm">{ep.emotion}</span>
                         <span className="text-gray-500 text-[10px]">
-                          {new Date(e.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+                          {new Date(ep.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                         </span>
                       </div>
-                      <p className="text-gray-200 text-xs leading-relaxed">{e.summary}</p>
+                      <p className="text-gray-200 text-xs leading-relaxed">{ep.summary}</p>
                     </div>
                   ))}
                 </div>
@@ -119,9 +101,7 @@ export function MemoryPeekModal({ show, memoryData, memoryLoading, character, on
                     <p className="text-xs font-semibold text-green-400 mb-1.5">💚 好き</p>
                     <div className="flex flex-wrap gap-1">
                       {memoryData.preferences.likes.slice(0, 6).map((l, i) => (
-                        <span key={i} className="text-[10px] bg-green-900/30 border border-green-700/30 text-green-300 rounded-full px-2 py-0.5">
-                          {l}
-                        </span>
+                        <span key={i} className="text-[10px] bg-green-900/30 border border-green-700/30 text-green-300 rounded-full px-2 py-0.5">{l}</span>
                       ))}
                     </div>
                   </div>
@@ -131,9 +111,7 @@ export function MemoryPeekModal({ show, memoryData, memoryLoading, character, on
                     <p className="text-xs font-semibold text-red-400 mb-1.5">🔴 苦手</p>
                     <div className="flex flex-wrap gap-1">
                       {memoryData.preferences.dislikes.slice(0, 6).map((d, i) => (
-                        <span key={i} className="text-[10px] bg-red-900/30 border border-red-700/30 text-red-300 rounded-full px-2 py-0.5">
-                          {d}
-                        </span>
+                        <span key={i} className="text-[10px] bg-red-900/30 border border-red-700/30 text-red-300 rounded-full px-2 py-0.5">{d}</span>
                       ))}
                     </div>
                   </div>
