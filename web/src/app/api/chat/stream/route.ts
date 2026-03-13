@@ -22,6 +22,8 @@ import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { callLLMStream } from '@/lib/llm-stream';
 import { logger } from '@/lib/logger';
+import { shouldUseDeepMode } from '@/lib/message-weight';
+import { getThinkingReaction } from '@/lib/thinking-reactions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -143,6 +145,66 @@ export async function POST(req: NextRequest) {
     const userMsg = await prisma.message.create({
       data: { conversationId: conversation.id, role: 'USER', content: message },
     });
+
+    // ── Deep Mode判定 ──
+    const recentCharMsgs = await prisma.message.findMany({
+      where: { conversationId: conversation.id, role: 'CHARACTER' },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { metadata: true },
+    });
+    const recentDeepCount = recentCharMsgs.filter(
+      (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
+    ).length;
+
+    if (shouldUseDeepMode(message, recentDeepCount)) {
+      const thinkingText = getThinkingReaction(cachedCharacter.slug);
+      const thinkingMsg = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'CHARACTER',
+          content: thinkingText,
+          metadata: { isThinking: true },
+        },
+      });
+      await prisma.deepReplyQueue.create({
+        data: {
+          userId,
+          characterId,
+          relationshipId: relationship.id,
+          conversationId: conversation.id,
+          userMessageId: userMsg.id,
+          thinkingMsgId: thinkingMsg.id,
+        },
+      });
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+      if (access.type === 'FREE') {
+        await incrementMonthlyChat(userId, characterId);
+      }
+      // Deep ModeはSSEで1イベントだけ返して即完了
+      const encoder2 = new TextEncoder();
+      const deepEvent = encoder2.encode(
+        `data: ${JSON.stringify({
+          type: 'deep_mode',
+          userMessageId: userMsg.id,
+          characterMessageId: thinkingMsg.id,
+          thinkingText,
+          emotion: 'thinking',
+          isDeepProcessing: true,
+          consumed,
+        })}\n\n`,
+      );
+      return new Response(deepEvent, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
 
     // ── SystemPrompt構築 （character-engineの内部メソッドを公開して利用） ──
     const isFcMember = consumed === 'FC_UNLIMITED';

@@ -10,8 +10,7 @@ export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  imageUrl?: string | null; // DBカラム（imageUrl）— metadata.imageUrlのフォールバック
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isThinking?: boolean; deepReply?: boolean };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -606,6 +605,32 @@ export function ChatMessageList({
                           <span className="aniva-dot" />
                           <span className="aniva-dot" />
                         </div>
+                      ) : msg.metadata?.isThinking ? (
+                        /* Deep Mode「考え中」演出 */
+                        <div>
+                          <p className="text-white/80 text-sm leading-relaxed mb-2">{msg.content}</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <span className="deep-dot" style={{ animationDelay: '0ms' }} />
+                              <span className="deep-dot" style={{ animationDelay: '200ms' }} />
+                              <span className="deep-dot" style={{ animationDelay: '400ms' }} />
+                            </div>
+                            <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em' }}>
+                              じっくり考え中
+                            </span>
+                          </div>
+                          <style>{`.deep-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(139,92,246,0.7);animation:deepPulse 1.2s ease-in-out infinite}@keyframes deepPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+                        </div>
+                      ) : msg.metadata?.deepReply ? (
+                        /* Deep Reply 返答（特別感エフェクト） */
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9.937 15.5A2 2 0 008.5 14.063l-6.135-1.582a.5.5 0 010-.962L8.5 9.936A2 2 0 009.937 8.5l1.582-6.135a.5.5 0 01.962 0L14.063 8.5A2 2 0 0015.5 9.937l6.135 1.582a.5.5 0 010 .962L15.5 14.063a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.962 0z"/></svg>
+                            <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>じっくり考えてくれた</span>
+                          </div>
+                          <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</p>
+                        </div>
                       ) : /* スタンプ表示 */
                       msg.metadata?.stickerUrl ? (
                         <Image
@@ -617,30 +642,31 @@ export function ChatMessageList({
                           style={{ objectFit: 'contain' }}
                           unoptimized
                         />
-                      ) : /* 画像メッセージ表示（metadata.imageUrl または imageUrlカラムを参照） */
-                      (msg.metadata?.imageUrl || msg.imageUrl) ? (
-                        (() => {
-                          const rawUrl = msg.metadata?.imageUrl || msg.imageUrl!;
-                          // /uploads/ → /api/uploads/ 変換（旧パス対応）
-                          const displayUrl = rawUrl.startsWith('/uploads/')
-                            ? rawUrl.replace('/uploads/', '/api/uploads/')
-                            : rawUrl;
-                          return (
-                            <button
-                              className="block focus:outline-none"
-                              onClick={() => setFullscreenImage(displayUrl)}
-                              aria-label="画像を拡大表示"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={displayUrl}
-                                alt="送信した画像"
-                                className="rounded-xl object-cover"
-                                style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
-                              />
-                            </button>
-                          );
-                        })()
+                      ) : /* 画像メッセージ表示 */
+                      msg.metadata?.imageUrl ? (
+                        <button
+                          className="block focus:outline-none"
+                          onClick={() => {
+                            // フルスクリーン表示時も旧パスをAPI経由に変換
+                            const imgUrl = msg.metadata!.imageUrl!.startsWith('/uploads/')
+                              ? msg.metadata!.imageUrl!.replace('/uploads/', '/api/uploads/')
+                              : msg.metadata!.imageUrl!;
+                            setFullscreenImage(imgUrl);
+                          }}
+                          aria-label="画像を拡大表示"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              msg.metadata.imageUrl.startsWith('/uploads/')
+                                ? msg.metadata.imageUrl.replace('/uploads/', '/api/uploads/')
+                                : msg.metadata.imageUrl
+                            }
+                            alt="送信した画像"
+                            className="rounded-xl object-cover"
+                            style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
+                          />
+                        </button>
                       ) : (
                         <span className="whitespace-pre-wrap break-words">{displayContent}</span>
                       )}

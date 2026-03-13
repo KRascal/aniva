@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function GET(
   _req: NextRequest,
@@ -18,8 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId: rawCharacterId } = await params;
-    const characterId = (await resolveCharacterId(rawCharacterId)) ?? rawCharacterId;
+    const { characterId } = await params;
 
     const character = await prisma.character.findUnique({
       where: { id: characterId },

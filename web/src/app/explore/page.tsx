@@ -108,6 +108,7 @@ function FollowButton({
   initialFollowing: boolean;
   onFollow: (id: string, following: boolean) => void;
 }) {
+  const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -117,13 +118,15 @@ function FollowButton({
       const res = await fetch(`/api/relationship/${characterId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ follow: !initialFollowing }),
+        body: JSON.stringify({ follow: !following }),
       });
       if (res.ok) {
-        const newFollowing = !initialFollowing;
+        const newFollowing = !following;
+        setFollowing(newFollowing);
         onFollow(characterId, newFollowing);
         if (newFollowing) {
           track(EVENTS.CHARACTER_FOLLOWED, { characterId });
+          // フォロー時にウェルカムメッセージ送信
           fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
         }
       }
@@ -140,18 +143,18 @@ function FollowButton({
       disabled={loading}
       className={`
         flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 active:scale-95
-        ${initialFollowing
+        ${following
           ? 'bg-white/10 text-white border border-white/25 hover:bg-red-900/30 hover:text-red-300 hover:border-red-500/40 hover:scale-105'
           : 'text-white hover:scale-105'
         }
         ${loading ? 'opacity-50' : ''}
       `}
-      style={!initialFollowing ? {
+      style={!following ? {
         background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
         boxShadow: '0 2px 12px rgba(139,92,246,0.4)',
       } : undefined}
     >
-      {loading ? '…' : initialFollowing ? 'フォロー中' : 'フォローする'}
+      {loading ? '…' : following ? 'フォロー中' : 'フォローする'}
     </button>
   );
 }
@@ -948,18 +951,13 @@ export default function ExplorePage() {
     );
   }
 
-  // Empty state: 通常40キャラ存在するため、空は一時的な読み込みエラー → リロード促す
+  // Empty state when no characters loaded (show only after confirmed fetch completion)
   if (!isLoading && characters.length === 0 && status === 'authenticated') {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center pb-24 px-4">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
-        <p className="text-gray-400 text-sm text-center mb-4">読み込み中...</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="text-purple-400 text-sm underline"
-        >
-          再読み込み
-        </button>
+        <div className="text-6xl mb-4">🌊</div>
+        <h2 className="text-white text-xl font-bold mb-2">キャラクターを準備中です</h2>
+        <p className="text-gray-400 text-sm text-center">もうしばらくお待ちください。<br />新しいキャラクターが間もなく登場します！</p>
       </div>
     );
   }

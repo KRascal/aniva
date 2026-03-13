@@ -51,25 +51,15 @@ export default function DiscoverPage() {
     track(EVENTS.DISCOVER_VIEWED);
     (async () => {
       try {
-        // フォロー済みキャラIDを取得（除外するため）
-        let followedCharIds: Set<string> = new Set();
-        try {
-          const followedRes = await fetch('/api/relationship/following');
-          if (followedRes.ok) {
-            const followedData = await followedRes.json();
-            const followedList = followedData.following ?? followedData.characters ?? [];
-            followedCharIds = new Set(followedList.map((c: { id: string }) => c.id));
-          }
-        } catch { /* ignore: フォロー取得失敗は無視してフィルタなしで表示 */ }
-
-        const res = await fetch('/api/characters?limit=50&random=1');
+        const res = await fetch('/api/characters?limit=20&random=1');
         if (res.ok) {
           const data = await res.json();
           const skipped = getSkippedSlugs();
-          // フォロー済み・スキップ済みを除外、残りをシャッフル（数が少なくても全員表示）
+          // Filter out skipped chars, then shuffle and limit to 10
           const chars = (data.characters ?? [])
-            .filter((c: DiscoverCharacter) => !skipped.includes(c.slug) && !followedCharIds.has(c.id))
-            .sort(() => Math.random() - 0.5);
+            .filter((c: DiscoverCharacter) => !skipped.includes(c.slug))
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 10);
           setCharacters(chars);
         }
       } catch { /* ignore */ }
@@ -196,11 +186,7 @@ export default function DiscoverPage() {
       <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center z-50 px-6">
         <div className="text-4xl mb-4">💌</div>
         <h2 className="text-white text-xl font-black mb-2">
-          {characters.length === 0
-            ? 'フォローできるキャラはいません'
-            : followedChars.length > 0
-              ? `${followedChars.length}人をフォロー！`
-              : '探索完了！'}
+          {followedChars.length > 0 ? `${followedChars.length}人をフォロー！` : '探索完了！'}
         </h2>
         {followedChars.length > 0 && (
           <>

@@ -179,12 +179,14 @@ export function ChatInput({
       return;
     }
     if (onSendImage) {
-      // 送信と同時にプレビューをクリア（楽観的UIは親コンポーネントが管理）
+      setSelectedImageName(file.name);
+      const url = URL.createObjectURL(file);
+      setImagePreviewUrl(url);
       onSendImage(file);
-      // プレビューを即クリア — 送信済みなので表示不要
-      setSelectedImageName(null);
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
+    } else {
+      setSelectedImageName(file.name);
+      const url = URL.createObjectURL(file);
+      setImagePreviewUrl(url);
     }
     e.target.value = '';
   };

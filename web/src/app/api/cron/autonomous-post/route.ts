@@ -183,14 +183,13 @@ ${recentTexts || '（なし）'}
       const randomMinutesAgo = Math.floor(Math.random() * 85) + 5; // 5〜90分前
       const staggeredPublishedAt = new Date(Date.now() - randomMinutesAgo * 60 * 1000);
 
-      // momentsに投稿（15%の確率でFC限定）
-      const isPremium = Math.random() < 0.15;
+      // momentsに投稿
       await prisma.moment.create({
         data: {
           characterId: character.id,
           type: 'TEXT',
           content,
-          visibility: isPremium ? 'PREMIUM' : 'PUBLIC',
+          visibility: 'PUBLIC',
           publishedAt: staggeredPublishedAt,
         },
       });

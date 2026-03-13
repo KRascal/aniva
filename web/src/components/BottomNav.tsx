@@ -208,11 +208,7 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {isTimeline && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
-              {notifUnreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full leading-none border border-gray-950">
-                  {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
-                </span>
-              )}
+              {/* タイムラインにはソーシャルバッジなし — 通知はMyPageで表示 */}
             </div>
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>
@@ -273,9 +269,9 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               {isMypage && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
-              {unreadLetters > 0 && (
+              {(unreadLetters + notifUnreadCount) > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full leading-none border border-gray-950">
-                  {unreadLetters > 9 ? '9+' : unreadLetters}
+                  {(unreadLetters + notifUnreadCount) > 9 ? '9+' : (unreadLetters + notifUnreadCount)}
                 </span>
               )}
             </div>

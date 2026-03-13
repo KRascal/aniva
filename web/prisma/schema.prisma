@@ -60,7 +60,6 @@ model User {
   fanThreads             FanThread[]
   fanReplies             FanReply[]
   userProfile            UserProfile?
-  groupConversations     Conversation[]
 }
 
 model PushSubscription {
@@ -244,19 +243,14 @@ model Relationship {
 }
 
 model Conversation {
-  id             String        @id @default(uuid())
-  relationshipId String?
-  userId         String?
-  type           String        @default("direct") // "direct" | "group"
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  metadata       Json          @default("{}")
-  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
-  user           User?         @relation(fields: [userId], references: [id])
+  id             String       @id @default(uuid())
+  relationshipId String
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  metadata       Json         @default("{}")
+  relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
-
-  @@index([userId, type])
 }
 
 model Message {
@@ -532,6 +526,7 @@ model GachaCard {
   createdAt       DateTime    @default(now())
   character       Character   @relation(fields: [characterId], references: [id])
   userCards       UserCard[]
+  unlocksChapters StoryChapter[] // このカードで解放されるストーリーチャプター
 
   @@index([characterId])
   @@index([rarity])
@@ -611,6 +606,8 @@ model StoryChapter {
   synopsis        String              @db.Text
   unlockLevel     Int                 @default(1)
   isFcOnly        Boolean             @default(false)
+  unlockCardId    String?             // ガチャカード所有で解放（null = カード不要）
+  unlockCard      GachaCard?          @relation(fields: [unlockCardId], references: [id])
   triggerPrompt   String              @db.Text
   choices         Json? // [{ text, consequence, nextTease, xpReward? }]
   isActive        Boolean             @default(true)
@@ -623,6 +620,7 @@ model StoryChapter {
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])
+  @@index([unlockCardId])
 }
 
 model DownloadableContent {

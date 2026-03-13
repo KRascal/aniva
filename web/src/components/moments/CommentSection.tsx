@@ -27,11 +27,10 @@ function CommentAvatar({ comment }: { comment: MomentComment }) {
       </div>
     );
   }
-  if (comment.user?.id && userAvatar && userAvatar.trim()) {
+  if (comment.user?.id && userAvatar) {
     return (
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={userAvatar} alt={displayLabel ?? ''} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <Image src={userAvatar} alt={displayLabel ?? ''} width={32} height={32} className="w-full h-full object-cover" unoptimized />
       </div>
     );
   }

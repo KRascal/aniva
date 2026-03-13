@@ -9,7 +9,8 @@ import { gachaLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { pullGacha, getFreeGachaAvailable } from '@/lib/gacha-system';
 
-const COSTS: Record<number, number> = {
+// デフォルトコスト（banner.costCoins/cost10Coinsで上書き可能）
+const DEFAULT_COSTS: Record<number, number> = {
   1: 100,
   10: 900,
 };
@@ -66,30 +67,40 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── 通常ガチャ（コイン消費） ──
-  if (!COSTS[count]) {
+  // ── 通常ガチャ（コイン消費: バナー設定優先） ──
+  if (!DEFAULT_COSTS[count]) {
     return NextResponse.json({ error: 'Invalid count' }, { status: 400 });
   }
 
-  const cost = COSTS[count];
+  const banner = await prisma.gachaBanner.findUnique({ where: { id: bannerId }, select: { costCoins: true, cost10Coins: true } });
+  const cost = count === 10
+    ? (banner?.cost10Coins ?? banner?.costCoins ? banner.costCoins * 10 : DEFAULT_COSTS[10])
+    : (banner?.costCoins ?? DEFAULT_COSTS[1]);
 
   const coinBalance = await prisma.coinBalance.upsert({
     where: { userId },
-    create: { userId, balance: 0 },
+    create: { userId, balance: 0, freeBalance: 0, paidBalance: 0 },
     update: {},
   });
 
-  if (coinBalance.balance < cost) {
+  const totalBalance = coinBalance.freeBalance + coinBalance.paidBalance;
+  if (totalBalance < cost) {
     return NextResponse.json(
-      { error: 'コインが足りません', required: cost, current: coinBalance.balance },
+      { error: 'コインが足りません', required: cost, current: totalBalance },
       { status: 400 },
     );
   }
 
-  // コインを引く
+  // コインを引く（freeBalance優先消費）
+  const freeSpent = Math.min(coinBalance.freeBalance, cost);
+  const paidSpent = cost - freeSpent;
   const updatedBalance = await prisma.coinBalance.update({
     where: { userId },
-    data: { balance: { decrement: cost } },
+    data: {
+      freeBalance: { decrement: freeSpent },
+      paidBalance: { decrement: paidSpent },
+      balance: { decrement: cost },
+    },
   });
 
   try {
@@ -109,7 +120,11 @@ export async function POST(req: Request) {
     // ガチャ失敗時はコインを戻す
     await prisma.coinBalance.update({
       where: { userId },
-      data: { balance: { increment: cost } },
+      data: {
+        freeBalance: { increment: freeSpent },
+        paidBalance: { increment: paidSpent },
+        balance: { increment: cost },
+      },
     });
     const message = err instanceof Error ? err.message : 'Gacha failed';
     return NextResponse.json({ error: message }, { status: 500 });

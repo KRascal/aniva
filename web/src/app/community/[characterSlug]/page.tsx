@@ -32,7 +32,6 @@ interface CharacterInfo {
 }
 
 const CATEGORIES = [
-  { id: 'popular', label: '人気' },
   { id: 'all', label: 'すべて' },
   { id: 'general', label: '雑談' },
   { id: 'discussion', label: '考察' },
@@ -47,7 +46,7 @@ export default function CommunityPage() {
   const router = useRouter();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [character, setCharacter] = useState<CharacterInfo | null>(null);
-  const [category, setCategory] = useState('popular');
+  const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showNewThread, setShowNewThread] = useState(false);
   const [newTitle, setNewTitle] = useState('');

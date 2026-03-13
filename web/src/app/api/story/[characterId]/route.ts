@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { resolveCharacterId } from '@/lib/resolve-character';
 
 // ルフィのデフォルトチャプター定義
 const LUFFY_DEFAULT_CHAPTERS = [
@@ -85,8 +84,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId: rawCharacterId } = await params;
-    const characterId = (await resolveCharacterId(rawCharacterId)) ?? rawCharacterId;
+    const { characterId } = await params;
 
     // キャラクター取得
     const character = await prisma.character.findUnique({
@@ -123,38 +121,48 @@ export async function GET(
       });
     }
 
-    // チャプター取得（全件）
+    // チャプター取得（全件、unlockCard情報付き）
     const allChapters = await prisma.storyChapter.findMany({
       where: { characterId, isActive: true },
       orderBy: { chapterNumber: 'asc' },
+      include: {
+        unlockCard: { select: { id: true, name: true, rarity: true, imageUrl: true, cardImageUrl: true } },
+      },
     });
 
     // ユーザーの進捗取得
     const progresses = await prisma.userStoryProgress.findMany({
-      where: {
-        userId,
-        characterId,
-      },
+      where: { userId, characterId },
     });
     const progressMap = new Map(progresses.map((p) => [p.chapterId, p]));
+
+    // ユーザー所有カードID取得（ストーリー解放判定用）
+    const userCards = await prisma.userCard.findMany({
+      where: { userId },
+      select: { cardId: true },
+    });
+    const userCardIds = new Set(userCards.map((uc) => uc.cardId));
 
     // チャプター情報を加工して返す
     const chapters = allChapters.map((chapter, index) => {
       const progress = progressMap.get(chapter.id);
       const isLevelLocked = chapter.unlockLevel > userLevel;
       const isFcLocked = chapter.isFcOnly && !isFcMember;
+      const isCardLocked = !!chapter.unlockCardId && !userCardIds.has(chapter.unlockCardId);
 
-      // 次のチャプターのみ「次はLv{n}で解放」表示（ちょうど次のチャプター）
+      // 次のチャプターのみ「次はLv{n}で解放」表示
       const prevChapter = index > 0 ? allChapters[index - 1] : null;
       const isNextChapter =
         prevChapter !== null && prevChapter.unlockLevel <= userLevel && isLevelLocked;
 
       let lockReason: string | null = null;
-      if (isFcLocked) {
+      if (isCardLocked && chapter.unlockCard) {
+        lockReason = `カード「${chapter.unlockCard.name}」(${chapter.unlockCard.rarity})で解放`;
+      } else if (isFcLocked) {
         lockReason = `FC会員限定`;
       } else if (isLevelLocked) {
         if (isNextChapter) {
-          lockReason = `🔒 解放まで Lv${chapter.unlockLevel}`;
+          lockReason = `解放まで Lv${chapter.unlockLevel}`;
         } else {
           lockReason = `Lv${chapter.unlockLevel}で解放`;
         }
@@ -168,7 +176,9 @@ export async function GET(
         choices: lockReason ? null : chapter.choices,
         unlockLevel: chapter.unlockLevel,
         isFcOnly: chapter.isFcOnly,
-        isLocked: !!(isLevelLocked || isFcLocked),
+        unlockCardId: chapter.unlockCardId,
+        unlockCard: chapter.unlockCard,
+        isLocked: !!(isLevelLocked || isFcLocked || isCardLocked),
         lockReason,
         isCompleted: progress?.isCompleted ?? false,
         choicesMade: progress?.choicesMade ?? [],

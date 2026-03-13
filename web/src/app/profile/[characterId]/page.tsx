@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FcMembershipSection } from '@/components/FcMembershipSection';
 import { MomentCard as SharedMomentCard, MOMENT_CARD_STYLES, type Moment as SharedMoment } from '@/components/moments/MomentCard';
 import { FanStatsPanel } from '@/components/character/FanStatsPanel';
-import { FcContentList } from '@/components/fc/FcContentList';
 
 /* ───────────────────────── Luffy 固定データ ───────────────────────── */
 /* ───────────────────────── キャラクター情報データ ───────────────────────── */
@@ -345,13 +344,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
-  const searchParams = useSearchParams();
-  const initialTab = (['posts', 'fc', 'dl', 'profile', 'diary'] as const).includes(
-    searchParams.get('tab') as 'posts' | 'fc' | 'dl' | 'profile' | 'diary'
-  )
-    ? (searchParams.get('tab') as 'posts' | 'fc' | 'dl' | 'profile' | 'diary')
-    : 'posts';
-  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile' | 'diary'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile' | 'diary'>('posts');
   const [dlContents, setDlContents] = useState<DlContent[]>([]);
   const [dlLoading, setDlLoading] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
@@ -502,7 +495,7 @@ export default function ProfilePage() {
       const stripeRes = await fetch('/api/fc/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterId, returnUrl: `/profile/${characterId}` }),
+        body: JSON.stringify({ characterId }),
       });
       const stripeData = await stripeRes.json() as { checkoutUrl?: string; error?: string };
 
@@ -883,7 +876,7 @@ export default function ProfilePage() {
             {[
               { id: 'posts' as const, label: '投稿' },
               { id: 'fc' as const, label: 'FC限定' },
-              { id: 'dl' as const, label: 'ショップ' },
+              { id: 'dl' as const, label: 'DL' },
               { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
@@ -968,28 +961,33 @@ export default function ProfilePage() {
             ) : (
               <>
                 {diaries.map((diary) => {
-                  const moodConfig: Record<string, { label: string; gradient: string; badge: string; accent: string }> = {
-                    happy:      { label: 'Happy', gradient: 'from-yellow-900/30 to-orange-900/20', badge: 'bg-yellow-500/15 text-yellow-400/80', accent: 'border-yellow-500/20' },
-                    sad:        { label: 'Melancholy', gradient: 'from-blue-900/30 to-indigo-900/20', badge: 'bg-blue-500/15 text-blue-400/80', accent: 'border-blue-500/20' },
-                    excited:    { label: 'Excited', gradient: 'from-pink-900/30 to-red-900/20', badge: 'bg-pink-500/15 text-pink-400/80', accent: 'border-pink-500/20' },
-                    tired:      { label: 'Tired', gradient: 'from-gray-800/40 to-gray-900/30', badge: 'bg-gray-500/15 text-gray-400/80', accent: 'border-gray-500/20' },
-                    neutral:    { label: 'Calm', gradient: 'from-gray-800/30 to-gray-900/20', badge: 'bg-gray-500/15 text-gray-400/80', accent: 'border-gray-500/20' },
-                    nostalgic:  { label: 'Nostalgic', gradient: 'from-purple-900/30 to-violet-900/20', badge: 'bg-purple-500/15 text-purple-400/80', accent: 'border-purple-500/20' },
-                    mysterious: { label: 'Mysterious', gradient: 'from-indigo-900/30 to-purple-900/20', badge: 'bg-indigo-500/15 text-indigo-400/80', accent: 'border-indigo-500/20' },
-                    playful:    { label: 'Playful', gradient: 'from-green-900/30 to-teal-900/20', badge: 'bg-green-500/15 text-green-400/80', accent: 'border-green-500/20' },
+                  const moodConfig: Record<string, { emoji: string; gradient: string; badge: string }> = {
+                    happy:      { emoji: '😊', gradient: 'from-yellow-900/40 to-orange-900/30', badge: 'bg-yellow-500/20 text-yellow-300' },
+                    sad:        { emoji: '😢', gradient: 'from-blue-900/40 to-indigo-900/30', badge: 'bg-blue-500/20 text-blue-300' },
+                    excited:    { emoji: '🤩', gradient: 'from-pink-900/40 to-red-900/30', badge: 'bg-pink-500/20 text-pink-300' },
+                    tired:      { emoji: '😴', gradient: 'from-gray-800/60 to-gray-900/40', badge: 'bg-gray-500/20 text-gray-400' },
+                    neutral:    { emoji: '😐', gradient: 'from-gray-800/50 to-gray-900/40', badge: 'bg-gray-500/20 text-gray-400' },
+                    nostalgic:  { emoji: '🌙', gradient: 'from-purple-900/40 to-violet-900/30', badge: 'bg-purple-500/20 text-purple-300' },
+                    mysterious: { emoji: '🔮', gradient: 'from-indigo-900/40 to-purple-900/30', badge: 'bg-indigo-500/20 text-indigo-300' },
+                    playful:    { emoji: '😜', gradient: 'from-green-900/40 to-teal-900/30', badge: 'bg-green-500/20 text-green-300' },
                   };
                   const cfg = moodConfig[diary.mood] ?? moodConfig['neutral'];
                   return (
                     <div
                       key={diary.id}
-                      className={`rounded-2xl p-5 bg-gradient-to-br ${cfg.gradient} border ${cfg.accent}`}
+                      className={`rounded-2xl p-4 bg-gradient-to-br ${cfg.gradient} border border-white/10`}
                     >
                       {/* ヘッダー */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-white/40 text-xs tracking-wider">{diary.date}</span>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium tracking-wide ${cfg.badge}`}>
-                          {cfg.label}
-                        </span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{cfg.emoji}</span>
+                        <div className="flex-1">
+                          <span className="text-white/50 text-xs">{diary.date}</span>
+                          <div className="mt-0.5">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${cfg.badge}`}>
+                              {diary.mood}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       {/* 本文 */}
                       <p className="text-white/90 text-sm leading-relaxed">{diary.content}</p>
@@ -1043,7 +1041,23 @@ export default function ProfilePage() {
               />
             )}
             {isFanclub ? (
-              <FcContentList characterId={characterId} />
+              <>
+                <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">FC限定コンテンツ</p>
+                {moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').length === 0 ? (
+                  <div className="text-center py-10">
+                    <div className="flex justify-center mb-3">
+                      <svg className="w-10 h-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                      </svg>
+                    </div>
+                    <p className="text-white/40 text-sm">FC限定コンテンツは準備中です</p>
+                  </div>
+                ) : (
+                  moments.filter(m => m.visibility === 'PREMIUM' || m.visibility === 'STANDARD').map((moment) => (
+                    <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={handleLike} currentUserId={userId} />
+                  ))
+                )}
+              </>
             ) : (
               <div className="bg-gray-900/70 rounded-2xl p-5 border border-purple-900/30 text-center">
                 <div className="flex justify-center mb-2">
@@ -1058,11 +1072,11 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ══════════════ タブコンテンツ: ショップ ══════════════ */}
+        {/* ══════════════ タブコンテンツ: 限定DLコンテンツ ══════════════ */}
         {activeTab === 'dl' && (
           <div className="space-y-4 pt-2 pb-24">
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">
-              ショップ
+              限定ダウンロードコンテンツ
             </p>
             {dlLoading ? (
               <div className="text-center py-10 text-white/30 text-sm">読み込み中...</div>

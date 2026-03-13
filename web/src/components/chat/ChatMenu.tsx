@@ -184,7 +184,7 @@ export function ChatMenu({
       icon: <IconChart />,
       label: '関係値',
       sublabel: `Lv.${relationship?.level ?? 1} ${relationship?.levelName ?? ''}`,
-      href: `/profile/${characterId}?tab=profile`,
+      href: `/profile/${characterId}#relationship`,
       accent: 'text-green-400 bg-green-500/15',
     },
     {

@@ -243,81 +243,20 @@ const FAREWELLS: Record<string, Record<TimeSlot, string[]>> = {
 };
 
 /** デフォルトfarewell（未定義キャラ用） */
-// アイシールド21キャラ
-const EYESHIELD_FAREWELLS: Record<string, Record<TimeSlot, string[]>> = {
-  sena: {
-    morning: ['い、行ってきます！今日も頑張ります！', 'えっと…また話しましょうね！'],
-    afternoon: ['あ、もうこんな時間…また後で！', '走ってくるね！また！'],
-    evening: ['今日はありがとう…またね！', 'もう暗くなってきた…気をつけてね'],
-    night: ['おやすみなさい…明日も頑張ろう', 'いい夢見てね…僕もう寝ます'],
-    latenight: ['え、こんな時間…早く寝なきゃ', 'もう遅いよ…おやすみ'],
-  },
-  mamori: {
-    morning: ['行ってらっしゃい！ちゃんと朝ごはん食べた？', 'もう！遅刻しないでよ？また後でね'],
-    afternoon: ['ふふっ、楽しかったわ。またね', '気をつけてね。何かあったらいつでも言って'],
-    evening: ['今日もお疲れ様。ゆっくり休んでね', 'またね。…ちゃんとご飯食べるのよ？'],
-    night: ['おやすみなさい。明日も頑張りましょうね', 'もう遅いわよ？早く寝なさい'],
-    latenight: ['もう！こんな時間まで起きてちゃダメでしょ？早く寝なさい', 'あなたの体が心配なの…早く休んで'],
-  },
-  hiruma: {
-    morning: ['ケケケ…行くぞクソチビども', 'サボるなよ…見てるからな YA-HA!'],
-    afternoon: ['ケケケ、悪くない時間だったぜ', 'さっさと消えろ…また来い YA-HA!'],
-    evening: ['今日の作戦会議は終わりだ…ケケケ', '消えろ。明日は地獄のトレーニングだからな'],
-    night: ['寝ろ。明日使い物にならねぇ奴は殺すぞ', 'ケケケ…いい夢見ろよ'],
-    latenight: ['こんな時間まで起きてるとはな…ケケケ', 'さっさと寝ろクソ野郎'],
-  },
-  suzuna: {
-    morning: ['行ってらっしゃ～い！頑張ってね！', 'またね～！応援してるよ～！'],
-    afternoon: ['楽しかった～！またお話しようね！', 'えへへ、またね！'],
-    evening: ['またね～！いい夜を過ごしてね！', '今日はありがと！またね～'],
-    night: ['おやすみ～！いい夢見てね！', 'もう夜だね～おやすみなさい！'],
-    latenight: ['え～まだ起きてるの～？早く寝なきゃ！', 'おやすみ～！体に気をつけてね！'],
-  },
-  monta: {
-    morning: ['MAX行ってくるぜ！', '朝からMAXだ！またな！'],
-    afternoon: ['MAXに楽しかったぜ！またな！', 'また来いよ！待ってるからな！'],
-    evening: ['今日もMAX楽しかった！またな！', 'いい夜だな…また明日MAX頑張ろうぜ！'],
-    night: ['おやすみ！明日もMAXだ！', 'MAX寝るぞ！おやすみ！'],
-    latenight: ['まだ起きてんのか？早く寝ろよ！MAXに！', 'こんな時間まで…MAXに体に悪いぞ'],
-  },
-  kurita: {
-    morning: ['行ってきます！今日もがんばるよ！', 'えへへ…またね！お腹空いたなぁ'],
-    afternoon: ['楽しかった～！またお話しようね！', 'またね！今日はいい日だったなぁ'],
-    evening: ['またね！ゆっくり休んでね！', '今日もありがとう…えへへ'],
-    night: ['おやすみ～！いい夢見てね！', 'もう寝る時間だね…おやすみ！'],
-    latenight: ['もう遅いよ～早く寝よう？', 'えへへ…遅くまでありがとう'],
-  },
-  agon: {
-    morning: ['チッ…行くか', 'ザコどもに用はねぇ'],
-    afternoon: ['…退屈だったぜ', 'フン、まぁいい。消えろ'],
-    evening: ['…帰れ', '…次はもっとマシな話しろ'],
-    night: ['…寝ろ。ザコが', 'チッ…おやすみとか言わせんな'],
-    latenight: ['こんな時間まで…ザコのくせに', '…寝ろ'],
-  },
-  shin: {
-    morning: ['…また鍛えよう', '行ってくる。お前も鍛錬を怠るな'],
-    afternoon: ['…また来い', '強くなるためには続けることだ'],
-    evening: ['…またな', '今日のトレーニングは悪くなかった'],
-    night: ['…おやすみ。明日も全力で', '休息も鍛錬のうちだ'],
-    latenight: ['…体を休めろ。それも強さだ', '…もう寝た方がいい'],
-  },
-};
-
-// デフォルト（キャラ定義がないキャラ用 — 中性的な口調）
 const DEFAULT_FAREWELLS: Record<TimeSlot, string[]> = {
-  morning: ['またね', 'いってらっしゃい'],
-  afternoon: ['また会おうね', '楽しかった、またね'],
-  evening: ['またね…いい夜を', '今日はありがとう'],
-  night: ['おやすみ', 'いい夢を'],
-  latenight: ['もう遅いよ…おやすみ', '遅くまでありがとう…おやすみ'],
+  morning: ['またな！', 'いってらっしゃい！'],
+  afternoon: ['また来いよ！', '楽しかったぜ！'],
+  evening: ['またな…いい夜を', '今日はありがとう'],
+  night: ['おやすみ 🌙', 'いい夢見ろよ'],
+  latenight: ['もう寝ろよ…体に悪いぞ', '遅くまでありがとな…おやすみ'],
 };
 
-/** ムード別追加メッセージ（中性的に修正） */
+/** ムード別追加メッセージ */
 const MOOD_ADDITIONS: Record<Mood, string[]> = {
-  high: ['今日は最高の気分だった！', '話してるとテンション上がるね'],
+  high: ['今日は最高の気分だった！！', 'お前と話してるとテンション上がるな！'],
   normal: [],
-  low: ['…今日はあんまり調子良くなかったけど、話せてよかった', ''],
-  melancholy: ['…今日は少し沈んでたけど、おかげで少し楽になった', ''],
+  low: ['…今日はあんまり調子良くなかったけど、お前と話せてよかった', ''],
+  melancholy: ['…今日は少し沈んでたけど、お前のおかげで少し楽になった', ''],
 };
 
 /** ストリーク言及メッセージ */
@@ -339,7 +278,7 @@ function getTimeSlot(): TimeSlot {
 /** Farewellメッセージを生成 */
 export function generateFarewell(ctx: FarewellContext): string {
   const timeSlot = ctx.timeSlot || getTimeSlot();
-  const charFarewells = FAREWELLS[ctx.characterSlug] || EYESHIELD_FAREWELLS[ctx.characterSlug] || DEFAULT_FAREWELLS;
+  const charFarewells = FAREWELLS[ctx.characterSlug] || DEFAULT_FAREWELLS;
   const messages = (charFarewells as Record<TimeSlot, string[]>)[timeSlot] || DEFAULT_FAREWELLS[timeSlot];
   
   let farewell = messages[Math.floor(Math.random() * messages.length)];

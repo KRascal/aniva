@@ -11,14 +11,12 @@ import { logger } from '@/lib/logger';
  * POST /api/chat/group
  *
  * body: {
- *   conversationId?: string  // 既存会話に追加（未指定なら自動作成）
  *   characterIds: string[]   // 参加キャラIDリスト (最大3体)
  *   message: string          // ユーザーメッセージ
  *   locale?: string
  * }
  *
  * response: {
- *   conversationId: string
  *   messages: Array<{ characterId, characterName, content, emotion }>
  *   coinCost: number
  *   coinBalance: number
@@ -32,19 +30,12 @@ interface GroupCharacterMessage {
   emotion: string;
 }
 
-interface ConversationMetadata {
-  characterIds?: string[];
-  characterNames?: string[];
-  characterSlugs?: string[];
-}
-
 const DEFAULT_COIN_PER_MESSAGE = 10;
 const MAX_CHARACTERS = 3;
-const HISTORY_CONTEXT_LIMIT = 20;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. 認証
+    // 1. 認証（DB存在チェック付き — FK violation防止）
     const userId = await getVerifiedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -61,8 +52,7 @@ export async function POST(req: NextRequest) {
 
     // 3. バリデーション
     const body = await req.json();
-    const { conversationId: reqConversationId, characterIds, message, locale = 'ja' } = body as {
-      conversationId?: string;
+    const { characterIds, message, locale = 'ja' } = body as {
       characterIds: string[];
       message: string;
       locale?: string;
@@ -91,7 +81,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Some characters not found' }, { status: 404 });
     }
 
-    // 5. コイン消費計算
+    // 5. コイン消費: 参加キャラ数 × 通常チャットコスト
     const totalCoinCost = characters.reduce(
       (sum, c) => sum + (c.chatCoinPerMessage ?? DEFAULT_COIN_PER_MESSAGE),
       0
@@ -149,7 +139,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 7. 各キャラのRelationship取得 or 作成
-    const relationshipMap = new Map<string, string>();
+    const relationshipMap = new Map<string, string>(); // characterId → relationshipId
     for (const character of characters) {
       let rel = await prisma.relationship.findUnique({
         where: { userId_characterId_locale: { userId, characterId: character.id, locale: 'ja' } },
@@ -162,108 +152,24 @@ export async function POST(req: NextRequest) {
       relationshipMap.set(character.id, rel.id);
     }
 
-    // 8. Conversation解決（なければ新規作成）
-    let conversationId = reqConversationId;
-
-    if (conversationId) {
-      // 既存Conversationのオーナーチェック
-      const existing = await prisma.conversation.findUnique({
-        where: { id: conversationId },
-      });
-      if (!existing || existing.userId !== userId || existing.type !== 'group') {
-        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-      }
-    } else {
-      // 自動作成（後方互換）
-      const orderedChars = characterIds
-        .map(id => characters.find(c => c.id === id))
-        .filter((c): c is NonNullable<typeof c> => c != null);
-
-      const conversation = await prisma.conversation.create({
-        data: {
-          type: 'group',
-          userId,
-          metadata: {
-            characterIds: orderedChars.map(c => c.id),
-            characterNames: orderedChars.map(c => c.name),
-            characterSlugs: orderedChars.map(c => c.slug),
-          } as Prisma.InputJsonValue,
-        },
-      });
-      conversationId = conversation.id;
-    }
-
-    // 9. ユーザーメッセージをDB保存
-    await prisma.message.create({
-      data: {
-        conversationId,
-        role: 'USER',
-        content: message,
-      },
-    });
-
-    // 10. 過去メッセージ取得（直近20件、コンテキスト用）
-    const recentMessages = await prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: 'desc' },
-      take: HISTORY_CONTEXT_LIMIT,
-    });
-    const historyContext = recentMessages
-      .reverse()
-      .slice(0, -1) // 今送ったばかりのメッセージは除外
-      .map(m => {
-        if (m.role === 'USER') return `ユーザー: ${m.content}`;
-        const meta = m.metadata as Record<string, unknown> | null;
-        const charName = (meta?.characterName as string) || 'キャラクター';
-        return `${charName}: ${m.content}`;
-      })
-      .join('\n');
-
-    // 11. キャラIDリストをリクエスト順に並べる
+    // 8. キャラIDリストをリクエスト順に並べる
     const orderedCharacters = characterIds
       .map(id => characters.find(c => c.id === id))
       .filter((c): c is NonNullable<typeof c> => c != null);
 
-    // 12. 各キャラが順番に応答生成（掛け合わせプロンプト付き）
+    // 9. 各キャラが順番に応答生成（前のキャラの発言をコンテキストに含める）
     const groupMessages: GroupCharacterMessage[] = [];
 
-    for (let i = 0; i < orderedCharacters.length; i++) {
-      const character = orderedCharacters[i];
+    for (const character of orderedCharacters) {
       const relationshipId = relationshipMap.get(character.id)!;
-      const otherChars = orderedCharacters.filter(c => c.id !== character.id);
 
-      let contextMessage: string;
-
-      if (i === 0) {
-        // 1体目: ユーザーメッセージ + グループ設定 + 過去履歴
-        contextMessage = `[グループチャット設定]
-あなたは${character.name}です。${otherChars.map(c => c.name).join('と')}と一緒にユーザーとグループチャットしています。
-
-${historyContext ? `[過去の会話]\n${historyContext}\n\n` : ''}[ルール]
-- ユーザーのメッセージに自然に応答してください
-- 1〜3文で返答
-- キャラクターの口調を完全に維持
-
-ユーザー: ${message}`;
-      } else {
-        // 2体目以降: 掛け合わせプロンプト
-        const previousResponses = groupMessages.map(r => `${r.characterName}: 「${r.content}」`).join('\n');
-        const lastCharName = groupMessages[groupMessages.length - 1]?.characterName;
-
-        contextMessage = `[グループチャット設定]
-あなたは${character.name}です。${otherChars.map(c => c.name).join('と')}と一緒にユーザーとグループチャットしています。
-
-${historyContext ? `[過去の会話]\n${historyContext}\n\n` : ''}[直前の発言]
-${previousResponses}
-
-[ルール]
-- ユーザーのメッセージに応答しつつ、直前の他キャラの発言にも反応してください
-- ツッコミ、同意、驚き、対抗意識など自然な掛け合いを入れてください
-- 「${lastCharName}」の発言を無視しないでください
-- 1〜3文で返答
-- キャラクターの口調を完全に維持
-
-ユーザー: ${message}`;
+      // 前キャラの発言をコンテキストとして付加
+      let contextMessage = message;
+      if (groupMessages.length > 0) {
+        const prevTalks = groupMessages
+          .map(m => `${m.characterName}:「${m.content}」`)
+          .join('\n');
+        contextMessage = `[グループチャットの状況]\nユーザー:「${message}」\n${prevTalks}\n\n上記の会話を踏まえて、あなた（${character.name}）の視点から自然に応答してください。`;
       }
 
       try {
@@ -292,36 +198,13 @@ ${previousResponses}
       }
     }
 
-    // 13. 各キャラメッセージをDB保存
-    for (const gm of groupMessages) {
-      await prisma.message.create({
-        data: {
-          conversationId,
-          role: 'CHARACTER',
-          content: gm.content,
-          metadata: {
-            characterId: gm.characterId,
-            characterName: gm.characterName,
-            emotion: gm.emotion,
-          } as Prisma.InputJsonValue,
-        },
-      });
-    }
-
-    // 14. Conversation.updatedAt更新
-    await prisma.conversation.update({
-      where: { id: conversationId },
-      data: { updatedAt: new Date() },
-    });
-
-    // 15. 最新コイン残高取得
+    // 10. 最新コイン残高取得
     const updatedBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const newBalance = updatedBalance
       ? updatedBalance.freeBalance + updatedBalance.paidBalance
       : totalBalance - totalCoinCost;
 
     return NextResponse.json({
-      conversationId,
       messages: groupMessages,
       coinCost: totalCoinCost,
       coinBalance: newBalance,
