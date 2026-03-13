@@ -146,7 +146,7 @@ export class UserProfileEngine {
       : existingBasics;
 
     // Merge interests
-    const existingInterests = (profile.interests as Interest[]) || [];
+    const existingInterests = (profile.interests as unknown as Interest[]) || [];
     let mergedInterests = [...existingInterests];
     if (updates.newInterests?.length) {
       for (const ni of updates.newInterests) {
@@ -164,7 +164,7 @@ export class UserProfileEngine {
     }
 
     // Merge concerns
-    const existingConcerns = (profile.concerns as Concern[]) || [];
+    const existingConcerns = (profile.concerns as unknown as Concern[]) || [];
     let mergedConcerns = [...existingConcerns];
     if (updates.concerns?.resolved?.length) {
       for (const topic of updates.concerns.resolved) {
@@ -254,7 +254,7 @@ export class UserProfileEngine {
     }
 
     // Add shared secret
-    const existingSecrets = (charProfile.sharedSecrets as SharedSecret[]) || [];
+    const existingSecrets = (charProfile.sharedSecrets as unknown as SharedSecret[]) || [];
     const mergedSecrets = [...existingSecrets];
     if (updates.newSecret) {
       mergedSecrets.push({
@@ -267,7 +267,7 @@ export class UserProfileEngine {
     }
 
     // Add emotion event
-    const existingEmotions = (charProfile.emotionalHistory as EmotionEvent[]) || [];
+    const existingEmotions = (charProfile.emotionalHistory as unknown as EmotionEvent[]) || [];
     const mergedEmotions = [...existingEmotions];
     if (updates.emotionEvent) {
       mergedEmotions.push({
@@ -281,7 +281,7 @@ export class UserProfileEngine {
     }
 
     // Add milestone
-    const existingMilestones = (charProfile.milestoneMemories as MilestoneMemory[]) || [];
+    const existingMilestones = (charProfile.milestoneMemories as unknown as MilestoneMemory[]) || [];
     const mergedMilestones = [...existingMilestones];
     if (updates.milestoneEvent) {
       mergedMilestones.push({
@@ -343,7 +343,7 @@ export class UserProfileEngine {
     if (basics.location) parts.push(`場所: ${basics.location}`);
 
     // 活発な関心事（intensity順、上位5件）
-    const interests = ((profile.interests as Interest[]) || [])
+    const interests = ((profile.interests as unknown as Interest[]) || [])
       .filter(i => i.intensity > 0.4)
       .sort((a, b) => b.intensity - a.intensity)
       .slice(0, 5);
@@ -352,7 +352,7 @@ export class UserProfileEngine {
     }
 
     // 未解決の悩み
-    const activeConcerns = ((profile.concerns as Concern[]) || [])
+    const activeConcerns = ((profile.concerns as unknown as Concern[]) || [])
       .filter(c => c.status === 'active');
     if (activeConcerns.length) {
       parts.push('現在の悩み/気がかり:');
@@ -368,7 +368,7 @@ export class UserProfileEngine {
         parts.push(`あなたとよく話すテーマ: ${sharedTopics.slice(-5).join('、')}`);
       }
 
-      const secrets = (charProfile.sharedSecrets as SharedSecret[]) || [];
+      const secrets = (charProfile.sharedSecrets as unknown as SharedSecret[]) || [];
       if (secrets.length) {
         parts.push('あなただけに話してくれたこと:');
         for (const s of secrets.slice(-3)) {
@@ -377,7 +377,7 @@ export class UserProfileEngine {
       }
 
       // 最近の感情の流れ
-      const recentEmotions = ((charProfile.emotionalHistory as EmotionEvent[]) || []).slice(-5);
+      const recentEmotions = ((charProfile.emotionalHistory as unknown as EmotionEvent[]) || []).slice(-5);
       const negativeUnresolved = recentEmotions.filter(
         e => !e.resolved && ['sad', 'stressed', 'anxious', 'angry', 'frustrated'].includes(e.emotion),
       );
