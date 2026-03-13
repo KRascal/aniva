@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useOnboarding, type CharacterData, type ChatMessage, type OnboardingPhase } from '@/hooks/useOnboarding';
 import PhaseWelcome from '@/components/onboarding/PhaseWelcome';
 import CharacterSelect from '@/components/onboarding/CharacterSelect';
-import OnboardingExploreGrid from '@/components/onboarding/OnboardingExploreGrid';
+import TinderSwipe from '@/components/onboarding/TinderSwipe';
 import PhaseNickname from '@/components/onboarding/PhaseNickname';
 import PhaseBirthday from '@/components/onboarding/PhaseBirthday';
 import PhaseApproval from '@/components/onboarding/PhaseApproval';
@@ -745,10 +745,10 @@ function OnboardingInner() {
         )}
 
         {phase === 'character_select' && (
-          <OnboardingExploreGrid
+          <TinderSwipe
             key="character_select"
-            onChatSelect={handleGridChatSelect}
-            onFollowsComplete={handleGridFollowsComplete}
+            onComplete={handleGridFollowsComplete}
+            onSelectCharacter={handleGridChatSelect}
             isLoading={isSelectingCharacter}
           />
         )}

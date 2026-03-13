@@ -25,10 +25,12 @@ function SwipeCard({
   character,
   onSwipe,
   isTop,
+  onChat,
 }: {
   character: SwipeCharacter;
   onSwipe: (direction: 'left' | 'right') => void;
   isTop: boolean;
+  onChat?: (charId: string) => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -95,7 +97,20 @@ function SwipeCard({
           <h2 className="text-white text-lg font-black mb-0.5">{character.name}</h2>
           <p className="text-white/40 text-xs font-medium mb-1">{character.franchise}</p>
           {catchphrase && (
-            <p className="text-white/60 text-xs italic leading-relaxed line-clamp-2">「{catchphrase}」</p>
+            <p className="text-white/60 text-xs italic leading-relaxed line-clamp-2 mb-2">「{catchphrase}」</p>
+          )}
+          {/* チャットボタン — このキャラでオンボーディング開始 */}
+          {isTop && onChat && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onChat(character.id); }}
+              className="w-full px-4 py-2 text-xs font-bold text-white rounded-full transition-all active:scale-95 mt-1"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
+                boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
+              }}
+            >
+              チャット →
+            </button>
           )}
         </div>
 
@@ -120,7 +135,7 @@ function SwipeCard({
 }
 
 // ---- Main Component ----
-export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }: TinderSwipeProps & { onSelectCharacter?: (charId: string) => void }) {
+export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }: TinderSwipeProps & { onSelectCharacter?: (charId: string, followedIds: string[]) => void }) {
   const [characters, setCharacters] = useState<SwipeCharacter[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
@@ -349,6 +364,10 @@ export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }
                 character={currentChar}
                 onSwipe={handleSwipe}
                 isTop={true}
+                onChat={onSelectCharacter ? (charId) => {
+                  // フォロー済みIDも渡しつつ、このキャラでオンボーディング開始
+                  onSelectCharacter(charId, followedIds);
+                } : undefined}
               />
             )}
           </AnimatePresence>
