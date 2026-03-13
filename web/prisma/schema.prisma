@@ -59,6 +59,7 @@ model User {
   deepReplyQueue         DeepReplyQueue[]
   fanThreads             FanThread[]
   fanReplies             FanReply[]
+  userProfile            UserProfile[]
 }
 
 model PushSubscription {
@@ -190,6 +191,7 @@ model Character {
   relationshipGraph       CharacterRelationshipGraph[]
   fanThreads              FanThread[]
   fanReplies              FanReply[]     @relation("FanReplyCharacter")
+  userProfiles            UserProfile[]
 }
 
 model SecretContent {
@@ -1348,4 +1350,28 @@ model FanReply {
   @@index([threadId, createdAt])
   @@index([userId])
   @@index([quotedReplyId])
+}
+
+// ============================================
+// ユーザー理解エンジン（UserProfile）
+// ============================================
+
+model UserProfile {
+  id           String     @id @default(uuid())
+  userId       String
+  characterId  String?    // nullの場合はグローバルプロファイル
+  basics       Json       @default("{}")
+  personality  Json       @default("{}")
+  interests    Json       @default("{}")
+  currentState Json       @default("{}")
+  topics       Json       @default("{}")
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character    Character? @relation(fields: [characterId], references: [id])
+
+  @@unique([userId, characterId])
+  @@index([userId])
+  @@index([characterId])
 }
