@@ -1328,20 +1328,24 @@ model FanThread {
 }
 
 model FanReply {
-  id           String       @id @default(cuid())
-  threadId     String
-  thread       FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  userId       String?      // null = キャラの返信
-  user         User?        @relation(fields: [userId], references: [id])
-  characterId  String?      // non-null = キャラの返信
-  character    Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
-  content      String       @db.Text
-  parentId     String?      // ネスト返信用
-  parent       FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
-  children     FanReply[]   @relation("FanReplyNested")
-  likes        Int          @default(0)
-  createdAt    DateTime     @default(now())
+  id            String       @id @default(cuid())
+  threadId      String
+  thread        FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId        String?      // null = キャラの返信
+  user          User?        @relation(fields: [userId], references: [id])
+  characterId   String?      // non-null = キャラの返信
+  character     Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
+  content       String       @db.Text
+  parentId      String?      // ネスト返信用
+  parent        FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
+  children      FanReply[]   @relation("FanReplyNested")
+  quotedReplyId String?      // 引用元コメントID
+  quotedReply   FanReply?    @relation("FanReplyQuote", fields: [quotedReplyId], references: [id])
+  quotedBy      FanReply[]   @relation("FanReplyQuote")
+  likes         Int          @default(0)
+  createdAt     DateTime     @default(now())
 
   @@index([threadId, createdAt])
   @@index([userId])
+  @@index([quotedReplyId])
 }
