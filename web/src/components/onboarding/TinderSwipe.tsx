@@ -97,20 +97,7 @@ function SwipeCard({
           <h2 className="text-white text-lg font-black mb-0.5">{character.name}</h2>
           <p className="text-white/40 text-xs font-medium mb-1">{character.franchise}</p>
           {catchphrase && (
-            <p className="text-white/60 text-xs italic leading-relaxed line-clamp-2 mb-2">「{catchphrase}」</p>
-          )}
-          {/* チャットボタン — このキャラでオンボーディング開始 */}
-          {isTop && onChat && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onChat(character.id); }}
-              className="w-full px-4 py-2 text-xs font-bold text-white rounded-full transition-all active:scale-95 mt-1"
-              style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))',
-                boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
-              }}
-            >
-              チャット →
-            </button>
+            <p className="text-white/60 text-xs italic leading-relaxed line-clamp-2">「{catchphrase}」</p>
           )}
         </div>
 
@@ -374,12 +361,12 @@ export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }
         </div>
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons: × | チャット(大) | ♥ */}
       <div className="relative z-30 pb-safe-bottom px-6 pb-4 flex items-center justify-center gap-5">
-        {/* Skip button */}
+        {/* Skip (×) */}
         <motion.button
           onClick={() => handleButtonSwipe('left')}
-          className="w-13 h-13 rounded-full flex items-center justify-center"
+          className="rounded-full flex items-center justify-center"
           style={{
             width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
@@ -392,35 +379,39 @@ export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }
           </svg>
         </motion.button>
 
-        {/* Follow button */}
+        {/* チャット (真ん中・大) */}
+        <motion.button
+          onClick={() => {
+            if (currentChar && onSelectCharacter) {
+              onSelectCharacter(currentChar.id, followedIds);
+            }
+          }}
+          className="rounded-full flex items-center justify-center"
+          style={{
+            width: 64, height: 64,
+            background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+            boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
+          }}
+          whileTap={{ scale: 0.85 }}
+        >
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </motion.button>
+
+        {/* Follow (♥) */}
         <motion.button
           onClick={() => handleButtonSwipe('right')}
           className="rounded-full flex items-center justify-center"
           style={{
-            width: 64, height: 64,
-            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-            boxShadow: '0 4px 16px rgba(34,197,94,0.35)',
-          }}
-          whileTap={{ scale: 0.85 }}
-        >
-          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-        </motion.button>
-
-        {/* Info button */}
-        <motion.button
-          onClick={() => handleButtonSwipe('left')}
-          className="rounded-full flex items-center justify-center"
-          style={{
             width: 52, height: 52,
             background: 'rgba(255,255,255,0.06)',
-            border: '2px solid rgba(59,130,246,0.4)',
+            border: '2px solid rgba(34,197,94,0.4)',
           }}
           whileTap={{ scale: 0.85 }}
         >
-          <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </motion.button>
       </div>

@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     // ディープリンク由来かどうかで次ステップを判定
     const isDeepLink = !!user?.onboardingDeeplinkSlug;
-    const nextStep = isDeepLink ? 'approval' : 'character_select';
+    const nextStep = isDeepLink ? 'approval' : 'birthday';
 
     const updated = await prisma.user.update({
       where: { id: user.id },
