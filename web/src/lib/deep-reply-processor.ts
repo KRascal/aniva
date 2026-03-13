@@ -8,14 +8,14 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { callLLM } from '@/lib/llm';
+import { callLLM } from '@/lib/engine/llm';
 import { logger } from '@/lib/logger';
 
 // DeepReplyQueue ステータス定数
 export const DEEP_QUEUE_STATUS = {
   QUEUED: 'QUEUED',
   PROCESSING: 'PROCESSING',
-  DONE: 'DONE',
+  DONE: 'COMPLETED',
   FAILED: 'FAILED',
 } as const;
 
@@ -62,10 +62,10 @@ ${userMessage}
 - ${characterName}ならどんな角度から答えると最も心に刺さるか`;
 
   try {
-    const analysis = await callLLM([{ role: 'user', content: prompt }], {
-      maxTokens: 300,
-      temperature: 0.3,
-    });
+    const analysis = await callLLM(
+      'あなたはメッセージ分析のエキスパートです。',
+      [{ role: 'user', content: prompt }],
+    );
     return analysis ?? '';
   } catch {
     return '';
@@ -134,9 +134,8 @@ ${userMessage}
 
   try {
     const response = await callLLM(
-      [{ role: 'user', content: userPrompt }],
-      { maxTokens: 600, temperature: 0.8 },
       systemPrompt,
+      [{ role: 'user', content: userPrompt }],
     );
 
     if (!response) {
@@ -227,7 +226,7 @@ export async function processDeepReply(job: DeepReplyJob): Promise<void> {
     // キュー完了
     await prisma.deepReplyQueue.update({
       where: { id: job.id },
-      data: { status: DEEP_QUEUE_STATUS.DONE, processedAt: new Date() },
+      data: { status: DEEP_QUEUE_STATUS.DONE, completedAt: new Date() },
     });
 
     logger.info(`[deep-reply] Job ${job.id} completed`);
@@ -267,7 +266,7 @@ export async function processDeepReply(job: DeepReplyJob): Promise<void> {
       data: {
         status: newAttempts >= maxAttempts ? DEEP_QUEUE_STATUS.FAILED : DEEP_QUEUE_STATUS.QUEUED,
         attempts: newAttempts,
-        lastError: err instanceof Error ? err.message : String(err),
+        error: err instanceof Error ? err.message : String(err),
       },
     });
   }
