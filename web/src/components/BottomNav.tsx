@@ -253,7 +253,7 @@ export function BottomNav() {
               </svg>
               {isCards && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
             </div>
-            <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>カード</span>
+            <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>{t('cards')}</span>
           </Link>
 
           {/* 5. マイページ */}
