@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface WelcomeBackOverlayProps {
   characterName: string;
@@ -52,6 +53,8 @@ export function WelcomeBackOverlay({
   daysSinceLastChat,
   onDismiss,
 }: WelcomeBackOverlayProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [visible, setVisible] = useState(false);
   const isLongAbsence = daysSinceLastChat >= 7;
   const isMediumAbsence = daysSinceLastChat >= 3;
@@ -127,7 +130,7 @@ export function WelcomeBackOverlay({
         onClick={handleDismiss}
         role="dialog"
         aria-modal="true"
-        aria-label={`${characterName}との再会`}
+        aria-label={t('welcomeBackAriaLabel', { name: characterName })}
       >
         {/* 星パーティクル（7日以上） */}
         {isLongAbsence && <StarParticles />}
@@ -187,7 +190,7 @@ export function WelcomeBackOverlay({
               ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
               : 'bg-gray-700/60 text-gray-400'
           }`}>
-            {isLongAbsence ? '🌟' : isMediumAbsence ? '💜' : '⏰'} {daysSinceLastChat}日ぶり
+            {isLongAbsence ? '🌟' : isMediumAbsence ? '💜' : '⏰'} {t('welcomeBackBadge', { count: daysSinceLastChat })}
           </div>
 
           {/* 再会メッセージ */}
@@ -206,11 +209,11 @@ export function WelcomeBackOverlay({
                 : 'bg-purple-600 hover:bg-purple-700'
             }`}
           >
-            話しかける ✨
+            {t('talkButton')}
           </button>
 
           {/* 自動閉じカウントダウンヒント */}
-          <p className="text-gray-600 text-xs mt-3">タップで閉じる</p>
+          <p className="text-gray-600 text-xs mt-3">{t('tapToClose')}</p>
         </div>
       </div>
     </>
