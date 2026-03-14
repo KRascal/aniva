@@ -61,6 +61,7 @@ model User {
   fanReplies             FanReply[]
   userProfile            UserProfile?
   agentDecisions         CharacterAgentDecision[]
+  followUpQueue          FollowUpQueue[]
 }
 
 model PushSubscription {
@@ -193,6 +194,7 @@ model Character {
   fanThreads              FanThread[]
   fanReplies              FanReply[]     @relation("FanReplyCharacter")
   agentDecisions          CharacterAgentDecision[]
+  followUpQueue           FollowUpQueue[]
 }
 
 model SecretContent {
@@ -782,10 +784,15 @@ model LimitedScenario {
   content     String    @db.Text
   startsAt    DateTime
   endsAt      DateTime
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  character   Character @relation(fields: [characterId], references: [id])
-  readers     LimitedScenarioRead[]
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  type          String    @default("custom") // seasonal | birthday | collaboration | custom
+  promptContext String?   @db.Text // チャット時にキャラに注入するプロンプトコンテキスト
+  rewardCoins   Int?      // イベント参加報酬コイン
+  bannerImage   String?   // バナー画像URL
+  priority      Int       @default(0) // 表示優先度（高い方が先）
+  character     Character @relation(fields: [characterId], references: [id])
+  readers       LimitedScenarioRead[]
 
   @@index([characterId])
   @@index([startsAt, endsAt])
@@ -1432,4 +1439,23 @@ model CharacterAgentDecision {
 
   @@index([characterId, userId, createdAt])
   @@index([relationshipId, createdAt])
+}
+
+model FollowUpQueue {
+  id          String   @id @default(uuid())
+  userId      String
+  characterId String
+  topic       String
+  reason      String
+  dueDate     DateTime
+  status      String   @default("pending") // pending | sent | expired
+  source      String   @default("profile_extractor") // profile_extractor | anniversary | birthday
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@index([userId, characterId, status])
+  @@index([dueDate, status])
 }

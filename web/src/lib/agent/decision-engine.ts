@@ -36,6 +36,10 @@ function buildDecisionPrompt(
     ? state.lifePattern.peakHours.map(h => `${h}時台`).join('、')
     : '不明';
 
+  const followUpStr = (state.followUpCandidates && state.followUpCandidates.length > 0)
+    ? state.followUpCandidates.map(f => `- 【${f.topic}】${f.reason}`).join('\n')
+    : 'なし';
+
   return `あなたは${character.name}というキャラクターの「行動判断エンジン」です。
 以下のユーザー状態と自分（キャラ）の状態を見て、「今このユーザーにDMを送るべきか？」をJSONで判断してください。
 
@@ -53,6 +57,15 @@ ${state.characterEmotionContext}
 - 今日のエージェント接触数: ${state.agentContactCountToday}回
 - 関係レベル: ${state.relationshipLevel}
 
+## フォローアップ候補（今日期限）
+${followUpStr}
+フォローアップ候補がある場合、messageType に "follow_up_concern" を優先的に選択すること。
+
+## 環境コンテキスト
+- 天気（${state.weatherContext?.location ?? '不明'}）: ${state.weatherContext ? `${state.weatherContext.description}, ${state.weatherContext.temp}°C` : '取得不可'}
+- 離脱段階: ${state.churnStage ?? 'active'}（active=活動中, cooling=少し離れている, at_risk=離脱危機, churned=長期不在）
+- 季節イベント: ${state.seasonalEvents?.length ? state.seasonalEvents.join('、') : 'なし'}
+
 ## 現在時刻（JST）
 ${state.currentHourJST}時
 
@@ -65,6 +78,10 @@ ${state.currentHourJST}時
 - 連絡が途絶えて1〜3日 → check_inを検討
 - 今日すでに1回以上接触済みは「送らない」（should: false）
 - ランダムな確率は使わない。必ず理由に基づいて判断する
+- 天気が悪い日（雨/雪/雷雨）→ 「大丈夫？」系のメッセージ検討
+- churnStage=at_risk → miss_youの優先度を上げる
+- churnStage=churned → 久しぶり系メッセージ（ただし1週間に1回まで）
+- 季節イベントがあれば → share_thoughtで活用を検討
 
 ## 出力形式（JSONのみ返せ。説明文は不要）
 {

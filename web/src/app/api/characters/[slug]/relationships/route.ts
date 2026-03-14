@@ -21,9 +21,9 @@ async function resolveCharacterId(idOrSlug: string): Promise<string | null> {
  */
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ characterId: string }> },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { characterId: rawId } = await params;
+  const { slug: rawId } = await params;
 
   // slug/UUID両対応
   const characterId = await resolveCharacterId(rawId);

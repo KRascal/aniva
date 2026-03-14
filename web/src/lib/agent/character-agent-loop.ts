@@ -19,6 +19,7 @@ import { checkTimingGuard } from './timing-guard';
 import { decideContact } from './decision-engine';
 import { generateAgentMessage } from './message-generator';
 import { deliverAgentMessage, recordAgentDecision } from './delivery-writer';
+import { getActiveFollowUps, markAsSent } from './followup-scheduler';
 import {
   DEFAULT_AGENT_CONFIG,
   type AgentLoopConfig,
@@ -66,6 +67,12 @@ async function runPipelineForRelationship(
 
   base.characterId = state.characterId;
   base.userId = state.userId;
+
+  // フォローアップ候補を取得してstateに追加
+  const followUpCandidates = await getActiveFollowUps(state.characterId, state.userId);
+  if (followUpCandidates.length > 0) {
+    state.followUpCandidates = followUpCandidates;
+  }
 
   // Relationship情報（TimingGuardのlastAgentDecisionAt用）
   const rel = await prisma.relationship.findUnique({
@@ -209,6 +216,15 @@ async function runPipelineForRelationship(
     decision,
     decisionId,
   });
+
+  // フォローアップが配信済みの場合、最初のfollowUpをmarkAsSent
+  if (
+    decision.messageType === 'follow_up_concern' &&
+    state.followUpCandidates &&
+    state.followUpCandidates.length > 0
+  ) {
+    await markAsSent(state.followUpCandidates[0].id).catch(() => {});
+  }
 
   return {
     ...base,
