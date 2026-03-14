@@ -264,6 +264,9 @@ model Conversation {
   metadata       Json         @default("{}")
   relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
+
+  @@index([relationshipId])
+  @@index([updatedAt])
 }
 
 model Message {
@@ -276,6 +279,9 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, role])
 }
 
 enum MessageRole {
