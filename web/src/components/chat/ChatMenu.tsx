@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { MemoryTimeline } from '@/components/chat/MemoryTimeline';
 
 interface Character {
@@ -121,6 +122,7 @@ interface MenuItem {
   comingSoon?: boolean;
   accent?: string;
   disabled?: boolean;
+  isMemory?: boolean;
 }
 
 export function ChatMenu({
@@ -131,6 +133,8 @@ export function ChatMenu({
   onClose,
   onFcClick,
 }: ChatMenuProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [showMemory, setShowMemory] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -138,51 +142,52 @@ export function ChatMenu({
   const menuItems: MenuItem[] = [
     {
       icon: <IconUser />,
-      label: 'プロフィール',
+      label: t('menuProfile'),
       sublabel: character?.franchise ?? '',
       href: `/profile/${characterId}`,
       accent: 'text-blue-400 bg-blue-500/15',
     },
     {
       icon: <IconPhoto />,
-      label: 'アルバム',
-      sublabel: '共有した画像',
+      label: t('menuAlbum'),
+      sublabel: t('menuAlbumSub'),
       href: `/chat/${characterId}/album`,
       accent: 'text-pink-400 bg-pink-500/15',
     },
     {
       icon: <IconBrain />,
-      label: '記憶',
-      sublabel: 'キャラが覚えていること',
+      label: t('menuMemory'),
+      sublabel: t('menuMemorySub'),
       href: `/chat/${characterId}/memory`,
       accent: 'text-purple-400 bg-purple-500/15',
     },
     {
       icon: <IconMemory />,
-      label: '思い出',
-      sublabel: 'エピソードタイムライン',
+      label: t('menuEpisode'),
+      sublabel: t('menuEpisodeSub'),
       accent: 'text-amber-400 bg-amber-500/15',
       onClick: () => setShowMemory((v) => !v),
+      isMemory: true,
     },
     {
       icon: <IconBook />,
-      label: 'ストーリー',
-      sublabel: 'キャラとの物語',
+      label: t('menuStory'),
+      sublabel: t('menuStorySub'),
       href: `/story/${characterId}`,
       accent: 'text-amber-400 bg-amber-500/15',
     },
 
     {
       icon: <IconHeart />,
-      label: 'ファンクラブ',
-      sublabel: relationship?.isFanclub ? 'FC会員' : '未加入',
+      label: t('menuFanclub'),
+      sublabel: relationship?.isFanclub ? t('menuFanclubMember') : t('menuFanclubNotJoined'),
       onClick: relationship?.isFanclub ? () => { onFcClick?.(); onClose(); } : undefined,
       accent: relationship?.isFanclub ? 'text-red-400 bg-red-500/15' : 'text-gray-500 bg-gray-500/10',
       disabled: !relationship?.isFanclub,
     },
     {
       icon: <IconChart />,
-      label: '関係値',
+      label: t('menuBond'),
       sublabel: `Lv.${relationship?.level ?? 1} ${relationship?.levelName ?? ''}`,
       href: `/profile/${characterId}#relationship`,
       accent: 'text-green-400 bg-green-500/15',
@@ -193,8 +198,8 @@ export function ChatMenu({
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       ),
-      label: '会話リセット',
-      sublabel: 'AIの文脈をリセット',
+      label: t('menuReset'),
+      sublabel: t('menuResetSub'),
       onClick: () => setShowResetConfirm(true),
       accent: 'text-orange-400 bg-orange-500/15',
     },
@@ -229,7 +234,7 @@ export function ChatMenu({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm truncate">{character?.name ?? 'キャラクター'}</p>
+            <p className="text-white font-semibold text-sm truncate">{character?.name ?? tc('character')}</p>
             <p className="text-gray-500 text-xs truncate">{character?.franchise ?? ''}</p>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 flex-shrink-0">
@@ -242,7 +247,7 @@ export function ChatMenu({
         {/* メニューリスト */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {menuItems.map((item) => {
-            const isMemoryItem = item.label === '思い出';
+            const isMemoryItem = item.isMemory === true;
 
             const content = (
               <>
@@ -260,7 +265,7 @@ export function ChatMenu({
                 {/* バッジ or シェブロン */}
                 {item.comingSoon ? (
                   <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700/80 text-gray-400 border border-gray-600/30">
-                    近日公開
+                    {t('comingSoon')}
                   </span>
                 ) : isMemoryItem ? (
                   <IconChevronDown open={showMemory} />
@@ -329,9 +334,9 @@ export function ChatMenu({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </div>
-              <h3 className="text-white font-bold text-lg">会話をリセット</h3>
+              <h3 className="text-white font-bold text-lg">{t('resetTitle')}</h3>
               <p className="text-gray-400 text-sm mt-2">
-                {character?.name ?? 'キャラ'}との会話のAI文脈をリセットします。メッセージ履歴は残りますが、キャラが新しい会話として始めます。
+                {t('resetDesc', {name: character?.name ?? tc('character')})}
               </p>
             </div>
             <div className="flex gap-3">
@@ -339,7 +344,7 @@ export function ChatMenu({
                 onClick={() => setShowResetConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl bg-gray-800 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
               >
-                キャンセル
+                {tc('cancel')}
               </button>
               <button
                 disabled={resetting}
@@ -352,14 +357,14 @@ export function ChatMenu({
                     // ページリロードで新しい会話を開始
                     window.location.reload();
                   } catch {
-                    alert('リセットに失敗しました');
+                    alert(t('resetFailed'));
                   } finally {
                     setResetting(false);
                   }
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-500 disabled:opacity-50 transition-colors"
               >
-                {resetting ? 'リセット中...' : 'リセットする'}
+                {resetting ? t('resetting') : t('resetConfirm')}
               </button>
             </div>
           </div>

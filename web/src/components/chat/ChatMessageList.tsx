@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { vibrateEmotion } from '@/lib/sound-effects';
 
@@ -140,6 +141,7 @@ function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
   playingId: string | null;
   onToggle: (id: string, url: string) => void;
 }) {
+  const t = useTranslations('chat');
   const isPlaying = playingId === messageId;
   return (
     <button
@@ -149,7 +151,7 @@ function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
           ? 'bg-purple-500/25 text-purple-300 border border-purple-500/50'
           : 'bg-white/10 text-gray-300 border border-white/15 hover:bg-white/15 hover:text-white'
       }`}
-      aria-label={isPlaying ? '停止' : '音声を再生'}
+      aria-label={isPlaying ? t('playbackStop') : t('voicePlayback')}
     >
       {isPlaying ? (
         <>
@@ -171,7 +173,7 @@ function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
               />
             ))}
           </span>
-          <span className="text-purple-300">停止</span>
+          <span className="text-purple-300">{t('playbackStop')}</span>
         </>
       ) : (
         <>
@@ -187,7 +189,7 @@ function MiniAudioPlayer({ audioUrl, messageId, playingId, onToggle }: {
               />
             ))}
           </span>
-          <span>音声を再生</span>
+          <span>{t('voicePlayback')}</span>
         </>
       )}
     </button>
@@ -235,6 +237,8 @@ export function ChatMessageList({
   onReaction,
   currentEmotion = 'neutral',
 }: ChatMessageListProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   /* ── リアクション内部 state ── */
   const [reactions, setReactions] = useState<Record<string, ReactionEmoji>>({});
   const [paletteTarget, setPaletteTarget] = useState<string | null>(null);
@@ -306,7 +310,7 @@ export function ChatMessageList({
         >
           <Image
             src={fullscreenImage}
-            alt="画像"
+            alt={tc('image')}
             width={0}
             height={0}
             sizes="100vw"
@@ -318,7 +322,7 @@ export function ChatMessageList({
           <button
             className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors"
             onClick={() => setFullscreenImage(null)}
-            aria-label="閉じる"
+            aria-label={tc('close')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -415,8 +419,8 @@ export function ChatMessageList({
         {messages.length === 0 && !isSending && (
           <div className="text-center text-gray-500 py-16">
             <div className="text-5xl mb-4 opacity-60">💬</div>
-            <p className="text-sm font-medium text-gray-400">最初のメッセージを送ろう！</p>
-            <p className="text-xs text-gray-600 mt-1">{character?.name ?? 'キャラクター'}が待ってるぞ</p>
+            <p className="text-sm font-medium text-gray-400">{t('firstMessageHint')}</p>
+            <p className="text-xs text-gray-600 mt-1">{t('waitingForChat', {name: character?.name ?? tc('character')})}</p>
           </div>
         )}
 
@@ -432,9 +436,9 @@ export function ChatMessageList({
           let dateLabelText = '';
           if (showDateSeparator) {
             if (msgDate.toDateString() === today.toDateString()) {
-              dateLabelText = '今日';
+              dateLabelText = tc('today');
             } else if (msgDate.toDateString() === yesterday.toDateString()) {
-              dateLabelText = '昨日';
+              dateLabelText = tc('yesterday');
             } else {
               dateLabelText = `${msgDate.getMonth() + 1}月${msgDate.getDate()}日`;
             }
@@ -458,7 +462,7 @@ export function ChatMessageList({
                   >
                     <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
                     <span className="inline-block mt-2 text-xs font-bold text-purple-300 bg-purple-500/20 px-4 py-1.5 rounded-full">
-                      FC会員になる →
+                      {t('fcJoinCta')}
                     </span>
                   </button>
                 </div>
@@ -616,7 +620,7 @@ export function ChatMessageList({
                               <span className="deep-dot" style={{ animationDelay: '400ms' }} />
                             </div>
                             <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em' }}>
-                              じっくり考え中
+                              {t('deepThinkingStatus')}
                             </span>
                           </div>
                           <style>{`.deep-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(139,92,246,0.7);animation:deepPulse 1.2s ease-in-out infinite}@keyframes deepPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
@@ -627,7 +631,7 @@ export function ChatMessageList({
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M9.937 15.5A2 2 0 008.5 14.063l-6.135-1.582a.5.5 0 010-.962L8.5 9.936A2 2 0 009.937 8.5l1.582-6.135a.5.5 0 01.962 0L14.063 8.5A2 2 0 0015.5 9.937l6.135 1.582a.5.5 0 010 .962L15.5 14.063a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.962 0z"/></svg>
-                            <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>じっくり考えてくれた</span>
+                            <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>{t('deepReplyStatus')}</span>
                           </div>
                           <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</p>
                         </div>
@@ -635,7 +639,7 @@ export function ChatMessageList({
                       msg.metadata?.stickerUrl ? (
                         <Image
                           src={msg.metadata.stickerUrl}
-                          alt="スタンプ"
+                          alt={t('sticker')}
                           width={120}
                           height={120}
                           className="rounded-xl"
@@ -653,7 +657,7 @@ export function ChatMessageList({
                               : msg.metadata!.imageUrl!;
                             setFullscreenImage(imgUrl);
                           }}
-                          aria-label="画像を拡大表示"
+                          aria-label={t('enlargeImage')}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -662,7 +666,7 @@ export function ChatMessageList({
                                 ? msg.metadata.imageUrl.replace('/uploads/', '/api/uploads/')
                                 : msg.metadata.imageUrl
                             }
-                            alt="送信した画像"
+                            alt={t('sentImage')}
                             className="rounded-xl object-cover"
                             style={{ maxWidth: 250, maxHeight: 300, width: 'auto', height: 'auto' }}
                           />
@@ -688,7 +692,7 @@ export function ChatMessageList({
                       {!isUser && msg.audioUrl === undefined && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                           <span className="w-3 h-3 rounded-full border border-gray-500 border-t-transparent animate-spin inline-block" />
-                          <span>音声生成中...</span>
+                          <span>{t('audioGenerating')}</span>
                         </div>
                       )}
                     </div>
