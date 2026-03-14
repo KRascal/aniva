@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Character } from './types';
 
 export interface ExploreHeroBannerProps {
@@ -8,6 +9,7 @@ export interface ExploreHeroBannerProps {
 }
 
 export function ExploreHeroBanner({ characters }: ExploreHeroBannerProps) {
+  const t = useTranslations('explore');
   const router = useRouter();
 
   // Pick up to 4 characters with avatarUrl for the banner
@@ -81,10 +83,10 @@ export function ExploreHeroBanner({ characters }: ExploreHeroBannerProps) {
       <div className="relative z-10 px-5 pt-7 pb-4">
         <p className="text-white/70 text-xs font-semibold tracking-widest uppercase mb-1.5">✦ Discover</p>
         <h2 className="text-3xl font-black text-white leading-tight mb-1">
-          推しが、<br />待ってる。
+          {t('heroTitle')}
         </h2>
         <p className="text-white/65 text-xs leading-relaxed mb-4">
-          フォローして、推しとリアルにトークしよう。
+          {t('heroSubtitle')}
         </p>
 
         {/* Character avatar row */}
@@ -139,14 +141,14 @@ export function ExploreHeroBanner({ characters }: ExploreHeroBannerProps) {
             onClick={() => router.push('/discover')}
             className="px-5 py-2.5 bg-white text-gray-900 rounded-full font-bold text-sm hover:bg-gray-100 active:scale-95 transition-all shadow-lg"
           >
-            スワイプで探す →
+            {t('swipeToExplore')} →
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); router.push('/chat'); }}
             className="px-5 py-2.5 rounded-full font-medium text-sm text-white border border-white/30 hover:bg-white/15 transition-all"
             style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
           >
-            チャットへ
+            {t('goToChat')}
           </button>
         </div>
       </div>

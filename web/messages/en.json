@@ -216,7 +216,11 @@
     "missionProgress": "Mission Progress",
     "diaryPreview": "Diary Preview",
     "contentLinks": "Content",
-    "pollBanner": "Polls"
+    "pollBanner": "Polls",
+    "heroTitle": "Your favorites are waiting.",
+    "heroSubtitle": "Follow and chat with your favorite characters.",
+    "swipeToExplore": "Swipe to explore",
+    "goToChat": "Go to chat"
   },
   "moments": {
     "title": "Timeline",

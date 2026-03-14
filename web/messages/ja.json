@@ -286,7 +286,11 @@
     "missionProgress": "ミッション進捗",
     "diaryPreview": "日記プレビュー",
     "contentLinks": "コンテンツ",
-    "pollBanner": "投票"
+    "pollBanner": "投票",
+    "heroTitle": "推しが、待ってる。",
+    "heroSubtitle": "フォローして、推しとリアルにトークしよう。",
+    "swipeToExplore": "スワイプで探す",
+    "goToChat": "チャットへ"
   },
   "moments": {
     "title": "タイムライン",
