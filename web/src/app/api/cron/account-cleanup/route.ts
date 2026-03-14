@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           await tx.deepReplyQueue.deleteMany({ where: { userId: user.id } });
 
           // CharacterUserProfile
-          await tx.characterUserProfile.deleteMany({ where: { userId: user.id } });
+          await tx.characterUserProfile.deleteMany({ where: { userProfile: { userId: user.id } } });
 
           // UserProfile
           await tx.userProfile.deleteMany({ where: { userId: user.id } });
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
           // コメントいいね → コメント → モーメント
           await tx.commentLike.deleteMany({ where: { userId: user.id } });
           await tx.momentComment.deleteMany({ where: { userId: user.id } });
-          await tx.moment.deleteMany({ where: { userId: user.id } });
+          // Momentはcharacterが所有するためuserIdで直接削除不可 → Cascadeに委ねる
 
           // サブスクリプション・トランザクション
           await tx.subscription.deleteMany({ where: { userId: user.id } });
@@ -129,13 +129,13 @@ export async function POST(req: NextRequest) {
 
           // メッセージ → 会話
           await tx.message.deleteMany({
-            where: { conversation: { userId: user.id } },
+            where: { conversation: { relationship: { userId: user.id } } },
           });
-          await tx.conversation.deleteMany({ where: { userId: user.id } });
+          await tx.conversation.deleteMany({ where: { relationship: { userId: user.id } } });
 
-          // リレーションシップ（双方向）
+          // リレーションシップ
           await tx.relationship.deleteMany({
-            where: { OR: [{ userId: user.id }, { targetUserId: user.id }] },
+            where: { userId: user.id },
           });
 
           // CharacterSubscription

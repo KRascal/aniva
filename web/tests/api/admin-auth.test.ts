@@ -204,8 +204,7 @@ describe('管理者APIへの非管理者アクセス → 403', () => {
     } as any);
 
     const { GET } = await import('@/app/api/admin/characters/route');
-    const req = makeRequest('http://localhost/api/admin/characters');
-    const res = await GET(req as any);
+    const res = await GET();
     expect(res.status).toBe(403);
   });
 
@@ -213,8 +212,7 @@ describe('管理者APIへの非管理者アクセス → 403', () => {
     vi.mocked(auth).mockResolvedValue(null as any);
 
     const { GET } = await import('@/app/api/admin/characters/route');
-    const req = makeRequest('http://localhost/api/admin/characters');
-    const res = await GET(req as any);
+    const res = await GET();
     expect(res.status).toBe(403);
   });
 
@@ -225,8 +223,7 @@ describe('管理者APIへの非管理者アクセス → 403', () => {
     vi.mocked(prisma.character.findMany).mockResolvedValue([]);
 
     const { GET } = await import('@/app/api/admin/characters/route');
-    const req = makeRequest('http://localhost/api/admin/characters');
-    const res = await GET(req as any);
+    const res = await GET();
     expect(res.status).toBe(200);
   });
 });

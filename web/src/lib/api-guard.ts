@@ -78,7 +78,8 @@ export function withGuard(handler: GuardedHandler, options?: GuardOptions) {
       }
 
       // 4. ハンドラ実行
-      const response = await handler(req, ctx ?? {}, session);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await handler(req, ctx ?? {}, session as any);
 
       // 5. Rate limit ヘッダー追加
       if (response instanceof Response) {

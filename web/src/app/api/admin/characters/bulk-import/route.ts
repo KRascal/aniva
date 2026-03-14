@@ -27,7 +27,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin(req);
+  const admin = await requireAdmin();
   if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
             slug: char.slug,
             franchise,
             franchiseEn: franchiseEn || franchise,
-            personality: char.personality || '',
+            personalityTraits: [],
             systemPrompt,
             avatarUrl: char.avatarUrl || null,
             coverUrl: char.coverUrl || null,

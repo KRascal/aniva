@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     // 4. Conversation取得・オーナーチェック
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: { relationship: true },
     });
-    if (!conversation || conversation.userId !== userId || conversation.type !== 'group') {
+    if (!conversation || conversation.relationship.userId !== userId) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
@@ -270,7 +271,7 @@ ${previousResponses}
     const updatedBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const newBalance = updatedBalance
       ? updatedBalance.freeBalance + updatedBalance.paidBalance
-      : totalBalance - totalCoinCost;
+      : 0;
 
     return NextResponse.json({
       conversationId,
