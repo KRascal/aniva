@@ -1,9 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 // ── TinderUI発見バナー ──
 export function DiscoverBanner() {
+  const t = useTranslations('explore');
   const router = useRouter();
   return (
     <div className="mb-5">
@@ -18,14 +20,14 @@ export function DiscoverBanner() {
         <div className="px-4 py-4 flex items-center gap-3">
           <span className="text-2xl flex-shrink-0">✨</span>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-black text-base leading-tight">新しいキャラを発見しよう</p>
-            <p className="text-white/75 text-xs mt-0.5">スワイプして推しを見つけよう</p>
+            <p className="text-white font-black text-base leading-tight">{t('discoverTitle')}</p>
+            <p className="text-white/75 text-xs mt-0.5">{t('discoverSubtitle')}</p>
           </div>
           <span
             className="text-white font-bold text-xs px-4 py-2 rounded-full flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}
           >
-            スワイプで探す →
+            {t('swipeToExplore')} →
           </span>
         </div>
       </button>
