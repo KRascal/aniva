@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { logger } from '@/lib/logger';
-import { generateGiftReaction, getGiftMultiplier } from '@/lib/gift-reaction-generator';
 
 // ギフト定義（将来的にDBに移行可能）
 const GIFT_CATALOG = [
@@ -61,10 +60,6 @@ export async function POST(req: Request) {
     const newPaid = paidBalance - paidSpend;
     const newTotal = newFree + newPaid;
 
-    // XP倍率計算（好物/苦手システム）
-    const multiplier = await getGiftMultiplier(characterId, gift.id);
-    const adjustedXp = Math.round(gift.xpReward * multiplier);
-
     // トランザクション: コイン消費 + XP付与 + 記録
     const [updatedBalance] = await prisma.$transaction([
       // コイン残高更新
@@ -85,17 +80,17 @@ export async function POST(req: Request) {
           balanceAfter: newTotal,
           characterId,
           description: `${gift.name}を送った`,
-          metadata: { giftType: gift.id, emoji: gift.emoji, xpReward: adjustedXp, multiplier },
+          metadata: { giftType: gift.id, emoji: gift.emoji, xpReward: gift.xpReward },
         },
       }),
-      // XP付与（Relationship更新、好物/苦手倍率適用）
+      // XP付与（Relationship更新）
       prisma.relationship.updateMany({
         where: {
           userId: userId,
           characterId,
         },
         data: {
-          experiencePoints: { increment: adjustedXp },
+          experiencePoints: { increment: gift.xpReward },
         },
       }),
     ]);
@@ -129,50 +124,31 @@ export async function POST(req: Request) {
       }
     }
 
-    // キャラ情報取得（リアクション生成用）
+    // キャラ固有リアクション（character-engineを使ってAI生成も可能だが、軽量にカタログ定義で）
     const character = await prisma.character.findUnique({
       where: { id: characterId },
       select: { name: true, slug: true },
     });
 
-    // キャラ別ハードコードリアクション（フォールバック用・GIFT_CATALOG維持）
-    let defaultReaction = gift.reaction;
+    // キャラ別リアクションカスタマイズ
+    let reaction = gift.reaction;
     if (character?.slug === 'luffy' && gift.id === 'meat') {
-      defaultReaction = '肉だーーー！！！うめぇぇぇ！！！サイコーーー！！！';
+      reaction = '肉だーーー！！！うめぇぇぇ！！！サイコーーー！！！';
     } else if (character?.slug === 'zoro' && gift.id === 'sake') {
-      defaultReaction = 'ふん…悪くない酒だな。付き合ってやる';
+      reaction = 'ふん…悪くない酒だな。付き合ってやる';
     } else if (character?.slug === 'sanji' && gift.id === 'flower') {
-      defaultReaction = 'メロリン♡ こんな素敵な花を…俺が料理で返すぜ！';
+      reaction = 'メロリン♡ こんな素敵な花を…俺が料理で返すぜ！';
     } else if (character?.slug === 'nami' && gift.id === 'treasure') {
-      defaultReaction = 'きゃー！💰 最高！！あんた分かってるじゃない！';
+      reaction = 'きゃー！💰 最高！！あんた分かってるじゃない！';
     } else if (character?.slug === 'chopper' && gift.id === 'heart') {
-      defaultReaction = 'う、うれしくなんかないんだからなっ！…えへへ';
+      reaction = 'う、うれしくなんかないんだからなっ！…えへへ';
     }
-
-    // ユーザー名取得（AI生成リアクション用）
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { nickname: true, displayName: true, name: true },
-    });
-    const userName = user?.nickname ?? user?.displayName ?? user?.name ?? 'あなた';
-
-    // AI生成リアクション（失敗時はdefaultReactionにフォールバック）
-    const reaction = await generateGiftReaction(
-      characterId,
-      character?.name ?? '',
-      gift.name,
-      gift.emoji,
-      defaultReaction,
-      userName,
-    );
 
     return NextResponse.json({
       success: true,
       reaction,
       giftEmoji: gift.emoji,
-      xpGained: adjustedXp,
-      multiplier,
-      isSpecial: multiplier !== 1.0,
+      xpGained: gift.xpReward,
       newBalance: newTotal,
     });
   } catch (error) {

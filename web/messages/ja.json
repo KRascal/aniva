@@ -694,5 +694,10 @@
     "iosGuide": "共有ボタン → 「ホーム画面に追加」をタップ",
     "androidGuide": "アプリのように使える。通知も届く",
     "add": "追加"
+  },
+  "errors": {
+    "notFoundTitle": "ページが見つかりません",
+    "notFoundDesc": "お探しのページは存在しないか、移動した可能性があります",
+    "backToHome": "ホームへ戻る"
   }
 }

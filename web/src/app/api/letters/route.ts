@@ -46,14 +46,28 @@ export async function GET(req: NextRequest) {
     });
 
     // FC未加入者には isFcOnly=true の手紙は届かないが、一応フィルター
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filtered = (deliveries as any[]).filter((d: any) =>
+    interface LetterDeliveryRow {
+      id: string;
+      isRead: boolean;
+      readAt: Date | null;
+      createdAt: Date;
+      letter: {
+        id: string;
+        characterId: string;
+        character: { id: string; name: string; slug: string; avatarUrl: string | null };
+        title: string;
+        content: string;
+        imageUrl: string | null;
+        type: string;
+        isFcOnly: boolean;
+      };
+    }
+    const filtered = (deliveries as LetterDeliveryRow[]).filter((d) =>
       !d.letter.isFcOnly || fcCharacterIds.has(d.letter.characterId)
     );
 
     return NextResponse.json({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      letters: filtered.map((d: any) => ({
+      letters: filtered.map((d) => ({
         id: d.id,
         letterId: d.letter.id,
         character: d.letter.character,
@@ -66,8 +80,7 @@ export async function GET(req: NextRequest) {
         readAt: d.readAt,
         createdAt: d.createdAt,
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      unreadCount: filtered.filter((d: any) => !d.isRead).length,
+      unreadCount: filtered.filter((d) => !d.isRead).length,
     });
   } catch (error) {
     logger.error('[letters] error:', error);

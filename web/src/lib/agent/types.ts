@@ -55,14 +55,6 @@ export interface UserStateSnapshot {
 
   // ユーザー名（表示・プロンプト用）
   userName: string;
-
-  // フォローアップ候補（FollowUpQueueから取得）
-  followUpCandidates?: { id: string; topic: string; reason: string }[];
-
-  // Phase 2追加フィールド — コンテキストトリガー
-  weatherContext?: { temp: number; description: string; location: string } | null;
-  seasonalEvents?: string[];
-  churnStage: 'active' | 'cooling' | 'at_risk' | 'churned';
 }
 
 // ── エージェント判断結果 ──────────────────────────────────────

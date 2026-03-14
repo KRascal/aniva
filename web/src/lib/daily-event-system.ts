@@ -79,7 +79,7 @@ export async function getUserDailyEvent(userId: string): Promise<DailyEventResul
   let existing;
   try {
     existing = await prisma.userDailyEvent.findFirst({
-      where: { userId, date: new Date(today) },
+      where: { userId, date: today },
     });
   } catch {
     // DB migration not yet applied — gracefully return normal event
@@ -108,7 +108,7 @@ export async function getUserDailyEvent(userId: string): Promise<DailyEventResul
     await prisma.userDailyEvent.create({
       data: {
         userId,
-        date: new Date(today),
+        date: today,
         eventType,
         reward: reward as Prisma.InputJsonValue,
       },

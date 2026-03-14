@@ -7,6 +7,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import { SwipeableChatRow } from '@/components/chat-list/SwipeableChatRow';
 import { EmptyState } from '@/components/chat-list/EmptyState';
 import type { Character, ProactiveMessage, RelationshipInfo } from '@/components/chat-list/types';
+import { logger } from '@/lib/logger';
 
 /* ── main page ── */
 export default function ChatPage() {
@@ -70,7 +71,7 @@ export default function ChatPage() {
         setCharacters(charData.characters || []);
       }
     } catch (err) {
-      console.error('[ChatPage] characters fetch error:', err);
+      logger.error('[ChatPage] characters fetch error', { error: err });
     }
 
     try {
@@ -85,10 +86,10 @@ export default function ChatPage() {
           setRelationships(map);
         }
       } else {
-        console.error('[ChatPage] relationship/all failed:', relRes.status, await relRes.text().catch(() => ''));
+        logger.error('[ChatPage] relationship/all failed', { status: relRes.status });
       }
     } catch (err) {
-      console.error('[ChatPage] relationships fetch error:', err);
+      logger.error('[ChatPage] relationships fetch error', { error: err });
     }
 
     try {
@@ -395,7 +396,7 @@ export default function ChatPage() {
                         });
                       }
                     } catch (err) {
-                      console.error('[ChatPage] pin error:', err);
+                      logger.error('[ChatPage] pin error', { error: err });
                     }
                   }}
                   onMute={async () => {
@@ -415,7 +416,7 @@ export default function ChatPage() {
                         });
                       }
                     } catch (err) {
-                      console.error('[ChatPage] mute error:', err);
+                      logger.error('[ChatPage] mute error', { error: err });
                     }
                   }}
                   onUnfollow={async () => {
@@ -429,7 +430,7 @@ export default function ChatPage() {
                         loadChatList();
                       }
                     } catch (err) {
-                      console.error('[ChatPage] unfollow error:', err);
+                      logger.error('[ChatPage] unfollow error', { error: err });
                     }
                   }}
                 />

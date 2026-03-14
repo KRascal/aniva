@@ -2,12 +2,12 @@
  * character-growth-system.ts
  * ユーザーとの関係でキャラの内面が微妙に変化するシステム
  *
- * TODO: 統合先 src/lib/engine/prompt-builder.ts の buildSystemPrompt() 内で
+ * NOTE: prompt-builder.ts に統合済み（getGrowthContext/getSeasonalPromptContext）
  * import { getGrowthContext } from '@/lib/character-growth-system';
  * const growthCtx = getGrowthContext(character.slug, relationshipLevel, totalMessages);
  * // systemPromptに growthCtx を追加
  *
- * TODO: 統合先 src/app/api/chat/send/route.ts の enrichedMessage 生成時に
+ * NOTE: chat/send/route.ts に統合済み（calculateGrowthProgress はアナリティクス用に保持）
  * import { calculateGrowthProgress } from '@/lib/character-growth-system';
  * const dims = calculateGrowthProgress(character.slug, level, messageCount);
  * // ログ・アナリティクスに次元値を記録する場合に使用

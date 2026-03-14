@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
-import { RelationshipMap } from '@/components/profile/RelationshipMap';
 import { FanStatsPanel } from '@/components/character/FanStatsPanel';
 import { MOMENT_CARD_STYLES } from '@/components/moments/MomentCard';
 import type { Moment as SharedMoment } from '@/components/moments/MomentCard';
@@ -22,6 +21,7 @@ import { DiaryTab } from '@/components/profile/tabs/DiaryTab';
 import { FcTab } from '@/components/profile/tabs/FcTab';
 import { DlTab } from '@/components/profile/tabs/DlTab';
 import { ProfileTab } from '@/components/profile/tabs/ProfileTab';
+import { logger } from '@/lib/logger';
 
 /* ───────────────────────── メインページ ───────────────────────── */
 export default function ProfilePage() {
@@ -79,7 +79,7 @@ export default function ProfilePage() {
     fetch(`/api/characters/id/${characterId}`)
       .then((res) => res.json())
       .then((data) => { if (data.character) setCharacter(data.character); })
-      .catch(console.error);
+      .catch((err) => logger.error('characters/id fetch error', { error: err }));
   }, [characterId]);
 
   // Moments（最近20件）
@@ -110,7 +110,7 @@ export default function ProfilePage() {
         setIsFanclub(followData.isFanclub ?? false);
         setFollowerCount(followData.followerCount ?? 0);
       } catch (err) {
-        console.error('Failed to load profile data:', err);
+        logger.error('Failed to load profile data', { error: err });
       } finally {
         setIsLoading(false);
         setTimeout(() => setXpAnimated(true), 300);
@@ -140,7 +140,7 @@ export default function ProfilePage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      console.error('Customize save error:', err);
+      logger.error('Customize save error', { error: err });
     } finally {
       setSaveLoading(false);
     }
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         fetch(`/api/relationship/${characterId}/follow-welcome`, { method: 'POST' }).catch(() => {});
       }
     } catch (err) {
-      console.error('Follow error:', err);
+      logger.error('Follow error', { error: err });
     } finally {
       setFollowLoading(false);
     }
@@ -209,7 +209,7 @@ export default function ProfilePage() {
       setIsFanclub(data.isFanclub);
       setIsFollowing(data.isFollowing);
     } catch (err) {
-      console.error('Fanclub error:', err);
+      logger.error('Fanclub error', { error: err });
     } finally {
       setFanclubLoading(false);
     }
@@ -228,7 +228,7 @@ export default function ProfilePage() {
       .then((data) => {
         if (data.contents) setDlContents(data.contents as DlContent[]);
       })
-      .catch(console.error)
+      .catch((err) => logger.error('content fetch error', { error: err }))
       .finally(() => setDlLoading(false));
   }, [characterId]);
 
@@ -285,7 +285,7 @@ export default function ProfilePage() {
           setDiaryTotalPages(data.pagination.totalPages);
         }
       })
-      .catch(console.error)
+      .catch((err) => logger.error('diary fetch error', { error: err }))
       .finally(() => setDiaryLoading(false));
   }, [characterId, diaryPage]);
 
@@ -632,7 +632,6 @@ export default function ProfilePage() {
         )}
 
         {activeTab === 'profile' && (
-          <>
           <ProfileTab
             character={character}
             relationship={relationship}
@@ -660,8 +659,6 @@ export default function ProfilePage() {
             onToggleInterest={toggleInterest}
             onAddCustomInterest={addCustomInterest}
           />
-          <RelationshipMap characterId={characterId} characterName={character?.name ?? ''} />
-          </>
         )}
 
       </div>

@@ -57,7 +57,7 @@ export async function GET(
     const diariesWithLiked = diaries.map((d) => ({
       id: d.id,
       characterId: d.characterId,
-      date: d.date instanceof Date ? d.date.toISOString().slice(0, 10) : d.date,
+      date: d.date,
       content: d.content,
       mood: d.mood,
       imageUrl: d.imageUrl,

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { checkEdgeRateLimit, getClientIdentifier } from '@/lib/rate-limit-edge';
 
 const SUPPORTED_LOCALES = ['ja', 'en'];
 const DEFAULT_LOCALE = 'ja';
@@ -65,6 +66,25 @@ export default async function proxy(req: NextRequest) {
   if (req.method === 'OPTIONS' && pathname.startsWith('/api/')) {
     const res = new NextResponse(null, { status: 200 });
     return withSecurityHeaders(res, req);
+  }
+
+  // ── Edge Rate Limiting（全API一括防御） ──
+  if (pathname.startsWith('/api/')) {
+    const clientId = getClientIdentifier(req);
+    const rl = checkEdgeRateLimit(clientId, pathname);
+    if (!rl.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rl.retryAfterSec }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': rl.retryAfterSec.toString(),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
   }
 
   // ── Server Action 不正リクエスト防御 ──

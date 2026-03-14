@@ -115,12 +115,6 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
 
     const userName = relationship.user.nickname ?? relationship.user.displayName ?? 'ユーザー';
 
-    // コンテキストトリガー情報を収集（Phase 2）
-    const { getWeatherForUser, classifyChurnStage, getActiveSeasonalEvents } = await import('./context-triggers');
-    const weatherContext = await getWeatherForUser(relationship.userId).catch(() => null);
-    const seasonalEvents = getActiveSeasonalEvents();
-    const churnStage = classifyChurnStage(daysSinceLastMessage);
-
     return {
       userId: relationship.userId,
       characterId: relationship.characterId,
@@ -139,9 +133,6 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
       relationshipLevel: relationship.level,
       totalMessages: relationship.totalMessages,
       streakDays: relationship.streakDays,
-      weatherContext,
-      seasonalEvents,
-      churnStage,
     };
   } catch (error) {
     logger.error('[UserStateCollector] Failed to collect state:', error);

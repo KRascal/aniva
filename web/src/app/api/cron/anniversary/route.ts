@@ -15,8 +15,6 @@ import { prisma } from '@/lib/prisma';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
-import { grantAnniversaryReward } from '@/lib/anniversary-rewards';
-import { getAnniversaryEvents } from '@/lib/anniversary-system';
 
 const ANNIVERSARY_MESSAGES = [
   '覚えてるか？今日は俺たちが出会った日だ！🎉',
@@ -406,31 +404,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. マイルストーンリワード付与（anniversary-system.ts の全マイルストーン対象）
-  //    既存の MILESTONE_DAYS (7/30/100/365日) + 新規追加分 (14/50/200日, メッセージ数) を処理
-  const allUsers = await prisma.user.findMany({ select: { id: true } });
-  let rewardsGranted = 0;
-  for (const user of allUsers) {
-    const events = await getAnniversaryEvents(user.id);
-    for (const event of events) {
-      if (event.type !== 'days' && event.type !== 'messages') continue;
-      const result = await grantAnniversaryReward(
-        user.id,
-        event.characterId,
-        event.characterName,
-        event.type,
-        event.milestone,
-      );
-      if (result.granted) rewardsGranted++;
-    }
-  }
-  logger.info(`[anniversary] Granted ${rewardsGranted} milestone rewards`);
-
   return NextResponse.json({
     success: true,
     date: `${month}/${day}`,
     ...results,
-    rewardsGranted,
     // promptsInjected: 記念日システムプロンプトを memorySummary に注入した件数
     // チャットAPIはこれを読み取り、次回チャット開始時にキャラに記念日を言及させる
   });

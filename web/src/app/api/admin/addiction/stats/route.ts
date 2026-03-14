@@ -14,11 +14,11 @@ export async function GET() {
   }
 
   const now = new Date();
-  const todayDate = new Date(now.toISOString().slice(0, 10));
+  const todayStr = now.toISOString().slice(0, 10);
   const past7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    return new Date(d.toISOString().slice(0, 10));
+    return d.toISOString().slice(0, 10);
   });
 
   // ストリーク統計
@@ -60,7 +60,7 @@ export async function GET() {
   // デイリーイベント
   const todayEvents = await prisma.userDailyEvent.groupBy({
     by: ['eventType'],
-    where: { date: todayDate },
+    where: { date: todayStr },
     _count: true,
   });
 
@@ -158,10 +158,10 @@ export async function GET() {
     },
     dailyEvents: {
       today: todayEvents.map((e) => ({ type: e.eventType, count: e._count })),
-      past7Days: past7DayEvents.map((e) => ({ date: e.date instanceof Date ? e.date.toISOString().slice(0, 10) : e.date, type: e.eventType, count: e._count })),
+      past7Days: past7DayEvents.map((e) => ({ date: e.date, type: e.eventType, count: e._count })),
       recentSuperRare: superRareUsers.map((e) => ({
         name: e.user.displayName ?? e.user.email,
-        date: e.date instanceof Date ? e.date.toISOString().slice(0, 10) : e.date,
+        date: e.date,
         createdAt: e.createdAt,
       })),
     },
