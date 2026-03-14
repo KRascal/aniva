@@ -450,7 +450,9 @@
   "reward": {
     "dailyEvent": "デイリーイベント",
     "coinEarned": "コイン獲得！",
-    "bonusReceived": "ボーナスを受け取りました"
+    "bonusReceived": "ボーナスを受け取りました",
+    "streakBonus": "ストリークボーナス！",
+    "loginBonus": "ログインボーナス！"
   },
   "story": {
     "title": "ストーリー",

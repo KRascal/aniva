@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface BonusData {
   alreadyClaimed: boolean;
@@ -13,6 +14,7 @@ interface BonusData {
 }
 
 export function DailyBonus() {
+  const t = useTranslations('reward');
   const [bonus, setBonus] = useState<BonusData | null>(null);
   const [show, setShow] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -95,7 +97,7 @@ export function DailyBonus() {
 
             {/* タイトル */}
             <h3 className="text-white font-black text-lg mb-1">
-              {bonus.isStreakMilestone ? '🔥 ストリークボーナス！' : 'ログインボーナス！'}
+              {bonus.isStreakMilestone ? `🔥 ${t('streakBonus')}` : t('loginBonus')}
             </h3>
 
             {/* キャラメッセージ */}

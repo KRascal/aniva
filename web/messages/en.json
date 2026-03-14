@@ -338,7 +338,9 @@
   "reward": {
     "dailyEvent": "Daily Event",
     "coinEarned": "Coins earned!",
-    "bonusReceived": "Bonus received"
+    "bonusReceived": "Bonus received",
+    "streakBonus": "Streak Bonus!",
+    "loginBonus": "Login Bonus!"
   },
   "story": {
     "title": "Story",
