@@ -39,6 +39,7 @@ import { CallSelectionModal } from '@/components/chat/CallSelectionModal';
 import { FcSuccessModal } from '@/components/chat/FcSuccessModal';
 import { MessageContextMenu } from '@/components/chat/MessageContextMenu';
 import { TopicCard } from '@/components/chat/TopicCard';
+import { logger } from '@/lib/logger';
 
 
 /* ─────────────── メインページ ─────────────── */
@@ -541,7 +542,7 @@ export default function ChatCharacterPage() {
             if (relData2?.id) setRelationshipId(relData2.id);
           }
         } catch (e) {
-          console.error('Auto-follow failed:', e);
+          logger.error('Auto-follow failed', { error: e });
         }
         // ログイン済みユーザーは常にgreet直行（診断スキップ）
         // 診断は /c/[slug] のゲストオンボーディングフローでのみ実施
@@ -588,7 +589,7 @@ export default function ChatCharacterPage() {
 
       setIsLoadingHistory(false);
     } catch (err) {
-      console.error('Failed to load relationship:', err);
+      logger.error('Failed to load relationship', { error: err });
       setIsLoadingHistory(false);
     }
   }, [userId, characterId]);
@@ -995,7 +996,7 @@ export default function ChatCharacterPage() {
 
       // XP/レベルアップはcompleteイベントのlevelUpフィールドで処理済み
     } catch (err) {
-      console.error('Send message error:', err);
+      logger.error('Send message error', { error: err });
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       inFlightRef.current = false;
@@ -1114,7 +1115,7 @@ export default function ChatCharacterPage() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
-        console.error('画像送信エラー:', err);
+        logger.error('画像送信エラー', { error: err });
       } else {
         const data = await res.json();
         // 楽観的メッセージを実際のメッセージに差し替え
@@ -1127,7 +1128,7 @@ export default function ChatCharacterPage() {
         );
       }
     } catch (e) {
-      console.error('画像送信失敗:', e);
+      logger.error('画像送信失敗', { error: e });
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
     } finally {
       URL.revokeObjectURL(previewUrl);
@@ -1162,7 +1163,7 @@ export default function ChatCharacterPage() {
       setIsPushSubscribed(true);
       alert('プッシュ通知をONにしました 🔔');
     } catch (err) {
-      console.error('Push subscribe error:', err);
+      logger.error('Push subscribe error', { error: err });
       alert('通知の設定に失敗しました');
     }
   };
@@ -1227,7 +1228,7 @@ export default function ChatCharacterPage() {
         }
       }
     } catch (e) {
-      console.error('Greeting failed:', e);
+      logger.error('Greeting failed', { error: e });
     } finally {
       setIsGreeting(false);
     }
@@ -1444,7 +1445,7 @@ export default function ChatCharacterPage() {
                 throw new Error(data.error ?? 'Failed to create checkout session');
               }
             } catch (err) {
-              console.error('FC subscribe error:', err);
+              logger.error('FC subscribe error', { error: err });
               // エラー時: モーダルを閉じてトーストで通知（プロフィールページに飛ばさない）
               setShowFcModal(false);
               setShareToast('FC加入処理でエラーが発生しました。しばらくしてから再度お試しください。');
