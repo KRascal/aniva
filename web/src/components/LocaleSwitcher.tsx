@@ -1,21 +1,22 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import { useLocale } from '@/contexts/LocaleContext';
-import { Locale } from '@/lib/i18n';
+import { useState, useRef, useEffect, useTransition } from 'react';
+import { useLocale } from 'next-intl';
 
-const LOCALES: { code: Locale; flag: string; label: string }[] = [
+const LOCALES = [
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
   { code: 'en', flag: '🇺🇸', label: 'English' },
   { code: 'ko', flag: '🇰🇷', label: '한국어' },
   { code: 'zh', flag: '🇨🇳', label: '中文' },
-];
+  { code: 'es', flag: '🇪🇸', label: 'Español' },
+  { code: 'fr', flag: '🇫🇷', label: 'Français' },
+] as const;
 
 export function LocaleSwitcher() {
-  const { locale, setLocale } = useLocale();
+  const currentLocale = useLocale();
   const [open, setOpen] = useState(false);
+  const [, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
 
-  // 外クリックで閉じる
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -26,12 +27,22 @@ export function LocaleSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const handleLocaleChange = (code: string) => {
+    // Cookie で言語を永続化 → next-intl の getRequestConfig がpickup
+    document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000;SameSite=Lax`;
+    setOpen(false);
+    startTransition(() => {
+      // フルリロードで next-intl がcookieから新localeを読み込む
+      window.location.reload();
+    });
+  };
+
   return (
     <div ref={ref} className="relative flex-shrink-0">
       <button
         onClick={() => setOpen(prev => !prev)}
         className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-        aria-label="言語切替"
+        aria-label="Language"
       >
         🌐
       </button>
@@ -48,14 +59,14 @@ export function LocaleSwitcher() {
           {LOCALES.map(({ code, flag, label }) => (
             <button
               key={code}
-              onClick={() => { setLocale(code); setOpen(false); }}
+              onClick={() => handleLocaleChange(code)}
               className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors"
             >
               <span>{flag}</span>
-              <span className={locale === code ? 'text-white font-semibold' : 'text-gray-400'}>
+              <span className={currentLocale === code ? 'text-white font-semibold' : 'text-gray-400'}>
                 {label}
               </span>
-              {locale === code && (
+              {currentLocale === code && (
                 <span className="ml-auto text-purple-400">✓</span>
               )}
             </button>

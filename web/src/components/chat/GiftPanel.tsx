@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 
 interface GiftType {
@@ -20,6 +21,8 @@ interface GiftPanelProps {
 }
 
 export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftSent }: GiftPanelProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [gifts, setGifts] = useState<GiftType[]>([]);
   const [balance, setBalance] = useState<number>(0);
   const [sending, setSending] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
   const sendGift = async (gift: GiftType) => {
     if (sending) return;
     if (balance < gift.coinCost) {
-      setError('コインが足りません 😢');
+      setError(t('coinInsufficient'));
       setTimeout(() => setError(null), 2000);
       return;
     }
@@ -56,11 +59,11 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
         onGiftSent(data.reaction, gift.emoji);
         onClose();
       } else {
-        setError(data.error || '送信に失敗しました');
+        setError(data.error || tc('sendFailed'));
         setTimeout(() => setError(null), 2000);
       }
     } catch {
-      setError('送信に失敗しました');
+      setError(tc('sendFailed'));
       setTimeout(() => setError(null), 2000);
     } finally {
       setSending(null);
@@ -91,7 +94,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
           {/* ヘッダー */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-bold text-sm">
-              {characterName}にプレゼント
+              {t('giftToCharacter', {name: characterName})}
             </h3>
           </div>
 
@@ -144,7 +147,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
             </svg>
             <span className="text-amber-300 text-sm font-bold">{balance.toLocaleString()}</span>
             <span className="text-amber-400/60 text-xs">|</span>
-            <span className="text-amber-400 text-xs font-medium">コインを購入する →</span>
+            <span className="text-amber-400 text-xs font-medium">{t('buyCoin')}</span>
           </button>
         </div>
       </div>

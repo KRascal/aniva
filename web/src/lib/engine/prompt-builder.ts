@@ -5,6 +5,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '../prisma';
+import { cached, CacheKeys, CacheTTL } from '../cache';
 import type {
   CharacterRecord,
   LocaleOverride,
@@ -64,6 +65,12 @@ export function getIntimacyToneInstruction(intimacyLevel: number | null | undefi
  * キャラクターバイブル（DB定義）からプロンプト注入用コンテキストを構築
  */
 export async function buildBibleContext(characterId: string, locale: string = 'ja'): Promise<string> {
+  // Redis キャッシュ: キャラバイブルは頻繁にアクセスされるが更新頻度は低い（30分TTL）
+  const cacheKey = `${CacheKeys.characterSoul(characterId)}:${locale}`;
+  return cached(cacheKey, CacheTTL.CHARACTER_SOUL, () => _buildBibleContextUncached(characterId, locale));
+}
+
+async function _buildBibleContextUncached(characterId: string, locale: string): Promise<string> {
   const [soul, quotes, boundaries, voice] = await Promise.all([
     prisma.characterSoul.findUnique({ where: { characterId } }),
     prisma.characterQuote.findMany({

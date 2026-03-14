@@ -7,19 +7,19 @@ datasource db {
 }
 
 model User {
-  id                     String                  @id @default(uuid())
-  email                  String                  @unique
+  id                     String                      @id @default(uuid())
+  email                  String                      @unique
   emailVerified          DateTime?
   displayName            String?
   name                   String?
   avatarUrl              String?
   image                  String?
-  plan                   Plan                    @default(FREE)
+  plan                   Plan                        @default(FREE)
   stripeCustomerId       String?
-  language               String                  @default("ja")
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  settings               Json                    @default("{}")
+  language               String                      @default("ja")
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  settings               Json                        @default("{}")
   // === オンボーディングフィールド ===
   nickname               String?
   onboardingStep         String? // 'nickname' | 'character_select' | 'first_chat' | 'completed'
@@ -28,10 +28,10 @@ model User {
   onboardingCharacterId  String?
   onboardingDeeplinkSlug String?
   bio                    String?
-  profilePublic          Boolean                 @default(true)
+  profilePublic          Boolean                     @default(true)
   coverImageUrl          String?
-  birthday               String?                 // "YYYY-MM-DD" format
-  locale                 String                  @default("ja")
+  birthday               String? // "YYYY-MM-DD" format
+  locale                 String                      @default("ja")
   accounts               Account[]
   sessions               Session[]
   relationships          Relationship[]
@@ -61,6 +61,12 @@ model User {
   fanReplies             FanReply[]
   userProfile            UserProfile?
   agentDecisions         CharacterAgentDecision[]
+  deletedAt              DateTime?
+  deleteScheduledAt      DateTime?
+  deletionReason         String?
+  reports                Report[]    @relation("ReportsMade")
+  blocksMade             UserBlock[] @relation("BlocksMade")
+  blocksReceived         UserBlock[] @relation("BlocksReceived")
 }
 
 model PushSubscription {
@@ -114,45 +120,45 @@ enum Plan {
 }
 
 model Character {
-  id                      String                  @id @default(uuid())
+  id                      String                       @id @default(uuid())
   name                    String
   nameEn                  String?
-  slug                    String                  @unique
+  slug                    String                       @unique
   franchise               String
   franchiseEn             String?
   description             String?
-  systemPrompt            String                  @db.Text
+  systemPrompt            String                       @db.Text
   voiceModelId            String?
-  fcMonthlyCoins          Int                     @default(500) // FC月額コイン（キャラ別）
-  chatCoinPerMessage      Int                     @default(10) // チャット1回のコイン消費（キャラ別）
-  loginBonusCoins         Int                     @default(50) // ログインボーナス付与コイン
+  fcMonthlyCoins          Int                          @default(500) // FC月額コイン（キャラ別）
+  chatCoinPerMessage      Int                          @default(10) // チャット1回のコイン消費（キャラ別）
+  loginBonusCoins         Int                          @default(50) // ログインボーナス付与コイン
   live2dModelId           String?
   loraModelId             String?
   ragCollectionId         String?
   catchphrases            String[]
-  personalityTraits       Json                    @default("[]")
+  personalityTraits       Json                         @default("[]")
   avatarUrl               String?
   coverUrl                String?
-  isActive                Boolean                 @default(true)
+  isActive                Boolean                      @default(true)
   // === 課金設定 ===
-  fcMonthlyPriceJpy       Int                     @default(3480) // FC月額（円）最低3480
-  fcIncludedCallMin       Int                     @default(30) // FC込み通話時間（分/月）
-  callCoinPerMin          Int                     @default(200) // 非FC通話料金（コイン/分）最低200
-  fcOverageCallCoinPerMin Int                     @default(100) // FC超過通話料金（コイン/分）最低100
-  freeMessageLimit        Int                     @default(10) // 無料チャット上限（通数）
-  freeCallMinutes         Int                     @default(5) // 無料通話上限（分）
+  fcMonthlyPriceJpy       Int                          @default(3480) // FC月額（円）最低3480
+  fcIncludedCallMin       Int                          @default(30) // FC込み通話時間（分/月）
+  callCoinPerMin          Int                          @default(200) // 非FC通話料金（コイン/分）最低200
+  fcOverageCallCoinPerMin Int                          @default(100) // FC超過通話料金（コイン/分）最低100
+  freeMessageLimit        Int                          @default(10) // 無料チャット上限（通数）
+  freeCallMinutes         Int                          @default(5) // 無料通話上限（分）
   stripeProductId         String? // Stripe Product ID
-  fcSubscriberCount       Int                     @default(0) // FC加入者数キャッシュ
-  onboardingGreetings     Json?                   @default("[]") // オンボーディング第一声（3パターン）
+  fcSubscriberCount       Int                          @default(0) // FC加入者数キャッシュ
+  onboardingGreetings     Json?                        @default("[]") // オンボーディング第一声（3パターン）
   // === 多言語・地域対応 ===
   // localeConfig: { "en": { voiceModelId, systemPrompt, catchphrases[], toneNotes }, "ko": {...} }
-  localeConfig            Json?                   @default("{}") // 言語別の声優/口調/プロンプト設定
+  localeConfig            Json?                        @default("{}") // 言語別の声優/口調/プロンプト設定
   birthday                String? // "MM-DD" format e.g. "05-05" for May 5th
   presenceStatus          String? // 手動上書きステータス（nullなら自動）
   presenceEmoji           String? // 手動上書き絵文字
-  presenceManualMode      Boolean                 @default(false) // trueなら手動モード
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
+  presenceManualMode      Boolean                      @default(false) // trueなら手動モード
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
   relationships           Relationship[]
   moments                 Moment[]
   momentComments          MomentComment[]
@@ -180,10 +186,10 @@ model Character {
   characterLetters        CharacterLetter[]
   // Phase 3: IP管理
   tenantId                String?
-  tenant                  Tenant?              @relation(fields: [tenantId], references: [id])
-  approvalRequired        Boolean              @default(false)
-  ageRating               String               @default("all_ages")
-  emergencyStop           Boolean              @default(false)
+  tenant                  Tenant?                      @relation(fields: [tenantId], references: [id])
+  approvalRequired        Boolean                      @default(false)
+  ageRating               String                       @default("all_ages")
+  emergencyStop           Boolean                      @default(false)
   emergencyStopAt         DateTime?
   emergencyStopBy         String?
   approvalRequests        ApprovalRequest[]
@@ -191,7 +197,7 @@ model Character {
   deepReplyQueue          DeepReplyQueue[]
   relationshipGraph       CharacterRelationshipGraph[]
   fanThreads              FanThread[]
-  fanReplies              FanReply[]     @relation("FanReplyCharacter")
+  fanReplies              FanReply[]                   @relation("FanReplyCharacter")
   agentDecisions          CharacterAgentDecision[]
 }
 
@@ -210,40 +216,40 @@ model SecretContent {
 }
 
 model Relationship {
-  id                   String         @id @default(uuid())
-  userId               String
-  characterId          String
-  level                Int            @default(1)
-  experiencePoints     Int            @default(0)
-  totalMessages        Int            @default(0)
-  firstMessageAt       DateTime?
-  lastMessageAt        DateTime?
-  memorySummary        Json           @default("{}")
-  milestones           Json           @default("[]")
-  isFollowing          Boolean        @default(false)
-  isFanclub            Boolean        @default(false)
-  characterEmotion     String         @default("neutral")
-  characterEmotionNote String?
-  emotionUpdatedAt     DateTime?
-  streakDays           Int            @default(0)
-  streakLastDate       DateTime?
-  pendingCliffhanger   Json?
-  locale               String         @default("ja")
-  isPinned             Boolean        @default(false)   // チャット一覧でピン留め
-  pinnedAt             DateTime?                        // ピン留め日時（ソート用）
-  isMuted              Boolean        @default(false)   // 通知オフ
-  mutedUntil           DateTime?                        // 通知オフ期限（nullなら無期限）
+  id                     String                   @id @default(uuid())
+  userId                 String
+  characterId            String
+  level                  Int                      @default(1)
+  experiencePoints       Int                      @default(0)
+  totalMessages          Int                      @default(0)
+  firstMessageAt         DateTime?
+  lastMessageAt          DateTime?
+  memorySummary          Json                     @default("{}")
+  milestones             Json                     @default("[]")
+  isFollowing            Boolean                  @default(false)
+  isFanclub              Boolean                  @default(false)
+  characterEmotion       String                   @default("neutral")
+  characterEmotionNote   String?
+  emotionUpdatedAt       DateTime?
+  streakDays             Int                      @default(0)
+  streakLastDate         DateTime?
+  pendingCliffhanger     Json?
+  locale                 String                   @default("ja")
+  isPinned               Boolean                  @default(false) // チャット一覧でピン留め
+  pinnedAt               DateTime? // ピン留め日時（ソート用）
+  isMuted                Boolean                  @default(false) // 通知オフ
+  mutedUntil             DateTime? // 通知オフ期限（nullなら無期限）
   // Agent Phase 1
-  agentLastDecisionAt    DateTime?                      // 最後にDecisionEngineが判断した時刻
-  agentDailyContactCount Int          @default(0)       // 今日のエージェント接触数
-  agentDailyResetAt      DateTime?                      // dailyContactCountのリセット日
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  user                 User           @relation(fields: [userId], references: [id])
-  character            Character      @relation(fields: [characterId], references: [id])
-  conversations        Conversation[]
-  letters              Letter[]
-  agentDecisions       CharacterAgentDecision[]
+  agentLastDecisionAt    DateTime? // 最後にDecisionEngineが判断した時刻
+  agentDailyContactCount Int                      @default(0) // 今日のエージェント接触数
+  agentDailyResetAt      DateTime? // dailyContactCountのリセット日
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  user                   User                     @relation(fields: [userId], references: [id])
+  character              Character                @relation(fields: [characterId], references: [id])
+  conversations          Conversation[]
+  letters                Letter[]
+  agentDecisions         CharacterAgentDecision[]
 
   @@unique([userId, characterId, locale])
   @@index([userId, locale])
@@ -258,6 +264,9 @@ model Conversation {
   metadata       Json         @default("{}")
   relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
+
+  @@index([relationshipId])
+  @@index([updatedAt])
 }
 
 model Message {
@@ -270,6 +279,9 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, role])
 }
 
 enum MessageRole {
@@ -292,9 +304,9 @@ model Moment {
   publishedAt   DateTime?
   createdAt     DateTime        @default(now())
   character     Character       @relation(fields: [characterId], references: [id])
-  reactions      Reaction[]
-  comments       MomentComment[]
-  notifications  Notification[]
+  reactions     Reaction[]
+  comments      MomentComment[]
+  notifications Notification[]
 
   @@index([characterId, locale])
 }
@@ -515,24 +527,25 @@ enum GachaRarity {
 }
 
 model GachaCard {
-  id              String      @id @default(uuid())
-  characterId     String
-  name            String
-  description     String?     @db.Text
-  imageUrl        String?
-  voiceUrl        String?
-  rarity          GachaRarity
-  category        String      @default("memory") // memory | costume | scene
-  effect          Json        @default("{}") // { type: "background"|"voice"|"episode", data: ... }
-  franchise       String? // アニメ名
-  cardImageUrl    String? // カード表面画像
-  illustrationUrl String? // フルイラスト画像
-  frameType       String?     @default("standard") // standard/gold/rainbow
-  isFcExclusive   Boolean     @default(false) // FC会員限定カード
-  isActive        Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  character       Character   @relation(fields: [characterId], references: [id])
-  userCards       UserCard[]
+  id               String         @id @default(uuid())
+  characterId      String
+  name             String
+  description      String?        @db.Text
+  imageUrl         String?
+  voiceUrl         String?
+  rarity           GachaRarity
+  category         String         @default("memory") // memory | costume | scene
+  effect           Json           @default("{}") // { type: "background"|"voice"|"episode", data: ... }
+  franchise        String? // アニメ名
+  cardImageUrl     String? // カード表面画像
+  illustrationUrl  String? // フルイラスト画像
+  frameType        String?        @default("standard") // standard/gold/rainbow
+  isFcExclusive    Boolean        @default(false) // FC会員限定カード
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  character        Character      @relation(fields: [characterId], references: [id])
+  userCards        UserCard[]
+  unlockedChapters StoryChapter[]
 
   @@index([characterId])
   @@index([rarity])
@@ -552,15 +565,15 @@ model UserCard {
 }
 
 model GachaBanner {
-  id             String           @id @default(uuid())
+  id             String          @id @default(uuid())
   name           String
   description    String?
   characterId    String? // null = 全キャラ混合
-  rateUp         Json             @default("{}") // { cardId: multiplier }
-  costCoins      Int              @default(100)
+  rateUp         Json            @default("{}") // { cardId: multiplier }
+  costCoins      Int             @default(100)
   cost10Coins    Int? // 10連コスト（省略時はcostCoins×10）
   guaranteedSrAt Int? // SR確定天井（省略時はnull=天井なし）
-  ceilingCount   Int              @default(100) // UR天井（この回数でUR確定）
+  ceilingCount   Int             @default(100) // UR天井（この回数でUR確定）
   franchise      String? // アニメ名（ONE PIECE / 鬼滅の刃 / 呪術廻戦）
   bannerImageUrl String? // バナー画像URL
   themeColor     String? // テーマカラー (#f97316等)
@@ -568,8 +581,8 @@ model GachaBanner {
   preRollConfig  Json? // 事前演出設定
   startAt        DateTime
   endAt          DateTime
-  isActive       Boolean          @default(true)
-  createdAt      DateTime         @default(now())
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
   userPities     UserGachaPity[]
 
   @@index([isActive])
@@ -603,27 +616,30 @@ model UserDailyEvent {
 
 // ========== ストーリーモード ==========
 model StoryChapter {
-  id              String              @id @default(cuid())
-  characterId     String
-  character       Character           @relation(fields: [characterId], references: [id])
-  chapterNumber   Int
-  locale          String              @default("ja")
-  title           String
-  synopsis        String              @db.Text
-  unlockLevel     Int                 @default(1)
-  isFcOnly        Boolean             @default(false)
-  triggerPrompt   String              @db.Text
-  choices         Json? // [{ text, consequence, nextTease, xpReward? }]
-  isActive        Boolean             @default(true)
-  backgroundUrl   String?             // シーン背景画像URL
-  bgmType         String?             // 'daily' | 'tension' | 'emotion' | null
-  coinReward      Int                 @default(5) // チャプター完了時のコイン報酬
-  characterPose   String?             // キャラ立ち絵ポーズ ('normal'|'happy'|'angry'|'sad')
-  createdAt       DateTime            @default(now())
-  userProgress    UserStoryProgress[]
+  id            String              @id @default(cuid())
+  characterId   String
+  character     Character           @relation(fields: [characterId], references: [id])
+  chapterNumber Int
+  locale        String              @default("ja")
+  title         String
+  synopsis      String              @db.Text
+  unlockLevel   Int                 @default(1)
+  isFcOnly      Boolean             @default(false)
+  unlockCardId  String?             // ガチャカード所有で解放（null = カード不要）
+  unlockCard    GachaCard?          @relation(fields: [unlockCardId], references: [id])
+  triggerPrompt String              @db.Text
+  choices       Json? // [{ text, consequence, nextTease, xpReward? }]
+  isActive      Boolean             @default(true)
+  backgroundUrl String? // シーン背景画像URL
+  bgmType       String? // 'daily' | 'tension' | 'emotion' | null
+  coinReward    Int                 @default(5) // チャプター完了時のコイン報酬
+  characterPose String? // キャラ立ち絵ポーズ ('normal'|'happy'|'angry'|'sad')
+  createdAt     DateTime            @default(now())
+  userProgress  UserStoryProgress[]
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])
+  @@index([unlockCardId])
 }
 
 model DownloadableContent {
@@ -632,8 +648,8 @@ model DownloadableContent {
   character     Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   title         String
   description   String?
-  type          String    // wallpaper, voice_clip, special_art, etc.
-  fileUrl       String    // /uploads/content/{id}.{ext}
+  type          String // wallpaper, voice_clip, special_art, etc.
+  fileUrl       String // /uploads/content/{id}.{ext}
   thumbnailUrl  String?
   fcOnly        Boolean   @default(true)
   downloadCount Int       @default(0)
@@ -666,12 +682,12 @@ model ShopItem {
   character   Character   @relation(fields: [characterId], references: [id])
   name        String
   description String?
-  type        String      // digital_wallpaper, digital_voice, physical_goods, etc.
-  priceCoins  Int         // コイン価格
-  priceJpy    Int?        // 円価格（物理グッズ用、Stripe経由）
+  type        String // digital_wallpaper, digital_voice, physical_goods, etc.
+  priceCoins  Int // コイン価格
+  priceJpy    Int? // 円価格（物理グッズ用、Stripe経由）
   imageUrl    String?
-  fileUrl     String?     // デジタル商品のDL URL
-  stock       Int?        // 物理グッズの在庫数（nullなら無限）
+  fileUrl     String? // デジタル商品のDL URL
+  stock       Int? // 物理グッズの在庫数（nullなら無限）
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   orders      ShopOrder[]
@@ -690,7 +706,7 @@ model ShopOrder {
   totalCoins      Int?
   totalJpy        Int?
   status          String   @default("completed") // completed, shipped, cancelled
-  shippingAddress String?  // 物理グッズ用
+  shippingAddress String? // 物理グッズ用
   createdAt       DateTime @default(now())
 
   @@index([userId])
@@ -712,8 +728,8 @@ model CharacterProactiveMessage {
   metadata    Json      @default("{}")
   createdAt   DateTime  @default(now())
 
-  character   Character @relation(fields: [characterId], references: [id])
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead, isExpired])
   @@index([characterId, userId])
@@ -725,32 +741,30 @@ model CharacterDailyState {
   id                String    @id @default(uuid())
   characterId       String
   date              DateTime  @db.Date
-  emotion           String    // happy / excited / mysterious / tired / nostalgic / playful
-  moodScore         Int?      // 1-10 mood intensity
+  emotion           String // happy / excited / mysterious / tired / nostalgic / playful
+  moodScore         Int? // 1-10 mood intensity
   context           String?
   bonusXpMultiplier Float     @default(1.0)
-  innerThoughts     String?   // 今考えていること (AI generated)
-  dailyActivity     String?   // 今日やっていたこと (AI generated)
-  currentConcern    String?   // 最近気になっていること (AI generated)
+  innerThoughts     String? // 今考えていること (AI generated)
+  dailyActivity     String? // 今日やっていたこと (AI generated)
+  currentConcern    String? // 最近気になっていること (AI generated)
   createdAt         DateTime  @default(now())
   character         Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, date])
 }
 
-
-
 // ========== キャラ感情日記タイムライン ==========
 model CharacterDiary {
-  id          String   @id @default(uuid())
+  id          String               @id @default(uuid())
   characterId String
-  date        String   // "YYYY-MM-DD"
-  content     String   @db.Text
-  mood        String   // happy, sad, excited, tired, neutral 等
+  date        String // "YYYY-MM-DD"
+  content     String               @db.Text
+  mood        String // happy, sad, excited, tired, neutral 等
   imageUrl    String?
-  likes       Int      @default(0)
-  createdAt   DateTime @default(now())
-  character   Character @relation(fields: [characterId], references: [id])
+  likes       Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  character   Character            @relation(fields: [characterId], references: [id])
   diaryLikes  CharacterDiaryLike[]
 
   @@unique([characterId, date])
@@ -758,11 +772,11 @@ model CharacterDiary {
 }
 
 model CharacterDiaryLike {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   userId    String
   diaryId   String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   diary     CharacterDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, diaryId])
@@ -771,16 +785,16 @@ model CharacterDiaryLike {
 
 // ========== 期間限定絆シナリオ（FOMO演出） ==========
 model LimitedScenario {
-  id          String    @id @default(uuid())
+  id          String                @id @default(uuid())
   characterId String
   title       String
   description String?
-  content     String    @db.Text
+  content     String                @db.Text
   startsAt    DateTime
   endsAt      DateTime
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  character   Character @relation(fields: [characterId], references: [id])
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  character   Character             @relation(fields: [characterId], references: [id])
   readers     LimitedScenarioRead[]
 
   @@index([characterId])
@@ -800,17 +814,17 @@ model LimitedScenarioRead {
 
 // ========== ユーザー投票型ストーリー ==========
 model StoryPoll {
-  id             String         @id @default(uuid())
+  id             String          @id @default(uuid())
   characterId    String
   title          String
-  description    String?        @db.Text
-  choices        Json           // [{id: "a", text: "冒険に出る"}, {id: "b", text: "町で修行する"}]
+  description    String?         @db.Text
+  choices        Json // [{id: "a", text: "冒険に出る"}, {id: "b", text: "町で修行する"}]
   startsAt       DateTime
   endsAt         DateTime
-  isActive       Boolean        @default(true)
-  resultChoiceId String?        // 投票結果の選択肢ID
-  createdAt      DateTime       @default(now())
-  character      Character      @relation(fields: [characterId], references: [id])
+  isActive       Boolean         @default(true)
+  resultChoiceId String? // 投票結果の選択肢ID
+  createdAt      DateTime        @default(now())
+  character      Character       @relation(fields: [characterId], references: [id])
   votes          StoryPollVote[]
 
   @@index([characterId])
@@ -831,9 +845,9 @@ model StoryPollVote {
 
 // ── タイムライン通知 ──
 model Notification {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   userId      String
-  type        String    // 'moment_like' | 'moment_comment' | 'character_reply' | 'character_comment' | 'follow'
+  type        String // 'moment_like' | 'moment_comment' | 'character_reply' | 'character_comment' | 'follow'
   title       String
   body        String
   momentId    String?
@@ -841,27 +855,27 @@ model Notification {
   actorName   String?
   actorAvatar String?
   targetUrl   String?
-  isRead      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  moment      Moment?   @relation(fields: [momentId], references: [id], onDelete: SetNull)
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moment      Moment?  @relation(fields: [momentId], references: [id], onDelete: SetNull)
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
 }
 
 model SemanticMemory {
-  id               String                      @id @default(uuid())
+  id               String                       @id @default(uuid())
   userId           String
   characterId      String
   embedding        Unsupported("vector(1536)")?
   content          String
   summary          String?
-  importance       Float                       @default(0.5)
-  emotionalValence Float                       @default(0.0)
-  category         String                      @default("conversation")
+  importance       Float                        @default(0.5)
+  emotionalValence Float                        @default(0.0)
+  category         String                       @default("conversation")
   messageId        String?
-  createdAt        DateTime                    @default(now())
+  createdAt        DateTime                     @default(now())
 
   @@index([userId, characterId])
 }
@@ -871,19 +885,19 @@ model SemanticMemory {
 // ============================================================
 
 model CharacterSoul {
-  id               String    @id @default(uuid())
-  characterId      String    @unique
-  character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  coreIdentity     String    @db.Text  // 「何者か」の1行定義
-  motivation       String    @db.Text  // 行動原理・動機
-  worldview        String    @db.Text  // 世界観・価値観
-  timelinePosition String?   @db.Text  // 「原作のどの時点か」
-  backstory        String?   @db.Text  // この時点までの経緯
-  relationshipMap  Json      @default("{}") // キャラ間関係性マップ
-  personalityAxes  Json      @default("{}") // Big Five + カスタム軸
-  emotionalPatterns Json     @default("{}") // 感情トリガーパターン
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                String    @id @default(uuid())
+  characterId       String    @unique
+  character         Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  coreIdentity      String    @db.Text // 「何者か」の1行定義
+  motivation        String    @db.Text // 行動原理・動機
+  worldview         String    @db.Text // 世界観・価値観
+  timelinePosition  String?   @db.Text // 「原作のどの時点か」
+  backstory         String?   @db.Text // この時点までの経緯
+  relationshipMap   Json      @default("{}") // キャラ間関係性マップ
+  personalityAxes   Json      @default("{}") // Big Five + カスタム軸
+  emotionalPatterns Json      @default("{}") // 感情トリガーパターン
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model CharacterQuote {
@@ -891,9 +905,9 @@ model CharacterQuote {
   characterId String
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   quote       String    @db.Text
-  context     String?   @db.Text  // セリフの状況
-  emotion     String?             // 感情タグ
-  episode     String?             // 原作エピソード
+  context     String?   @db.Text // セリフの状況
+  emotion     String? // 感情タグ
+  episode     String? // 原作エピソード
   category    String    @default("general") // general|battle|emotional|comedic|catchphrase
   importance  Int       @default(5) // 1-10
   locale      String    @default("ja")
@@ -908,11 +922,11 @@ model CharacterBoundary {
   id          String    @id @default(uuid())
   characterId String
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  rule        String    @db.Text  // 禁止ルール本文
+  rule        String    @db.Text // 禁止ルール本文
   category    String    @default("speech") // speech|knowledge|behavior|meta
-  severity    String    @default("hard")   // hard(絶対禁止)|soft(原則禁止)
-  example     String?   @db.Text  // NGの具体例
-  reason      String?   @db.Text  // なぜNGか
+  severity    String    @default("hard") // hard(絶対禁止)|soft(原則禁止)
+  example     String?   @db.Text // NGの具体例
+  reason      String?   @db.Text // なぜNGか
   createdAt   DateTime  @default(now())
 
   @@index([characterId, category])
@@ -926,9 +940,9 @@ model CharacterVoice {
   secondPerson    String    @default("お前") // 二人称
   sentenceEndings Json      @default("[]") // 語尾パターン ["〜だ！","〜ぞ！"]
   exclamations    Json      @default("[]") // 感嘆詞 ["おお！","すげぇ！"]
-  laughStyle      String?   // 笑い方 "ししし！"
-  angryStyle      String?   // 怒り表現
-  sadStyle        String?   // 悲しみ表現
+  laughStyle      String? // 笑い方 "ししし！"
+  angryStyle      String? // 怒り表現
+  sadStyle        String? // 悲しみ表現
   toneNotes       String?   @db.Text // 総合的なトーン指示
   speechExamples  Json      @default("[]") // 会話例 [{"user":"...","char":"..."}]
   locale          String    @default("ja")
@@ -950,18 +964,18 @@ model LoreFranchise {
 }
 
 model LoreEntry {
-  id           String         @id @default(uuid())
+  id           String                       @id @default(uuid())
   franchiseId  String
-  franchise    LoreFranchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
-  title        String         // エントリ名
-  content      String         @db.Text // 本文
-  category     String         @default("event") // event|character|location|ability|item|relationship
-  keywords     String[]       // キーワードトリガー
+  franchise    LoreFranchise                @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  title        String // エントリ名
+  content      String                       @db.Text // 本文
+  category     String                       @default("event") // event|character|location|ability|item|relationship
+  keywords     String[] // キーワードトリガー
   embedding    Unsupported("vector(1536)")? // pgvector
-  importance   Int            @default(5) // 1-10
-  spoilerLevel Int            @default(0) // 0=なし, 1=軽微, 2=重大
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  importance   Int                          @default(5) // 1-10
+  spoilerLevel Int                          @default(0) // 0=なし, 1=軽微, 2=重大
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
 
   @@index([franchiseId, category])
   @@index([franchiseId, importance])
@@ -977,7 +991,7 @@ model CharacterImage {
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   imageUrl    String
   emotion     String    @default("normal") // normal|happy|sad|angry|shy|surprised|love
-  variant     String    @default("bust")   // bust|fullbody|chibi|scene
+  variant     String    @default("bust") // bust|fullbody|chibi|scene
   isDefault   Boolean   @default(false)
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
@@ -1007,18 +1021,18 @@ model CharacterFeedback {
 // ランキングスコア
 // ═══════════════════════════════════════════════════
 model RankingScore {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
   characterId String
-  period      String   // "2026-03", "2026-W10", "alltime"
-  periodType  String   // "weekly" | "monthly" | "alltime"
-  chatScore   Int      @default(0)
-  callScore   Int      @default(0)
-  giftScore   Int      @default(0)
-  totalScore  Int      @default(0)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period      String // "2026-03", "2026-W10", "alltime"
+  periodType  String // "weekly" | "monthly" | "alltime"
+  chatScore   Int       @default(0)
+  callScore   Int       @default(0)
+  giftScore   Int       @default(0)
+  totalScore  Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, characterId, period, periodType])
@@ -1030,28 +1044,28 @@ model RankingScore {
 // キャラクターからの手紙（FC限定）
 // ═══════════════════════════════════════════════════
 model CharacterLetter {
-  id          String   @id @default(uuid())
+  id          String           @id @default(uuid())
   characterId String
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character   Character        @relation(fields: [characterId], references: [id], onDelete: Cascade)
   title       String
-  content     String   @db.Text
+  content     String           @db.Text
   imageUrl    String?
-  type        String   @default("letter") // letter | message
-  isFcOnly    Boolean  @default(true)
+  type        String           @default("letter") // letter | message
+  isFcOnly    Boolean          @default(true)
   scheduledAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime         @default(now())
   deliveries  LetterDelivery[]
 }
 
 model LetterDelivery {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   letterId  String
   letter    CharacterLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isRead    Boolean  @default(false)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean         @default(false)
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
 
   @@unique([letterId, userId])
   @@index([userId, isRead])
@@ -1066,33 +1080,33 @@ model LetterDelivery {
 // ============================================
 
 model AdminUser {
-  id            String       @id @default(uuid())
-  email         String       @unique
-  name          String
-  role          String       @default("viewer") // super_admin | ip_admin | editor | viewer
-  tenantId      String?
-  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
-  isActive      Boolean      @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id          String    @id @default(uuid())
+  email       String    @unique
+  name        String
+  role        String    @default("viewer") // super_admin | ip_admin | editor | viewer
+  tenantId    String?
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  approvalActions    ApprovalAction[]
-  approvalRequests   ApprovalRequest[]
-  auditLogs          AdminAuditLog[]
+  approvalActions  ApprovalAction[]
+  approvalRequests ApprovalRequest[]
+  auditLogs        AdminAuditLog[]
 }
 
 model Tenant {
-  id            String       @id @default(uuid())
-  name          String
-  slug          String       @unique
-  logoUrl       String?
-  isActive      Boolean      @default(true)
-  createdAt     DateTime     @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
-  adminUsers    AdminUser[]
-  contracts     Contract[]
-  characters    Character[]
+  adminUsers AdminUser[]
+  contracts  Contract[]
+  characters Character[]
 }
 
 // ============================================
@@ -1100,45 +1114,45 @@ model Tenant {
 // ============================================
 
 model Contract {
-  id                 String       @id @default(uuid())
-  tenantId           String
-  tenant             Tenant       @relation(fields: [tenantId], references: [id])
-  contractCode       String       @unique
-  rightsHolder       String
-  targetWork         String
-  targetCharacters   String[]
-  status             String       @default("negotiating") // negotiating | active | pending_renewal | expired | terminated
+  id               String   @id @default(uuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  contractCode     String   @unique
+  rightsHolder     String
+  targetWork       String
+  targetCharacters String[]
+  status           String   @default("negotiating") // negotiating | active | pending_renewal | expired | terminated
 
-  allowedRegions     String[]
-  allowedLanguages   String[]
-  startDate          DateTime
-  endDate            DateTime
-  renewalAlertDays   Int          @default(90)
+  allowedRegions   String[]
+  allowedLanguages String[]
+  startDate        DateTime
+  endDate          DateTime
+  renewalAlertDays Int      @default(90)
 
-  voiceAllowed       Boolean      @default(false)
-  snsAllowed         Boolean      @default(false)
-  adAllowed          Boolean      @default(false)
-  aiTrainingAllowed  Boolean      @default(false)
-  ragAllowed         Boolean      @default(false)
-  thirdPartyAllowed  Boolean      @default(false)
-  ugcAllowed         Boolean      @default(false)
+  voiceAllowed      Boolean @default(false)
+  snsAllowed        Boolean @default(false)
+  adAllowed         Boolean @default(false)
+  aiTrainingAllowed Boolean @default(false)
+  ragAllowed        Boolean @default(false)
+  thirdPartyAllowed Boolean @default(false)
+  ugcAllowed        Boolean @default(false)
 
   revenueSharePercent Float?
   minimumGuarantee    Float?
-  reportingCycle      String      @default("monthly")
+  reportingCycle      String @default("monthly")
 
-  supervisorName     String?
-  supervisorEmail    String?
-  supervisorPhone    String?
+  supervisorName  String?
+  supervisorEmail String?
+  supervisorPhone String?
 
-  allowedAssets      Json         @default("[]")
-  prohibitedAssets   Json         @default("[]")
+  allowedAssets    Json @default("[]")
+  prohibitedAssets Json @default("[]")
 
-  contractDocUrl     String?
-  notes              String?      @db.Text
+  contractDocUrl String?
+  notes          String? @db.Text
 
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId, status])
   @@index([endDate])
@@ -1149,41 +1163,41 @@ model Contract {
 // ============================================
 
 model ApprovalRequest {
-  id             String       @id @default(uuid())
-  characterId    String
-  character      Character    @relation(fields: [characterId], references: [id])
-  type           String       // prompt_change | personality_change | boundary_change | voice_change | content_publish
-  title          String
-  description    String?      @db.Text
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+  type        String // prompt_change | personality_change | boundary_change | voice_change | content_publish
+  title       String
+  description String?   @db.Text
 
-  previousValue  Json?
-  proposedValue  Json
-  diffSummary    String?      @db.Text
+  previousValue Json?
+  proposedValue Json
+  diffSummary   String? @db.Text
 
-  status         String       @default("pending") // pending | approved | rejected | revision_requested
-  requestedBy    String
-  requester      AdminUser    @relation(fields: [requestedBy], references: [id])
+  status      String    @default("pending") // pending | approved | rejected | revision_requested
+  requestedBy String
+  requester   AdminUser @relation(fields: [requestedBy], references: [id])
 
-  priority       String       @default("normal") // low | normal | high | urgent
+  priority String @default("normal") // low | normal | high | urgent
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  actions        ApprovalAction[]
+  actions ApprovalAction[]
 
   @@index([characterId, status])
   @@index([status, createdAt])
 }
 
 model ApprovalAction {
-  id              String          @id @default(uuid())
-  requestId       String
-  request         ApprovalRequest @relation(fields: [requestId], references: [id])
-  actionBy        String
-  actor           AdminUser       @relation(fields: [actionBy], references: [id])
-  action          String          // approved | rejected | revision_requested | comment
-  comment         String?         @db.Text
-  createdAt       DateTime        @default(now())
+  id        String          @id @default(uuid())
+  requestId String
+  request   ApprovalRequest @relation(fields: [requestId], references: [id])
+  actionBy  String
+  actor     AdminUser       @relation(fields: [actionBy], references: [id])
+  action    String // approved | rejected | revision_requested | comment
+  comment   String?         @db.Text
+  createdAt DateTime        @default(now())
 
   @@index([requestId])
 }
@@ -1193,42 +1207,42 @@ model ApprovalAction {
 // ============================================
 
 model GuardrailRule {
-  id             String       @id @default(uuid())
-  characterId    String?
-  character      Character?   @relation(fields: [characterId], references: [id])
-  tenantId       String?
+  id          String     @id @default(uuid())
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id])
+  tenantId    String?
 
-  ruleType       String       // ng_word | ng_theme | age_rating | region_restrict | escalation
-  category       String       // sexual | violence | political | religious | self_harm | discrimination | spoiler | brand_damage
-  severity       String       @default("block") // block | warn | log | escalate
+  ruleType String // ng_word | ng_theme | age_rating | region_restrict | escalation
+  category String // sexual | violence | political | religious | self_harm | discrimination | spoiler | brand_damage
+  severity String @default("block") // block | warn | log | escalate
 
-  pattern        String?
-  description    String?      @db.Text
+  pattern     String?
+  description String? @db.Text
 
-  ageRating      String?
-  regions        String[]
+  ageRating String?
+  regions   String[]
 
-  fallbackMessage String?     @db.Text
+  fallbackMessage String? @db.Text
 
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([characterId, ruleType])
   @@index([tenantId, ruleType])
 }
 
 model GuardrailLog {
-  id             String       @id @default(uuid())
-  ruleId         String?
-  characterId    String
-  userId         String
-  triggerText    String       @db.Text
-  action         String       // blocked | warned | escalated | logged
-  resolved       Boolean      @default(false)
-  resolvedBy     String?
-  resolvedAt     DateTime?
-  createdAt      DateTime     @default(now())
+  id          String    @id @default(uuid())
+  ruleId      String?
+  characterId String
+  userId      String
+  triggerText String    @db.Text
+  action      String // blocked | warned | escalated | logged
+  resolved    Boolean   @default(false)
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([characterId, createdAt])
   @@index([action, resolved])
@@ -1239,15 +1253,15 @@ model GuardrailLog {
 // ============================================
 
 model AdminAuditLog {
-  id           String       @id @default(uuid())
-  adminUserId  String
-  adminUser    AdminUser    @relation(fields: [adminUserId], references: [id])
-  action       String
-  targetType   String
-  targetId     String
-  details      Json
-  ipAddress    String?
-  createdAt    DateTime     @default(now())
+  id          String    @id @default(uuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id])
+  action      String
+  targetType  String
+  targetId    String
+  details     Json
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
 
   @@index([adminUserId, createdAt])
   @@index([targetType, targetId])
@@ -1259,26 +1273,26 @@ model AdminAuditLog {
 // ============================================
 
 model DeepReplyQueue {
-  id              String          @id @default(cuid())
-  userId          String
-  characterId     String
-  relationshipId  String
-  conversationId  String
-  userMessageId   String
-  thinkingMsgId   String
-  status          DeepReplyStatus @default(QUEUED)
-  priority        Int             @default(0)
-  attempts        Int             @default(0)
-  maxAttempts     Int             @default(3)
-  result          Json?
-  error           String?
-  scheduledAt     DateTime        @default(now())
-  startedAt       DateTime?
-  completedAt     DateTime?
-  createdAt       DateTime        @default(now())
+  id             String          @id @default(cuid())
+  userId         String
+  characterId    String
+  relationshipId String
+  conversationId String
+  userMessageId  String
+  thinkingMsgId  String
+  status         DeepReplyStatus @default(QUEUED)
+  priority       Int             @default(0)
+  attempts       Int             @default(0)
+  maxAttempts    Int             @default(3)
+  result         Json?
+  error          String?
+  scheduledAt    DateTime        @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime        @default(now())
 
-  user            User            @relation(fields: [userId], references: [id])
-  character       Character       @relation(fields: [characterId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
 
   @@index([status, scheduledAt])
   @@index([userId, characterId])
@@ -1293,15 +1307,15 @@ enum DeepReplyStatus {
 }
 
 model CharacterRelationshipGraph {
-  id               String    @id @default(cuid())
+  id               String  @id @default(cuid())
   characterId      String
   relatedName      String
   relationshipType String
-  description      String    @db.Text
-  keyEpisodes      Json      @default("[]")
+  description      String  @db.Text
+  keyEpisodes      Json    @default("[]")
   emotionalBond    String?
 
-  character        Character @relation(fields: [characterId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, relatedName])
   @@index([characterId])
@@ -1312,23 +1326,23 @@ model CharacterRelationshipGraph {
 // ============================================
 
 model FanThread {
-  id           String       @id @default(cuid())
-  characterId  String
-  character    Character    @relation(fields: [characterId], references: [id])
-  userId       String?      // null = キャラが立てたスレッド
-  user         User?        @relation(fields: [userId], references: [id])
-  title        String
-  content      String       @db.Text
-  category     String       @default("general") // general | discussion | fanart | question | event
-  isPinned     Boolean      @default(false)
-  isLocked     Boolean      @default(false)
-  viewCount    Int          @default(0)
-  replyCount   Int          @default(0)
-  lastReplyAt  DateTime?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+  userId      String? // null = キャラが立てたスレッド
+  user        User?     @relation(fields: [userId], references: [id])
+  title       String
+  content     String    @db.Text
+  category    String    @default("general") // general | discussion | fanart | question | event
+  isPinned    Boolean   @default(false)
+  isLocked    Boolean   @default(false)
+  viewCount   Int       @default(0)
+  replyCount  Int       @default(0)
+  lastReplyAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  replies      FanReply[]
+  replies FanReply[]
 
   @@index([characterId, createdAt])
   @@index([characterId, isPinned])
@@ -1336,22 +1350,22 @@ model FanThread {
 }
 
 model FanReply {
-  id            String       @id @default(cuid())
+  id            String     @id @default(cuid())
   threadId      String
-  thread        FanThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  userId        String?      // null = キャラの返信
-  user          User?        @relation(fields: [userId], references: [id])
-  characterId   String?      // non-null = キャラの返信
-  character     Character?   @relation("FanReplyCharacter", fields: [characterId], references: [id])
-  content       String       @db.Text
-  parentId      String?      // ネスト返信用
-  parent        FanReply?    @relation("FanReplyNested", fields: [parentId], references: [id])
-  children      FanReply[]   @relation("FanReplyNested")
-  quotedReplyId String?      // 引用元コメントID
-  quotedReply   FanReply?    @relation("FanReplyQuote", fields: [quotedReplyId], references: [id])
-  quotedBy      FanReply[]   @relation("FanReplyQuote")
-  likes         Int          @default(0)
-  createdAt     DateTime     @default(now())
+  thread        FanThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId        String? // null = キャラの返信
+  user          User?      @relation(fields: [userId], references: [id])
+  characterId   String? // non-null = キャラの返信
+  character     Character? @relation("FanReplyCharacter", fields: [characterId], references: [id])
+  content       String     @db.Text
+  parentId      String? // ネスト返信用
+  parent        FanReply?  @relation("FanReplyNested", fields: [parentId], references: [id])
+  children      FanReply[] @relation("FanReplyNested")
+  quotedReplyId String? // 引用元コメントID
+  quotedReply   FanReply?  @relation("FanReplyQuote", fields: [quotedReplyId], references: [id])
+  quotedBy      FanReply[] @relation("FanReplyQuote")
+  likes         Int        @default(0)
+  createdAt     DateTime   @default(now())
 
   @@index([threadId, createdAt])
   @@index([userId])
@@ -1397,35 +1411,63 @@ model CharacterUserProfile {
 // ── キャラクターエージェント Phase 1 ─────────────────────────
 
 model CharacterAgentDecision {
-  id              String    @id @default(cuid())
-  characterId     String
-  userId          String
-  relationshipId  String
+  id             String @id @default(cuid())
+  characterId    String
+  userId         String
+  relationshipId String
 
   // 決定内容
-  shouldContact   Boolean
-  decisionReason  String    @db.Text
-  messageType     String?                        // check_in | miss_you | share_thought | follow_up_concern | celebrate | initiate_topic
-  urgency         String?   @default("normal")   // low | normal | high
+  shouldContact  Boolean
+  decisionReason String  @db.Text
+  messageType    String? // check_in | miss_you | share_thought | follow_up_concern | celebrate | initiate_topic
+  urgency        String? @default("normal") // low | normal | high
 
   // 実行結果
-  wasExecuted     Boolean   @default(false)
-  executedAt      DateTime?
-  messageId       String?
+  wasExecuted Boolean   @default(false)
+  executedAt  DateTime?
+  messageId   String?
 
   // ガード情報
-  skippedReason   String?                        // late_night | too_many_today | unread_pending | daily_limit
+  skippedReason String? // late_night | too_many_today | unread_pending | daily_limit
 
   // モデル情報（コスト分析用）
   decisionModel   String?
   generationModel String?
 
-  createdAt       DateTime  @default(now())
+  createdAt DateTime @default(now())
 
-  character       Character    @relation(fields: [characterId], references: [id])
-  user            User         @relation(fields: [userId], references: [id])
-  relationship    Relationship @relation(fields: [relationshipId], references: [id])
+  character    Character    @relation(fields: [characterId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  relationship Relationship @relation(fields: [relationshipId], references: [id])
 
   @@index([characterId, userId, createdAt])
   @@index([relationshipId, createdAt])
+}
+
+model Report {
+  id          String    @id @default(uuid())
+  reporterId  String
+  reporter    User      @relation("ReportsMade", fields: [reporterId], references: [id])
+  targetType  String    // "moment" | "comment" | "user" | "message"
+  targetId    String
+  reason      String    // "spam" | "harassment" | "inappropriate" | "copyright" | "other"
+  detail      String?
+  status      String    @default("pending") // "pending" | "reviewed" | "resolved" | "dismissed"
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+  @@index([targetType, targetId])
+}
+
+model UserBlock {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id])
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
 }

@@ -121,10 +121,22 @@ export async function GET(
       });
     }
 
-    // チャプター取得（全件）
+    // ユーザーが所有するカードID一覧を取得（カード解放判定用）
+    const userCards = await prisma.userCard.findMany({
+      where: { userId },
+      select: { cardId: true },
+    });
+    const userCardIds = new Set(userCards.map((uc) => uc.cardId));
+
+    // チャプター取得（全件 + unlockCard情報）
     const allChapters = await prisma.storyChapter.findMany({
       where: { characterId, isActive: true },
       orderBy: { chapterNumber: 'asc' },
+      include: {
+        unlockCard: {
+          select: { id: true, name: true, rarity: true, imageUrl: true },
+        },
+      },
     });
 
     // ユーザーの進捗取得
@@ -141,6 +153,7 @@ export async function GET(
       const progress = progressMap.get(chapter.id);
       const isLevelLocked = chapter.unlockLevel > userLevel;
       const isFcLocked = chapter.isFcOnly && !isFcMember;
+      const isCardLocked = !!chapter.unlockCardId && !userCardIds.has(chapter.unlockCardId);
 
       // 次のチャプターのみ「次はLv{n}で解放」表示（ちょうど次のチャプター）
       const prevChapter = index > 0 ? allChapters[index - 1] : null;
@@ -148,7 +161,11 @@ export async function GET(
         prevChapter !== null && prevChapter.unlockLevel <= userLevel && isLevelLocked;
 
       let lockReason: string | null = null;
-      if (isFcLocked) {
+      if (isCardLocked) {
+        const cardName = chapter.unlockCard?.name ?? 'カード';
+        const rarityLabel = chapter.unlockCard?.rarity ?? '';
+        lockReason = `🃏 ${rarityLabel} 「${cardName}」で解放`;
+      } else if (isFcLocked) {
         lockReason = `FC会員限定`;
       } else if (isLevelLocked) {
         if (isNextChapter) {
@@ -158,15 +175,26 @@ export async function GET(
         }
       }
 
+      const isLocked = !!(isLevelLocked || isFcLocked || isCardLocked);
+
       return {
         id: chapter.id,
         chapterNumber: chapter.chapterNumber,
         title: chapter.title,
-        synopsis: lockReason ? null : chapter.synopsis,
-        choices: lockReason ? null : chapter.choices,
+        synopsis: isLocked ? null : chapter.synopsis,
+        choices: isLocked ? null : chapter.choices,
         unlockLevel: chapter.unlockLevel,
         isFcOnly: chapter.isFcOnly,
-        isLocked: !!(isLevelLocked || isFcLocked),
+        unlockCard: chapter.unlockCard
+          ? {
+              id: chapter.unlockCard.id,
+              name: chapter.unlockCard.name,
+              rarity: chapter.unlockCard.rarity,
+              imageUrl: chapter.unlockCard.imageUrl,
+              owned: userCardIds.has(chapter.unlockCard.id),
+            }
+          : null,
+        isLocked,
         lockReason,
         isCompleted: progress?.isCompleted ?? false,
         choicesMade: progress?.choicesMade ?? [],

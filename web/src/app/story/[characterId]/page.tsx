@@ -24,6 +24,13 @@ interface ChapterData {
   choices: Choice[] | null;
   unlockLevel: number;
   isFcOnly: boolean;
+  unlockCard?: {
+    id: string;
+    name: string;
+    rarity: string;
+    imageUrl: string | null;
+    owned: boolean;
+  } | null;
   isLocked: boolean;
   lockReason: string | null;
   isCompleted: boolean;

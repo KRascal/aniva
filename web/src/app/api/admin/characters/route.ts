@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
+import { invalidate } from '@/lib/cache';
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -214,6 +215,11 @@ export async function PUT(req: NextRequest) {
     admin.email,
     { characterId: id, ...changes }
   );
+
+  // キャッシュ無効化: キャラ更新後はSOUL/プロフィールキャッシュをクリア
+  await invalidate(`char:${id}`);
+  await invalidate(`char-soul:${id}*`);
+  await invalidate('char-list');
 
   return NextResponse.json(character);
 }

@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 /**
  * PWAインストール促進バナー
  * モバイルブラウザでアクセスしたユーザーにホーム画面追加を促す
  */
 export function PWAInstallBanner() {
+  const t = useTranslations('pwa');
   const [show, setShow] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isIOS, setIsIOS] = useState(false);
@@ -72,11 +74,9 @@ export function PWAInstallBanner() {
                 <span className="text-lg">✨</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold">ANIVAをホーム画面に追加</p>
+                <p className="text-white text-sm font-semibold">{t('addToHome')}</p>
                 <p className="text-[var(--color-muted)] text-xs">
-                  {isIOS
-                    ? '共有ボタン → 「ホーム画面に追加」をタップ'
-                    : 'アプリのように使える。通知も届く'}
+                  {isIOS ? t('iosGuide') : t('androidGuide')}
                 </p>
               </div>
               {!isIOS && deferredPrompt && (
@@ -85,7 +85,7 @@ export function PWAInstallBanner() {
                   className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white text-xs font-bold
                              active:scale-95 transition-transform flex-shrink-0"
                 >
-                  追加
+                  {t('add')}
                 </button>
               )}
             </div>

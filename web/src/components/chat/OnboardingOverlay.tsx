@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface OnboardingOverlayProps {
   character: { name: string; franchise: string; avatarUrl?: string | null };
@@ -14,49 +15,56 @@ export interface UserProfile {
   joy: string;
 }
 
-const QUIZ_QUESTIONS = [
+/** Quiz question/choice definition using translation keys */
+const QUIZ_KEYS = [
   {
     key: 'role' as const,
-    question: '冒険でどんな役割が好き？',
+    questionKey: 'onboardingQuizRoleQuestion',
     emoji: '⚔️',
     choices: [
-      { value: 'fighter', label: '前線で戦う', emoji: '💪' },
-      { value: 'supporter', label: 'みんなをサポート', emoji: '🤝' },
-      { value: 'strategist', label: '作戦を立てる', emoji: '🧠' },
+      { value: 'fighter', labelKey: 'onboardingQuizRoleChoice1', emoji: '💪' },
+      { value: 'supporter', labelKey: 'onboardingQuizRoleChoice2', emoji: '🤝' },
+      { value: 'strategist', labelKey: 'onboardingQuizRoleChoice3', emoji: '🧠' },
     ],
   },
   {
     key: 'style' as const,
-    question: '推しへの接し方は？',
+    questionKey: 'onboardingQuizStyleQuestion',
     emoji: '💜',
     choices: [
-      { value: 'always', label: 'いつもそばにいたい', emoji: '🌟' },
-      { value: 'sometimes', label: '時々話したい', emoji: '😊' },
-      { value: 'watchover', label: 'そっと見守りたい', emoji: '👀' },
+      { value: 'always', labelKey: 'onboardingQuizStyleChoice1', emoji: '🌟' },
+      { value: 'sometimes', labelKey: 'onboardingQuizStyleChoice2', emoji: '😊' },
+      { value: 'watchover', labelKey: 'onboardingQuizStyleChoice3', emoji: '👀' },
     ],
   },
   {
     key: 'joy' as const,
-    question: 'どんな瞬間が一番嬉しい？',
+    questionKey: 'onboardingQuizJoyQuestion',
     emoji: '✨',
     choices: [
-      { value: 'laugh', label: '一緒に笑える時', emoji: '😄' },
-      { value: 'praise', label: '褒めてもらえる時', emoji: '🌸' },
-      { value: 'secret', label: '秘密を共有する時', emoji: '🤫' },
+      { value: 'laugh', labelKey: 'onboardingQuizJoyChoice1', emoji: '😄' },
+      { value: 'praise', labelKey: 'onboardingQuizJoyChoice2', emoji: '🌸' },
+      { value: 'secret', labelKey: 'onboardingQuizJoyChoice3', emoji: '🤫' },
     ],
   },
 ];
 
-const STEP_LABELS = ['挨拶', '属性診断', 'キャラ紹介'];
-
 export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [step, setStep] = useState(0); // 0: 挨拶, 1-3: 診断, 4: キャラ紹介
   const [answers, setAnswers] = useState<Partial<UserProfile>>({});
   const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
   const [isAnimating, setIsAnimating] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
 
-  const quizIndex = step - 1; // 0-indexed for QUIZ_QUESTIONS
+  const STEP_LABELS = [
+    t('onboardingStepGreet'),
+    t('onboardingStepDiagnosis'),
+    t('onboardingStepCharIntro'),
+  ];
+
+  const quizIndex = step - 1; // 0-indexed for QUIZ_KEYS
   const isQuizStep = step >= 1 && step <= 3;
   const isResultStep = step === 4;
   const isWelcomeStep = step === 0;
@@ -94,9 +102,21 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
 
   // 結果ラベル
   const getResultLabel = () => {
-    const roleMap: Record<string, string> = { fighter: '戦士', supporter: 'サポーター', strategist: '戦略家' };
-    const styleMap: Record<string, string> = { always: 'べったり', sometimes: 'ほどよい距離感', watchover: '見守り型' };
-    const joyMap: Record<string, string> = { laugh: '笑顔重視', praise: '褒め合い派', secret: '秘密共有派' };
+    const roleMap: Record<string, string> = {
+      fighter: t('onboardingRoleFighter'),
+      supporter: t('onboardingRoleSupporter'),
+      strategist: t('onboardingRoleStrategist'),
+    };
+    const styleMap: Record<string, string> = {
+      always: t('onboardingStyleAlways'),
+      sometimes: t('onboardingStyleSometimes'),
+      watchover: t('onboardingStyleWatchover'),
+    };
+    const joyMap: Record<string, string> = {
+      laugh: t('onboardingJoyLaugh'),
+      praise: t('onboardingJoyPraise'),
+      secret: t('onboardingJoySecret'),
+    };
     return {
       role: roleMap[answers.role || 'fighter'],
       style: styleMap[answers.style || 'always'],
@@ -196,21 +216,21 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
 
               <div className="bg-white/5 rounded-2xl px-6 py-4 border border-white/10 text-center">
                 <p className="text-lg text-gray-200 font-medium leading-relaxed">
-                  「推しが実在する世界へようこそ」
+                  {t('onboardingWelcomeQuote')}
                 </p>
               </div>
 
               <p className="text-sm text-gray-400 text-center">
-                {character.name}があなたと話す準備ができています
+                {t('onboardingWelcomeReady', { name: character.name })}
                 <br />
-                <span className="text-purple-400">まず、あなたのことを教えて！</span>
+                <span className="text-purple-400">{t('onboardingWelcomeAsk')}</span>
               </p>
 
               <button
                 onClick={() => goNext()}
                 className="w-full py-4 rounded-2xl text-white font-bold text-base bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-purple-900/40"
               >
-                始めよう 🌟
+                {t('onboardingStartButton')}
               </button>
             </div>
           )}
@@ -221,24 +241,24 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
               {/* ヘッダー */}
               <div className="bg-gradient-to-r from-purple-900/60 to-pink-900/40 px-6 pt-6 pb-4 border-b border-white/10">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-2xl">{QUIZ_QUESTIONS[quizIndex].emoji}</span>
+                  <span className="text-2xl">{QUIZ_KEYS[quizIndex].emoji}</span>
                   <span className="text-xs text-purple-300 font-semibold uppercase tracking-wider">
-                    質問 {quizIndex + 1} / {QUIZ_QUESTIONS.length}
+                    {t('onboardingQuizLabel', { current: quizIndex + 1, total: QUIZ_KEYS.length })}
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-white leading-snug">
-                  {QUIZ_QUESTIONS[quizIndex].question}
+                  {t(QUIZ_KEYS[quizIndex].questionKey as Parameters<typeof t>[0])}
                 </h2>
               </div>
 
               {/* 選択肢カード */}
               <div className="px-5 py-5 flex flex-col gap-3">
-                {QUIZ_QUESTIONS[quizIndex].choices.map((choice, i) => {
+                {QUIZ_KEYS[quizIndex].choices.map((choice, i) => {
                   const isSelected = selectedChoice === choice.value;
                   return (
                     <button
                       key={choice.value}
-                      onClick={() => handleChoiceSelect(QUIZ_QUESTIONS[quizIndex].key, choice.value)}
+                      onClick={() => handleChoiceSelect(QUIZ_KEYS[quizIndex].key, choice.value)}
                       disabled={selectedChoice !== null}
                       className={`flex items-center gap-4 w-full text-left px-5 py-4 rounded-2xl border-2 transition-all duration-200 active:scale-[0.97] ${
                         isSelected
@@ -249,7 +269,7 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
                     >
                       <span className="text-2xl flex-shrink-0">{choice.emoji}</span>
                       <span className={`text-sm font-semibold ${isSelected ? 'text-purple-200' : 'text-gray-200'}`}>
-                        {choice.label}
+                        {t(choice.labelKey as Parameters<typeof t>[0])}
                       </span>
                       {isSelected && (
                         <span className="ml-auto text-purple-400 text-lg">✓</span>
@@ -267,8 +287,8 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
               {/* 結果タイトル */}
               <div className="text-center">
                 <div className="text-4xl mb-3">🎉</div>
-                <h2 className="text-xl font-black text-white mb-1">あなたの推しスタイルが判明！</h2>
-                <p className="text-sm text-gray-400">あなたに合った絆が育まれていきます</p>
+                <h2 className="text-xl font-black text-white mb-1">{t('onboardingResultTitle')}</h2>
+                <p className="text-sm text-gray-400">{t('onboardingResultSubtitle')}</p>
               </div>
 
               {/* 結果カード */}
@@ -277,11 +297,15 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
                   const result = getResultLabel();
                   return Object.entries(result).map(([key, value]) => {
                     const icons: Record<string, string> = { role: '⚔️', style: '💜', joy: '✨' };
-                    const labels: Record<string, string> = { role: 'タイプ', style: 'スタイル', joy: '喜び' };
+                    const labelKeys: Record<string, Parameters<typeof t>[0]> = {
+                      role: 'onboardingLabelRole',
+                      style: 'onboardingLabelStyle',
+                      joy: 'onboardingLabelJoy',
+                    };
                     return (
                       <div key={key} className="flex items-center gap-3">
                         <span className="text-xl w-8 text-center">{icons[key]}</span>
-                        <span className="text-xs text-gray-500 w-16">{labels[key]}</span>
+                        <span className="text-xs text-gray-500 w-16">{t(labelKeys[key])}</span>
                         <span className="flex-1 text-sm font-semibold text-purple-300 bg-purple-900/30 rounded-full px-3 py-1 text-center">
                           {value}
                         </span>
@@ -312,7 +336,7 @@ export function OnboardingOverlay({ character, onStart }: OnboardingOverlayProps
                 onClick={handleStart}
                 className="w-full py-4 rounded-2xl text-white font-bold text-base bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-purple-900/40"
               >
-                💬 {character.name}と話し始める
+                {t('onboardingStartChatButton', { name: character.name })}
               </button>
             </div>
           )}

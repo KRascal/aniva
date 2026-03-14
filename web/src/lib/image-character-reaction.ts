@@ -2,7 +2,7 @@
  * image-character-reaction.ts
  * 画像分析結果をキャラの個性フィルターに通すシステム
  *
- * TODO: 統合先 src/app/api/chat/send/route.ts の enrichedMessage 構築部分で
+ * NOTE: chat/send/route.ts に統合済み（getCharacterImagePrompt 使用中）
  * import { getCharacterImagePrompt } from '@/lib/image-character-reaction';
  * enrichedMessage = `${message}\n\n${imageAnalysisToPromptHint(analysis)}\n${getCharacterImagePrompt(slug, analysis)}`;
  */

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 
 /* ─── Floating particle element ─── */
 function Particle({ style }: { style: React.CSSProperties }) {
@@ -59,6 +60,8 @@ function ParticleField() {
 }
 
 function LoginForm() {
+  const t = useTranslations('auth');
+  const tl = useTranslations('legal');
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status, update } = useSession();
@@ -110,7 +113,7 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(errorParam === 'invite_only' ? '🔒 招待制サービスのため、招待コードが必要です。招待リンクからアクセスしてください。' : '');
+  const [error, setError] = useState(errorParam === 'invite_only' ? t('inviteOnlyError') : '');
   const [debugCode, setDebugCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
 
@@ -145,7 +148,7 @@ function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'エラーが発生しました');
+        setError(data.error || t('genericError'));
         return;
       }
 
@@ -157,7 +160,7 @@ function LoginForm() {
       setCountdown(60);
       setTimeout(() => codeRefs[0].current?.focus(), 100);
     } catch {
-      setError('ネットワークエラーが発生しました');
+      setError(t('networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +194,7 @@ function LoginForm() {
     e.preventDefault();
     const code = codeDigits.join('');
     if (code.length !== 6) {
-      setError('6桁のコードを入力してください');
+      setError(t('enter6digit'));
       return;
     }
 
@@ -206,7 +209,7 @@ function LoginForm() {
     });
 
     if (result?.error) {
-      setError('コードが無効か期限切れです。再送信してください。');
+      setError(t('invalidCode'));
       setIsLoading(false);
     } else {
       // ログイン直後フラグ（exploreのdiscoverリダイレクト防止）
@@ -232,7 +235,7 @@ function LoginForm() {
       setCountdown(60);
       codeRefs[0].current?.focus();
     } catch {
-      setError('エラーが発生しました');
+      setError(t('genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -427,7 +430,7 @@ function LoginForm() {
               <span className="aniva-title text-6xl font-black tracking-widest">ANIVA</span>
             </div>
             <p className="text-purple-200/70 text-sm font-medium tracking-wider">
-              {step === 'email' ? '— おかえりなさい —' : '— コードを確認してください —'}
+              {step === 'email' ? t('welcomeBack') : t('checkCode')}
             </p>
 
             {/* Decorative star row */}
@@ -449,7 +452,7 @@ function LoginForm() {
                 }`}>
                   {step === 'email' ? '1' : '✓'}
                 </div>
-                <span className={`text-xs font-medium tracking-wide ${step === 'email' ? 'text-white' : 'text-gray-500'}`}>メール</span>
+                <span className={`text-xs font-medium tracking-wide ${step === 'email' ? 'text-white' : 'text-gray-500'}`}>{t('emailStep')}</span>
               </div>
               <div className={`h-px w-8 transition-all duration-500 ${step === 'code' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gray-700'}`} />
               <div className="flex items-center gap-2">
@@ -460,7 +463,7 @@ function LoginForm() {
                 }`}>
                   2
                 </div>
-                <span className={`text-xs font-medium tracking-wide ${step === 'code' ? 'text-white' : 'text-gray-600'}`}>認証コード</span>
+                <span className={`text-xs font-medium tracking-wide ${step === 'code' ? 'text-white' : 'text-gray-600'}`}>{t('codeStep')}</span>
               </div>
             </div>
           </div>
@@ -492,7 +495,7 @@ function LoginForm() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  Googleで始める
+                  {t('startWithGoogle')}
                 </button>
 
                 <div className="my-5 relative">
@@ -500,7 +503,7 @@ function LoginForm() {
                     <div className="w-full border-t border-white/8" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 text-gray-500" style={{ background: 'transparent' }}>またはメールアドレスで</span>
+                    <span className="px-3 text-gray-500" style={{ background: 'transparent' }}>{t('orEmail')}</span>
                   </div>
                 </div>
 
@@ -509,8 +512,8 @@ function LoginForm() {
                   <div className="mb-4 p-4 rounded-2xl border"
                     style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.25)' }}
                   >
-                    <p className="text-amber-300 text-sm text-center font-medium">🔒 招待制サービスです</p>
-                    <p className="text-amber-200/60 text-xs text-center mt-1">招待リンクから登録してください</p>
+                    <p className="text-amber-300 text-sm text-center font-medium">{t('inviteOnly')}</p>
+                    <p className="text-amber-200/60 text-xs text-center mt-1">{t('inviteOnlyDesc')}</p>
                   </div>
                 )}
 
@@ -520,7 +523,7 @@ function LoginForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="メールアドレス"
+                    placeholder={t('emailPlaceholder')}
                     className="w-full px-4 py-4 rounded-2xl text-white placeholder-gray-500 focus:outline-none text-base transition-all"
                     style={{
                       background: 'rgba(255,255,255,0.05)',
@@ -548,15 +551,15 @@ function LoginForm() {
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        送信中...
+                        {t('sending')}
                       </span>
-                    ) : '推しに会いに行く ✨'}
+                    ) : t('goMeetOshi')}
                   </button>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-gray-600">
-                  アカウントをお持ちでない方も{' '}
-                  <span className="text-purple-400/80">自動で登録されます</span>
+                  {t('autoRegister')}{' '}
+                  <span className="text-purple-400/80">{t('autoRegisterNote')}</span>
                 </p>
               </>
             )}
@@ -567,7 +570,7 @@ function LoginForm() {
                   <span className="text-purple-300 font-medium">{email}</span>
                 </p>
                 <p className="text-center text-gray-500 text-xs mb-6">
-                  に6桁のコードを送信しました（10分間有効）
+                  {t('codeSent')}
                 </p>
 
                 {/* Debug code display */}
@@ -618,23 +621,23 @@ function LoginForm() {
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        認証中...
+                        {t('verifying')}
                       </span>
-                    ) : '認証する ✨'}
+                    ) : t('verify')}
                   </button>
                 </form>
 
                 {/* Resend */}
                 <div className="mt-4 text-center">
                   {countdown > 0 ? (
-                    <p className="text-gray-500 text-sm">{countdown}秒後に再送信できます</p>
+                    <p className="text-gray-500 text-sm">{t('resendIn', { seconds: countdown })}</p>
                   ) : (
                     <button
                       onClick={handleResend}
                       disabled={isLoading}
                       className="text-purple-400 hover:text-pink-400 text-sm underline underline-offset-2 transition-colors duration-200 disabled:opacity-50"
                     >
-                      コードを再送信
+                      {t('resendCode')}
                     </button>
                   )}
                 </div>
@@ -643,18 +646,18 @@ function LoginForm() {
                   onClick={() => { setStep('email'); setError(''); setCodeDigits(['', '', '', '', '', '']); }}
                   className="mt-4 w-full text-center text-gray-500 text-xs hover:text-gray-400 transition-colors"
                 >
-                  ← メールアドレスを変更
+                  {t('changeEmail')}
                 </button>
               </>
             )}
           </div>
 
           <p className="mt-6 text-center text-[10px] text-gray-700 leading-relaxed">
-            利用することで
-            <Link href="/terms" className="text-purple-500/60 underline hover:text-purple-400/80 transition-colors">利用規約</Link>
+            {t('agreeByUsing')}
+            <Link href="/terms" className="text-purple-500/60 underline hover:text-purple-400/80 transition-colors">{t('agreeTo')}</Link>
             と
-            <Link href="/privacy" className="text-purple-500/60 underline hover:text-purple-400/80 transition-colors">プライバシーポリシー</Link>
-            に同意したものとみなされます
+            <Link href="/privacy" className="text-purple-500/60 underline hover:text-purple-400/80 transition-colors">{t('privacyPolicy')}</Link>
+            {t('agreeTerms')}
           </p>
         </div>
       </div>
