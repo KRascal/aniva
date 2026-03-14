@@ -1340,10 +1340,10 @@ export default function ChatCharacterPage() {
 
       {/* 🧠 記憶ペークモーダル */}
       <MemoryPeekModal
-        show={showMemoryPeek}
+        isOpen={showMemoryPeek}
         memoryData={memoryData}
         memoryLoading={memoryLoading}
-        character={character}
+        characterName={character?.name}
         onClose={() => setShowMemoryPeek(false)}
       />
 

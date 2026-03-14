@@ -28,6 +28,7 @@ interface ConversationMetadata {
   characterIds?: string[];
   characterNames?: string[];
   characterSlugs?: string[];
+  type?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -59,7 +60,16 @@ export async function POST(req: NextRequest) {
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
     });
-    if (!conversation || conversation.userId !== userId || conversation.type !== 'group') {
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+    // Conversationのオーナーチェック: relationshipのuserId経由
+    const relationship = await prisma.relationship.findUnique({
+      where: { id: conversation.relationshipId },
+      select: { userId: true },
+    });
+    const convMeta = conversation.metadata as ConversationMetadata | null;
+    if (!relationship || relationship.userId !== userId || convMeta?.type !== 'group') {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
@@ -270,7 +280,7 @@ ${previousResponses}
     const updatedBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const newBalance = updatedBalance
       ? updatedBalance.freeBalance + updatedBalance.paidBalance
-      : totalBalance - totalCoinCost;
+      : 0;
 
     return NextResponse.json({
       conversationId,
