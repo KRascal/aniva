@@ -145,6 +145,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
+      // ログイン時にdeletedAtがセットされていたら復活処理（30日猶予内の再ログイン）
+      if (trigger === 'signIn' && token.userId) {
+        const maybeDeleted = await prisma.user.findUnique({
+          where: { id: token.userId as string },
+          select: { deletedAt: true, deleteScheduledAt: true },
+        });
+        if (maybeDeleted?.deletedAt) {
+          await prisma.user.update({
+            where: { id: token.userId as string },
+            data: { deletedAt: null, deleteScheduledAt: null, deletionReason: null },
+          });
+          logger.info(`[auth] User ${token.userId as string} re-logged in — deletion cancelled (account restored).`);
+        }
+      }
+
       // onboardingStepが未完了の場合は毎回DB参照（完了後はスキップ）
       // signIn/update時は常にDB参照
       const needsRefresh = trigger === 'signIn' || trigger === 'update' || token.onboardingStep !== 'completed';

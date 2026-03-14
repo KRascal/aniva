@@ -61,6 +61,12 @@ model User {
   fanReplies             FanReply[]
   userProfile            UserProfile?
   agentDecisions         CharacterAgentDecision[]
+  deletedAt              DateTime?
+  deleteScheduledAt      DateTime?
+  deletionReason         String?
+  reports                Report[]    @relation("ReportsMade")
+  blocksMade             UserBlock[] @relation("BlocksMade")
+  blocksReceived         UserBlock[] @relation("BlocksReceived")
 }
 
 model PushSubscription {
@@ -1430,4 +1436,32 @@ model CharacterAgentDecision {
 
   @@index([characterId, userId, createdAt])
   @@index([relationshipId, createdAt])
+}
+
+model Report {
+  id          String    @id @default(uuid())
+  reporterId  String
+  reporter    User      @relation("ReportsMade", fields: [reporterId], references: [id])
+  targetType  String    // "moment" | "comment" | "user" | "message"
+  targetId    String
+  reason      String    // "spam" | "harassment" | "inappropriate" | "copyright" | "other"
+  detail      String?
+  status      String    @default("pending") // "pending" | "reviewed" | "resolved" | "dismissed"
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+  @@index([targetType, targetId])
+}
+
+model UserBlock {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id])
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
 }

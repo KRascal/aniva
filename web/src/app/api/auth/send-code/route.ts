@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { authLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 // Lazy init to avoid build-time crash when RESEND_API_KEY is not set
 let _resend: Resend | null = null;
@@ -16,6 +17,10 @@ function generateCode(): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5回/分（ブルートフォース防止）
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rl = await authLimiter.check(ip);
+  if (!rl.success) return rateLimitResponse(rl);
   try {
     const { email } = await req.json();
 

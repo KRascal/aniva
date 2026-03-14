@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { CoinTxType, Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { paymentLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 interface SpendRequest {
   amount: number;
@@ -17,6 +18,10 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getVerifiedUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limit: 5回/分（課金API保護）
+    const rl = await paymentLimiter.check(userId);
+    if (!rl.success) return rateLimitResponse(rl);
 
     const body: SpendRequest = await req.json();
     const { amount, type, characterId, description, idempotencyKey, metadata } = body;
