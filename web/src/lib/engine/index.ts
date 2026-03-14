@@ -103,13 +103,21 @@ export class CharacterEngine {
     let profileCtx = '';
     try { profileCtx = await userProfileEngine.buildProfileContext(relationship.userId, characterId); } catch { /* */ }
 
-    const systemPrompt = buildSystemPrompt(
+    // NEW: イベントコンテキスト注入（event-chat-injector）
+    let eventCtx = '';
+    try {
+      const { getActiveEventContext } = await import('../event-chat-injector');
+      eventCtx = await getActiveEventContext(characterId) ?? '';
+    } catch { /* */ }
+
+    const basePrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
       bibleCtx, '', undefined, profileCtx,
     );
+    const systemPrompt = eventCtx ? `${basePrompt}\n\n${eventCtx}` : basePrompt;
 
     const llmMessages = [
       ...recentMessages.map((msg: { role: string; content: string }) => ({
@@ -238,13 +246,21 @@ export class CharacterEngine {
       logger.warn('[CharacterEngine] userProfileEngine.buildProfileContext failed:', e);
     }
 
-    const systemPrompt = buildSystemPrompt(
+    // NEW: イベントコンテキスト注入（event-chat-injector）
+    let eventCtx2 = '';
+    try {
+      const { getActiveEventContext } = await import('../event-chat-injector');
+      eventCtx2 = await getActiveEventContext(characterId) ?? '';
+    } catch { /* */ }
+
+    const basePrompt2 = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, dailyEventType,
       hiddenCommandContext, jealousyContext, characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState,
       semanticMemoryContext, bibleCtx, loreContext, undefined, profileCtx,
     );
+    const systemPrompt = eventCtx2 ? `${basePrompt2}\n\n${eventCtx2}` : basePrompt2;
 
     const llmMessages = [
       ...recentMessages.map((msg: { role: string; content: string }) => ({

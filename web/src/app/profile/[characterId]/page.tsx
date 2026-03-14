@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
+import { RelationshipMap } from '@/components/profile/RelationshipMap';
 import { FanStatsPanel } from '@/components/character/FanStatsPanel';
 import { MOMENT_CARD_STYLES } from '@/components/moments/MomentCard';
 import type { Moment as SharedMoment } from '@/components/moments/MomentCard';
@@ -631,6 +632,7 @@ export default function ProfilePage() {
         )}
 
         {activeTab === 'profile' && (
+          <>
           <ProfileTab
             character={character}
             relationship={relationship}
@@ -658,6 +660,8 @@ export default function ProfilePage() {
             onToggleInterest={toggleInterest}
             onAddCustomInterest={addCustomInterest}
           />
+          <RelationshipMap characterId={characterId} characterName={character?.name ?? ''} />
+          </>
         )}
 
       </div>
