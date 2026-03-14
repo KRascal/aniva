@@ -430,5 +430,11 @@
     "buyCoins": "Buy Coins",
     "sendWithCoins": "Send with coins",
     "callWithCoins": "Call with coins"
+  },
+  "pwa": {
+    "addToHome": "Add ANIVA to Home Screen",
+    "iosGuide": "Tap Share → \"Add to Home Screen\"",
+    "androidGuide": "Use like an app. Get notifications too",
+    "add": "Add"
   }
 }

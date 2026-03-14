@@ -543,5 +543,11 @@
     "buyCoins": "コインを購入",
     "sendWithCoins": "コインで送信",
     "callWithCoins": "コインで通話"
+  },
+  "pwa": {
+    "addToHome": "ANIVAをホーム画面に追加",
+    "iosGuide": "共有ボタン → 「ホーム画面に追加」をタップ",
+    "androidGuide": "アプリのように使える。通知も届く",
+    "add": "追加"
   }
 }
