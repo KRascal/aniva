@@ -409,5 +409,24 @@
     "lastMessage": "Last message",
     "online": "Online",
     "typing": "Typing..."
+  },
+  "paywall": {
+    "chatLimitMessage": "…Leaving already?",
+    "callLimitMessage": "…Let me hear your voice more",
+    "chatLimitSub": "{name} still wants to talk",
+    "callLimitSub": "{name} wants to hear more from you",
+    "recommended": "Recommended",
+    "joinFc": "Become an FC Member",
+    "fcPriceDesc": "¥{price}/month for",
+    "unlimitedChat": "Unlimited chat",
+    "callMinIncluded": "{min} min calls",
+    "included": "included",
+    "joinFcButton": "Join FC",
+    "continueWithCoins": "Continue with coins",
+    "chatCoinRate": "10 coins/msg (Balance: {balance})",
+    "callCoinRate": "{rate} coins/min (Balance: {balance})",
+    "buyCoins": "Buy Coins",
+    "sendWithCoins": "Send with coins",
+    "callWithCoins": "Call with coins"
   }
 }

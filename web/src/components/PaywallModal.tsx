@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export interface PaywallModalProps {
   type: 'CHAT_LIMIT' | 'CALL_LIMIT';
@@ -38,6 +39,8 @@ export function PaywallModal({
 }: PaywallModalProps) {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
+  const t = useTranslations('paywall');
+  const tc = useTranslations('common');
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
@@ -90,7 +93,7 @@ export function PaywallModal({
         <button
           onClick={handleClose}
           className="absolute top-3 right-4 text-gray-500 hover:text-gray-300 text-xl leading-none transition-colors"
-          aria-label="閉じる"
+          aria-label={tc('close')}
         >
           ×
         </button>
@@ -101,14 +104,12 @@ export function PaywallModal({
             <span className="text-xl">💭</span>
           </div>
           <h2 className="text-lg font-bold text-white mb-1">
-            {isChatLimit
-              ? `…もう行っちゃうの？`
-              : `…もっと声、聞かせてよ`}
+            {isChatLimit ? t('chatLimitMessage') : t('callLimitMessage')}
           </h2>
           <p className="text-[var(--color-muted)] text-sm">
             {isChatLimit
-              ? `${characterName}はまだ話し足りないみたい`
-              : `${characterName}はあなたの声をもっと聞きたがってる`}
+              ? t('chatLimitSub', { name: characterName })
+              : t('callLimitSub', { name: characterName })}
           </p>
         </div>
 
@@ -117,35 +118,35 @@ export function PaywallModal({
           <div className="bg-gray-900 rounded-[14px] p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 px-2 py-0.5 rounded-full">
-                おすすめ
+                {t('recommended')}
               </span>
-              <span className="text-white font-semibold text-sm">FCメンバーになる</span>
+              <span className="text-white font-semibold text-sm">{t('joinFc')}</span>
             </div>
 
             <p className="text-gray-300 text-xs mb-3 leading-relaxed">
-              月額¥{fcMonthlyPriceJpy.toLocaleString()}で
-              <span className="text-purple-300 font-semibold">チャット無制限</span>
+              {t('fcPriceDesc', { price: fcMonthlyPriceJpy.toLocaleString() })}
+              <span className="text-purple-300 font-semibold">{t('unlimitedChat')}</span>
               {' + '}
-              <span className="text-purple-300 font-semibold">通話{fcIncludedCallMin}分</span>
-              込み
+              <span className="text-purple-300 font-semibold">{t('callMinIncluded', { min: fcIncludedCallMin })}</span>
+              {t('included')}
             </p>
 
             <button
               onClick={handleJoinFC}
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition-all active:scale-95"
             >
-              FC加入する
+              {t('joinFcButton')}
             </button>
           </div>
         </div>
 
         {/* ── コインで続ける ── */}
         <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
-          <p className="text-white font-semibold text-sm mb-1">コインで続ける</p>
+          <p className="text-white font-semibold text-sm mb-1">{t('continueWithCoins')}</p>
           <p className="text-gray-400 text-xs mb-3">
             {isChatLimit
-              ? `10コイン/通（残高: ${coinBalance}コイン）`
-              : `${callCoinPerMin}コイン/分（残高: ${coinBalance}コイン）`}
+              ? t('chatCoinRate', { balance: coinBalance })
+              : t('callCoinRate', { rate: callCoinPerMin, balance: coinBalance })}
           </p>
 
           <div className="flex gap-2">
@@ -155,7 +156,7 @@ export function PaywallModal({
                 coinBalance > 0 ? 'w-1/2' : 'w-full'
               }`}
             >
-              コインを購入
+              {t('buyCoins')}
             </button>
 
             {coinBalance > 0 && onSpendCoins && (
@@ -163,7 +164,7 @@ export function PaywallModal({
                 onClick={handleSpendCoins}
                 className="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition-all active:scale-95"
               >
-                コインで{isChatLimit ? '送信' : '通話'}
+                {isChatLimit ? t('sendWithCoins') : t('callWithCoins')}
               </button>
             )}
           </div>
