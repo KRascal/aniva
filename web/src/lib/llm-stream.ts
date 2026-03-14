@@ -112,7 +112,7 @@ export async function callLLMStream(
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'x-goog-api-key': geminiKey,
+                  'Authorization': `Bearer ${geminiKey}`,
                 },
                 body: JSON.stringify({
                   model: 'gemini-2.5-flash',
