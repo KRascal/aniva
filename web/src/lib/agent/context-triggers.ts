@@ -51,8 +51,11 @@ function weatherCodeToDescription(code: number): string {
  */
 export async function getWeatherForUser(userId: string): Promise<WeatherContext | null> {
   try {
-    // 1. UserProfileからlocationを取得
+    // 1. UserProfileからlocation/lat/lonを取得
     let location = '東京';
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    let resolvedLocation = '東京';
     try {
       const profile = await prisma.userProfile.findUnique({
         where: { userId },
@@ -60,7 +63,17 @@ export async function getWeatherForUser(userId: string): Promise<WeatherContext 
       });
       if (profile?.basics) {
         const basics = profile.basics as Record<string, unknown>;
-        if (typeof basics.location === 'string' && basics.location.trim()) {
+        // Layer 2: ブラウザGeolocationのlat/lonが保存されていれば最優先
+        if (typeof basics.latitude === 'number' && typeof basics.longitude === 'number') {
+          latitude = basics.latitude;
+          longitude = basics.longitude;
+          resolvedLocation = typeof basics.location === 'string' && basics.location.trim()
+            ? basics.location.trim()
+            : `${latitude.toFixed(2)},${longitude.toFixed(2)}`;
+          location = resolvedLocation;
+        }
+        // Layer 1: 会話から抽出されたlocation（テキスト）
+        else if (typeof basics.location === 'string' && basics.location.trim()) {
           location = basics.location.trim();
         }
       }
@@ -74,22 +87,26 @@ export async function getWeatherForUser(userId: string): Promise<WeatherContext 
       return cached.data;
     }
 
-    // 3. Open-Meteo Geocoding APIで緯度経度を取得
-    const geoRes = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&language=ja&count=1`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (!geoRes.ok) {
-      logger.warn(`[ContextTriggers] Geocoding failed for "${location}": ${geoRes.status}`);
-      return null;
+    // 3. lat/lonが既にあればGeocodingスキップ、なければGeocoding API
+    if (latitude === null || longitude === null) {
+      const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&language=ja&count=1`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (!geoRes.ok) {
+        logger.warn(`[ContextTriggers] Geocoding failed for "${location}": ${geoRes.status}`);
+        return null;
+      }
+      const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string }> };
+      const geoResult = geoData.results?.[0];
+      if (!geoResult) {
+        logger.warn(`[ContextTriggers] Geocoding: no results for "${location}"`);
+        return null;
+      }
+      latitude = geoResult.latitude;
+      longitude = geoResult.longitude;
+      resolvedLocation = geoResult.name;
     }
-    const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string }> };
-    const geoResult = geoData.results?.[0];
-    if (!geoResult) {
-      logger.warn(`[ContextTriggers] Geocoding: no results for "${location}"`);
-      return null;
-    }
-    const { latitude, longitude, name: resolvedLocation } = geoResult;
 
     // 4. Open-Meteo Forecast APIで現在の天気を取得
     const weatherRes = await fetch(
