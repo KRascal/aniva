@@ -61,7 +61,6 @@ model User {
   fanReplies             FanReply[]
   userProfile            UserProfile?
   agentDecisions         CharacterAgentDecision[]
-  followUpQueue          FollowUpQueue[]
 }
 
 model PushSubscription {
@@ -194,7 +193,6 @@ model Character {
   fanThreads              FanThread[]
   fanReplies              FanReply[]     @relation("FanReplyCharacter")
   agentDecisions          CharacterAgentDecision[]
-  followUpQueue           FollowUpQueue[]
 }
 
 model SecretContent {
@@ -535,7 +533,6 @@ model GachaCard {
   createdAt       DateTime    @default(now())
   character       Character   @relation(fields: [characterId], references: [id])
   userCards       UserCard[]
-  unlocksChapters StoryChapter[] // このカードで解放されるストーリーチャプター
 
   @@index([characterId])
   @@index([rarity])
@@ -594,7 +591,7 @@ model UserGachaPity {
 model UserDailyEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      String // "YYYY-MM-DD"
+  date      DateTime // UTC midnight for YYYY-MM-DD
   eventType String // "normal" | "good" | "rare" | "super_rare"
   reward    Json     @default("{}")
   createdAt DateTime @default(now())
@@ -615,8 +612,6 @@ model StoryChapter {
   synopsis        String              @db.Text
   unlockLevel     Int                 @default(1)
   isFcOnly        Boolean             @default(false)
-  unlockCardId    String?             // ガチャカード所有で解放（null = カード不要）
-  unlockCard      GachaCard?          @relation(fields: [unlockCardId], references: [id])
   triggerPrompt   String              @db.Text
   choices         Json? // [{ text, consequence, nextTease, xpReward? }]
   isActive        Boolean             @default(true)
@@ -629,7 +624,6 @@ model StoryChapter {
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])
-  @@index([unlockCardId])
 }
 
 model DownloadableContent {
@@ -750,7 +744,7 @@ model CharacterDailyState {
 model CharacterDiary {
   id          String   @id @default(uuid())
   characterId String
-  date        String   // "YYYY-MM-DD"
+  date        DateTime // UTC midnight for YYYY-MM-DD
   content     String   @db.Text
   mood        String   // happy, sad, excited, tired, neutral 等
   imageUrl    String?
@@ -784,15 +778,10 @@ model LimitedScenario {
   content     String    @db.Text
   startsAt    DateTime
   endsAt      DateTime
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  type          String    @default("custom") // seasonal | birthday | collaboration | custom
-  promptContext String?   @db.Text // チャット時にキャラに注入するプロンプトコンテキスト
-  rewardCoins   Int?      // イベント参加報酬コイン
-  bannerImage   String?   // バナー画像URL
-  priority      Int       @default(0) // 表示優先度（高い方が先）
-  character     Character @relation(fields: [characterId], references: [id])
-  readers       LimitedScenarioRead[]
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  character   Character @relation(fields: [characterId], references: [id])
+  readers     LimitedScenarioRead[]
 
   @@index([characterId])
   @@index([startsAt, endsAt])
@@ -1439,23 +1428,4 @@ model CharacterAgentDecision {
 
   @@index([characterId, userId, createdAt])
   @@index([relationshipId, createdAt])
-}
-
-model FollowUpQueue {
-  id          String   @id @default(uuid())
-  userId      String
-  characterId String
-  topic       String
-  reason      String
-  dueDate     DateTime
-  status      String   @default("pending") // pending | sent | expired
-  source      String   @default("profile_extractor") // profile_extractor | anniversary | birthday
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user      User      @relation(fields: [userId], references: [id])
-  character Character @relation(fields: [characterId], references: [id])
-
-  @@index([userId, characterId, status])
-  @@index([dueDate, status])
 }

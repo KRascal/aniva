@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     const result = diaries.map((d) => ({
       id: d.id,
       characterId: d.characterId,
-      date: d.date,
+      date: d.date instanceof Date ? d.date.toISOString().slice(0, 10) : d.date,
       content: d.content,
       mood: d.mood,
       imageUrl: d.imageUrl,

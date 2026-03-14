@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         where: {
           characterId_date: {
             characterId: character.id,
-            date: today,
+            date: new Date(today),
           },
         },
       });
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       await prisma.characterDiary.create({
         data: {
           characterId: character.id,
-          date: today,
+          date: new Date(today),
           content,
           mood,
           likes: 0,
