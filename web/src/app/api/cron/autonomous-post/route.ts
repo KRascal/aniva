@@ -197,8 +197,101 @@ ${recentTexts || '（なし）'}
       postedCount++;
     }
 
+    // --- interaction タイプ（10%の確率で掛け合い投稿を生成）---
+    let interactionPosted = 0;
+    if (Math.random() < 0.1) {
+      try {
+        // CharacterRelationshipGraph からランダムに1レコード取得
+        const totalRelCount = await prisma.characterRelationshipGraph.count();
+        if (totalRelCount > 0) {
+          const skip = Math.floor(Math.random() * totalRelCount);
+          const relationship = await prisma.characterRelationshipGraph.findFirst({
+            skip,
+            select: {
+              characterId: true,
+              relatedName: true,
+              relationshipType: true,
+            },
+          });
+
+          if (relationship) {
+            // キャラA（relationship.characterId）の情報取得
+            const charA = await prisma.character.findUnique({
+              where: { id: relationship.characterId },
+              select: { id: true, name: true, systemPrompt: true },
+            });
+
+            // キャラB（relatedNameでマッチング）の情報取得
+            const charB = await prisma.character.findFirst({
+              where: {
+                OR: [
+                  { name: relationship.relatedName },
+                  { slug: relationship.relatedName.toLowerCase() },
+                ],
+                isActive: true,
+              },
+              select: { id: true, name: true, systemPrompt: true },
+            });
+
+            if (charA && charB) {
+              const systemPromptA = (charA.systemPrompt || charA.name).slice(0, 200);
+              const systemPromptB = (charB.systemPrompt || charB.name).slice(0, 200);
+
+              const systemMessage =
+                'あなたは2キャラクターの掛け合い会話を生成するアシスタントです。指定フォーマット通りに出力してください。';
+              const userMessage = `あなたは以下の2キャラクターの掛け合い会話を生成してください。
+
+キャラA: ${charA.name}
+${systemPromptA}
+
+キャラB: ${charB.name}
+${systemPromptB}
+
+関係性: ${relationship.relationshipType}
+
+日常の一コマとして自然な掛け合い会話を3〜4ターン生成してください。
+各キャラの口調を完全に維持すること。
+
+フォーマット:
+${charA.name}: 〇〇
+${charB.name}: △△
+${charA.name}: □□`;
+
+              const interactionContent = await generateText(systemMessage, userMessage, {
+                maxTokens: 300,
+                temperature: 0.9,
+              });
+
+              if (interactionContent) {
+                // publishedAtをランダムに過去5〜90分に設定
+                const randomMinutesAgo = Math.floor(Math.random() * 85) + 5;
+                const staggeredPublishedAt = new Date(
+                  Date.now() - randomMinutesAgo * 60 * 1000,
+                );
+
+                await prisma.moment.create({
+                  data: {
+                    characterId: charA.id,
+                    type: 'TEXT',
+                    content: interactionContent,
+                    visibility: 'PUBLIC',
+                    publishedAt: staggeredPublishedAt,
+                  },
+                });
+                interactionPosted++;
+                postedCount++;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logger.error('Interaction post error:', err);
+      }
+    }
+
     return NextResponse.json({
       posted: postedCount,
+      interactionPosted,
       totalCharacters: characters.length,
       timeOfDay,
       weather: weather ? `${weather.description} ${weather.temperature}°C` : 'unavailable',
