@@ -533,6 +533,7 @@ model GachaCard {
   createdAt       DateTime    @default(now())
   character       Character   @relation(fields: [characterId], references: [id])
   userCards       UserCard[]
+  unlocksChapters StoryChapter[] // このカードで解放されるストーリーチャプター
 
   @@index([characterId])
   @@index([rarity])
@@ -612,6 +613,8 @@ model StoryChapter {
   synopsis        String              @db.Text
   unlockLevel     Int                 @default(1)
   isFcOnly        Boolean             @default(false)
+  unlockCardId    String?             // ガチャカード所有で解放（null = カード不要）
+  unlockCard      GachaCard?          @relation(fields: [unlockCardId], references: [id])
   triggerPrompt   String              @db.Text
   choices         Json? // [{ text, consequence, nextTease, xpReward? }]
   isActive        Boolean             @default(true)
@@ -624,6 +627,7 @@ model StoryChapter {
 
   @@unique([characterId, chapterNumber])
   @@index([characterId])
+  @@index([unlockCardId])
 }
 
 model DownloadableContent {
