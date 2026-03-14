@@ -24,8 +24,13 @@ interface ChapterData {
   choices: Choice[] | null;
   unlockLevel: number;
   isFcOnly: boolean;
-  unlockCardId?: string | null;
-  unlockCard?: { id: string; name: string; rarity: string; imageUrl: string | null; cardImageUrl: string | null } | null;
+  unlockCard?: {
+    id: string;
+    name: string;
+    rarity: string;
+    imageUrl: string | null;
+    owned: boolean;
+  } | null;
   isLocked: boolean;
   lockReason: string | null;
   isCompleted: boolean;
@@ -326,12 +331,7 @@ function ChapterCard({
             >
               {chapter.title}
             </h3>
-            {chapter.unlockCardId && (
-              <span className="text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                カード解放
-              </span>
-            )}
-            {chapter.isFcOnly && !chapter.unlockCardId && (
+            {chapter.isFcOnly && (
               <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
                 FC限定
               </span>
