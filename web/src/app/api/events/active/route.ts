@@ -11,32 +11,32 @@ export async function GET() {
     const scenarios = await prisma.limitedScenario.findMany({
       where: {
         isActive: true,
-        startDate: { lte: now },
-        endDate: { gte: now },
+        startsAt: { lte: now },
+        endsAt: { gte: now },
       },
       select: {
         id: true,
         title: true,
         description: true,
-        startDate: true,
-        endDate: true,
-        type: true,
-        bannerImage: true,
-        rewardCoins: true,
-        priority: true,
+        startsAt: true,
+        endsAt: true,
+        isActive: true,
+        characterId: true,
+        content: true,
+        createdAt: true,
       },
-      orderBy: { priority: 'desc' },
+      orderBy: { startsAt: 'desc' },
       take: 10,
     });
 
     return NextResponse.json({
       events: scenarios.map(s => ({
         ...s,
-        daysRemaining: Math.max(0, Math.ceil((s.endDate.getTime() - now.getTime()) / 86400000)),
+        daysRemaining: Math.max(0, Math.ceil((s.endsAt.getTime() - now.getTime()) / 86400000)),
       })),
     });
   } catch (error) {
-    logger.error('[Events] Active events error:', error);
+    logger.error('[Events] Active events error', { error });
     return NextResponse.json({ events: [] });
   }
 }

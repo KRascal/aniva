@@ -114,10 +114,10 @@ export async function DELETE(req: NextRequest) {
 
     if (type === 'thread') {
       await prisma.fanThread.delete({ where: { id } });
-      logger.info('Admin: FanThread deleted', { adminId: ctx.id, threadId: id });
+      logger.info('Admin: FanThread deleted', { adminId: ctx.userId, threadId: id });
     } else if (type === 'reply') {
       await prisma.fanReply.delete({ where: { id } });
-      logger.info('Admin: FanReply deleted', { adminId: ctx.id, replyId: id });
+      logger.info('Admin: FanReply deleted', { adminId: ctx.userId, replyId: id });
     } else {
       return NextResponse.json({ error: 'type must be thread or reply' }, { status: 400 });
     }
@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest) {
       data: { isPinned },
     });
 
-    logger.info('Admin: FanThread pin toggled', { adminId: ctx.id, threadId: id, isPinned });
+    logger.info('Admin: FanThread pin toggled', { adminId: ctx.userId, threadId: id, isPinned });
 
     return NextResponse.json({ updated: true, thread: updated });
   } catch (error) {

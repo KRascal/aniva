@@ -240,7 +240,7 @@ export function RelationshipGraphEditor({ characterId, characterName }: Props) {
                     background: form.relationshipType === t.value ? `${t.color}25` : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${form.relationshipType === t.value ? `${t.color}60` : 'rgba(255,255,255,0.1)'}`,
                     color: form.relationshipType === t.value ? t.color : '#9ca3af',
-                    ringColor: t.color,
+                    // ringColor is not a valid CSS property; use outline instead if needed
                   }}
                 >
                   {t.label}

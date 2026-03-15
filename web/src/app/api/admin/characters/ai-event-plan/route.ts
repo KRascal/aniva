@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const charList = characters
-    .map((c) => `- ${c.name}（${c.franchise?.name ?? 'オリジナル'}）`)
+    .map((c) => `- ${c.name}（${c.franchise ?? 'オリジナル'}）`)
     .join('\n');
 
   const prompt = `あなたはアニメ・漫画キャラクターのファンイベント企画の専門家です。

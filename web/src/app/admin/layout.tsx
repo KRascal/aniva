@@ -343,7 +343,7 @@ function NavSection({
   onClose: () => void;
 }) {
   const hasActive = section.items.some((item) => {
-    if (item.exact) return pathname === item.href;
+    if ((item as { exact?: boolean }).exact) return pathname === item.href;
     return pathname === item.href || pathname.startsWith(item.href + '/');
   });
 
@@ -376,7 +376,8 @@ function NavSection({
       {open && (
         <div className="space-y-0.5 mt-1">
           {section.items.map((item) => {
-            const active = item.exact
+            const exact = (item as { exact?: boolean }).exact;
+            const active = exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + '/');
             return (
@@ -536,7 +537,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             .map((section) => (
             <NavSection
               key={section.id}
-              section={section}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              section={section as any}
               pathname={pathname}
               onClose={closeSidebar}
             />

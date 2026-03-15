@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
 
   try {
-    const today = todayJst();
+    const today = todayJst().toISOString().slice(0, 10);
 
     // アクティブなキャラクターを取得
     const characters = await prisma.character.findMany({
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      date: today.toISOString().slice(0, 10),
+      date: today,
       total: results.length,
       created: results.filter((r) => !r.skipped).length,
       skipped: results.filter((r) => r.skipped).length,

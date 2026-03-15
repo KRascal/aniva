@@ -46,13 +46,13 @@ export async function PATCH(
       where: { id },
       data: {
         status,
-        reviewedBy: ctx.id,
+        reviewedBy: ctx.userId,
         reviewedAt: new Date(),
       },
     });
 
     logger.info('Admin: report status updated', {
-      adminId: ctx.id,
+      adminId: ctx.userId,
       reportId: id,
       oldStatus: existing.status,
       newStatus: status,
