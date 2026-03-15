@@ -335,8 +335,7 @@ export async function POST(req: NextRequest) {
               conversationId: conversation.id,
               role: 'CHARACTER',
               content: charMsg.content,
-              emotion: charMsg.emotion || null,
-              metadata: { groupChat: true, characterIds } as Prisma.InputJsonValue,
+              metadata: { groupChat: true, characterIds, emotion: charMsg.emotion || null } as Prisma.InputJsonValue,
             },
           });
         }

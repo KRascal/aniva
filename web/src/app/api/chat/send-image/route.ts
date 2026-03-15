@@ -156,8 +156,7 @@ export async function POST(req: NextRequest) {
             conversationId: conversation.id,
             role: 'CHARACTER',
             content: response.text,
-            emotion: response.emotion ?? null,
-            metadata: { type: 'image_reaction', imageUrl },
+            metadata: { type: 'image_reaction', imageUrl, emotion: response.emotion ?? null },
           },
         });
         characterReply = {
