@@ -42,6 +42,9 @@ export interface UserStateSnapshot {
   // 直近の会話トピック
   recentTopics: string[];
 
+  // フォローアップ候補トピック
+  followUpTopics?: Array<{ topic: string; priority: number }>;
+
   // キャラの感情状態
   characterEmotionContext: string;
 

@@ -6,6 +6,7 @@
 import { prisma } from '../prisma';
 import { logger } from '@/lib/logger';
 import type { UserStateSnapshot } from './types';
+import { FollowUpScheduler } from './followup-scheduler';
 
 /**
  * 1つのRelationshipに対してユーザー状態スナップショットを収集
@@ -115,6 +116,17 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
 
     const userName = relationship.user.nickname ?? relationship.user.displayName ?? 'ユーザー';
 
+    // フォローアップ候補取得
+    let followUpTopics: Array<{ topic: string; priority: number }> = [];
+    try {
+      const candidates = await FollowUpScheduler.findCandidates(relationship.characterId, 3);
+      followUpTopics = candidates
+        .filter(c => c.userId === relationship.userId)
+        .map(c => ({ topic: c.topic, priority: c.priority }));
+    } catch {
+      // ignore
+    }
+
     return {
       userId: relationship.userId,
       characterId: relationship.characterId,
@@ -127,6 +139,7 @@ export async function collectUserState(relationshipId: string): Promise<UserStat
       lifePattern: { peakHours },
       currentHourJST: jstHour,
       recentTopics,
+      followUpTopics,
       characterEmotionContext,
       agentContactCountToday,
       userName,

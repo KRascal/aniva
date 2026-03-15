@@ -104,6 +104,10 @@ export async function generateAgentMessage(
 
     const messageTypeInstruction = getMessageTypeInstruction(decision.messageType, decision.reason);
 
+    const followUpInstruction = state.followUpTopics && state.followUpTopics.length > 0
+      ? `\n## 以前の会話で出た話題\n${state.followUpTopics.map(t => `- ${t.topic}`).join('\n')}\nこれらについて自然に聞いてみてください。`
+      : '';
+
     const systemPrompt = `${relationship.character.systemPrompt}
 
 ${intimacyTone}
@@ -116,7 +120,7 @@ ${memoryInstructions}
 これはユーザーからのメッセージへの返信ではなく、あなたから積極的に連絡するDMです。
 
 ${messageTypeInstruction}
-
+${followUpInstruction}
 ## 絶対ルール
 - メッセージ本文のみ返すこと（説明文・注釈・括弧書き不要）
 - キャラクターの口調・人格を完全に維持すること

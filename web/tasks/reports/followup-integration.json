@@ -1,0 +1,28 @@
+{
+  "task": "FollowUpScheduler → agent-loop統合",
+  "completedAt": "2026-03-15T22:33:00+09:00",
+  "status": "done",
+  "changes": [
+    {
+      "file": "src/lib/agent/types.ts",
+      "change": "UserStateSnapshotにオプショナルフィールド followUpTopics?: Array<{ topic: string; priority: number }> を追加"
+    },
+    {
+      "file": "src/lib/agent/user-state-collector.ts",
+      "change": "FollowUpSchedulerをインポートし、collectUserState内でfindCandidatesを呼び出し、userId一致候補をフィルタしてfollowUpTopicsとして返り値に含める"
+    },
+    {
+      "file": "src/lib/agent/decision-engine.ts",
+      "change": "buildDecisionPrompt内でfollowUpTopicsが存在する場合のみ【フォローアップしたい話題】セクションをプロンプトに注入"
+    },
+    {
+      "file": "src/lib/agent/message-generator.ts",
+      "change": "generateAgentMessage内でfollowUpTopicsが存在する場合のみ【以前の会話で出た話題】セクションをsystemPromptに注入"
+    }
+  ],
+  "safetyNotes": [
+    "UserState型にオプショナルフィールドのみ追加 — 既存フィールド変更なし",
+    "followUpTopics未定義・空の場合は追加セクションなし — フォールバック安全",
+    "FollowUpScheduler.findCandidates失敗はtry/catchで無視 — エラー伝播なし"
+  ]
+}

@@ -36,6 +36,10 @@ function buildDecisionPrompt(
     ? state.lifePattern.peakHours.map(h => `${h}時台`).join('、')
     : '不明';
 
+  const followUpSection = state.followUpTopics && state.followUpTopics.length > 0
+    ? `\n## フォローアップしたい話題\n以前の会話で以下の話題が出ていました。自然なタイミングなら触れてください:\n${state.followUpTopics.map(t => `- ${t.topic}（優先度: ${t.priority}）`).join('\n')}\n`
+    : '';
+
   return `あなたは${character.name}というキャラクターの「行動判断エンジン」です。
 以下のユーザー状態と自分（キャラ）の状態を見て、「今このユーザーにDMを送るべきか？」をJSONで判断してください。
 
@@ -52,7 +56,7 @@ ${state.characterEmotionContext}
 - 直近の会話トピック: ${topicsStr}
 - 今日のエージェント接触数: ${state.agentContactCountToday}回
 - 関係レベル: ${state.relationshipLevel}
-
+${followUpSection}
 ## 現在時刻（JST）
 ${state.currentHourJST}時
 
