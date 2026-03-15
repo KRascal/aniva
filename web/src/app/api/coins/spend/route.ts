@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       transactionId: result.transactionId,
     });
   } catch (error: unknown) {
-    if (error?.message === 'INSUFFICIENT_COINS') {
+    if (error instanceof Error && error.message === 'INSUFFICIENT_COINS') {
       return NextResponse.json({ error: 'INSUFFICIENT_COINS', message: 'コインが不足しています' }, { status: 402 });
     }
     logger.error('Coin spend error:', error);

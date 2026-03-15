@@ -94,13 +94,13 @@ export async function GET(req: NextRequest) {
       const aggregated = Array.from(userMap.values())
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, limit)
-        .map((r, i) => ({ ...r, rank: i + 1 }));
+        .map((r: { userId: string; totalScore: number; chatScore: number; callScore: number; giftScore: number }, i: number) => ({ ...r, rank: i + 1 }));
 
       return NextResponse.json({ rankings: aggregated, period, periodType });
     }
 
     return NextResponse.json({
-      rankings: rankings.map((r, i) => ({ ...r, rank: i + 1 })),
+      rankings: rankings.map((r: Record<string, unknown>, i: number) => ({ ...r, rank: i + 1 })),
       period,
       periodType,
     });

@@ -29,7 +29,7 @@ interface RateLimitConfig {
   windowSec: number   // ウィンドウ（秒）
 }
 
-interface RateLimitResult {
+export interface RateLimitResult {
   success: boolean
   remaining: number
   resetAt: number     // Unix timestamp (ms)

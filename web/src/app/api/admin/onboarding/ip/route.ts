@@ -38,7 +38,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin(req);
+  const admin = await requireAdmin();
   if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -68,8 +68,7 @@ export async function POST(req: NextRequest) {
       tenant = await prisma.tenant.create({
         data: {
           name: companyName,
-          contactEmail: contactEmail || '',
-          status: 'ACTIVE',
+          slug: companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now(),
         },
       });
       logger.info(`[ip-onboarding] Created tenant: ${tenant.name} (${tenant.id})`);
@@ -79,12 +78,15 @@ export async function POST(req: NextRequest) {
     const contract = await prisma.contract.create({
       data: {
         tenantId: tenant.id,
-        ipName,
-        revenueShareIp,
-        revenueShareAniva,
+        contractCode: `${ipName.replace(/[^A-Za-z0-9]+/g, '-').toUpperCase()}-${Date.now()}`,
+        rightsHolder: companyName,
+        targetWork: ipName,
+        targetCharacters: characters.map((c: { name: string }) => c.name),
+        allowedRegions: [],
+        allowedLanguages: ['ja'],
         startDate: contractStart ? new Date(contractStart) : new Date(),
-        endDate: contractEnd ? new Date(contractEnd) : null,
-        status: 'ACTIVE',
+        endDate: contractEnd ? new Date(contractEnd) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        revenueSharePercent: revenueShareIp,
       },
     });
     logger.info(`[ip-onboarding] Created contract: ${ipName} (${contract.id})`);
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest) {
             slug: char.slug,
             franchise: ipName,
             franchiseEn: ipName,
-            personality: char.personality || '',
+            personalityTraits: [],
             systemPrompt: generatePrompt(char, ipName),
             avatarUrl: char.avatarUrl || null,
             coverUrl: char.coverUrl || null,

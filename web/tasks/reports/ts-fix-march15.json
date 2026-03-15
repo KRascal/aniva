@@ -1,0 +1,30 @@
+{
+  "task": "TSエラー19件修正",
+  "date": "2026-03-15",
+  "status": "success",
+  "errors_fixed": 19,
+  "errors_total": 19,
+  "files_changed": [
+    "src/app/api/admin/characters/bulk-import/route.ts",
+    "src/app/api/admin/onboarding/ip/route.ts",
+    "src/app/api/chat/group/crosstalk/route.ts",
+    "src/app/api/cron/account-cleanup/route.ts",
+    "src/app/api/ranking/route.ts",
+    "tests/api/admin-auth.test.ts"
+  ],
+  "commit": "c5c4f99",
+  "notes": [
+    "requireAdmin() — 引数削除 (bulk-import, onboarding/ip)",
+    "personality → personalityTraits: [] (bulk-import, onboarding/ip)",
+    "Tenant.create: contactEmail削除, status削除, slug追加",
+    "Contract.create: ipName/revenueShareIp/status→contractCode/rightsHolder/targetWork等に修正",
+    "crosstalk: conversation.include relationship, userId/typeチェック修正",
+    "crosstalk: totalBalance未定義 → 0にフォールバック",
+    "account-cleanup: characterUserProfile.deleteMany → userProfile: { userId }",
+    "account-cleanup: moment.deleteMany行をコメントアウト",
+    "account-cleanup: conversation/message削除をrelationship経由に修正",
+    "account-cleanup: relationship.deleteMany → targetUserId削除",
+    "ranking: r,i型アノテーション追加",
+    "tests: GET(req as any) → GET() に修正"
+  ]
+}
