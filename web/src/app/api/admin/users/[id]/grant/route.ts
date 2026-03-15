@@ -3,14 +3,14 @@
  * 管理画面からコイン付与 or FC加入を付与
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { CoinTxType } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id: userId } = await params;
   const body = await req.json() as { type: 'coins' | 'fc'; amount?: number; characterId?: string };
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             type: CoinTxType.BONUS,
             amount,
             balanceAfter: bal.balance,
-            description: `管理者付与 (by ${admin.email})`,
-            metadata: { adminId: admin.id, grantedAt: new Date().toISOString() },
+            description: `管理者付与 (by ${ctx.email})`,
+            metadata: { adminId: ctx.id, grantedAt: new Date().toISOString() },
           },
         });
         return bal.balance;

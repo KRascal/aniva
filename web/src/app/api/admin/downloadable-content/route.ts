@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -29,8 +29,8 @@ const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
 // GET: 一覧
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const characterId = req.nextUrl.searchParams.get('characterId');
 
@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
 
 // POST: 新規作成
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     data: { fileUrl, thumbnailUrl },
   });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_CREATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_CREATE, ctx.email, {
     contentId: updated.id, title, characterId, type,
   });
 
@@ -126,8 +126,8 @@ export async function POST(req: NextRequest) {
 
 // PUT: 更新
 export async function PUT(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = (await req.json()) as {
     id: string;
@@ -150,7 +150,7 @@ export async function PUT(req: NextRequest) {
     },
   });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_UPDATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_UPDATE, ctx.email, {
     contentId: body.id,
   });
 
@@ -159,15 +159,15 @@ export async function PUT(req: NextRequest) {
 
 // DELETE: 削除
 export async function DELETE(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const id = req.nextUrl.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id は必須です' }, { status: 400 });
 
   await prisma.downloadableContent.delete({ where: { id } });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_DELETE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.DLC_DELETE, ctx.email, {
     contentId: id,
   });
 

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const { name, slug, franchise, description, systemPrompt, catchphrases, voiceModelId } = body;

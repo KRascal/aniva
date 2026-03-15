@@ -22,13 +22,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
+  const ctx = await requireRole('editor');
+  if (!ctx) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

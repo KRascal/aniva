@@ -160,76 +160,89 @@ const IconChevronRight = () => (
 
 // ─── Nav Config ────────────────────────────────────────────────────────────
 
+// ロール階層: super_admin > ip_admin > editor > viewer
+const ROLE_LEVEL: Record<string, number> = { super_admin: 100, ip_admin: 50, editor: 30, viewer: 10 };
+function hasMinRole(userRole: string, minRole: string): boolean {
+  return (ROLE_LEVEL[userRole] ?? 0) >= (ROLE_LEVEL[minRole] ?? 0);
+}
+
 const NAV_SECTIONS = [
   {
     id: 'home',
     label: null,
     items: [
-      { href: '/admin', label: 'ダッシュボード', icon: <IconDashboard />, exact: true },
+      { href: '/admin', label: 'ダッシュボード', icon: <IconDashboard />, exact: true, minRole: 'viewer' },
     ],
   },
   {
     id: 'characters',
     label: 'キャラクター管理',
     collapsible: true,
+    minRole: 'editor',
     items: [
-      { href: '/admin/characters', label: 'キャラクター一覧', icon: <IconCharacter /> },
-      { href: '/admin/moments', label: 'モーメンツ', icon: <IconCamera /> },
-      { href: '/admin/stories', label: 'ストーリーズ', icon: <IconBook /> },
-      { href: '/admin/scenarios', label: '限定シナリオ', icon: <IconSparkle /> },
-      { href: '/admin/lore', label: 'ローアブック', icon: <IconBook /> },
-      { href: '/admin/letters', label: '手紙管理', icon: <IconMail /> },
-      { href: '/admin/notifications', label: '通知配信', icon: <IconBell /> },
+      { href: '/admin/characters', label: 'キャラクター一覧', icon: <IconCharacter />, minRole: 'editor' },
+      { href: '/admin/moments', label: 'モーメンツ', icon: <IconCamera />, minRole: 'editor' },
+      { href: '/admin/stories', label: 'ストーリーズ', icon: <IconBook />, minRole: 'editor' },
+      { href: '/admin/scenarios', label: '限定シナリオ', icon: <IconSparkle />, minRole: 'editor' },
+      { href: '/admin/lore', label: 'ローアブック', icon: <IconBook />, minRole: 'editor' },
+      { href: '/admin/letters', label: '手紙管理', icon: <IconMail />, minRole: 'editor' },
+      { href: '/admin/notifications', label: '通知配信', icon: <IconBell />, minRole: 'editor' },
     ],
   },
   {
     id: 'commerce',
     label: 'コマース',
     collapsible: true,
+    minRole: 'editor',
     items: [
-      { href: '/admin/gacha', label: 'ガチャ', icon: <IconDice /> },
-      { href: '/admin/shop', label: 'ショップ', icon: <IconShop /> },
-      { href: '/admin/coins', label: 'コインパッケージ', icon: <IconCoin /> },
-      { href: '/admin/downloadable-content', label: '限定DL', icon: <IconDownload /> },
+      { href: '/admin/gacha', label: 'ガチャ', icon: <IconDice />, minRole: 'editor' },
+      { href: '/admin/shop', label: 'ショップ', icon: <IconShop />, minRole: 'editor' },
+      { href: '/admin/coins', label: 'コインパッケージ', icon: <IconCoin />, minRole: 'super_admin' },
+      { href: '/admin/downloadable-content', label: '限定DL', icon: <IconDownload />, minRole: 'editor' },
     ],
   },
   {
     id: 'ip',
     label: 'IP管理',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/approvals', label: '監修・承認', icon: <IconCheckBadge /> },
-      { href: '/admin/guardrails', label: 'ガードレール', icon: <IconShield /> },
-      { href: '/admin/contracts', label: '契約管理', icon: <IconDocument /> },
+      { href: '/admin/approvals', label: '監修・承認', icon: <IconCheckBadge />, minRole: 'editor' },
+      { href: '/admin/guardrails', label: 'ガードレール', icon: <IconShield />, minRole: 'super_admin' },
+      { href: '/admin/contracts', label: '契約管理', icon: <IconDocument />, minRole: 'ip_admin' },
     ],
   },
   {
     id: 'revenue',
     label: '収益・IP',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/revenue', label: '収益ダッシュボード', icon: <IconCurrencyYen /> },
-      { href: '/admin/ip-dashboard', label: 'IPダッシュボード', icon: <IconBriefcase /> },
+      { href: '/admin/revenue', label: '収益ダッシュボード', icon: <IconCurrencyYen />, minRole: 'ip_admin' },
+      { href: '/admin/ip-dashboard', label: 'IPダッシュボード', icon: <IconBriefcase />, minRole: 'ip_admin' },
     ],
   },
   {
     id: 'analytics',
     label: '分析・運営',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/analytics', label: '分析', icon: <IconChart /> },
-      { href: '/admin/addiction', label: '中毒設計', icon: <IconBeaker /> },
-      { href: '/admin/users', label: 'ユーザー', icon: <IconUsers /> },
-      { href: '/admin/polls', label: '投票管理', icon: <IconPoll /> },
-      { href: '/admin/feedback', label: 'フィードバック', icon: <IconChat /> },
+      { href: '/admin/analytics', label: '分析', icon: <IconChart />, minRole: 'ip_admin' },
+      { href: '/admin/addiction', label: '中毒設計', icon: <IconBeaker />, minRole: 'super_admin' },
+      { href: '/admin/users', label: 'ユーザー', icon: <IconUsers />, minRole: 'super_admin' },
+      { href: '/admin/polls', label: '投票管理', icon: <IconPoll />, minRole: 'editor' },
+      { href: '/admin/feedback', label: 'フィードバック', icon: <IconChat />, minRole: 'ip_admin' },
+      { href: '/admin/audit-log', label: '監査ログ', icon: <IconDocument />, minRole: 'super_admin' },
     ],
   },
   {
     id: 'system',
     label: 'システム',
     collapsible: true,
+    minRole: 'super_admin',
     items: [
-      { href: '/admin/tenants', label: 'テナント管理', icon: <IconBuilding /> },
+      { href: '/admin/tenants', label: 'テナント管理', icon: <IconBuilding />, minRole: 'super_admin' },
     ],
   },
 ];
@@ -339,6 +352,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRole, setAdminRole] = useState<string>('viewer');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -346,12 +360,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login');
       return;
     }
-    fetch('/api/admin/stats', { method: 'GET' })
-      .then((r) => {
-        setIsAdmin(r.status !== 403);
-        setAdminChecked(true);
-      })
-      .catch(() => setAdminChecked(true));
+    // 権限チェック + ロール取得
+    Promise.all([
+      fetch('/api/admin/stats', { method: 'GET' }),
+      fetch('/api/admin/auth-context').then(r => r.ok ? r.json() : null),
+    ]).then(([statsRes, authCtx]) => {
+      setIsAdmin(statsRes.status !== 403);
+      if (authCtx?.role) setAdminRole(authCtx.role);
+      setAdminChecked(true);
+    }).catch(() => setAdminChecked(true));
   }, [session, status, router]);
 
   if (status === 'loading' || !adminChecked) {
@@ -463,7 +480,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS
+            .filter((section) => !section.minRole || hasMinRole(adminRole, section.minRole))
+            .map((section) => ({
+              ...section,
+              items: section.items.filter((item) => !item.minRole || hasMinRole(adminRole, item.minRole)),
+            }))
+            .filter((section) => section.items.length > 0)
+            .map((section) => (
             <NavSection
               key={section.id}
               section={section}

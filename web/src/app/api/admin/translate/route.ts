@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { SupportedLocale } from '@/types/character-locale';
 import { logger } from '@/lib/logger';
 
@@ -12,8 +12,8 @@ const LOCALE_NAMES: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const { text, sourceLang = 'ja', targetLangs, context } = body as {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
@@ -18,8 +18,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) {
+    const ctx = await requireRole('editor');
+    if (!ctx) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -46,13 +46,13 @@ export async function PATCH(
       where: { id },
       data: {
         status,
-        reviewedBy: admin.id,
+        reviewedBy: ctx.id,
         reviewedAt: new Date(),
       },
     });
 
     logger.info('Admin: report status updated', {
-      adminId: admin.id,
+      adminId: ctx.id,
       reportId: id,
       oldStatus: existing.status,
       newStatus: status,

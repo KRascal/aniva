@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('editor');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const banners = await prisma.gachaBanner.findMany({
       orderBy: { createdAt: 'desc' },
@@ -21,8 +21,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('editor');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
     const { name, characterId, startAt, endAt, costCoins, description } = body;
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_CREATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_CREATE, ctx.email, {
       bannerId: banner.id, name,
     });
 

@@ -1,0 +1,673 @@
+{
+  "wave": "1-A",
+  "description": "requireAdmin → requireRole migration",
+  "files_changed": [
+    "src/app/api/admin/addiction/stats/route.ts",
+    "src/app/api/admin/analytics/route.ts",
+    "src/app/api/admin/approvals/[id]/route.ts",
+    "src/app/api/admin/approvals/route.ts",
+    "src/app/api/admin/audit-log/route.ts",
+    "src/app/api/admin/characters/[id]/boundaries/route.ts",
+    "src/app/api/admin/characters/[id]/quotes/route.ts",
+    "src/app/api/admin/characters/[id]/soul/route.ts",
+    "src/app/api/admin/characters/[id]/voice/route.ts",
+    "src/app/api/admin/characters/bootstrap/route.ts",
+    "src/app/api/admin/characters/bulk-import/route.ts",
+    "src/app/api/admin/characters/generate-moments/route.ts",
+    "src/app/api/admin/characters/generate-secrets/route.ts",
+    "src/app/api/admin/characters/generate-soul/route.ts",
+    "src/app/api/admin/characters/generate-story/route.ts",
+    "src/app/api/admin/characters/presence/route.ts",
+    "src/app/api/admin/characters/route.ts",
+    "src/app/api/admin/characters/secrets/route.ts",
+    "src/app/api/admin/coins/route.ts",
+    "src/app/api/admin/contracts/[id]/route.ts",
+    "src/app/api/admin/contracts/route.ts",
+    "src/app/api/admin/dashboard/route.ts",
+    "src/app/api/admin/downloadable-content/route.ts",
+    "src/app/api/admin/gacha/banners/[id]/route.ts",
+    "src/app/api/admin/gacha/banners/route.ts",
+    "src/app/api/admin/gacha/cards/route.ts",
+    "src/app/api/admin/guardrails/[id]/route.ts",
+    "src/app/api/admin/guardrails/logs/route.ts",
+    "src/app/api/admin/guardrails/route.ts",
+    "src/app/api/admin/letters/route.ts",
+    "src/app/api/admin/moments/route.ts",
+    "src/app/api/admin/notifications/route.ts",
+    "src/app/api/admin/onboarding/ip/route.ts",
+    "src/app/api/admin/reports/[id]/route.ts",
+    "src/app/api/admin/reports/route.ts",
+    "src/app/api/admin/revenue/route.ts",
+    "src/app/api/admin/scenarios/[id]/route.ts",
+    "src/app/api/admin/scenarios/route.ts",
+    "src/app/api/admin/shop/route.ts",
+    "src/app/api/admin/stats/route.ts",
+    "src/app/api/admin/stories/route.ts",
+    "src/app/api/admin/tenants/[id]/characters/route.ts",
+    "src/app/api/admin/tenants/[id]/route.ts",
+    "src/app/api/admin/tenants/route.ts",
+    "src/app/api/admin/translate/route.ts",
+    "src/app/api/admin/upload/route.ts",
+    "src/app/api/admin/users/[id]/coins/route.ts",
+    "src/app/api/admin/users/[id]/grant/route.ts",
+    "src/app/api/admin/users/[id]/plan/route.ts",
+    "src/app/api/admin/users/route.ts",
+    "src/app/api/admin/voice-test/route.ts",
+    "src/app/api/admin/feedback/route.ts",
+    "src/app/api/admin/feedback/[id]/route.ts",
+    "src/app/api/admin/lore/route.ts",
+    "src/app/api/admin/lore/[id]/route.ts"
+  ],
+  "files_skipped": [
+    "src/app/api/admin/auth-context/route.ts",
+    "src/app/api/admin/characters/[id]/ai-enrich/route.ts",
+    "src/app/api/admin/characters/[id]/test-chat/route.ts",
+    "src/app/api/admin/emergency-stop/route.ts",
+    "src/app/api/admin/tenants/[id]/members/route.ts"
+  ],
+  "errors": [],
+  "results": [
+    {
+      "path": "src/app/api/admin/addiction/stats/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/analytics/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/approvals/[id]/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/approvals/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/audit-log/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/auth-context/route.ts",
+      "status": "already_migrated",
+      "role": "editor"
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/ai-enrich/route.ts",
+      "status": "skipped_no_requireAdmin",
+      "role": "editor"
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/boundaries/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/quotes/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/soul/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/test-chat/route.ts",
+      "status": "skipped_no_requireAdmin",
+      "role": "editor"
+    },
+    {
+      "path": "src/app/api/admin/characters/[id]/voice/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/bootstrap/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/bulk-import/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/generate-moments/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/generate-secrets/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/generate-soul/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/generate-story/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/presence/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/characters/secrets/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/coins/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/contracts/[id]/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/contracts/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/dashboard/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/downloadable-content/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/emergency-stop/route.ts",
+      "status": "already_migrated",
+      "role": "super_admin"
+    },
+    {
+      "path": "src/app/api/admin/feedback/[id]/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Added requireRole auth (was unprotected or had local inline auth)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/feedback/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Added requireRole auth (was unprotected or had local inline auth)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/gacha/banners/[id]/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/gacha/banners/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/gacha/cards/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/guardrails/[id]/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/guardrails/logs/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/guardrails/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/letters/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/lore/[id]/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Added requireRole auth (was unprotected or had local inline auth)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/lore/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Added requireRole auth (was unprotected or had local inline auth)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/moments/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/notifications/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/onboarding/ip/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/reports/[id]/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/reports/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/revenue/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Added requireRole auth (was unprotected)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/scenarios/[id]/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/scenarios/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/shop/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/stats/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/stories/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/tenants/[id]/characters/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/tenants/[id]/members/route.ts",
+      "status": "already_migrated",
+      "role": "editor"
+    },
+    {
+      "path": "src/app/api/admin/tenants/[id]/route.ts",
+      "status": "migrated",
+      "role": "ip_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/tenants/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/translate/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/upload/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/users/[id]/coins/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/users/[id]/grant/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/users/[id]/plan/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)",
+        "Replaced admin. → ctx."
+      ]
+    },
+    {
+      "path": "src/app/api/admin/users/route.ts",
+      "status": "migrated",
+      "role": "super_admin",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    },
+    {
+      "path": "src/app/api/admin/voice-test/route.ts",
+      "status": "migrated",
+      "role": "editor",
+      "changes": [
+        "Replaced import",
+        "Replaced requireAdmin() call",
+        "Replaced if (!admin)"
+      ]
+    }
+  ],
+  "summary": {
+    "total": 60,
+    "migrated": 55,
+    "skipped": 5,
+    "errors": 0
+  },
+  "notes": {
+    "extra_fixes": [
+      "letters/route.ts: Had local inline requireAdmin function - replaced with requireRole(editor)",
+      "feedback/route.ts: Was completely unprotected - added requireRole(ip_admin)",
+      "feedback/[id]/route.ts: Was completely unprotected - added requireRole(ip_admin)",
+      "lore/route.ts: Was completely unprotected - added requireRole(editor) to GET and POST",
+      "lore/[id]/route.ts: Was completely unprotected - added requireRole(editor) to PATCH and DELETE",
+      "revenue/route.ts: Was completely unprotected - added requireRole(ip_admin) as security fix"
+    ]
+  }
+}

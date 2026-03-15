@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
 
   const quotes = await prisma.characterQuote.findMany({
@@ -15,8 +15,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const data = await req.json();
 
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const { quoteId } = await req.json();
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
 
   const voice = await prisma.characterVoice.findUnique({ where: { characterId: id } });
@@ -13,8 +13,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const data = await req.json();
 
@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_VOICE_UPDATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_VOICE_UPDATE, ctx.email, {
     characterId: id,
   });
 

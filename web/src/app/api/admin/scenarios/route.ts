@@ -4,14 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const scenarios = await prisma.limitedScenario.findMany({
     include: {
@@ -41,8 +41,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_CREATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_CREATE, ctx.email, {
       scenarioId: scenario.id, title, characterId,
     });
 

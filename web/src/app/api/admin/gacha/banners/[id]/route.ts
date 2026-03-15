@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
@@ -7,8 +7,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json();
@@ -22,7 +22,7 @@ export async function PATCH(
     },
   });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_UPDATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_UPDATE, ctx.email, {
     bannerId: id,
   });
 
@@ -33,13 +33,13 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   await prisma.gachaBanner.delete({ where: { id } });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_DELETE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.GACHA_BANNER_DELETE, ctx.email, {
     bannerId: id,
   });
 

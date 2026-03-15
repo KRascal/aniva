@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('editor');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('editor');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
     const { characterId, type, content, mediaUrl, visibility, scheduledAt } = body;
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_CREATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_CREATE, ctx.email, {
       momentId: moment.id, characterId, type: type || 'TEXT',
     });
 
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('editor');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -85,7 +85,7 @@ export async function DELETE(req: NextRequest) {
 
     await prisma.moment.delete({ where: { id } });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_DELETE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.MOMENT_DELETE, ctx.email, {
       momentId: id,
     });
 

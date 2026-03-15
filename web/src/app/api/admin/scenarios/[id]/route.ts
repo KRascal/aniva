@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
@@ -13,8 +13,8 @@ import { logger } from '@/lib/logger';
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   const scenario = await prisma.limitedScenario.findUnique({
@@ -30,8 +30,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   try {
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_UPDATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_UPDATE, ctx.email, {
       scenarioId: id,
     });
 
@@ -62,14 +62,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   try {
     await prisma.limitedScenario.delete({ where: { id } });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_DELETE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SCENARIO_DELETE, ctx.email, {
       scenarioId: id,
     });
 

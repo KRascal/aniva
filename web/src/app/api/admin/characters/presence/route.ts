@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 
 export async function PUT(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const { characterId, status, emoji, manualMode } = body;
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest) {
     select: { id: true, presenceManualMode: true, presenceStatus: true, presenceEmoji: true },
   });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_PRESENCE_UPDATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_PRESENCE_UPDATE, ctx.email, {
     characterId, manualMode: manualMode ?? false, status: status ?? null,
   });
 
