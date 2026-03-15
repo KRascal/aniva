@@ -198,6 +198,53 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 9.5. グループチャットメッセージをDBに保存（各キャラのConversationに）
+    try {
+      for (const character of orderedCharacters) {
+        const relationshipId = relationshipMap.get(character.id)!;
+        // Conversationを取得 or 作成
+        let conversation = await prisma.conversation.findFirst({
+          where: { relationshipId, isActive: true },
+          orderBy: { updatedAt: 'desc' },
+        });
+        if (!conversation) {
+          conversation = await prisma.conversation.create({
+            data: { relationshipId, metadata: { type: 'group' } },
+          });
+        }
+        // ユーザーメッセージ保存
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'USER',
+            content: message,
+            metadata: { groupChat: true, characterIds } as Prisma.InputJsonValue,
+          },
+        });
+        // キャラ応答保存
+        const charMsg = groupMessages.find(m => m.characterId === character.id);
+        if (charMsg) {
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: 'CHARACTER',
+              content: charMsg.content,
+              emotion: charMsg.emotion || null,
+              metadata: { groupChat: true, characterIds } as Prisma.InputJsonValue,
+            },
+          });
+        }
+        // Conversation updatedAt更新
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
+      }
+    } catch (saveErr) {
+      logger.error('[GroupChat] Failed to save messages to DB:', saveErr);
+      // 保存失敗しても応答は返す
+    }
+
     // 10. 最新コイン残高取得
     const updatedBalance = await prisma.coinBalance.findUnique({ where: { userId } });
     const newBalance = updatedBalance

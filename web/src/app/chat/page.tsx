@@ -205,8 +205,8 @@ export default function ChatPage() {
       </header>
 
       <main className="relative z-10 max-w-lg mx-auto px-4 pt-4 pb-32">
-        {/* ══ 新着チャット通知バナー ══ */}
-        {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
+        {/* ══ 新着チャット通知バナー（非表示: exploreに限定メッセージがあるため不要） ══ */}
+        {false && proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
           <div className="mb-4 space-y-2">
             {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).slice(0, 3).map(msg => (
               <div

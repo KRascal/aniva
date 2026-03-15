@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Google from 'next-auth/providers/google';
+import Line from 'next-auth/providers/line';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import { logger } from '@/lib/logger';
@@ -47,6 +48,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
     }),
+    // LINE Login
+    ...(process.env.LINE_CLIENT_ID ? [Line({
+      clientId: process.env.LINE_CLIENT_ID!,
+      clientSecret: process.env.LINE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    })] : []),
     // Email OTP (6-digit code) authentication
     Credentials({
       name: 'Email OTP',

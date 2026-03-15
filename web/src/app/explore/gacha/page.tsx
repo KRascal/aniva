@@ -598,8 +598,8 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                 {/* Results overlay — centered on screen (hidden during pack opening) */}
                 {pullResults.length > 0 && !showPackOpening && (
                   <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
-                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
-                      <div className="flex items-center justify-between mb-4 pt-2">
+                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '80vh' }}>
+                      <div className="flex items-center justify-between mb-4 pt-safe sticky top-0 z-10 pb-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', background: 'rgba(3,7,18,0.98)', backdropFilter: 'blur(8px)' }}>
                         <h2 className="text-white font-bold text-base">結果</h2>
                         <div className="flex items-center gap-2">
                           {hasAnyUnflipped && (
