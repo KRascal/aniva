@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 interface ChoiceItem {
   text: string;
@@ -20,7 +21,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
     const body = await req.json();
     const { chapterId, choiceIndex } = body as { chapterId: string; choiceIndex: number };
 

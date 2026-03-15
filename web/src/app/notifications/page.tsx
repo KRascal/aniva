@@ -27,6 +27,10 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string; label: string }
   MILESTONE:          { icon: '💎', color: 'text-amber-400',   label: '思い出' },
   DAILY_BONUS:        { icon: '🎁', color: 'text-yellow-400',  label: 'デイリー' },
   SYSTEM:             { icon: '🔔', color: 'text-gray-400',    label: 'システム' },
+  // ファン投稿通知
+  community_reply:    { icon: '↩️', color: 'text-blue-400',    label: '返信' },
+  community_quote:    { icon: '❝',  color: 'text-indigo-400',  label: '引用' },
+  community_mention:  { icon: '@',  color: 'text-cyan-400',    label: 'メンション' },
 };
 
 function timeAgo(iso: string) {

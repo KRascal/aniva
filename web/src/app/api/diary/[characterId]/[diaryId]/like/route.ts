@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function POST(
   _req: Request,
@@ -13,7 +14,8 @@ export async function POST(
   }
 
   const userId = session.user.id;
-  const { diaryId } = await params;
+  const { characterId: rawCharacterId, diaryId } = await params;
+  const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
   try {
     const diary = await prisma.characterDiary.findUnique({

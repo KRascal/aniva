@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /** JST基準の期間フィルタ */
 function getPeriodFilter(period: string): Date | undefined {
@@ -31,7 +32,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> }
 ) {
-  const { characterId } = await params;
+  const { characterId: rawCharacterId } = await params;
+  const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const period = new URL(req.url).searchParams.get('period') ?? 'alltime';

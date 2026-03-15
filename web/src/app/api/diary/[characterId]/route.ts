@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function GET(
   req: Request,
@@ -16,16 +17,8 @@ export async function GET(
   const skip = (page - 1) * limit;
   const userId = session?.user?.id;
 
-  // slugとidの両方に対応（exploreからslugで遷移する場合がある）
-  let characterId = characterIdOrSlug;
-  const isCuid = /^c[a-z0-9]{20,}$/i.test(characterIdOrSlug);
-  if (!isCuid) {
-    const char = await prisma.character.findFirst({
-      where: { slug: characterIdOrSlug, isActive: true },
-      select: { id: true },
-    });
-    if (char) characterId = char.id;
-  }
+  // slugとidの両方に対応（resolveCharacterIdでslug→UUID解決）
+  const characterId = await resolveCharacterId(characterIdOrSlug) ?? characterIdOrSlug;
 
   try {
     const [diaries, total] = await Promise.all([

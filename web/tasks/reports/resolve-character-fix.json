@@ -1,0 +1,33 @@
+{
+  "status": "success",
+  "task": "resolveCharacterId未適用API 16件一括修正",
+  "started_at": "2026-03-15T11:42:00Z",
+  "completed_at": "2026-03-15T11:45:00Z",
+  "files_changed": [
+    "src/app/api/fc/subscribe/route.ts",
+    "src/app/api/memories/[characterId]/route.ts",
+    "src/app/api/chat/[characterId]/album/route.ts",
+    "src/app/api/chat/[characterId]/memory/route.ts",
+    "src/app/api/chat/[characterId]/reset/route.ts",
+    "src/app/api/chat/export/[characterId]/route.ts",
+    "src/app/api/story/[characterId]/route.ts",
+    "src/app/api/story/[characterId]/choice/route.ts",
+    "src/app/api/relationship/[characterId]/memory/route.ts",
+    "src/app/api/ranking/[characterId]/route.ts",
+    "src/app/api/diary/[characterId]/route.ts",
+    "src/app/api/diary/[characterId]/[diaryId]/like/route.ts",
+    "src/app/api/memory-book/[characterId]/route.ts",
+    "src/app/api/characters/[slug]/timeline/route.ts",
+    "src/app/api/characters/[slug]/daily-state/route.ts",
+    "src/app/api/characters/[slug]/fan-stats/route.ts"
+  ],
+  "notes": {
+    "diary_route": "既存のcuid判定ロジックをresolveCharacterIdに置き換え",
+    "memory_book_route": "既存のOR条件slug/idロジックをresolveCharacterIdに置き換え",
+    "daily_state_route": "既存のOR条件slug/idロジックをresolveCharacterIdに置き換え",
+    "fan_stats_route": "既存のfindUnique({ where: { slug } })をresolveCharacterIdに置き換え",
+    "timeline_route": "resolveCharacterIdで404チェックを追加（ローカル関数はslugのまま使用）",
+    "diary_like_route": "characterIdをparamsから取得してresolveCharacterIdで解決（diaryIdはそのまま使用）",
+    "fc_subscribe_route": "パターンB適用: req.json()からrawIdを取得してresolveCharacterIdで解決"
+  }
+}

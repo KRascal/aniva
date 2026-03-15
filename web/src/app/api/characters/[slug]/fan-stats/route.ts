@@ -16,15 +16,11 @@ export async function GET(
     const session = await auth();
     const userId = session?.user?.id;
 
-    // slugからキャラクターIDを取得
-    const character = await prisma.character.findUnique({
-      where: { slug },
-      select: { id: true },
-    });
-    if (!character) {
+    // slugからキャラクターIDを解決
+    const characterId = await resolveCharacterId(slug);
+    if (!characterId) {
       return NextResponse.json({ error: 'Character not found' }, { status: 404 });
     }
-    const characterId = character.id;
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -111,6 +107,12 @@ export async function GET(
       myRank: myRank || null,
       weeklyTop,
     });
+  } catch (error) {
+    logger.error('Fan stats error:', error);
+    return NextResponse.json({ error: 'Failed to fetch fan stats' }, { status: 500 });
+  }
+}
+
   } catch (error) {
     logger.error('Fan stats error:', error);
     return NextResponse.json({ error: 'Failed to fetch fan stats' }, { status: 500 });

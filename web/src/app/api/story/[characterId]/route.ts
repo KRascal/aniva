@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 // ルフィのデフォルトチャプター定義
 const LUFFY_DEFAULT_CHAPTERS = [
@@ -84,7 +85,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await params;
+    const { characterId: rawCharacterId } = await params;
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     // キャラクター取得
     const character = await prisma.character.findUnique({

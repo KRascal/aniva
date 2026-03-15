@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateDailyEmotionForEngine } from '@/lib/character-engine';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * GET /api/characters/[characterId]/daily-state
@@ -18,15 +19,11 @@ export async function GET(
   }
 
   try {
-    // slugまたはIDでキャラクターを検索
-    const character = await prisma.character.findFirst({
-      where: { OR: [{ slug }, { id: slug }] },
-      select: { id: true },
-    });
-    if (!character) {
+    // slugからキャラクターIDを解決
+    const characterId = await resolveCharacterId(slug);
+    if (!characterId) {
       return NextResponse.json({ error: 'Character not found' }, { status: 404 });
     }
-    const characterId = character.id;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
