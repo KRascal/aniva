@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
 
     results.timestamp = new Date().toISOString();
 
-    logger.info('Admin: health check', { adminId: ctx.id });
+    logger.info('Admin: health check', { adminId: ctx.userId });
 
     return NextResponse.json(results);
   } catch (error) {

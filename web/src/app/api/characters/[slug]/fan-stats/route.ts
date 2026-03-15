@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * ファン統計API — 嫉妬メカニクス

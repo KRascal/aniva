@@ -128,7 +128,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     await deleteFromR2(key);
-    logger.info('[admin/media] Deleted', key, 'by', ctx.email);
+    logger.info('[admin/media] Deleted', { key, adminEmail: ctx.email });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

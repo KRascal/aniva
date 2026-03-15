@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     );
     await redis.quit();
 
-    logger.info('Admin: crons list fetched', { adminId: ctx.id });
+    logger.info('Admin: crons list fetched', { adminId: ctx.userId });
 
     return NextResponse.json({ crons: results, total: results.length });
   } catch (error) {
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest) {
     }
     await redis.quit();
 
-    logger.info('Admin: cron toggle', { adminId: ctx.id, name, enabled });
+    logger.info('Admin: cron toggle', { adminId: ctx.userId, name, enabled });
 
     return NextResponse.json({ name, enabled, updated: true });
   } catch (error) {

@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       prisma.report.count({ where }),
     ]);
 
-    logger.info('Admin: reports fetched', { adminId: ctx.id, total, status, targetType });
+    logger.info('Admin: reports fetched', { adminId: ctx.userId, total, status, targetType });
 
     return NextResponse.json({
       reports,

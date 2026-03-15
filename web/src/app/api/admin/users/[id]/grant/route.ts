@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             amount,
             balanceAfter: bal.balance,
             description: `管理者付与 (by ${ctx.email})`,
-            metadata: { adminId: ctx.id, grantedAt: new Date().toISOString() },
+            metadata: { adminId: ctx.userId, grantedAt: new Date().toISOString() },
           },
         });
         return bal.balance;

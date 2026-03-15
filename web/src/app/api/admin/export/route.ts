@@ -153,13 +153,11 @@ export async function GET(req: NextRequest) {
           id: true,
           name: true,
           slug: true,
-          tagline: true,
           description: true,
           isActive: true,
-          isPremium: true,
           createdAt: true,
           _count: {
-            select: { relationships: true, subscribers: true },
+            select: { relationships: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -169,13 +167,10 @@ export async function GET(req: NextRequest) {
         id: c.id,
         name: c.name,
         slug: c.slug,
-        tagline: c.tagline,
         description: c.description,
         isActive: c.isActive,
-        isPremium: c.isPremium,
         createdAt: c.createdAt?.toISOString(),
         relationshipCount: c._count.relationships,
-        subscriberCount: c._count.subscribers,
       }));
       filename = 'characters';
     }

@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     const r = getRedis();
     await r.set(REDIS_KEY, JSON.stringify(validated));
 
-    logger.info('[admin/economy] Config updated by', ctx.email, validated);
+    logger.info('[admin/economy] Config updated', { adminEmail: ctx.email, validated });
 
     const config = await getEconomyConfig();
     return NextResponse.json({ config, message: '保存しました' });
