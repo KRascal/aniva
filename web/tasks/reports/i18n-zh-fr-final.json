@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "started_at": "2026-03-15T14:23:00+09:00",
+  "completed_at": "2026-03-15T14:30:00+09:00",
+  "task": "i18n translation zh + fr untranslated keys",
+  "zh_keys_translated": 329,
+  "fr_keys_translated": 325,
+  "zh_remaining_untranslated": 0,
+  "fr_remaining_untranslated": 0,
+  "total_json_keys": 641,
+  "files_changed": [
+    "messages/zh.json",
+    "messages/fr.json"
+  ],
+  "notes": [
+    "All 329 zh keys and 325 fr keys translated",
+    "Katakana middle dot (U+30FB) replaced with Chinese middle dot (U+00B7) in zh.json",
+    "JSON structure preserved, no overwrites of existing translations",
+    "Placeholders {name}, {count}, {min}, etc. maintained throughout"
+  ]
+}
