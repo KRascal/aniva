@@ -1,0 +1,52 @@
+{
+  "wave": "2-A+B",
+  "status": "complete",
+  "completedAt": "2026-03-16T01:25:00+09:00",
+  "tasks": {
+    "task1_story_chapter_editor": {
+      "status": "complete",
+      "newFiles": [
+        "src/components/admin/stories/StoryChapterEditor.tsx",
+        "src/app/api/admin/stories/[id]/route.ts"
+      ],
+      "modifiedFiles": [
+        "src/app/admin/stories/page.tsx"
+      ],
+      "notes": [
+        "StoryChapterEditor modal with: title/synopsis/triggerPrompt editing, background preset selector (schoolRooftop/bedroom/park/cafe/fantasy/beach/night_city/temple) + custom URL, BGM type selector (gentle_piano/dramatic/upbeat/silent/emotional/battle), character pose selector (normal/smile/thinking/serious/crying/angry), choices editor (text/consequence/nextTease/xpReward), coin reward, visibility settings",
+        "API route /api/admin/stories/[id] with GET/PATCH/DELETE",
+        "Modal opens when clicking chapter title cell in stories table, uses requireRole('editor') auth",
+        "Schema fields used: bgmType (existing), characterPose (existing), choices (existing Json?)"
+      ]
+    },
+    "task2_events_gui": {
+      "status": "complete",
+      "newFiles": [
+        "src/app/admin/events/page.tsx",
+        "src/app/api/admin/events/route.ts",
+        "src/app/api/admin/events/[id]/route.ts"
+      ],
+      "modifiedFiles": [
+        "src/app/admin/layout.tsx"
+      ],
+      "notes": [
+        "Events page with list + create/edit form",
+        "Fields: characterId, title, description, content, startsAt, endsAt, isActive",
+        "AI企画ボタン calls /api/admin/characters/ai-event-plan POST with characterId",
+        "Status badges: 開催中/開始前/終了/無効 based on time & isActive",
+        "LimitedScenario schema: no bannerImage or coinReward field exists — content field used for scenario text",
+        "Nav item added to キャラクター管理 section with IconSparkle icon",
+        "All APIs use requireRole('editor') auth"
+      ]
+    }
+  },
+  "tsErrors": 0,
+  "schemaUsed": {
+    "LimitedScenario": {
+      "fields": ["id", "characterId", "title", "description", "content", "startsAt", "endsAt", "isActive", "createdAt"]
+    },
+    "StoryChapter": {
+      "additionalFields": ["bgmType", "characterPose", "choices", "backgroundUrl", "coinReward"]
+    }
+  }
+}

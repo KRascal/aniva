@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import StoryChapterEditor, { StoryChapter as EditorChapter } from '@/components/admin/stories/StoryChapterEditor';
 
 interface Character {
   id: string;
@@ -49,6 +50,9 @@ export default function AdminStoriesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // ── StoryChapterEditor modal state ─────────────────────────────────────────
+  const [editorChapter, setEditorChapter] = useState<EditorChapter | null>(null);
 
   const fetchChapters = useCallback(async () => {
     setLoading(true);
@@ -396,9 +400,13 @@ export default function AdminStoriesPage() {
               <tbody className="divide-y divide-gray-700">
                 {chapters.map((chapter) => (
                   <tr key={chapter.id} className="hover:bg-gray-750 transition">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-white">{chapter.title}</div>
+                    <td
+                      className="px-4 py-3 cursor-pointer group"
+                      onClick={() => setEditorChapter(chapter as unknown as EditorChapter)}
+                    >
+                      <div className="font-medium text-white group-hover:text-violet-300 transition">{chapter.title}</div>
                       <div className="text-gray-400 text-xs truncate max-w-xs">{chapter.synopsis}</div>
+                      <div className="text-indigo-500 text-xs mt-0.5 opacity-0 group-hover:opacity-100 transition">🎨 演出を編集...</div>
                     </td>
                     <td className="px-4 py-3 text-gray-300">{chapter.character.name}</td>
                     <td className="px-4 py-3 text-center text-gray-300">{chapter.chapterNumber}</td>
@@ -446,6 +454,19 @@ export default function AdminStoriesPage() {
           </div>
         )}
       </div>
+
+      {/* StoryChapterEditor モーダル */}
+      {editorChapter && (
+        <StoryChapterEditor
+          chapter={editorChapter}
+          characters={characters}
+          onClose={() => setEditorChapter(null)}
+          onSaved={() => {
+            fetchChapters();
+            setEditorChapter(null);
+          }}
+        />
+      )}
     </div>
   );
 }

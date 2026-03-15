@@ -1,0 +1,47 @@
+{
+  "wave": "2-C+D",
+  "timestamp": "2026-03-16T01:20:00+09:00",
+  "status": "completed",
+  "tasks": {
+    "task1_economy_gui": {
+      "status": "done",
+      "files_created": [
+        "src/app/admin/economy/page.tsx",
+        "src/app/api/admin/economy/route.ts"
+      ],
+      "files_modified": [
+        "src/app/admin/layout.tsx"
+      ],
+      "description": "コイン経済バランス管理GUI。Redis永続化（Redisダウン時は環境変数フォールバック）。チャット/画像/深い会話/掛け合い/ガチャ単発・10連/FC会員特典の8項目を設定可能。変更プレビュー表示。super_admin権限のみ変更可能。ナビゲーションのコマースセクションに「コイン経済」リンク追加。"
+    },
+    "task2_animation_editor": {
+      "status": "done",
+      "files_created": [
+        "src/components/admin/gacha/GachaAnimationEditor.tsx"
+      ],
+      "description": "GachaAnimationEditorコンポーネント。animationType選択（standard/fire/flame/cursed/golden）、カラーピッカー+クイックスウォッチ、preRollConfig JSONエディタ（プリセット3種類）。既存のGachaBannerFormにインポートして使用可能な独立コンポーネントとして設計。"
+    },
+    "task3_card_edit_modal": {
+      "status": "done",
+      "files_created": [
+        "src/components/admin/gacha/GachaCardEditModal.tsx"
+      ],
+      "files_modified": [
+        "src/app/admin/gacha/page.tsx",
+        "src/app/api/admin/gacha/cards/route.ts"
+      ],
+      "description": "GachaCardEditModal。カード名/レアリティ/カテゴリ/キャラ/フランチャイズ/説明/画像URL×2/フレームタイプ/エフェクト設定を編集可能。PUT /api/admin/gacha/cardsで更新。ガチャページのカード一覧でクリックするとモーダルが開く。ESCキーで閉じる。"
+    }
+  },
+  "typescript": {
+    "errors": 0,
+    "checked": true
+  },
+  "design_notes": [
+    "全UIダークモード統一（#0a0a0f背景、white/5ホバー）",
+    "既存adminページのスタイルガイドに準拠（violet/pink gradient、rounded-xl、rgba borders）",
+    "RedisはIoRedisで接続、障害時はenv var/デフォルト値にフォールバック",
+    "Prismaスキーマ確認済み：unlockStoryIdはGachaCardに存在しないため除外",
+    "監査ログ統合済み（GACHA_CARD_UPDATEアクション使用）"
+  ]
+}
