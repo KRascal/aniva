@@ -6,13 +6,14 @@ import { useTranslations } from 'next-intl';
 
 /**
  * PWAインストール促進バナー
- * モバイルブラウザでアクセスしたユーザーにホーム画面追加を促す
+ * モバイルブラウザでアクセスしたユーザーにホーム画面追加と通知許可を促す
  */
 export function PWAInstallBanner() {
   const t = useTranslations('pwa');
   const [show, setShow] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
 
   useEffect(() => {
     // すでにPWAとして実行中なら表示しない
@@ -21,6 +22,11 @@ export function PWAInstallBanner() {
     // 24時間以内に閉じていたら表示しない
     const dismissed = localStorage.getItem('pwa-banner-dismissed');
     if (dismissed && Date.now() - parseInt(dismissed) < 86400000) return;
+
+    // 通知許可状態を取得
+    if ('Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
 
     // iOS判定
     const ua = navigator.userAgent;
@@ -45,11 +51,24 @@ export function PWAInstallBanner() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // 通知許可済みならバナー不要
+  if (notifPermission === 'granted') return null;
+
   const handleInstall = async () => {
     if (deferredPrompt && 'prompt' in deferredPrompt) {
       (deferredPrompt as { prompt: () => void }).prompt();
     }
     dismiss();
+  };
+
+  const handleEnableNotifications = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      if (permission === 'granted') {
+        setShow(false);
+      }
+    }
   };
 
   const dismiss = () => {
@@ -74,20 +93,33 @@ export function PWAInstallBanner() {
                 <span className="text-lg">✨</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold">{t('addToHome')}</p>
+                <p className="text-white text-sm font-semibold">
+                  {notifPermission === 'default' ? '推しからのメッセージを見逃さない' : t('addToHome')}
+                </p>
                 <p className="text-[var(--color-muted)] text-xs">
                   {isIOS ? t('iosGuide') : t('androidGuide')}
                 </p>
               </div>
-              {!isIOS && deferredPrompt && (
-                <button
-                  onClick={handleInstall}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white text-xs font-bold
-                             active:scale-95 transition-transform flex-shrink-0"
-                >
-                  {t('add')}
-                </button>
-              )}
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                {notifPermission === 'default' && (
+                  <button
+                    onClick={handleEnableNotifications}
+                    className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl text-white text-xs font-bold
+                               active:scale-95 transition-transform whitespace-nowrap"
+                  >
+                    通知を許可
+                  </button>
+                )}
+                {!isIOS && deferredPrompt && (
+                  <button
+                    onClick={handleInstall}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white text-xs font-bold
+                               active:scale-95 transition-transform"
+                  >
+                    {t('add')}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
