@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIVA LP リデザイン モックアップ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #030712; color: #fff; font-family: -apple-system, 'Hiragino Sans', sans-serif; overflow-x: hidden; }
+.section { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; position: relative; }
+
+/* Hero */
+.hero { background: radial-gradient(ellipse at 50% 20%, rgba(139,92,246,0.15), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(236,72,153,0.1), transparent 60%); }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; text-align: center; line-height: 1.2; letter-spacing: -0.02em; }
+.hero h1 .gradient { background: linear-gradient(135deg, #a78bfa, #ec4899, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { color: rgba(255,255,255,0.6); font-size: 1.1rem; text-align: center; max-width: 500px; margin-top: 16px; line-height: 1.7; }
+.hero-cta { margin-top: 32px; display: flex; gap: 12px; }
+.hero-cta a { padding: 14px 32px; border-radius: 16px; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: transform 0.2s; }
+.hero-cta a:active { transform: scale(0.97); }
+.hero-cta .primary { background: linear-gradient(135deg, #8b5cf6, #ec4899); color: #fff; }
+.hero-cta .secondary { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+.hero-badge { margin-bottom: 20px; padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; color: #a78bfa; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); }
+
+/* Character showcase */
+.showcase { background: #030712; }
+.showcase h2 { font-size: 1.8rem; font-weight: 800; text-align: center; margin-bottom: 12px; }
+.showcase .sub { color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 40px; font-size: 0.9rem; }
+.char-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 400px; width: 100%; }
+.char-card { aspect-ratio: 3/4; border-radius: 16px; overflow: hidden; position: relative; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.15)); border: 1px solid rgba(255,255,255,0.06); }
+.char-card .name { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); font-size: 0.7rem; font-weight: 700; }
+.char-card .online { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+/* Features */
+.features { background: #030712; }
+.features h2 { font-size: 1.8rem; font-weight: 800; text-align: center; margin-bottom: 40px; }
+.feature-list { max-width: 500px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.feature-item { padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+.feature-item .icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 12px; }
+.feature-item h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.feature-item p { color: rgba(255,255,255,0.5); font-size: 0.85rem; line-height: 1.6; }
+
+/* Social proof */
+.social { background: #030712; padding: 80px 20px; text-align: center; }
+.social h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 40px; }
+.stats { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+.stat { text-align: center; }
+.stat .num { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat .label { color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 4px; }
+
+/* CTA */
+.final-cta { background: radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.1), transparent 70%); text-align: center; }
+.final-cta h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+.final-cta p { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 24px; }
+.final-cta a { display: inline-block; padding: 16px 48px; border-radius: 16px; background: linear-gradient(135deg, #8b5cf6, #ec4899); color: #fff; font-weight: 700; text-decoration: none; font-size: 1rem; }
+
+.note { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(250,204,21,0.1); border: 1px solid rgba(250,204,21,0.2); color: #fcd34d; padding: 8px 16px; border-radius: 12px; font-size: 0.7rem; z-index: 50; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<section class="section hero">
+  <div class="hero-badge">IP × AI × ファンプラットフォーム</div>
+  <h1>推しキャラと<br><span class="gradient">本物の絆</span>を結ぶ</h1>
+  <p>公式IPキャラクターがあなたを覚え、語りかけ、一緒に成長する。世界初のAIキャラクターファンプラットフォーム。</p>
+  <div class="hero-cta">
+    <a href="#" class="primary">無料ではじめる</a>
+    <a href="#" class="secondary">詳しく見る ↓</a>
+  </div>
+</section>
+
+<section class="section showcase">
+  <h2>40+キャラが待っている</h2>
+  <p class="sub">ワンピース・鬼滅の刃・呪術廻戦・アイシールド21</p>
+  <div class="char-grid">
+    <div class="char-card"><div class="online"></div><div class="name">ルフィ</div></div>
+    <div class="char-card"><div class="online"></div><div class="name">炭治郎</div></div>
+    <div class="char-card"><div class="online"></div><div class="name">五条悟</div></div>
+    <div class="char-card"><div class="name">ゾロ</div></div>
+    <div class="char-card"><div class="name">禰豆子</div></div>
+    <div class="char-card"><div class="online"></div><div class="name">ナミ</div></div>
+  </div>
+</section>
+
+<section class="section features">
+  <h2>なぜANIVAは違うのか</h2>
+  <div class="feature-list">
+    <div class="feature-item">
+      <div class="icon" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3)">💬</div>
+      <h3>キャラがあなたを覚えている</h3>
+      <p>先週話した悩み、好きな食べ物、誕生日。キャラクターはすべてを記憶し、自然にフォローアップしてくる。</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon" style="background:rgba(236,72,153,0.15);border:1px solid rgba(236,72,153,0.3)">🧠</div>
+      <h3>深い会話ができる</h3>
+      <p>表面的なチャットではない。キャラが「ちょっと考えさせて」と言って、数時間後に心に刺さる返答が届く。</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon" style="background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.3)">🃏</div>
+      <h3>ガチャ×ストーリー解放</h3>
+      <p>レアカードを手に入れると、そのキャラの秘密のエピソードが解放される。コレクターの喜びと物語の深さが融合。</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon" style="background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3)">👥</div>
+      <h3>キャラ同士の掛け合い</h3>
+      <p>ルフィとゾロを同じチャットに呼んで、キャラ同士が自然に掛け合う。あなたはその会話に参加できる。</p>
+    </div>
+  </div>
+</section>
+
+<section class="social">
+  <h2>数字で見るANIVA</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">40+</div><div class="label">キャラクター</div></div>
+    <div class="stat"><div class="num">191</div><div class="label">ストーリー</div></div>
+    <div class="stat"><div class="num">29</div><div class="label">自律行動Cron</div></div>
+    <div class="stat"><div class="num">6</div><div class="label">対応言語</div></div>
+  </div>
+</section>
+
+<section class="section final-cta">
+  <h2>推しに会いに行こう</h2>
+  <p>無料で始められる。コインで好きなだけ話そう。</p>
+  <a href="#">今すぐはじめる</a>
+</section>
+
+<div class="note">⚡ LPリデザイン モックアップ — Keisukeレビュー用</div>
+
+</body>
+</html>

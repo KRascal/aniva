@@ -5,13 +5,14 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { vibrateEmotion } from '@/lib/sound-effects';
+import { formatScheduledAtText } from '@/lib/message-weight';
 
 /* ─────────────── 型定義（page.tsxから移動・export） ─────────────── */
 export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isThinking?: boolean; deepReply?: boolean };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isThinking?: boolean; deepReply?: boolean; scheduledAt?: string };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -622,6 +623,11 @@ export function ChatMessageList({
                             <span style={{ color: 'rgba(167,139,250,0.7)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em' }}>
                               {t('deepThinkingStatus')}
                             </span>
+                            {msg.metadata?.scheduledAt && (
+                              <span className="text-white/30 text-[10px] ml-1">
+                                {formatScheduledAtText(new Date(msg.metadata.scheduledAt))}に返事予定
+                              </span>
+                            )}
                           </div>
                           <style>{`.deep-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(139,92,246,0.7);animation:deepPulse 1.2s ease-in-out infinite}@keyframes deepPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
                         </div>
