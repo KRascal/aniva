@@ -158,78 +158,137 @@ const IconChevronRight = () => (
   </svg>
 );
 
+const IconHeart = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+  </svg>
+);
+
+const IconFlag = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+  </svg>
+);
+
+const IconClock = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+);
+
+const IconGlobe = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253M3.157 7.582A8.959 8.959 0 0 0 3 12c0 .778.099 1.533.284 2.253" />
+  </svg>
+);
+
 // ─── Nav Config ────────────────────────────────────────────────────────────
+
+// ロール階層: super_admin > ip_admin > editor > viewer
+const ROLE_LEVEL: Record<string, number> = { super_admin: 100, ip_admin: 50, editor: 30, viewer: 10 };
+function hasMinRole(userRole: string, minRole: string): boolean {
+  return (ROLE_LEVEL[userRole] ?? 0) >= (ROLE_LEVEL[minRole] ?? 0);
+}
 
 const NAV_SECTIONS = [
   {
     id: 'home',
     label: null,
     items: [
-      { href: '/admin', label: 'ダッシュボード', icon: <IconDashboard />, exact: true },
+      { href: '/admin', label: 'ダッシュボード', icon: <IconDashboard />, exact: true, minRole: 'viewer' },
     ],
   },
   {
     id: 'characters',
     label: 'キャラクター管理',
     collapsible: true,
+    minRole: 'editor',
     items: [
-      { href: '/admin/characters', label: 'キャラクター一覧', icon: <IconCharacter /> },
-      { href: '/admin/moments', label: 'モーメンツ', icon: <IconCamera /> },
-      { href: '/admin/stories', label: 'ストーリーズ', icon: <IconBook /> },
-      { href: '/admin/scenarios', label: '限定シナリオ', icon: <IconSparkle /> },
-      { href: '/admin/lore', label: 'ローアブック', icon: <IconBook /> },
-      { href: '/admin/letters', label: '手紙管理', icon: <IconMail /> },
-      { href: '/admin/notifications', label: '通知配信', icon: <IconBell /> },
+      { href: '/admin/characters', label: 'キャラクター一覧', icon: <IconCharacter />, minRole: 'editor' },
+      { href: '/admin/auto-posts', label: '自律投稿設定', icon: <IconSparkle />, minRole: 'editor' },
+      { href: '/admin/moments', label: 'モーメンツ', icon: <IconCamera />, minRole: 'editor' },
+      { href: '/admin/stories', label: 'ストーリーズ', icon: <IconBook />, minRole: 'editor' },
+      { href: '/admin/events', label: 'イベント管理', icon: <IconSparkle />, minRole: 'editor' },
+      { href: '/admin/scenarios', label: '限定シナリオ', icon: <IconSparkle />, minRole: 'editor' },
+      { href: '/admin/lore', label: 'ローアブック', icon: <IconBook />, minRole: 'editor' },
+      { href: '/admin/letters', label: '手紙管理', icon: <IconMail />, minRole: 'editor' },
+      { href: '/admin/notifications', label: '通知配信', icon: <IconBell />, minRole: 'editor' },
     ],
   },
   {
     id: 'commerce',
     label: 'コマース',
     collapsible: true,
+    minRole: 'editor',
     items: [
-      { href: '/admin/gacha', label: 'ガチャ', icon: <IconDice /> },
-      { href: '/admin/shop', label: 'ショップ', icon: <IconShop /> },
-      { href: '/admin/coins', label: 'コインパッケージ', icon: <IconCoin /> },
-      { href: '/admin/downloadable-content', label: '限定DL', icon: <IconDownload /> },
+      { href: '/admin/gacha', label: 'ガチャ', icon: <IconDice />, minRole: 'editor' },
+      { href: '/admin/shop', label: 'ショップ', icon: <IconShop />, minRole: 'editor' },
+      { href: '/admin/coins', label: 'コインパッケージ', icon: <IconCoin />, minRole: 'super_admin' },
+      { href: '/admin/economy', label: 'コイン経済', icon: <IconCoin />, minRole: 'super_admin' },
+      { href: '/admin/downloadable-content', label: '限定DL', icon: <IconDownload />, minRole: 'editor' },
     ],
   },
   {
     id: 'ip',
     label: 'IP管理',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/approvals', label: '監修・承認', icon: <IconCheckBadge /> },
-      { href: '/admin/guardrails', label: 'ガードレール', icon: <IconShield /> },
-      { href: '/admin/contracts', label: '契約管理', icon: <IconDocument /> },
+      { href: '/admin/approvals', label: '監修・承認', icon: <IconCheckBadge />, minRole: 'editor' },
+      { href: '/admin/guardrails', label: 'ガードレール', icon: <IconShield />, minRole: 'super_admin' },
+      { href: '/admin/contracts', label: '契約管理', icon: <IconDocument />, minRole: 'ip_admin' },
     ],
   },
   {
     id: 'revenue',
     label: '収益・IP',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/revenue', label: '収益ダッシュボード', icon: <IconCurrencyYen /> },
-      { href: '/admin/ip-dashboard', label: 'IPダッシュボード', icon: <IconBriefcase /> },
+      { href: '/admin/revenue', label: '収益ダッシュボード', icon: <IconCurrencyYen />, minRole: 'ip_admin' },
+      { href: '/admin/ip-dashboard', label: 'IPダッシュボード', icon: <IconBriefcase />, minRole: 'ip_admin' },
     ],
   },
   {
     id: 'analytics',
     label: '分析・運営',
     collapsible: true,
+    minRole: 'ip_admin',
     items: [
-      { href: '/admin/analytics', label: '分析', icon: <IconChart /> },
-      { href: '/admin/addiction', label: '中毒設計', icon: <IconBeaker /> },
-      { href: '/admin/users', label: 'ユーザー', icon: <IconUsers /> },
-      { href: '/admin/polls', label: '投票管理', icon: <IconPoll /> },
-      { href: '/admin/feedback', label: 'フィードバック', icon: <IconChat /> },
+      { href: '/admin/analytics', label: '分析', icon: <IconChart />, minRole: 'ip_admin' },
+      { href: '/admin/addiction', label: '中毒設計', icon: <IconBeaker />, minRole: 'super_admin' },
+      { href: '/admin/users', label: 'ユーザー', icon: <IconUsers />, minRole: 'super_admin' },
+      { href: '/admin/polls', label: '投票管理', icon: <IconPoll />, minRole: 'editor' },
+      { href: '/admin/feedback', label: 'フィードバック', icon: <IconChat />, minRole: 'ip_admin' },
+      { href: '/admin/audit-log', label: '監査ログ', icon: <IconDocument />, minRole: 'super_admin' },
+      { href: '/admin/chat-monitor', label: 'チャットモニター', icon: <IconChat />, minRole: 'super_admin' },
+      { href: '/admin/user-lifecycle', label: 'ユーザーライフサイクル', icon: <IconUsers />, minRole: 'super_admin' },
+      { href: '/admin/export', label: 'データエクスポート', icon: <IconDownload />, minRole: 'super_admin' },
+    ],
+  },
+  {
+    id: 'calendar',
+    label: 'スケジュール',
+    collapsible: true,
+    minRole: 'editor',
+    items: [
+      { href: '/admin/calendar', label: 'コンテンツカレンダー', icon: <IconSparkle />, minRole: 'editor' },
     ],
   },
   {
     id: 'system',
     label: 'システム',
     collapsible: true,
+    minRole: 'super_admin',
     items: [
-      { href: '/admin/tenants', label: 'テナント管理', icon: <IconBuilding /> },
+      { href: '/admin/tenants', label: 'テナント管理', icon: <IconBuilding />, minRole: 'super_admin' },
+      { href: '/admin/onboarding', label: 'IPオンボーディング', icon: <IconGlobe />, minRole: 'super_admin' },
+      { href: '/admin/health', label: 'ヘルスモニター', icon: <IconHeart />, minRole: 'super_admin' },
+      { href: '/admin/crons', label: 'Cron制御', icon: <IconClock />, minRole: 'super_admin' },
+      { href: '/admin/reports-management', label: '通報管理', icon: <IconFlag />, minRole: 'super_admin' },
+      { href: '/admin/community', label: 'コミュニティ管理', icon: <IconChat />, minRole: 'super_admin' },
+      { href: '/admin/i18n', label: '多言語管理', icon: <IconGlobe />, minRole: 'editor' },
+      { href: '/admin/media', label: 'メディア管理', icon: <IconCamera />, minRole: 'editor' },
     ],
   },
 ];
@@ -339,6 +398,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRole, setAdminRole] = useState<string>('viewer');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -346,12 +406,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login');
       return;
     }
-    fetch('/api/admin/stats', { method: 'GET' })
-      .then((r) => {
-        setIsAdmin(r.status !== 403);
-        setAdminChecked(true);
-      })
-      .catch(() => setAdminChecked(true));
+    // 権限チェック + ロール取得
+    Promise.all([
+      fetch('/api/admin/stats', { method: 'GET' }),
+      fetch('/api/admin/auth-context').then(r => r.ok ? r.json() : null),
+    ]).then(([statsRes, authCtx]) => {
+      setIsAdmin(statsRes.status !== 403);
+      if (authCtx?.role) setAdminRole(authCtx.role);
+      setAdminChecked(true);
+    }).catch(() => setAdminChecked(true));
   }, [session, status, router]);
 
   if (status === 'loading' || !adminChecked) {
@@ -463,7 +526,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS
+            .filter((section) => !section.minRole || hasMinRole(adminRole, section.minRole))
+            .map((section) => ({
+              ...section,
+              items: section.items.filter((item) => !item.minRole || hasMinRole(adminRole, item.minRole)),
+            }))
+            .filter((section) => section.items.length > 0)
+            .map((section) => (
             <NavSection
               key={section.id}
               section={section}

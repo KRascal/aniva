@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 import { invalidate } from '@/lib/cache';
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const characters = await prisma.character.findMany({
     select: {
@@ -56,8 +56,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const {
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     logger.warn('[admin/characters] SOUL.md generation failed:', e);
   }
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_CREATE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_CREATE, ctx.email, {
     characterId: character.id, name, slug, franchise,
   });
 
@@ -141,8 +141,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const { id, ...data } = body;
@@ -212,7 +212,7 @@ export async function PUT(req: NextRequest) {
     isActive !== undefined && Object.keys(data).length <= 2
       ? ADMIN_AUDIT_ACTIONS.CHARACTER_TOGGLE_ACTIVE
       : ADMIN_AUDIT_ACTIONS.CHARACTER_UPDATE,
-    admin.email,
+    ctx.email,
     { characterId: id, ...changes }
   );
 
@@ -225,8 +225,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
@@ -235,7 +235,7 @@ export async function DELETE(req: NextRequest) {
   const char = await prisma.character.findUnique({ where: { id }, select: { name: true, slug: true } });
   await prisma.character.delete({ where: { id } });
 
-  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_DELETE, admin.email, {
+  await adminAudit(ADMIN_AUDIT_ACTIONS.CHARACTER_DELETE, ctx.email, {
     characterId: id, name: char?.name, slug: char?.slug,
   });
 

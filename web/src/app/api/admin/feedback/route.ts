@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/admin/feedback?status=xxx&type=xxx
 export async function GET(req: NextRequest) {
+  const ctx = await requireRole('ip_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
   const type = searchParams.get('type');

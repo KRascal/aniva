@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
@@ -17,8 +17,8 @@ const VALID_STATUSES = ['pending', 'reviewed', 'resolved', 'dismissed'];
  */
 export async function GET(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) {
+    const ctx = await requireRole('editor');
+    if (!ctx) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       prisma.report.count({ where }),
     ]);
 
-    logger.info('Admin: reports fetched', { adminId: admin.id, total, status, targetType });
+    logger.info('Admin: reports fetched', { adminId: ctx.id, total, status, targetType });
 
     return NextResponse.json({
       reports,

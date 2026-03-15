@@ -1,0 +1,66 @@
+{
+  "wave": 3,
+  "completedAt": "2026-03-16T01:27:00+09:00",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "IPオンボーディングウィザードGUI",
+      "status": "done",
+      "files": [
+        "src/app/admin/onboarding/page.tsx"
+      ],
+      "notes": "5ステップウィザード実装。Step1:IPホルダー情報, Step2:キャラ入力, Step3:AI生成確認, Step4:プレビュー編集, Step5:確定登録。/api/admin/onboarding/ip にPOST。"
+    },
+    {
+      "id": 2,
+      "name": "ヘルスモニター画面",
+      "status": "done",
+      "files": [
+        "src/app/admin/health/page.tsx",
+        "src/app/api/admin/health/route.ts"
+      ],
+      "notes": "DB/Redis/APIレスポンス速度/メモリ/CPU/稼働時間を表示。30秒自動更新。requireRole('super_admin')。サイドバーに追加済み。"
+    },
+    {
+      "id": 3,
+      "name": "通報管理GUI",
+      "status": "done",
+      "files": [
+        "src/app/admin/reports-management/page.tsx"
+      ],
+      "notes": "Reportテーブル一覧。status/targetTypeフィルタ。確認済み・対応完了・無視ボタン。詳細サイドパネル。既存API /api/admin/reports/[id] (PATCH) 使用。"
+    },
+    {
+      "id": 4,
+      "name": "Cron制御パネル",
+      "status": "done",
+      "files": [
+        "src/app/admin/crons/page.tsx",
+        "src/app/api/admin/crons/route.ts"
+      ],
+      "notes": "29cronジョブ一覧。ON/OFFはRedis cron:{name}:disabled フラグ。最終実行時刻はRedis cron:{name}:lastRun から取得。検索・フィルタ付き。"
+    },
+    {
+      "id": 5,
+      "name": "コミュニティ管理GUI",
+      "status": "done",
+      "files": [
+        "src/app/admin/community/page.tsx",
+        "src/app/api/admin/community/route.ts"
+      ],
+      "notes": "FanThread/FanReply一覧。削除ボタン（確認モーダル付き）。ピン留め切替。通報フラグフィルタ（Reportテーブル照合）。"
+    }
+  ],
+  "sidebar": {
+    "section": "システム",
+    "addedItems": [
+      { "href": "/admin/onboarding", "label": "IPオンボーディング", "icon": "IconGlobe", "minRole": "super_admin" },
+      { "href": "/admin/health", "label": "ヘルスモニター", "icon": "IconHeart", "minRole": "super_admin" },
+      { "href": "/admin/crons", "label": "Cron制御", "icon": "IconClock", "minRole": "super_admin" },
+      { "href": "/admin/reports-management", "label": "通報管理", "icon": "IconFlag", "minRole": "super_admin" },
+      { "href": "/admin/community", "label": "コミュニティ管理", "icon": "IconChat", "minRole": "super_admin" }
+    ]
+  },
+  "newIcons": ["IconHeart", "IconFlag", "IconClock", "IconGlobe"],
+  "authPattern": "requireRole('super_admin') in all API routes"
+}

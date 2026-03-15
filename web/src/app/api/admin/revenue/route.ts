@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  const ctx = await requireRole('ip_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   try {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);

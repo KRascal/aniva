@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 
 export async function GET(_req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const [packages, total] = await prisma.$transaction([
@@ -24,8 +24,8 @@ export async function GET(_req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_CREATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_CREATE, ctx.email, {
       packageId: pkg.id, name, coinAmount: Number(coinAmount),
     });
 
@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -88,7 +88,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_UPDATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_UPDATE, ctx.email, {
       packageId: id,
     });
 
@@ -100,8 +100,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('super_admin');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const { searchParams } = new URL(req.url);
@@ -110,7 +110,7 @@ export async function DELETE(req: NextRequest) {
 
     await prisma.coinPackage.delete({ where: { id } });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_DELETE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.COIN_PACKAGE_DELETE, ctx.email, {
       packageId: id,
     });
 

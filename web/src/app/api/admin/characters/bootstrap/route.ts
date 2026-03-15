@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 
 const XAI_URL = 'https://api.x.ai/v1/chat/completions';
@@ -45,8 +45,8 @@ function parseJSON(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { characterId } = await req.json();
   if (!characterId) return NextResponse.json({ error: 'characterId required' }, { status: 400 });

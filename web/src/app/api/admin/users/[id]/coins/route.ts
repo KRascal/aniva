@@ -3,7 +3,7 @@
  * 管理者がユーザーにコインを付与/減算する
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
@@ -13,8 +13,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const ctx = await requireRole('super_admin');
+    if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { amount, type = 'free', note } = await req.json() as {
       amount: number;
@@ -70,7 +70,7 @@ export async function POST(
 
     const updated = await prisma.coinBalance.findUnique({ where: { userId } });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.USER_COIN_GRANT, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.USER_COIN_GRANT, ctx.email, {
       userId, amount, type, note,
     });
 

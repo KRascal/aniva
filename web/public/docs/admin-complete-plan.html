@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIVA 管理画面完全版 実装計画</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, 'Hiragino Sans', sans-serif; line-height: 1.7; padding: 20px; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.8rem; margin: 40px 0 16px; color: #fff; border-bottom: 1px solid rgba(139,92,246,0.3); padding-bottom: 8px; }
+h2 { font-size: 1.4rem; margin: 32px 0 12px; color: #a78bfa; }
+h3 { font-size: 1.1rem; margin: 24px 0 8px; color: #c4b5fd; }
+h4 { font-size: 1rem; margin: 20px 0 8px; color: #ddd6fe; }
+p { margin: 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }
+th, td { padding: 8px 12px; border: 1px solid rgba(255,255,255,0.08); text-align: left; }
+th { background: rgba(139,92,246,0.1); color: #c4b5fd; }
+tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+code { background: rgba(139,92,246,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #c4b5fd; }
+pre { background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; overflow-x: auto; margin: 12px 0; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.06); }
+blockquote { border-left: 3px solid rgba(139,92,246,0.4); padding-left: 16px; margin: 12px 0; color: rgba(255,255,255,0.6); }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 4px 0; }
+strong { color: #fff; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; }
+.note { background: rgba(250,204,21,0.1); border: 1px solid rgba(250,204,21,0.2); color: #fcd34d; padding: 12px 16px; border-radius: 12px; margin: 16px 0; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="note">設計書レビュー用 — Keisuke確認後にWave 1から実装開始</div>
+<h1>ANIVA 管理画面完全版 実装計画</h1>
+
+<blockquote>作成日: 2026-03-16  </blockquote>
+<blockquote>対象ディレクトリ: <code>/home/openclaw/.openclaw/workspace/aniva/web</code>  </blockquote>
+<blockquote>設計方針: 既存コードを壊さず疎結合。各Waveが独立デプロイ可能。</blockquote>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>現状の既存コード確認結果</h2>
+
+<h3>AdminUserスキーマ（prisma/schema.prisma）</h3>
+<pre>model AdminUser {
+<p>  id          String    @id @default(uuid())</p>
+<p>  email       String    @unique</p>
+<p>  name        String</p>
+<p>  role        String    @default("viewer") // super_admin | ip_admin | editor | viewer</p>
+<p>  tenantId    String?</p>
+<p>  tenant      Tenant?   @relation(fields: [tenantId], references: [id])</p>
+<p>  isActive    Boolean   @default(true)</p>
+<p>  lastLoginAt DateTime?</p>
+<p>  createdAt   DateTime  @default(now())</p>
+<p>  updatedAt   DateTime  @updatedAt</p>
+
+<p>  approvalActions  ApprovalAction[]</p>
+<p>  approvalRequests ApprovalRequest[]</p>
+<p>  auditLogs        AdminAuditLog[]</p>
+<p>}</p>
+</pre>
+
+<h3>認証ライブラリ現状</h3>
+<li><code>src/lib/admin.ts</code> — 旧方式。<code>ADMIN_EMAILS</code>環境変数による<code>requireAdmin()</code></li>
+<li><code>src/lib/rbac.ts</code> — 新方式（既に実装済み）。<code>requireRole(minRole)</code>が存在</li>
+<li>ロール定義: <code>super_admin(100) > ip_admin(50) > editor(30) > viewer(10)</code></li>
+<li><code>tenantScope()</code>, <code>canAccessCharacter()</code> も既に実装済み</li>
+
+<h3>APIの認証方式の現状</h3>
+<li><strong>141本のAPIルートのうち141本が<code>requireAdmin()</code>（旧方式）を使用</strong></li>
+<li><code>requireRole()</code>を使っているのは<code>tenants/[id]/members</code> と <code>auth-context</code> のみ</li>
+<li><code>revenue/route.ts</code> は認証なし（！要修正）</li>
+
+<h3>管理画面UIの現状</h3>
+<li><code>src/app/admin/layout.tsx</code> — クライアントコンポーネント、サイドバー構造</li>
+<li><code>src/app/admin/characters/page.tsx</code> — CharacterTable + CharacterWizard + CharacterEditModal</li>
+<li><code>src/components/admin/characters/</code> — 14ファイル（BasicSettingsTab, CharacterTable, CharacterWizard等）</li>
+<li><code>src/app/admin/characters/[id]/bible/</code> — Soul/Quotes/Boundaries/Voice の4タブ（既実装）</li>
+
+<h3>既存AI生成エンドポイント</h3>
+<li><code>/api/admin/characters/generate-soul</code> — claude-opus-4-5 で Soul/Voice/Boundaries生成（requireAdminのみ）</li>
+<li><code>/api/admin/characters/[id]/ai-enrich</code> — 人格深掘り（旧認証方式）</li>
+<li><code>/api/admin/characters/generate-secrets</code> — シークレット生成</li>
+<li><code>/api/admin/characters/generate-moments</code> — 瞬間生成</li>
+<li><code>/api/admin/characters/generate-story</code> — ストーリー生成</li>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>1. 権限モデル設計</h2>
+
+<h3>1.1 ロール体系（Keisuke要件→既存に対応）</h3>
+
+<p>| Keisuke要件 | 既存ロール | 説明 |</p>
+<p>|---|---|---|</p>
+<p>| SUPER_ADMIN | <code>super_admin</code> | K-Rascal運営。全データ閲覧/編集可 |</p>
+<p>| IP_ADMIN | <code>ip_admin</code> | IPホルダー。自テナントのキャラのみ。ユーザー個人情報不可 |</p>
+<p>| CONTENT_ADMIN | <code>editor</code> | コンテンツ担当。キャラ設定/ストーリー/ガチャ編集のみ |</p>
+<p>| （監視専用）| <code>viewer</code> | 読み取りのみ |</p>
+
+<strong>既存の<code>role</code>カラムのvaluesに<code>content_admin</code>は不要。<code>editor</code>がCONTENT_ADMINに対応する。</strong>
+
+<h3>1.2 DBスキーマ変更（なし）</h3>
+
+<p>既存の<code>AdminUser.role</code>は<code>String</code>型で十分。値は<code>super_admin | ip_admin | editor | viewer</code>のまま。</p>
+<code>content_admin</code>という新ロールは導入せず、<code>editor</code>に統一する。
+
+<h3>1.3 アクセス制御マトリクス</h3>
+
+<p>| APIエンドポイント | super_admin | ip_admin | editor | viewer |</p>
+<p>|---|---|---|---|---|</p>
+<p>| <code>/api/admin/users</code> | ✅ 全件 | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/users/[id]</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/revenue</code> | ✅ | ✅（テナント匿名集計のみ） | ❌ | ❌ |</p>
+<p>| <code>/api/admin/analytics</code> | ✅ | ✅（テナントスコープ） | ❌ | ❌ |</p>
+<p>| <code>/api/admin/characters</code> | ✅ | ✅（自テナントのみ） | ✅（自テナントのみ） | ✅（読み取り） |</p>
+<p>| <code>/api/admin/stories</code> | ✅ | ✅（自テナント） | ✅（自テナント） | ❌ |</p>
+<p>| <code>/api/admin/gacha</code> | ✅ | ✅（自テナント） | ✅（自テナント） | ❌ |</p>
+<p>| <code>/api/admin/scenarios</code> | ✅ | ✅（自テナント） | ✅（自テナント） | ❌ |</p>
+<p>| <code>/api/admin/coins</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/contracts</code> | ✅ | ✅（自テナント） | ❌ | ❌ |</p>
+<p>| <code>/api/admin/tenants</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/guardrails</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/emergency-stop</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/audit-log</code> | ✅ | ❌ | ❌ | ❌ |</p>
+<p>| <code>/api/admin/addiction</code> | ✅ | ❌ | ❌ | ❌ |</p>
+
+<h3>1.4 ミドルウェア設計</h3>
+
+<code>src/lib/rbac.ts</code>を拡張する。新規追加関数:
+
+<pre>// src/lib/rbac.ts に追加
+
+<p>/**</p>
+<p> * IP_ADMINがユーザー個人情報にアクセスしようとした場合にブロック</p>
+<p> * 呼び出しパターン: const ctx = await requireRoleAndDenyUserData('ip_admin')</p>
+<p> */</p>
+<p>export function blockUserDataForNonSuperAdmin(ctx: AdminContext): boolean {</p>
+<p>  return ctx.role !== 'super_admin';</p>
+<p>}</p>
+
+<p>/**</p>
+<p> * revenue APIをip_admin向けに匿名集計に変換するスコープ</p>
+<p> * super_adminは全テナント生データ、ip_adminはテナント匿名集計のみ</p>
+<p> */</p>
+<p>export function revenueScope(ctx: AdminContext): {</p>
+<p>  restrictToTenant: string | null;</p>
+<p>  anonymize: boolean;</p>
+<p>} {</p>
+<p>  if (ctx.role === 'super_admin') return { restrictToTenant: null, anonymize: false };</p>
+<p>  return { restrictToTenant: ctx.tenantId, anonymize: true };</p>
+<p>}</p>
+</pre>
+
+<h3>1.5 既存APIの認証マイグレーション方針</h3>
+
+<p>141本の<code>requireAdmin()</code>を<code>requireRole()</code>に置き換える。<strong>Wave 1で全部やる。</strong></p>
+
+<p>マイグレーションパターン（コピペ可能）:</p>
+
+<pre>// Before（旧方式）:
+<p>const admin = await requireAdmin();</p>
+<p>if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });</p>
+
+<p>// After（新方式）:</p>
+<p>const ctx = await requireRole('super_admin'); // または適切なロール</p>
+<p>if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });</p>
+<p>// テナントスコープが必要な場合:</p>
+<p>const scope = tenantScope(ctx);  // { tenantId?: string }</p>
+</pre>
+
+<h3>1.6 サイドバーのロール別表示制御</h3>
+
+<code>src/app/admin/layout.tsx</code>を改修。<code>/api/admin/auth-context</code>から取得したroleに基づきメニュー項目を表示/非表示。
+
+<pre>// layout.tsx の useEffect 内で取得済みの authContext を参照
+<p>const isSuperAdmin = authContext?.role === 'super_admin';</p>
+<p>const isIpAdmin = authContext?.role === 'ip_admin';</p>
+<p>const isEditor = authContext?.role === 'editor';</p>
+
+<p>// 非表示にするメニュー項目:</p>
+<p>// - Users → super_admin のみ</p>
+<p>// - Coins → super_admin のみ  </p>
+<p>// - Guardrails → super_admin のみ</p>
+<p>// - AuditLog → super_admin のみ</p>
+<p>// - Tenants → super_admin のみ</p>
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>2. AI自動化レイヤー設計</h2>
+
+<h3>2.1 キャラ設定自動生成API（新規）</h3>
+
+<strong>エンドポイント:</strong> <code>POST /api/admin/characters/ai-generate</code>  
+<strong>ファイル:</strong> <code>src/app/api/admin/characters/ai-generate/route.ts</code>  
+<strong>使用モデル:</strong> <code>claude-opus-4-6</code>（Keisuke指示: Opus級）
+
+<strong>入力:</strong>
+<pre>{
+<p>  characterName: string;    // キャラ名（例: "佐倉綾音"）</p>
+<p>  franchiseName: string;    // 作品名（例: "恋愛アドベンチャー学園"）</p>
+<p>  brief?: string;           // 補足説明（省略可）</p>
+<p>  saveImmediately?: boolean; // trueなら即座にDBに保存（デフォルト: false）</p>
+<p>  characterId?: string;      // 既存キャラに紐付ける場合</p>
+<p>}</p>
+</pre>
+
+<strong>Claudeへのプロンプト設計:</strong>
+<pre>あなたはアニメ/ゲームキャラクターの人格設計の専門家です。
+<p>キャラクター「{characterName}」（作品: {franchiseName}）の完全な人格設定を生成してください。</p>
+
+<p>以下のJSON構造で返答してください:</p>
+<p>{</p>
+<p>  "coreIdentity": "何者かの1行定義（例: 表向きクールだが実は寂しがり屋の生徒会長）",</p>
+<p>  "motivation": "行動原理・動機（200文字）",</p>
+<p>  "worldview": "世界観・価値観（200文字）",</p>
+<p>  "systemPrompt": "LLMに渡すsystem prompt（800文字）",</p>
+<p>  "emotionalPatterns": {</p>
+<p>    "triggers": [</p>
+<p>      { "stimulus": "恋愛の話題", "response": "照れて早口になる", "intensity": 8 },</p>
+<p>      ...5件</p>
+<p>    ],</p>
+<p>    "avoidances": [</p>
+<p>      { "topic": "過去の失恋", "reason": "トラウマ", "deflection": "話題を変えようとする" },</p>
+<p>      ...3件</p>
+<p>    ]</p>
+<p>  },</p>
+<p>  "voice": {</p>
+<p>    "firstPerson": "私",</p>
+<p>    "secondPerson": "あなた",</p>
+<p>    "sentenceEndings": ["〜ですわ", "〜かしら", "〜ね"],</p>
+<p>    "exclamations": ["まあ！", "いやね"],</p>
+<p>    "toneRules": "丁寧語ベース。親しくなると語尾が崩れる。怒ると標準語になる。"</p>
+<p>  },</p>
+<p>  "boundaries": [</p>
+<p>    { "rule": "実在人物を傷つける発言は絶対にしない", "category": "behavior", "severity": "hard" },</p>
+<p>    ...3件</p>
+<p>  ],</p>
+<p>  "loreMemories": [</p>
+<p>    { "title": "第1話：出会いのシーン", "content": "...", "importance": 9 },</p>
+<p>    ...5件</p>
+<p>  ],</p>
+<p>  "relationships": {</p>
+<p>    "ライバルの田中": "表向き対立しているが内心は認めている",</p>
+<p>    ...</p>
+<p>  },</p>
+<p>  "famousQuotes": [</p>
+<p>    { "quote": "「私は負けないわ、絶対に」", "context": "試合前の名シーン", "emotion": "determined" },</p>
+<p>    ...5件</p>
+<p>  ],</p>
+<p>  "qualityScore": 85</p>
+<p>}</p>
+</pre>
+
+<strong>出力処理:</strong>
+<p>1. Claudeのレスポンスをパース</p>
+<p>2. <code>saveImmediately: true</code> の場合:</p>
+<p>   - <code>CharacterSoul</code>をupsert（coreIdentity, motivation, worldview, emotionalPatterns, relationshipMap）</p>
+<p>   - <code>CharacterVoice</code>をupsert（firstPerson, secondPerson, sentenceEndings等）</p>
+<p>   - <code>CharacterBoundary</code>をcreateMany（既存は削除してから再作成）</p>
+<p>   - <code>CharacterQuote</code>をcreateMany（famousQuotes → quotes）</p>
+<p>   - <code>Character.systemPrompt</code>を更新</p>
+<p>3. レスポンスにgenerated dataと保存結果を返す</p>
+
+<strong>権限:</strong> <code>requireRole('editor')</code> — editor以上ならAI生成可能
+
+<h3>2.2 ストーリー自動生成強化</h3>
+
+<strong>既存エンドポイント:</strong> <code>POST /api/admin/characters/generate-story</code>（既存ファイル修正）
+
+<strong>追加するフィールド（演出パラメータ）:</strong>
+<pre>// 既存のストーリー生成レスポンスに追加
+<p>"stagingProposals": {</p>
+<p>  "background": "schoolRooftop", // 背景ID候補</p>
+<p>  "bgm": "gentle_piano",         // BGM候補</p>
+<p>  "poses": ["thinking", "smile"], // キャラクターポーズ候補</p>
+<p>  "effectSuggestion": "桜吹雪エフェクト"</p>
+<p>}</p>
+</pre>
+
+<strong>Claudeプロンプトへの追加指示:</strong>
+<pre>さらに、このシーンに最適な演出パラメータをJSON形式で提案してください:
+<li>background: schoolRooftop | bedroom | park | cafe | fantasy などの背景ID</li>
+<li>bgm: gentle_piano | dramatic | upbeat | silent などのBGMタイプ</li>
+<li>poses: キャラクターの状態（2個まで）</li>
+<li>effectSuggestion: 特殊エフェクトの提案（任意）</li>
+</pre>
+
+<h3>2.3 イベント自動企画API（新規）</h3>
+
+<strong>エンドポイント:</strong> <code>POST /api/admin/characters/ai-event-plan</code>  
+<strong>ファイル:</strong> <code>src/app/api/admin/characters/ai-event-plan/route.ts</code>
+
+<strong>入力:</strong>
+<pre>{
+<p>  monthName: string;      // "2026年4月"</p>
+<p>  characterIds: string[]; // 対象キャラID（複数可）</p>
+<p>  eventType?: string;     // "birthday" | "seasonal" | "anniversary" | null</p>
+<p>}</p>
+</pre>
+
+<strong>出力（Claude生成）:</strong>
+<pre>{
+<p>  eventTitle: string;</p>
+<p>  period: { start: string; end: string }; // ISO8601</p>
+<p>  theme: string;</p>
+<p>  limitedScenarios: Array<{</p>
+<p>    title: string;</p>
+<p>    description: string;</p>
+<p>    specialReward: string;</p>
+<p>    coinRequirement: number;</p>
+<p>  }>;</p>
+<p>  gachaProposal: {</p>
+<p>    bannerTitle: string;</p>
+<p>    featuredCharacters: string[];</p>
+<p>    limitedCards: Array<{ rarity: string; description: string }>;</p>
+<p>  };</p>
+<p>  marketingCopy: string; // SNS告知文</p>
+<p>}</p>
+</pre>
+
+<strong>権限:</strong> <code>requireRole('ip_admin')</code> — ip_admin以上
+
+<h3>2.4 口調品質スコアリングAPI（新規）</h3>
+
+<strong>エンドポイント:</strong> <code>POST /api/admin/characters/[id]/tone-score</code>  
+<strong>ファイル:</strong> <code>src/app/api/admin/characters/[id]/tone-score/route.ts</code>
+
+<strong>処理フロー:</strong>
+<p>1. <code>CharacterSoul</code>, <code>CharacterVoice</code>, <code>CharacterBoundary</code>を取得</p>
+<p>2. Claude（opus-4-6）にSOULデータを渡し、テストメッセージ10件を生成させる</p>
+<p>3. 生成した10件を別の推論で評価させ、整合性スコア（0-100）を算出</p>
+<p>4. スコアの内訳（口調一致度/感情表現/境界線遵守）とフィードバックを返す</p>
+
+<strong>権限:</strong> <code>requireRole('editor')</code> — editor以上
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>3. 全54項目の実装順序</h2>
+
+<h3>Wave 1: 権限モデル + AI自動生成 + 感情/回避/Lore GUI</h3>
+<blockquote><strong>前提:</strong> なし。Wave 1は独立して着手可能。  </blockquote>
+<blockquote><strong>目的:</strong> 基盤を固める。全APIを安全にし、AI自動化を実用化する。  </blockquote>
+<blockquote><strong>推定工数:</strong> 約60ファイル変更/新規、3-5日</blockquote>
+
+<h4>1-A: 全API認証マイグレーション（141本 → requireRole）</h4>
+
+<strong>変更するファイル（41本のrequireAdminを置換）:</strong>
+<pre>src/app/api/admin/stories/route.ts
+<p>src/app/api/admin/tenants/route.ts</p>
+<p>src/app/api/admin/tenants/[id]/route.ts</p>
+<p>src/app/api/admin/tenants/[id]/characters/route.ts</p>
+<p>src/app/api/admin/scenarios/route.ts</p>
+<p>src/app/api/admin/scenarios/[id]/route.ts</p>
+<p>src/app/api/admin/reports/route.ts</p>
+<p>src/app/api/admin/reports/[id]/route.ts</p>
+<p>src/app/api/admin/gacha/cards/route.ts</p>
+<p>src/app/api/admin/gacha/banners/route.ts</p>
+<p>src/app/api/admin/gacha/banners/[id]/route.ts</p>
+<p>src/app/api/admin/shop/route.ts</p>
+<p>src/app/api/admin/letters/route.ts</p>
+<p>src/app/api/admin/coins/route.ts</p>
+<p>src/app/api/admin/notifications/route.ts</p>
+<p>src/app/api/admin/moments/route.ts</p>
+<p>src/app/api/admin/analytics/route.ts</p>
+<p>src/app/api/admin/revenue/route.ts  ← 認証なしも修正</p>
+<p>src/app/api/admin/approvals/route.ts</p>
+<p>src/app/api/admin/approvals/[id]/route.ts</p>
+<p>src/app/api/admin/onboarding/ip/route.ts</p>
+<p>src/app/api/admin/audit-log/route.ts</p>
+<p>src/app/api/admin/downloadable-content/route.ts</p>
+<p>src/app/api/admin/upload/route.ts</p>
+<p>src/app/api/admin/voice-test/route.ts</p>
+<p>src/app/api/admin/users/route.ts</p>
+<p>src/app/api/admin/users/[id]/plan/route.ts</p>
+<p>src/app/api/admin/users/[id]/coins/route.ts</p>
+<p>src/app/api/admin/users/[id]/grant/route.ts</p>
+<p>src/app/api/admin/characters/route.ts</p>
+<p>src/app/api/admin/characters/bulk-import/route.ts</p>
+<p>src/app/api/admin/characters/generate-soul/route.ts</p>
+<p>src/app/api/admin/characters/generate-secrets/route.ts</p>
+<p>src/app/api/admin/characters/generate-moments/route.ts</p>
+<p>src/app/api/admin/characters/generate-story/route.ts</p>
+<p>src/app/api/admin/characters/bootstrap/route.ts</p>
+<p>src/app/api/admin/characters/secrets/route.ts</p>
+<p>src/app/api/admin/characters/presence/route.ts</p>
+<p>src/app/api/admin/characters/[id]/soul/route.ts</p>
+<p>src/app/api/admin/characters/[id]/ai-enrich/route.ts</p>
+<p>src/app/api/admin/characters/[id]/quotes/route.ts</p>
+<p>src/app/api/admin/characters/[id]/test-chat/route.ts</p>
+<p>src/app/api/admin/characters/[id]/boundaries/route.ts</p>
+<p>src/app/api/admin/characters/[id]/voice/route.ts</p>
+<p>src/app/api/admin/feedback/route.ts</p>
+<p>src/app/api/admin/feedback/[id]/route.ts</p>
+<p>src/app/api/admin/contracts/route.ts</p>
+<p>src/app/api/admin/contracts/[id]/route.ts</p>
+<p>src/app/api/admin/guardrails/route.ts</p>
+<p>src/app/api/admin/guardrails/[id]/route.ts</p>
+<p>src/app/api/admin/guardrails/logs/route.ts</p>
+<p>src/app/api/admin/lore/route.ts</p>
+<p>src/app/api/admin/lore/[id]/route.ts</p>
+<p>src/app/api/admin/emergency-stop/route.ts</p>
+<p>src/app/api/admin/translate/route.ts</p>
+<p>src/app/api/admin/stats/route.ts</p>
+<p>src/app/api/admin/dashboard/route.ts</p>
+<p>src/app/api/admin/addiction/stats/route.ts</p>
+</pre>
+
+<strong>変更するファイル（既存ライブラリ）:</strong>
+<pre>src/lib/rbac.ts  ← blockUserDataForNonSuperAdmin(), revenueScope() 追加
+<p>src/lib/admin.ts ← 変更なし（後方互換のため維持）</p>
+</pre>
+
+<strong>DB変更:</strong> なし（AdminUser.roleは既存のまま）
+
+<h4>1-B: サイドバーのロール別表示制御</h4>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← authContextのroleに基づきメニュー項目を条件付き表示
+</pre>
+
+<strong>ロール別表示ルール（実装する）:</strong>
+<li>Users, Coins, Guardrails, AuditLog, Tenants, EmergencyStop → <code>super_admin</code>のみ表示</li>
+<li>Revenue, Analytics → <code>super_admin</code> + <code>ip_admin</code>のみ表示</li>
+<li>Characters, Stories, Gacha, Scenarios, Lore, Moments → <code>editor</code>以上表示</li>
+
+<h4>1-C: AI自動生成API（新規）</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/api/admin/characters/ai-generate/route.ts
+<p>src/app/api/admin/characters/ai-event-plan/route.ts</p>
+<p>src/app/api/admin/characters/[id]/tone-score/route.ts</p>
+</pre>
+
+<strong>既存ファイル変更:</strong>
+<pre>src/app/api/admin/characters/generate-story/route.ts  ← 演出パラメータ追加
+</pre>
+
+<strong>モデル:</strong> <code>claude-opus-4-6</code>（全AI生成エンドポイント統一）  
+<p>既存の<code>generate-soul</code>で使われていた<code>claude-opus-4-5</code>も<code>claude-opus-4-6</code>に更新。</p>
+
+<h4>1-D: 感情トリガー/回避パターン GUI</h4>
+
+<strong>現状:</strong> <code>CharacterSoul.emotionalPatterns</code> はJSON型で存在するがGUIなし。Bibleページの<code>BibleSoulTab</code>で文字列表示のみ。
+
+<strong>変更するファイル:</strong>
+<pre>src/components/admin/bible/BibleSoulTab.tsx  ← emotionalPatternsのJSON編集UIを追加
+<p>src/app/api/admin/characters/[id]/soul/route.ts  ← PATCH: emotionalPatterns更新対応</p>
+</pre>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/components/admin/bible/EmotionPatternsEditor.tsx  ← トリガー/回避パターンのCRUD UI
+</pre>
+
+<strong>EmotionPatternsEditorのUI仕様:</strong>
+<li>トリガーリスト（刺激→反応→強度のフォーム）</li>
+<li>回避パターンリスト（トピック→理由→回避行動のフォーム）</li>
+<li>「AIで自動生成」ボタン（ai-generateを呼ぶ）</li>
+
+<h4>1-E: Lore管理GUI強化</h4>
+
+<strong>現状:</strong> <code>src/app/admin/lore/page.tsx</code>が存在。<code>src/app/admin/lore/[id]/page.tsx</code>も存在。
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/lore/page.tsx  ← テナントスコープ対応（ip_adminは自テナントのみ）
+<p>src/app/api/admin/lore/route.ts  ← requireRole('editor') + tenantScope追加</p>
+<p>src/app/api/admin/lore/[id]/route.ts  ← requireRole('editor') + tenantScope追加</p>
+</pre>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/components/admin/lore/LoreAiImportButton.tsx  ← キャラ名入力→Lore一括AI生成
+<p>src/app/api/admin/lore/ai-import/route.ts  ← Lore一括生成エンドポイント</p>
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h3>Wave 2: 演出エディタ + 限定イベント + コイン経済GUI</h3>
+<blockquote><strong>前提:</strong> Wave 1の権限モデルが完了していること。  </blockquote>
+<blockquote><strong>目的:</strong> コンテンツクリエイターの制作効率向上。  </blockquote>
+<blockquote><strong>推定工数:</strong> 約35ファイル新規/変更、3-4日</blockquote>
+
+<h4>2-A: ストーリー演出エディタ</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/components/admin/stories/StagingEditor.tsx  ← 背景/BGM/ポーズ選択UI
+<p>src/components/admin/stories/StoryChapterEditor.tsx  ← チャプター単位エディタ</p>
+<p>src/app/api/admin/stories/[id]/staging/route.ts  ← 演出パラメータ保存</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/stories/page.tsx  ← StagingEditorを組み込み
+<p>src/app/api/admin/stories/route.ts  ← requireRole('editor') + tenantScope追加</p>
+</pre>
+
+<strong>DB変更:</strong> <code>StoryChapter</code>テーブルにカラム追加
+<pre>ALTER TABLE "StoryChapter" ADD COLUMN "backgroundId" TEXT;
+<p>ALTER TABLE "StoryChapter" ADD COLUMN "bgmType" TEXT;</p>
+<p>ALTER TABLE "StoryChapter" ADD COLUMN "characterPoses" JSONB DEFAULT '[]';</p>
+<p>ALTER TABLE "StoryChapter" ADD COLUMN "visualEffects" JSONB DEFAULT '[]';</p>
+</pre>
+<pre>// schema.prismaのStoryChapterモデルに追加
+<p>backgroundId   String?</p>
+<p>bgmType        String?  // gentle_piano|dramatic|upbeat|silent</p>
+<p>characterPoses Json     @default("[]")</p>
+<p>visualEffects  Json     @default("[]")</p>
+</pre>
+<p>マイグレーション: <code>prisma/migrations/YYYYMMDD_story_staging/migration.sql</code></p>
+
+<h4>2-B: 限定イベント管理</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/events/page.tsx  ← イベント一覧/作成
+<p>src/app/admin/events/[id]/page.tsx  ← イベント詳細編集</p>
+<p>src/components/admin/events/EventWizard.tsx  ← 月名入力→AIイベント提案→確定フロー</p>
+<p>src/components/admin/events/EventCalendar.tsx  ← カレンダービュー</p>
+<p>src/app/api/admin/events/route.ts  ← GET/POST</p>
+<p>src/app/api/admin/events/[id]/route.ts  ← GET/PATCH/DELETE</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← Eventsメニュー項目追加
+</pre>
+
+<strong>DB変更:</strong> <code>AdminEvent</code>テーブル新規作成
+<pre>model AdminEvent {
+<p>  id            String   @id @default(uuid())</p>
+<p>  title         String</p>
+<p>  tenantId      String?</p>
+<p>  tenant        Tenant?  @relation(fields: [tenantId], references: [id])</p>
+<p>  startAt       DateTime</p>
+<p>  endAt         DateTime</p>
+<p>  theme         String?</p>
+<p>  status        String   @default("draft") // draft|active|ended</p>
+<p>  eventData     Json     @default("{}") // AIが生成した詳細データ</p>
+<p>  createdAt     DateTime @default(now())</p>
+<p>  updatedAt     DateTime @updatedAt</p>
+<p>}</p>
+</pre>
+<p>マイグレーション: <code>prisma/migrations/YYYYMMDD_admin_event/migration.sql</code></p>
+
+<h4>2-C: コイン経済GUI</h4>
+
+<strong>現状:</strong> <code>src/app/admin/coins/page.tsx</code>が存在。
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/coins/page.tsx  ← パッケージ設定UI + コイン付与フォーム整備
+<p>src/app/api/admin/coins/route.ts  ← requireRole('super_admin')に昇格</p>
+</pre>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/components/admin/coins/CoinPackageEditor.tsx  ← パッケージ価格設定UI
+<p>src/components/admin/coins/CoinGrantForm.tsx  ← 個別ユーザーへのコイン付与（super_adminのみ）</p>
+<p>src/components/admin/coins/CoinEconomyDashboard.tsx  ← 流通量グラフ（super_adminのみ）</p>
+<p>src/app/api/admin/coins/packages/route.ts  ← コインパッケージCRUD</p>
+<p>src/app/api/admin/coins/economy/route.ts  ← 流通量統計</p>
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h3>Wave 3: IPオンボーディングウィザード + コンテンツカレンダー + ヘルス監視</h3>
+<blockquote><strong>前提:</strong> Wave 1完了。Wave 2のイベント機能があると連携可能だが必須ではない。  </blockquote>
+<blockquote><strong>目的:</strong> IPホルダーが自分でオンボードできる環境を整える。  </blockquote>
+<blockquote><strong>推定工数:</strong> 約30ファイル新規/変更、3日</blockquote>
+
+<h4>3-A: IPオンボーディングウィザード</h4>
+
+<strong>現状:</strong> <code>src/app/api/admin/onboarding/ip/route.ts</code>が存在（部分実装）。
+
+<strong>変更するファイル:</strong>
+<pre>src/app/api/admin/onboarding/ip/route.ts  ← requireRole('super_admin') + フロー完成
+</pre>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/onboarding/page.tsx  ← ウィザード画面
+<p>src/components/admin/onboarding/IPOnboardingWizard.tsx  ← 5ステップウィザード</p>
+<p>src/components/admin/onboarding/TenantSetupStep.tsx  ← テナント作成</p>
+<p>src/components/admin/onboarding/AdminUserInviteStep.tsx  ← ip_admin招待（メール送信）</p>
+<p>src/components/admin/onboarding/CharacterBulkImportStep.tsx  ← キャラ一括登録</p>
+<p>src/components/admin/onboarding/AIGenerateAllStep.tsx  ← 全キャラAI設定一括生成</p>
+<p>src/components/admin/onboarding/GoLiveStep.tsx  ← 最終確認 + 公開</p>
+<p>src/app/api/admin/onboarding/invite/route.ts  ← ip_admin招待メール送信</p>
+</pre>
+
+<strong>DB変更:</strong> なし（既存Tenant + AdminUserで対応可能）
+
+<h4>3-B: コンテンツカレンダー</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/calendar/page.tsx  ← カレンダーUI（ip_admin以上）
+<p>src/components/admin/calendar/ContentCalendar.tsx  ← 月次カレンダービュー</p>
+<p>src/components/admin/calendar/CalendarEventCard.tsx  ← イベントカード</p>
+<p>src/app/api/admin/calendar/route.ts  ← イベント/ストーリー公開日の集計</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← Calendarメニュー追加
+</pre>
+
+<h4>3-C: ヘルス監視ダッシュボード</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/health/page.tsx  ← システムヘルス画面（super_adminのみ）
+<p>src/components/admin/health/HealthDashboard.tsx  ← API応答時間/エラー率/DB接続</p>
+<p>src/components/admin/health/AIHealthPanel.tsx  ← Claude API使用量/エラー率</p>
+<p>src/app/api/admin/health/route.ts  ← ヘルスチェック集計API</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← Healthメニュー追加（super_adminのみ）
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h3>Wave 4: チャットモニター + ユーザーライフサイクル + データエクスポート</h3>
+<blockquote><strong>前提:</strong> Wave 1完了（ユーザーデータアクセス制御が必須）。  </blockquote>
+<blockquote><strong>目的:</strong> super_adminのオペレーション能力を完成させる。  </blockquote>
+<blockquote><strong>推定工数:</strong> 約25ファイル新規/変更、2-3日</blockquote>
+
+<h4>4-A: チャットモニター（super_adminのみ）</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/chat-monitor/page.tsx  ← リアルタイムチャット監視（super_adminのみ）
+<p>src/components/admin/monitor/ChatMonitorList.tsx  ← 会話一覧（ユーザー名/キャラ/最終メッセージ）</p>
+<p>src/components/admin/monitor/ConversationViewer.tsx  ← 会話詳細（メッセージ全文）</p>
+<p>src/app/api/admin/monitor/conversations/route.ts  ← requireRole('super_admin') 会話一覧</p>
+<p>src/app/api/admin/monitor/conversations/[id]/route.ts  ← 会話詳細</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← ChatMonitorメニュー追加（super_adminのみ）
+</pre>
+
+<h4>4-B: ユーザーライフサイクル管理</h4>
+
+<strong>現状:</strong> <code>src/app/admin/users/page.tsx</code>が存在。<code>src/app/api/admin/users/route.ts</code>は<code>requireAdmin()</code>（旧方式）。
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/users/page.tsx  ← 解約フロー/プラン変更/コイン残高編集UI追加
+<p>src/app/api/admin/users/route.ts  ← requireRole('super_admin')</p>
+<p>src/app/api/admin/users/[id]/plan/route.ts  ← requireRole('super_admin')</p>
+<p>src/app/api/admin/users/[id]/coins/route.ts  ← requireRole('super_admin')</p>
+<p>src/app/api/admin/users/[id]/grant/route.ts  ← requireRole('super_admin')</p>
+</pre>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/components/admin/users/UserLifecyclePanel.tsx  ← プラン変更/解約/コイン操作
+<p>src/app/api/admin/users/[id]/deactivate/route.ts  ← アカウント無効化</p>
+<p>src/app/api/admin/users/[id]/export/route.ts  ← 個人情報エクスポート（GDPR）</p>
+</pre>
+
+<h4>4-C: データエクスポート</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/export/page.tsx  ← エクスポート画面（super_adminのみ）
+<p>src/components/admin/export/ExportPanel.tsx  ← CSVエクスポートUI</p>
+<p>src/app/api/admin/export/users/route.ts  ← ユーザーデータCSV</p>
+<p>src/app/api/admin/export/revenue/route.ts  ← 収益データCSV</p>
+<p>src/app/api/admin/export/analytics/route.ts  ← 行動データCSV（匿名化済み）</p>
+</pre>
+
+<strong>変更するファイル:</strong>
+<pre>src/app/admin/layout.tsx  ← Exportメニュー追加（super_adminのみ）
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h3>Wave 5: A/Bテスト + Webhook + 月次レポート</h3>
+<blockquote><strong>前提:</strong> Wave 1-4が完了していること。  </blockquote>
+<blockquote><strong>目的:</strong> 高度な分析・自動化機能。  </blockquote>
+<blockquote><strong>推定工数:</strong> 約20ファイル新規/変更、2-3日</blockquote>
+
+<h4>5-A: A/Bテスト（キャラ人格/口調）</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/ab-test/page.tsx  ← A/Bテスト管理（super_adminのみ）
+<p>src/components/admin/ab-test/ABTestWizard.tsx  ← テスト設定ウィザード</p>
+<p>src/components/admin/ab-test/ABTestResults.tsx  ← 結果表示</p>
+<p>src/app/api/admin/ab-test/route.ts  ← テスト作成/一覧</p>
+<p>src/app/api/admin/ab-test/[id]/route.ts  ← テスト詳細/終了</p>
+<p>src/app/api/admin/ab-test/[id]/results/route.ts  ← 結果集計</p>
+</pre>
+
+<strong>DB変更:</strong> <code>ABTest</code>テーブル新規作成
+<pre>model ABTest {
+<p>  id          String   @id @default(uuid())</p>
+<p>  name        String</p>
+<p>  characterId String</p>
+<p>  variantA    Json     // systemPrompt等</p>
+<p>  variantB    Json</p>
+<p>  metric      String   @default("engagement") // engagement|retention|satisfaction</p>
+<p>  startAt     DateTime</p>
+<p>  endAt       DateTime?</p>
+<p>  status      String   @default("running") // running|ended|cancelled</p>
+<p>  results     Json     @default("{}")</p>
+<p>  createdAt   DateTime @default(now())</p>
+<p>}</p>
+</pre>
+<p>マイグレーション: <code>prisma/migrations/YYYYMMDD_ab_test/migration.sql</code></p>
+
+<h4>5-B: Webhook通知</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/webhooks/page.tsx  ← Webhook設定画面（super_adminのみ）
+<p>src/components/admin/webhooks/WebhookForm.tsx  ← URL + イベント選択</p>
+<p>src/app/api/admin/webhooks/route.ts  ← CRUD</p>
+<p>src/app/api/admin/webhooks/[id]/test/route.ts  ← テスト送信</p>
+<p>src/lib/webhook.ts  ← Webhook送信ユーティリティ</p>
+</pre>
+
+<strong>DB変更:</strong> <code>AdminWebhook</code>テーブル新規作成
+<pre>model AdminWebhook {
+<p>  id        String   @id @default(uuid())</p>
+<p>  url       String</p>
+<p>  events    String[] // user_signup|coin_purchase|error等</p>
+<p>  secret    String   // HMAC署名用</p>
+<p>  isActive  Boolean  @default(true)</p>
+<p>  tenantId  String?</p>
+<p>  createdAt DateTime @default(now())</p>
+<p>}</p>
+</pre>
+
+<h4>5-C: 月次レポート自動生成</h4>
+
+<strong>新規作成するファイル:</strong>
+<pre>src/app/admin/reports/page.tsx  ← レポート一覧（既存reports/route.tsを活用）
+<p>src/components/admin/reports/MonthlyReportViewer.tsx  ← レポート表示</p>
+<p>src/app/api/admin/reports/generate/route.ts  ← 月次レポート生成（Claude opus-4-6）</p>
+<p>src/lib/monthly-report.ts  ← レポート生成ロジック</p>
+</pre>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>4. 実装上の重要注意事項</h2>
+
+<h3>4.1 既存コードを壊さない方法</h3>
+
+<p>1. <strong><code>requireAdmin()</code>は削除しない。</strong> <code>src/lib/admin.ts</code>は維持。移行後も後方互換のために残す。</p>
+<p>2. <strong>各APIファイルを個別に書き換える。</strong> 一括置換スクリプトは使わない（バグリスクが高い）。</p>
+<p>3. <strong>新しいDBテーブルはマイグレーションで追加。</strong> 既存テーブルのカラム追加は<code>ALTER TABLE</code>（削除なし）。</p>
+<p>4. <strong>新規UIコンポーネントは<code>src/components/admin/</code>配下に独立したフォルダで作成。</strong></p>
+
+<h3>4.2 Claude モデルの統一方針</h3>
+
+<p>| 用途 | モデル |</p>
+<p>|---|---|</p>
+<p>| 人格設定・SOUL生成・感情トリガー/回避パターン | <code>claude-opus-4-6</code> |</p>
+<p>| 口調品質スコアリング | <code>claude-opus-4-6</code> |</p>
+<p>| イベント自動企画 | <code>claude-opus-4-6</code> |</p>
+<p>| ストーリー生成（演出パラメータ含む） | <code>claude-opus-4-6</code> |</p>
+<p>| 名台詞・Lore生成 | <code>claude-opus-4-6</code> |</p>
+<p>| 月次レポート生成 | <code>claude-opus-4-6</code> |</p>
+<p>| 翻訳（<code>/api/admin/translate</code>） | 現状維持（変更しない） |</p>
+
+<p>既存の<code>claude-opus-4-5</code>を使っていたエンドポイント（<code>generate-soul</code>等）も<code>claude-opus-4-6</code>に更新する。</p>
+
+<h3>4.3 ip_adminユーザーデータ保護</h3>
+
+<code>/api/admin/users/*</code>全エンドポイントの先頭に必ず以下を追加:
+<pre>const ctx = await requireRole('super_admin');
+<p>if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });</p>
+<p>// ip_adminはここに到達しない</p>
+</pre>
+
+<code>/api/admin/revenue/*</code>では:
+<pre>const ctx = await requireRole('ip_admin');
+<p>if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });</p>
+<p>const scope = revenueScope(ctx);</p>
+<p>// scope.anonymize === true の場合、個人識別情報を除外して集計データのみ返す</p>
+</pre>
+
+<h3>4.4 疎結合の保証</h3>
+
+<li>各Waveは独立したPRとしてデプロイ可能</li>
+<li>Wave N+1はWave Nのコードを<strong>importしない</strong>（共有はlibとprismaのみ）</li>
+<li>新規UIページは<code>/admin/[新機能]</code>として独立したroute</li>
+<li>新規APIは<code>/api/admin/[新機能]</code>として独立したroute</li>
+<li>DBマイグレーションはWave単位でatomicに実行</li>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>5. Wave別ファイル数サマリー</h2>
+
+<p>| Wave | 新規作成 | 変更 | DB変更 | 推定工数 |</p>
+<p>|---|---|---|---|---|</p>
+<p>| Wave 1 | 5 | ~58 | なし | 3-5日 |</p>
+<p>| Wave 2 | 15 | 8 | 2テーブル変更+1新規 | 3-4日 |</p>
+<p>| Wave 3 | 12 | 3 | なし | 3日 |</p>
+<p>| Wave 4 | 10 | 5 | なし | 2-3日 |</p>
+<p>| Wave 5 | 10 | 2 | 2テーブル新規 | 2-3日 |</p>
+<p>| <strong>合計</strong> | <strong>52</strong> | <strong>76</strong> | <strong>テーブル変更×2, 新規×3</strong> | <strong>13-18日</strong> |</p>
+
+<hr style="border:none;border-top:1px solid rgba(139,92,246,0.2);margin:24px 0">
+
+<h2>6. Wave 1 即時着手チェックリスト</h2>
+
+<p>Wave 1を開始するには以下の順序で作業する:</p>
+
+<p>1. <code>src/lib/rbac.ts</code> に <code>blockUserDataForNonSuperAdmin()</code>, <code>revenueScope()</code> を追加</p>
+<p>2. <code>src/app/api/admin/revenue/route.ts</code> に認証を追加（現状認証なし！）</p>
+<p>3. <code>src/app/api/admin/users/route.ts</code> を <code>requireRole('super_admin')</code> に変更</p>
+<p>4. 残りの58本のAPIを <code>requireRole()</code> に変更（機能ロールに従い）</p>
+<p>5. <code>src/app/admin/layout.tsx</code> にロール別メニュー表示制御を追加</p>
+<p>6. <code>src/app/api/admin/characters/ai-generate/route.ts</code> を新規作成</p>
+<p>7. <code>src/components/admin/bible/EmotionPatternsEditor.tsx</code> を新規作成</p>
+
+<strong>Wave 1完了条件:</strong> ip_adminユーザーが<code>/api/admin/users</code>にアクセスしたとき403が返ること。
+
+</body></html>

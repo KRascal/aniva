@@ -9,6 +9,7 @@ import GachaCardForm, {
   FRAME_TYPES,
   type CardFormState,
 } from '@/components/admin/GachaCardForm';
+import GachaCardEditModal, { type GachaCardEditData } from '@/components/admin/gacha/GachaCardEditModal';
 
 // ---- Types ----
 interface Character { id: string; name: string; avatarUrl: string | null; }
@@ -103,6 +104,7 @@ export default function AdminGachaPage() {
   const [cardForm, setCardForm] = useState<CardFormState>(CARD_EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [editingCard, setEditingCard] = useState<GachaCardEditData | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -349,7 +351,7 @@ export default function AdminGachaPage() {
       {tab === 'cards' && !loading && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <p className="text-gray-400 text-sm">全カード一覧。バナーの引き確率はレアリティに基づいて自動計算されます。</p>
+            <p className="text-gray-400 text-sm">全カード一覧。カードをクリックで個別編集。バナーの引き確率はレアリティに基づいて自動計算されます。</p>
             <button
               onClick={() => setShowCardForm(true)}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
@@ -373,7 +375,11 @@ export default function AdminGachaPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {cards.length === 0 && <p className="text-gray-500 text-sm col-span-full">カードなし</p>}
             {cards.map((c) => (
-              <div key={c.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+              <div
+                key={c.id}
+                className="bg-gray-800 rounded-lg p-3 border border-gray-700 cursor-pointer hover:border-purple-600 transition-colors"
+                onClick={() => setEditingCard(c as GachaCardEditData)}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs px-2 py-0.5 rounded font-bold ${RARITY_COLOR[c.rarity] ?? 'bg-gray-700 text-gray-300'}`}>
                     {c.rarity}
@@ -425,6 +431,15 @@ export default function AdminGachaPage() {
             ))}
           </div>
         </div>
+      )}
+      {/* Card Edit Modal */}
+      {editingCard && (
+        <GachaCardEditModal
+          card={editingCard}
+          characters={characters}
+          onClose={() => setEditingCard(null)}
+          onSaved={() => { setEditingCard(null); load(); }}
+        />
       )}
     </div>
   );

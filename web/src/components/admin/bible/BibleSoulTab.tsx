@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { SoulData, ToastFn } from './types';
 import { Skeleton, jsonStringify, jsonParse } from './shared';
+import { EmotionPatternsEditor, type EmotionalPatterns } from './EmotionPatternsEditor';
 
 export function BibleSoulTab({ characterId, onToast }: { characterId: string; onToast: ToastFn }) {
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,10 @@ export function BibleSoulTab({ characterId, onToast }: { characterId: string; on
   const [relationshipMapStr, setRelationshipMapStr] = useState('{}');
   const [personalityAxesStr, setPersonalityAxesStr] = useState('{}');
   const [emotionalPatternsStr, setEmotionalPatternsStr] = useState('{}');
+  const [emotionalPatterns, setEmotionalPatterns] = useState<EmotionalPatterns>({
+    triggers: [],
+    avoidances: [],
+  });
 
   useEffect(() => {
     fetch(`/api/admin/characters/${characterId}/soul`)
@@ -39,6 +44,14 @@ export function BibleSoulTab({ characterId, onToast }: { characterId: string; on
           setRelationshipMapStr(jsonStringify(data.relationshipMap || {}));
           setPersonalityAxesStr(jsonStringify(data.personalityAxes || {}));
           setEmotionalPatternsStr(jsonStringify(data.emotionalPatterns || {}));
+          // 構造化感情パターン初期化
+          const ep = data.emotionalPatterns || {};
+          if (ep.triggers || ep.avoidances) {
+            setEmotionalPatterns({
+              triggers: ep.triggers || [],
+              avoidances: ep.avoidances || [],
+            });
+          }
         }
       })
       .catch(() => {})
@@ -145,6 +158,16 @@ export function BibleSoulTab({ characterId, onToast }: { characterId: string; on
         >
           {saving ? '保存中...' : '保存'}
         </button>
+      </div>
+
+      {/* 感情トリガー / 回避パターン エディタ */}
+      <div className="border-t border-gray-800 pt-6">
+        <EmotionPatternsEditor
+          characterId={characterId}
+          patterns={emotionalPatterns}
+          onChange={setEmotionalPatterns}
+          onToast={onToast}
+        />
       </div>
     </div>
   );

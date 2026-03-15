@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin';
+import { requireRole } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { adminAudit, ADMIN_AUDIT_ACTIONS } from '@/lib/audit-log';
 import { logger } from '@/lib/logger';
 
 // GET: 商品一覧（管理者用・全件、非アクティブ含む）
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const { searchParams } = new URL(req.url);
@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
 
 // POST: 商品追加
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_CREATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_CREATE, ctx.email, {
       itemId: item.id, name, characterId, type,
     });
 
@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
 
 // PUT: 商品更新
 export async function PUT(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -138,7 +138,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_UPDATE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_UPDATE, ctx.email, {
       itemId: id,
     });
 
@@ -151,8 +151,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE: 商品削除（論理削除: isActive=false）
 export async function DELETE(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const { searchParams } = new URL(req.url);
@@ -173,7 +173,7 @@ export async function DELETE(req: NextRequest) {
       data: { isActive: false },
     });
 
-    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_DELETE, admin.email, {
+    await adminAudit(ADMIN_AUDIT_ACTIONS.SHOP_ITEM_DELETE, ctx.email, {
       itemId: id, name: existing.name,
     });
 
