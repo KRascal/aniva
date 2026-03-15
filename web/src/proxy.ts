@@ -151,6 +151,7 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith('/api/chat/comment-reply') ||
     pathname.startsWith('/api/onboarding/guest-chat') ||
     pathname === '/api/coins/packages' ||
+    pathname === '/api/pricing' ||
     pathname.startsWith('/api/geoip') ||
     pathname.startsWith('/api/og') ||
     pathname.startsWith('/api/events') ||
