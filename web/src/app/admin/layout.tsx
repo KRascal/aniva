@@ -158,6 +158,30 @@ const IconChevronRight = () => (
   </svg>
 );
 
+const IconHeart = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+  </svg>
+);
+
+const IconFlag = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+  </svg>
+);
+
+const IconClock = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+);
+
+const IconGlobe = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253M3.157 7.582A8.959 8.959 0 0 0 3 12c0 .778.099 1.533.284 2.253" />
+  </svg>
+);
+
 // ─── Nav Config ────────────────────────────────────────────────────────────
 
 // ロール階層: super_admin > ip_admin > editor > viewer
@@ -236,6 +260,18 @@ const NAV_SECTIONS = [
       { href: '/admin/polls', label: '投票管理', icon: <IconPoll />, minRole: 'editor' },
       { href: '/admin/feedback', label: 'フィードバック', icon: <IconChat />, minRole: 'ip_admin' },
       { href: '/admin/audit-log', label: '監査ログ', icon: <IconDocument />, minRole: 'super_admin' },
+      { href: '/admin/chat-monitor', label: 'チャットモニター', icon: <IconChat />, minRole: 'super_admin' },
+      { href: '/admin/user-lifecycle', label: 'ユーザーライフサイクル', icon: <IconUsers />, minRole: 'super_admin' },
+      { href: '/admin/export', label: 'データエクスポート', icon: <IconDownload />, minRole: 'super_admin' },
+    ],
+  },
+  {
+    id: 'calendar',
+    label: 'スケジュール',
+    collapsible: true,
+    minRole: 'editor',
+    items: [
+      { href: '/admin/calendar', label: 'コンテンツカレンダー', icon: <IconSparkle />, minRole: 'editor' },
     ],
   },
   {
@@ -245,6 +281,11 @@ const NAV_SECTIONS = [
     minRole: 'super_admin',
     items: [
       { href: '/admin/tenants', label: 'テナント管理', icon: <IconBuilding />, minRole: 'super_admin' },
+      { href: '/admin/onboarding', label: 'IPオンボーディング', icon: <IconGlobe />, minRole: 'super_admin' },
+      { href: '/admin/health', label: 'ヘルスモニター', icon: <IconHeart />, minRole: 'super_admin' },
+      { href: '/admin/crons', label: 'Cron制御', icon: <IconClock />, minRole: 'super_admin' },
+      { href: '/admin/reports-management', label: '通報管理', icon: <IconFlag />, minRole: 'super_admin' },
+      { href: '/admin/community', label: 'コミュニティ管理', icon: <IconChat />, minRole: 'super_admin' },
     ],
   },
 ];
