@@ -48,7 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // LINE Login
+    // LINE Login（環境変数未設定時はスキップ）
     ...(process.env.LINE_CLIENT_ID ? [Line({
       clientId: process.env.LINE_CLIENT_ID!,
       clientSecret: process.env.LINE_CLIENT_SECRET!,

@@ -7,6 +7,7 @@ interface NotificationSettings {
   chatReplyNotifications: boolean;
   coinNotifications: boolean;
   weeklyDigest: boolean;
+  emailDigest: boolean;
 }
 
 const defaultSettings: NotificationSettings = {
@@ -14,6 +15,7 @@ const defaultSettings: NotificationSettings = {
   chatReplyNotifications: true,
   coinNotifications: true,
   weeklyDigest: false,
+  emailDigest: true,
 };
 
 export async function GET() {

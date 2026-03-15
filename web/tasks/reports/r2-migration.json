@@ -1,0 +1,17 @@
+{
+  "status": "success",
+  "started_at": "2026-03-15T03:28:00Z",
+  "completed_at": "2026-03-15T03:35:00Z",
+  "files_changed": [
+    "src/lib/r2.ts",
+    "src/app/api/upload/image/route.ts",
+    "src/app/api/admin/upload/route.ts"
+  ],
+  "package_added": "@aws-sdk/client-s3",
+  "notes": [
+    "R2未設定時はローカルファイルシステムにフォールバック",
+    "既存の/uploads/xxx URLは引き続き動作",
+    "R2_PUBLIC_URLが未設定の場合はR2_ENDPOINT/R2_BUCKET_NAME/keyを使用",
+    "ContentTypeをPutObjectCommandに正しく設定済み"
+  ]
+}

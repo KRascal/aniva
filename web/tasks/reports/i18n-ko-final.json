@@ -1,0 +1,9 @@
+{
+  "status": "success",
+  "startedAt": "2026-03-15T14:23:00+09:00",
+  "completedAt": "2026-03-15T14:25:00+09:00",
+  "totalKeys": 326,
+  "translatedKeys": 326,
+  "remainingUntranslated": 0,
+  "notes": "12件は ANIVA, FC, DL, OFF, UR/SSR/SR/R/N, NEW!, ANIVA v1.0.0 など、日韓共通のブランド名・記号・略称のため変更なし（正しい状態）。プレースホルダー {name}, {count}, {min}, {coins}, {price} 等はすべて維持済み。"
+}

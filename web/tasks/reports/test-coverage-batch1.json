@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "batch": "batch1",
+  "started_at": "2026-03-15T01:31:00Z",
+  "completed_at": "2026-03-15T01:36:30Z",
+  "files_changed": [
+    "tests/api/gift-send.test.ts",
+    "tests/api/relationship.test.ts",
+    "tests/api/moments.test.ts"
+  ],
+  "test_results": {
+    "total": 43,
+    "passed": 43,
+    "failed": 0,
+    "files": {
+      "tests/api/gift-send.test.ts": { "tests": 13, "passed": 13 },
+      "tests/api/relationship.test.ts": { "tests": 12, "passed": 12 },
+      "tests/api/moments.test.ts": { "tests": 18, "passed": 18 }
+    }
+  }
+}
