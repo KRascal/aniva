@@ -3,12 +3,12 @@
  * 季節・リアルイベント連動システム
  * キャラクターが日本の年間行事・季節に反応する
  *
- * TODO: 統合先 src/lib/engine/prompt-builder.ts の buildSystemPrompt() 内で
+ * NOTE: prompt-builder.ts に統合済み（getGrowthContext/getSeasonalPromptContext）
  * import { getSeasonalPromptContext } from '@/lib/seasonal-event-system';
  * const seasonalCtx = getSeasonalPromptContext(character.slug);
  * // systemPrompt末尾に seasonalCtx を追加
  *
- * TODO: 統合先 src/app/api/chat/send/route.ts で
+ * NOTE: chat/send/route.ts に統合済み（getCurrentSeasonalEvents はアナリティクス用に保持）
  * import { getCurrentSeasonalEvents } from '@/lib/seasonal-event-system';
  * // ログやアナリティクスに現在のイベント情報を記録する場合に使用
  */

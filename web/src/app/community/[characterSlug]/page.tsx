@@ -33,6 +33,7 @@ interface CharacterInfo {
 
 const CATEGORIES = [
   { id: 'all', label: 'すべて' },
+  { id: 'popular', label: '人気' },
   { id: 'general', label: '雑談' },
   { id: 'discussion', label: '考察' },
   { id: 'fanart', label: 'ファンアート' },
@@ -56,7 +57,12 @@ export default function CommunityPage() {
 
   const fetchThreads = useCallback(async () => {
     try {
-      const res = await fetch(`/api/community/${characterSlug}?category=${category}`);
+      const params = new URLSearchParams({ category });
+      if (category === 'popular') {
+        params.set('category', 'all');
+        params.set('sort', 'popular');
+      }
+      const res = await fetch(`/api/community/${characterSlug}?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setThreads(data.threads);

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       metadata: { userId, plan },
     });
     
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
     logger.error('Subscription create error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

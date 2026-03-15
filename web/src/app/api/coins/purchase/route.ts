@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { CoinTxType } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { paymentLimiter, rateLimitResponse } from '@/lib/rate-limit';
 
 interface PurchaseRequest {
   packageId: string;
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const userId = session?.user?.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limit: 5回/分（課金API保護）
+    const rl = await paymentLimiter.check(userId);
+    if (!rl.success) return rateLimitResponse(rl);
 
     const body: PurchaseRequest = await req.json();
     const { packageId, successUrl, cancelUrl } = body;

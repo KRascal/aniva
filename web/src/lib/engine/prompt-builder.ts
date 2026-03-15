@@ -5,6 +5,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '../prisma';
+import { cached, CacheKeys, CacheTTL } from '../cache';
 import type {
   CharacterRecord,
   LocaleOverride,
@@ -64,6 +65,12 @@ export function getIntimacyToneInstruction(intimacyLevel: number | null | undefi
  * キャラクターバイブル（DB定義）からプロンプト注入用コンテキストを構築
  */
 export async function buildBibleContext(characterId: string, locale: string = 'ja'): Promise<string> {
+  // Redis キャッシュ: キャラバイブルは頻繁にアクセスされるが更新頻度は低い（30分TTL）
+  const cacheKey = `${CacheKeys.characterSoul(characterId)}:${locale}`;
+  return cached(cacheKey, CacheTTL.CHARACTER_SOUL, () => _buildBibleContextUncached(characterId, locale));
+}
+
+async function _buildBibleContextUncached(characterId: string, locale: string): Promise<string> {
   const [soul, quotes, boundaries, voice] = await Promise.all([
     prisma.characterSoul.findUnique({ where: { characterId } }),
     prisma.characterQuote.findMany({
@@ -96,12 +103,62 @@ export async function buildBibleContext(characterId: string, locale: string = 'j
       }
     }
 
-    const emotionPat = soul.emotionalPatterns as Record<string, string[]>;
+    const emotionPat = soul.emotionalPatterns as Record<string, unknown>;
     if (emotionPat && Object.keys(emotionPat).length > 0) {
-      parts.push(`\n### 感情パターン`);
-      for (const [trigger, reactions] of Object.entries(emotionPat)) {
-        if (Array.isArray(reactions) && reactions.length > 0) {
-          parts.push(`- ${trigger}: ${reactions.join('、')}`);
+      // 既存: 単純なstring[]形式の感情パターン
+      const simpleTriggers = Object.entries(emotionPat).filter(([, v]) => Array.isArray(v) && typeof v[0] === 'string');
+      if (simpleTriggers.length > 0) {
+        parts.push(`\n### 感情パターン`);
+        for (const [trigger, reactions] of simpleTriggers) {
+          parts.push(`- ${trigger}: ${(reactions as string[]).join('、')}`);
+        }
+      }
+
+      // 拡張: 感情トリガーマップ（キャラ固有の深い反応定義）
+      const triggerMap = emotionPat.emotionTriggers as Array<{
+        keyword: string;
+        emotion: string;
+        intensity: string;
+        behavior: string;
+        innerThought?: string;
+      }> | undefined;
+      if (triggerMap && triggerMap.length > 0) {
+        parts.push(`\n### 感情トリガーマップ（最優先: この話題が出たら必ずこの感情で反応すること）`);
+        for (const t of triggerMap) {
+          parts.push(`- 「${t.keyword}」→ 感情: ${t.emotion}（${t.intensity}）`);
+          parts.push(`  反応: ${t.behavior}`);
+          if (t.innerThought) parts.push(`  内心: ${t.innerThought}`);
+        }
+      }
+
+      // 拡張: 回避パターン（「語らなさ」の演出）
+      const avoidance = emotionPat.avoidancePatterns as Array<{
+        topic: string;
+        reaction: string;
+        reason?: string;
+      }> | undefined;
+      if (avoidance && avoidance.length > 0) {
+        parts.push(`\n### 語りたがらない話題（これらの話題には直接答えず、キャラらしい回避をすること）`);
+        for (const a of avoidance) {
+          parts.push(`- 「${a.topic}」→ ${a.reaction}`);
+          if (a.reason) parts.push(`  （理由: ${a.reason}）`);
+        }
+      }
+
+      // 拡張: 原作エピソード記憶（キャラ間の深い関係性を定義するシーン）
+      const loreEpisodes = emotionPat.loreEpisodes as Array<{
+        scene: string;
+        emotion: string;
+        interpretation: string;
+        relatedCharacters?: string[];
+      }> | undefined;
+      if (loreEpisodes && loreEpisodes.length > 0) {
+        parts.push(`\n### 原作の重要エピソード（これらを覚えていて、関連する話題で自然に引用すること）`);
+        for (const ep of loreEpisodes) {
+          parts.push(`- ${ep.scene}`);
+          parts.push(`  感情: ${ep.emotion}`);
+          parts.push(`  解釈: ${ep.interpretation}`);
+          if (ep.relatedCharacters?.length) parts.push(`  関連: ${ep.relatedCharacters.join('、')}`);
         }
       }
     }
@@ -536,6 +593,7 @@ export function buildSystemPrompt(
   bibleContext: string = '',
   loreContext: string = '',
   memorySummary?: Record<string, unknown> | null,
+  userProfileContext: string = '',
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -589,7 +647,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況

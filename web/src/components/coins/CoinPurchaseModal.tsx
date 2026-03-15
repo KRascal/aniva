@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface CoinPackage {
   id: string;
@@ -27,6 +28,8 @@ const TIER_STYLES: Record<number, { gradient: string; glow: string; label?: stri
 
 export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurchaseModalProps) {
   const router = useRouter();
+  const t = useTranslations('coins');
+  const tc = useTranslations('common');
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export function CoinPurchaseModal({ isOpen, onClose, currentBalance }: CoinPurch
         }, 2000);
       }
     } catch (err) {
-      setPurchaseError(err instanceof Error ? err.message : '購入に失敗しました');
+      setPurchaseError(err instanceof Error ? err.message : tc('failed'));
     } finally {
       setPurchasing(null);
     }

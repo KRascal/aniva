@@ -26,6 +26,7 @@ export async function GET(
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
     const category = url.searchParams.get('category');
+    const sort = url.searchParams.get('sort');
     const offset = (page - 1) * limit;
 
     const where: Record<string, unknown> = { characterId };
@@ -33,14 +34,23 @@ export async function GET(
       where.category = category;
     }
 
+    // popular sort: replyCount + viewCount（降順）
+    const orderBy = sort === 'popular'
+      ? [
+          { isPinned: 'desc' as const },
+          { replyCount: 'desc' as const },
+          { viewCount: 'desc' as const },
+        ]
+      : [
+          { isPinned: 'desc' as const },
+          { lastReplyAt: 'desc' as const },
+          { createdAt: 'desc' as const },
+        ];
+
     const [threads, total] = await Promise.all([
       prisma.fanThread.findMany({
         where,
-        orderBy: [
-          { isPinned: 'desc' },
-          { lastReplyAt: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy,
         skip: offset,
         take: limit,
         include: {

@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Google from 'next-auth/providers/google';
+import Line from 'next-auth/providers/line';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import { logger } from '@/lib/logger';
@@ -47,6 +48,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
     }),
+    // LINE Login（環境変数未設定時はスキップ）
+    ...(process.env.LINE_CLIENT_ID ? [Line({
+      clientId: process.env.LINE_CLIENT_ID!,
+      clientSecret: process.env.LINE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    })] : []),
     // Email OTP (6-digit code) authentication
     Credentials({
       name: 'Email OTP',
@@ -142,6 +149,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // 新規ユーザーに無料コイン付与 (500コイン)
             await grantWelcomeCoins(dbUser.id);
           }
+        }
+      }
+
+      // ログイン時にdeletedAtがセットされていたら復活処理（30日猶予内の再ログイン）
+      if (trigger === 'signIn' && token.userId) {
+        const maybeDeleted = await prisma.user.findUnique({
+          where: { id: token.userId as string },
+          select: { deletedAt: true, deleteScheduledAt: true },
+        });
+        if (maybeDeleted?.deletedAt) {
+          await prisma.user.update({
+            where: { id: token.userId as string },
+            data: { deletedAt: null, deleteScheduledAt: null, deletionReason: null },
+          });
+          logger.info(`[auth] User ${token.userId as string} re-logged in — deletion cancelled (account restored).`);
         }
       }
 

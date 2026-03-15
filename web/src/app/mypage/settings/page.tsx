@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type LangOption = 'ja' | 'en' | 'ko' | 'zh';
@@ -27,12 +28,6 @@ const PLAN_LABELS: Record<string, { label: string; emoji: string }> = {
   PREMIUM:  { label: 'Premium',  emoji: '👑' },
 };
 
-const THEME_OPTIONS: { value: ThemeOption; label: string; icon: string }[] = [
-  { value: 'light', label: 'ライト', icon: '☀️' },
-  { value: 'dark',  label: 'ダーク', icon: '🌙' },
-  { value: 'system', label: 'システム', icon: '💻' },
-];
-
 const LANG_OPTIONS: { value: LangOption; label: string; flag: string }[] = [
   { value: 'ja', label: '日本語', flag: '🇯🇵' },
   { value: 'en', label: 'English', flag: '🇺🇸' },
@@ -44,6 +39,16 @@ export default function SettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { setTheme } = useTheme();
+  const t = useTranslations('settings');
+  const tCommon = useTranslations('common');
+  const tAuth = useTranslations('auth');
+  const tLegal = useTranslations('legal');
+
+  const THEME_OPTIONS: { value: ThemeOption; label: string; icon: string }[] = [
+    { value: 'light',  label: t('themeLight'),  icon: '☀️' },
+    { value: 'dark',   label: t('themeDark'),   icon: '🌙' },
+    { value: 'system', label: t('themeSystem'), icon: '💻' },
+  ];
 
   const [settings, setSettings] = useState<SettingsData>({
     theme: 'dark',
@@ -112,7 +117,7 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setSaveMessage('保存しました ✓');
+        setSaveMessage(t('saveSuccess'));
         setTimeout(() => setSaveMessage(null), 2000);
         // Reload page to apply locale change
         if (updates.language) {
@@ -120,7 +125,7 @@ export default function SettingsPage() {
         }
       }
     } catch {
-      setSaveMessage('保存に失敗しました');
+      setSaveMessage(t('saveFailed'));
       setTimeout(() => setSaveMessage(null), 3000);
     } finally {
       setIsSaving(false);
@@ -129,11 +134,11 @@ export default function SettingsPage() {
 
   const handleToggleNotifications = async () => {
     if (!('Notification' in window)) {
-      alert('このブラウザはプッシュ通知に対応していません');
+      alert(t('pushNotSupported'));
       return;
     }
     if (Notification.permission === 'denied') {
-      alert('ブラウザの設定から通知を許可してください');
+      alert(t('pushDenied'));
       return;
     }
     if (!settings.notifications) {
@@ -142,7 +147,7 @@ export default function SettingsPage() {
         await handleSave({ notifications: true });
       }
     } else {
-      alert('通知をOFFにするにはブラウザの設定から変更してください');
+      alert(t('pushTurnOffNote'));
     }
   };
 
@@ -158,9 +163,9 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('failed');
       const data = await res.json();
       setAccount((prev) => prev ? { ...prev, displayName: data.displayName } : prev);
-      setNameSaveMsg('保存しました ✓');
+      setNameSaveMsg(t('saveSuccess'));
     } catch {
-      setNameSaveMsg('保存に失敗しました');
+      setNameSaveMsg(t('saveFailed'));
     } finally {
       setIsSavingName(false);
       setTimeout(() => setNameSaveMsg(null), 3000);
@@ -177,7 +182,7 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
-          <p className="text-[var(--color-muted)] text-sm animate-pulse">読み込み中...</p>
+          <p className="text-[var(--color-muted)] text-sm animate-pulse">{tCommon('loading')}</p>
         </div>
       </div>
     );
@@ -198,7 +203,7 @@ export default function SettingsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-[var(--color-text)]">設定</h1>
+        <h1 className="text-lg font-bold text-[var(--color-text)]">{t('title')}</h1>
         {/* 保存メッセージ */}
         {saveMessage && (
           <span className={`ml-auto text-sm font-medium animate-fadeIn ${saveMessage.includes('失敗') ? 'text-red-400' : 'text-green-400'}`}>
@@ -216,7 +221,7 @@ export default function SettingsPage() {
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '0ms' }}>
           <div className="px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
-              <span>🎨</span> 表示テーマ
+              <span>🎨</span> {t('displayTheme')}
             </h2>
           </div>
           <div className="p-4">
@@ -253,13 +258,13 @@ export default function SettingsPage() {
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '60ms' }}>
           <div className="px-4 pt-4 pb-2 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
-              <span>🔔</span> 通知
+              <span>🔔</span> {t('notifications')}
             </h2>
           </div>
           <div className="flex items-center justify-between px-4 py-4">
             <div>
-              <p className="text-sm font-medium text-[var(--color-text)]">プッシュ通知</p>
-              <p className="text-xs text-[var(--color-muted)] mt-0.5">キャラからのお知らせを受け取る</p>
+              <p className="text-sm font-medium text-[var(--color-text)]">{t('pushNotificationLabel')}</p>
+              <p className="text-xs text-[var(--color-muted)] mt-0.5">{t('pushNotificationDesc')}</p>
             </div>
             <button
               onClick={handleToggleNotifications}
@@ -282,7 +287,7 @@ export default function SettingsPage() {
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '120ms' }}>
           <div className="px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
-              <span>🌐</span> 言語設定
+              <span>🌐</span> {t('languageSection')}
             </h2>
           </div>
           <div className="p-4">
@@ -303,14 +308,14 @@ export default function SettingsPage() {
                       {opt.label}
                     </p>
                     {settings.language === opt.value && (
-                      <p className="text-[10px] text-purple-400/70">選択中</p>
+                      <p className="text-[10px] text-purple-400/70">{t('currentlySelected')}</p>
                     )}
                   </div>
                 </button>
               ))}
             </div>
             <p className="text-xs text-[var(--color-muted)] mt-3 text-center">
-              ※ 一部のUIテキストが翻訳されます
+              {t('languageNote')}
             </p>
           </div>
         </section>
@@ -319,19 +324,19 @@ export default function SettingsPage() {
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '180ms' }}>
           <div className="px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
-              <span>💌</span> 推しに呼ばれる名前
+              <span>💌</span> {t('nicknameSection')}
             </h2>
           </div>
           <div className="px-4 py-4">
             <p className="text-xs text-[var(--color-muted)] mb-3">
-              キャラクターがあなたを呼ぶ名前を設定できます（最大20文字）
+              {t('nicknameDesc')}
             </p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={displayNameInput}
                 onChange={(e) => setDisplayNameInput(e.target.value.slice(0, 20))}
-                placeholder={account?.email?.split('@')[0] ?? 'ニックネーム'}
+                placeholder={account?.email?.split('@')[0] ?? t('nicknamePlaceholder')}
                 className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-purple-500 transition-colors"
                 maxLength={20}
               />
@@ -342,7 +347,7 @@ export default function SettingsPage() {
               >
                 {isSavingName ? (
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                ) : '保存'}
+                ) : tCommon('save')}
               </button>
             </div>
             {nameSaveMsg && (
@@ -357,14 +362,14 @@ export default function SettingsPage() {
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
           <div className="px-4 pt-4 pb-2 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-2">
-              <span>👤</span> アカウント
+              <span>👤</span> {t('accountSection')}
             </h2>
           </div>
 
           {/* メール */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
             <div>
-              <p className="text-xs text-[var(--color-muted)]">メールアドレス</p>
+              <p className="text-xs text-[var(--color-muted)]">{t('emailLabel')}</p>
               <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">{account?.email ?? '—'}</p>
             </div>
             <svg className="w-4 h-4 text-[var(--color-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -375,20 +380,20 @@ export default function SettingsPage() {
           {/* コイン・FC */}
           <a href="/pricing" className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors">
             <div>
-              <p className="text-xs text-[var(--color-muted)]">コイン・ファンクラブ</p>
+              <p className="text-xs text-[var(--color-muted)]">{t('coinsFc')}</p>
               <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">
-                🪙 コインを購入・FCに加入
+                {t('coinsFcLink')}
               </p>
             </div>
-            <span className="text-xs text-purple-400 font-medium">詳細 →</span>
+            <span className="text-xs text-purple-400 font-medium">{t('coinsFcDetail')}</span>
           </a>
         </section>
 
         {/* リンク */}
         <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
           {[
-            { label: 'プライバシーポリシー', icon: '🔒', href: '/privacy' },
-            { label: '利用規約', icon: '📄', href: '/terms' },
+            { label: tLegal('privacy'), icon: '🔒', href: '/privacy' },
+            { label: tLegal('terms'),   icon: '📄', href: '/terms' },
           ].map((item, i, arr) => (
             <Link
               key={item.label}
@@ -421,10 +426,10 @@ export default function SettingsPage() {
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           )}
-          {isSigningOut ? 'ログアウト中...' : 'ログアウト'}
+          {isSigningOut ? t('loggingOut') : tAuth('logout')}
         </button>
 
-        <p className="text-center text-xs text-[var(--color-muted)] opacity-40 pb-2">ANIVA v1.0.0</p>
+        <p className="text-center text-xs text-[var(--color-muted)] opacity-40 pb-2">{t('version')}</p>
       </div>
     </div>
   );

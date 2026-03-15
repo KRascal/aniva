@@ -22,6 +22,8 @@ import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { callLLMStream } from '@/lib/llm-stream';
 import { logger } from '@/lib/logger';
+import { shouldUseDeepMode, calculateMessageWeight, calculateDelayMs, formatDelayText } from '@/lib/message-weight';
+import { getThinkingReaction } from '@/lib/thinking-reactions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -143,6 +145,74 @@ export async function POST(req: NextRequest) {
     const userMsg = await prisma.message.create({
       data: { conversationId: conversation.id, role: 'USER', content: message },
     });
+
+    // ── Deep Mode判定 ──
+    const recentCharMsgs = await prisma.message.findMany({
+      where: { conversationId: conversation.id, role: 'CHARACTER' },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { metadata: true },
+    });
+    const recentDeepCount = recentCharMsgs.filter(
+      (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
+    ).length;
+
+    if (shouldUseDeepMode(message, recentDeepCount)) {
+      // 遅延時間を計算してscheduledAtを設定
+      const weight = calculateMessageWeight(message);
+      const delayMs = calculateDelayMs(weight);
+      const scheduledAt = new Date(Date.now() + delayMs);
+      const delayText = formatDelayText(delayMs);
+      const thinkingContent = `ちょっと考えさせて…${delayText}に返事するね`;
+      const thinkingText = getThinkingReaction(cachedCharacter.slug);
+      const thinkingMsg = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: 'CHARACTER',
+          content: thinkingContent,
+          metadata: { isThinking: true, scheduledAt: scheduledAt.toISOString() },
+        },
+      });
+      await prisma.deepReplyQueue.create({
+        data: {
+          userId,
+          characterId,
+          relationshipId: relationship.id,
+          conversationId: conversation.id,
+          userMessageId: userMsg.id,
+          thinkingMsgId: thinkingMsg.id,
+          scheduledAt,
+        },
+      });
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+      if (access.type === 'FREE') {
+        await incrementMonthlyChat(userId, characterId);
+      }
+      // Deep ModeはSSEで1イベントだけ返して即完了
+      const encoder2 = new TextEncoder();
+      const deepEvent = encoder2.encode(
+        `data: ${JSON.stringify({
+          type: 'deep_mode',
+          userMessageId: userMsg.id,
+          characterMessageId: thinkingMsg.id,
+          thinkingText: thinkingContent,
+          emotion: 'thinking',
+          isDeepProcessing: true,
+          scheduledAt: scheduledAt.toISOString(),
+          consumed,
+        })}\n\n`,
+      );
+      return new Response(deepEvent, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
 
     // ── SystemPrompt構築 （character-engineの内部メソッドを公開して利用） ──
     const isFcMember = consumed === 'FC_UNLIMITED';

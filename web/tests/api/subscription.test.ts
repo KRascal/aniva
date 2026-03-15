@@ -45,6 +45,19 @@ vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
 }));
 
+// ── Rate Limit モック ──────────────────────────────────────────────────────────
+vi.mock('@/lib/rate-limit', () => ({
+  paymentLimiter: {
+    check: vi.fn().mockResolvedValue({ success: true }),
+  },
+  rateLimitResponse: vi.fn(() =>
+    new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  ),
+}));
+
 // ── インポート（モック後） ─────────────────────────────────────────────────────
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
@@ -92,7 +105,7 @@ describe('POST /api/subscription/create', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.url).toBe('https://checkout.stripe.com/pay/test');
+    expect(body.checkoutUrl).toBe('https://checkout.stripe.com/pay/test');
     // 既存のcustomerIdがあるので customers.create は呼ばれない
     expect(stripe.customers.create).not.toHaveBeenCalled();
   });

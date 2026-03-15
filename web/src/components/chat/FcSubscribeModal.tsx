@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface FcSubscribeModalProps {
   characterName: string;
@@ -21,6 +22,8 @@ export function FcSubscribeModal({
   onClose,
   onSubscribe,
 }: FcSubscribeModalProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [loading, setLoading] = useState(false);
 
   const handleSubscribe = async () => {
@@ -48,7 +51,7 @@ export function FcSubscribeModal({
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="text-sm font-medium">戻る</span>
+            <span className="text-sm font-medium">{tc('back')}</span>
           </button>
           {/* スワイプインジケーター */}
           <div className="w-10 h-1 bg-gray-600 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2" />
@@ -82,17 +85,17 @@ export function FcSubscribeModal({
         {/* Content */}
         <div className="px-6 pt-4 pb-6">
           <h2 className="text-center text-lg font-bold text-white mb-1">
-            {characterName}の<span className="text-purple-400">FC会員</span>になる
+            {characterName}{t('fcModalTitleOf')}<span className="text-purple-400">{t('fcModalFcMember')}</span>{t('fcModalTitleBecome')}
           </h2>
           <p className="text-center text-gray-500 text-xs mb-5">
-            ファンクラブに加入して特別な体験を
+            {t('fcModalSubtitle')}
           </p>
 
           {/* キャッチコピー */}
           <div className="text-center mb-4 bg-gradient-to-r from-purple-900/40 to-pink-900/30 border border-purple-500/20 rounded-2xl px-4 py-3">
             <p className="text-white/90 text-sm leading-relaxed">
-              FCに入ると、{characterName}があなたを<span className="text-purple-300 font-bold">特別扱い</span>してくれる。
-              <br />もっと深い話、もっと本音の会話を。
+              {t('fcModalCatchPre')}{characterName}{t('fcModalCatchMid')}<span className="text-purple-300 font-bold">{t('fcModalCatchHighlight')}</span>{t('fcModalCatchPost')}
+              <br />{t('fcModalCatchLine2')}
             </p>
           </div>
 
@@ -101,67 +104,67 @@ export function FcSubscribeModal({
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">💬</span>
               <div>
-                <p className="text-white text-sm font-medium">チャット無制限</p>
-                <p className="text-gray-500 text-xs">コイン消費なし。いつでも好きなだけ話せる</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitChatTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitChatDesc')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">📞</span>
               <div>
-                <p className="text-white text-sm font-medium">音声通話 月{fcIncludedCallMin}分込み</p>
-                <p className="text-gray-500 text-xs">{characterName}の声で直接会話できる</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitCallTitle', { min: fcIncludedCallMin })}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitCallDesc', { name: characterName })}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">📰</span>
               <div>
-                <p className="text-white text-sm font-medium">FC限定タイムライン</p>
-                <p className="text-gray-500 text-xs">会員だけが見れる{characterName}の特別な投稿</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitTimelineTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitTimelineDesc', { name: characterName })}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">📖</span>
               <div>
-                <p className="text-white text-sm font-medium">FC限定ストーリー</p>
-                <p className="text-gray-500 text-xs">{characterName}の知られざる一面を描いた限定エピソード</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitStoryTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitStoryDesc', { name: characterName })}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-pink-500/10 border border-pink-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">💌</span>
               <div>
-                <p className="text-white text-sm font-medium">FC限定の手紙・メッセージ</p>
-                <p className="text-gray-500 text-xs">{characterName}からあなただけに届く特別なメッセージ</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitLetterTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitLetterDesc', { name: characterName })}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">🎰</span>
               <div>
-                <p className="text-white text-sm font-medium">ガチャ確率UP</p>
-                <p className="text-gray-500 text-xs">SR以上の排出率が優遇。レアカードを手に入れやすく</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitGachaTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitGachaDesc')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">📦</span>
               <div>
-                <p className="text-white text-sm font-medium">FC限定ダウンロードコンテンツ</p>
-                <p className="text-gray-500 text-xs">壁紙・ボイス・特別イラストをダウンロード</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitDlcTitle')}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitDlcDesc')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
               <span className="text-xl">🪙</span>
               <div>
-                <p className="text-white text-sm font-medium">毎月{fcMonthlyCoins}コイン付与</p>
-                <p className="text-gray-500 text-xs">ギフトや追加通話に使える</p>
+                <p className="text-white text-sm font-medium">{t('fcModalBenefitCoinsTitle', { coins: fcMonthlyCoins })}</p>
+                <p className="text-gray-500 text-xs">{t('fcModalBenefitCoinsDesc')}</p>
               </div>
             </div>
           </div>
 
           {/* Price & CTA */}
           <div className="text-center mb-4">
-            <span className="text-gray-500 text-xs">月額</span>
+            <span className="text-gray-500 text-xs">{t('fcModalMonthlyLabel')}</span>
             <p className="text-3xl font-bold text-white">
               ¥{fcMonthlyPriceJpy.toLocaleString()}
-              <span className="text-sm font-normal text-gray-500">/月</span>
+              <span className="text-sm font-normal text-gray-500">{t('fcModalPerMonth')}</span>
             </p>
           </div>
 
@@ -170,11 +173,11 @@ export function FcSubscribeModal({
             disabled={loading}
             className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-700 disabled:to-gray-700 text-white font-bold text-base rounded-2xl shadow-lg shadow-purple-500/25 transition-all active:scale-[0.98]"
           >
-            {loading ? '処理中...' : '👑 FC会員になる'}
+            {loading ? t('fcModalProcessing') : t('fcModalJoinButton')}
           </button>
 
           <p className="text-center text-gray-600 text-[10px] mt-3 pb-safe">
-            いつでもキャンセル可能 • Stripeで安全に決済
+            {t('fcModalCancelNote')}
           </p>
           {/* iOS safe area spacing */}
           <div className="h-6" />

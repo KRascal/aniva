@@ -9,8 +9,8 @@ import { track, EVENTS } from '@/lib/analytics';
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy', '/onboarding'];
 // チャット中（個別チャット・グループチャット内）はBottomNavを非表示
 // /chat は表示、/chat/group は表示、/chat/group/[id] は非表示、/chat/[slug] は非表示
-const CHAT_VISIBLE_EXACT = ['/chat', '/chat/group'];
-const HIDDEN_PREFIXES = ['/chat/'];
+const CHAT_VISIBLE_EXACT = ['/chat'];
+const HIDDEN_PREFIXES = ['/chat/', '/group-chat'];
 
 const navItems = [
   {
@@ -253,7 +253,7 @@ export function BottomNav() {
               </svg>
               {isCards && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
             </div>
-            <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>カード</span>
+            <span className={`text-[10px] font-semibold ${isCards ? 'text-purple-400' : 'text-gray-500'}`}>{t('cards')}</span>
           </Link>
 
           {/* 5. マイページ */}

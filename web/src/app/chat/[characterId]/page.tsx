@@ -31,225 +31,15 @@ import { useConversationEnd } from '@/hooks/useConversationEnd';
 import { EndingMessage } from '@/components/chat/EndingMessage';
 import { StreakBreakPopup } from '@/components/chat/StreakBreakPopup';
 import { DailyEventPopup } from '@/components/reward/DailyEventPopup';
-
-/* ─────────────── ユーティリティ ─────────────── */
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-type TextEmotion = 'excited' | 'angry' | 'shy' | 'sad' | 'neutral';
-
-function detectEmotionForDelay(text: string): { emotion: TextEmotion; delay: number; pauseEffect: boolean } {
-  if (/！！|すげぇ|最高/.test(text)) return { emotion: 'excited', delay: 300, pauseEffect: false };
-  if (/許さねぇ|ふざけんな/.test(text)) return { emotion: 'angry', delay: 200, pauseEffect: false };
-  if (/別に|うるせぇ/.test(text)) return { emotion: 'shy', delay: 1200, pauseEffect: true };
-  const ellipsisCount = (text.match(/…/g) ?? []).length;
-  if (ellipsisCount >= 2) return { emotion: 'sad', delay: 1500, pauseEffect: true };
-  const defaultDelay = Math.min(600 + text.length * 10, 2000);
-  return { emotion: 'neutral', delay: defaultDelay, pauseEffect: false };
-}
-
-/* ─────────────── リアクション → キャラ反応（LLM動的生成） ─────────────── */
-const REACTION_EMOTION: Record<string, string> = {
-  '❤️': 'shy',
-  '😂': 'excited',
-  '😢': 'sad',
-  '🔥': 'excited',
-  '👏': 'happy',
-  '😍': 'shy',
-  '💪': 'excited',
-  '😮': 'excited',
-  '👍': 'happy',
-  '😡': 'angry',
-};
-
-// LLM APIで動的にリアクション応答を取得
-async function fetchReactionResponse(characterId: string, emoji: string, lastMessage?: string): Promise<string> {
-  try {
-    const res = await fetch('/api/chat/reaction-response', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ characterId, emoji, lastMessage }),
-    });
-    if (!res.ok) return '…';
-    const data = await res.json();
-    return data.response || '…';
-  } catch {
-    return '…';
-  }
-}
-
-/* ─────────────── 共通スタイル（keyframes） ─────────────── */
-const GLOBAL_STYLES = `
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes sendBounce {
-    0%   { transform: scale(1); }
-    25%  { transform: scale(0.82); }
-    60%  { transform: scale(1.18); }
-    80%  { transform: scale(0.94); }
-    100% { transform: scale(1); }
-  }
-  @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
-    50%       { box-shadow: 0 0 16px 4px rgba(168,85,247,0.55); }
-  }
-  @keyframes viewerSlide {
-    from { opacity: 0; max-height: 0; }
-    to   { opacity: 1; max-height: 340px; }
-  }
-  @keyframes audioSpin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-  /* 波形アニメーション（各バーが独立したリズムで動く） */
-  @keyframes waveBar {
-    0%, 100% { transform: scaleY(0.3); }
-    50%       { transform: scaleY(1); }
-  }
-  /* 感情アニメーション */
-  @keyframes bubbleShake {
-    0%, 100% { transform: translateX(0); }
-    15%, 55%  { transform: translateX(-5px) rotate(-1deg); }
-    30%, 70%  { transform: translateX(5px) rotate(1deg); }
-    45%, 85%  { transform: translateX(-3px); }
-  }
-  @keyframes bubbleWiggle {
-    0%, 100% { transform: rotate(-2deg) scale(1.02); }
-    50%       { transform: rotate(2deg) scale(1.04); }
-  }
-  @keyframes floatMeat {
-    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(-5deg); }
-    60%  { opacity: 0.8; }
-    100% { opacity: 0; transform: translateY(-130px) scale(1.5) rotate(15deg); }
-  }
-  @keyframes starTwinkle {
-    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-    40%       { opacity: 1; transform: scale(1.3) rotate(120deg); }
-    80%       { opacity: 0.5; transform: scale(0.8) rotate(240deg); }
-  }
-  @keyframes levelUpBanner {
-    0%   { opacity: 0; transform: translateY(-20px) scale(0.9); }
-    15%  { opacity: 1; transform: translateY(0) scale(1.05); }
-    85%  { opacity: 1; transform: translateY(0) scale(1); }
-    100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
-  }
-  .wave-bar {
-    display: inline-block;
-    width: 3px;
-    border-radius: 2px;
-    transform-origin: bottom;
-    animation: waveBar 0.8s ease-in-out infinite;
-  }
-  .msg-animate       { animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; }
-  @keyframes inputFlash {
-    0% { box-shadow: 0 0 0 0 rgba(168,85,247,0.6); }
-    50% { box-shadow: 0 0 20px 4px rgba(168,85,247,0.3); }
-    100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
-  }
-  .input-flash { animation: inputFlash 0.5s ease-out; }
-  .send-bounce       { animation: sendBounce 0.38s ease-out; }
-  .send-glow         { animation: glowPulse 1.6s ease-in-out infinite; }
-  .viewer-slide      { animation: viewerSlide 0.3s ease-out; }
-  .audio-spin        { animation: audioSpin 1.4s linear infinite; }
-  .bubble-angry      { animation: bubbleShake 0.5s ease-in-out; }
-  .bubble-excited    { animation: bubbleWiggle 0.5s ease-in-out 3; }
-  .bubble-levelup    { animation: levelUpBanner 3.5s ease-in-out forwards; }
-  .float-meat        { animation: floatMeat 1.6s ease-out forwards; }
-  .star-twinkle      { animation: starTwinkle 1.2s ease-in-out infinite; }
-  /* Thin custom scrollbar */
-  .chat-scroll::-webkit-scrollbar { width: 4px; }
-  .chat-scroll::-webkit-scrollbar-track { background: transparent; }
-  .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-  /* テーマカラー背景の滑らかなトランジション */
-  .chat-bg { transition: background 1.2s ease; }
-  /* 絆XPフロートアニメーション */
-  @keyframes xpFloatUp {
-    0%   { opacity: 0; transform: translateY(0px) scale(0.8); }
-    15%  { opacity: 1; transform: translateY(-6px) scale(1.05); }
-    60%  { opacity: 0.9; transform: translateY(-18px) scale(1); }
-    100% { opacity: 0; transform: translateY(-36px) scale(0.9); }
-  }
-  /* ---- 新規感情吹き出しアニメーション ---- */
-  /* 照れ: 左右に小さく揺れ */
-  @keyframes bubbleShyWiggle {
-    0%, 100% { transform: translateX(0); }
-    20%       { transform: translateX(-3px); }
-    40%       { transform: translateX(3px); }
-    60%       { transform: translateX(-2px); }
-    80%       { transform: translateX(2px); }
-  }
-  /* 悲しみ: 全体がゆっくりフェードイン */
-  @keyframes bubbleSadFade {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 0.88; transform: translateY(0); }
-  }
-  /* 寂しい: わずかに小さく出現 */
-  @keyframes bubbleLonelyIn {
-    from { opacity: 0; transform: scale(0.93); }
-    to   { opacity: 1; transform: scale(0.97); }
-  }
-  /* 興奮スパークル */
-  @keyframes sparkleFloat1 {
-    0%   { opacity: 0; transform: translate(0, 0) scale(0) rotate(0deg); }
-    30%  { opacity: 1; transform: translate(-8px, -12px) scale(1.1) rotate(60deg); }
-    100% { opacity: 0; transform: translate(-4px, -26px) scale(0.5) rotate(140deg); }
-  }
-  @keyframes sparkleFloat2 {
-    0%   { opacity: 0; transform: translate(0, 0) scale(0) rotate(0deg); }
-    40%  { opacity: 1; transform: translate(10px, -10px) scale(1.0) rotate(-45deg); }
-    100% { opacity: 0; transform: translate(6px, -24px) scale(0.5) rotate(-120deg); }
-  }
-  .bubble-shy {
-    animation: bubbleShyWiggle 0.7s ease-in-out;
-    box-shadow: 0 0 0 1px rgba(236,72,153,0.25), 0 4px 16px rgba(236,72,153,0.12) !important;
-  }
-  .bubble-sad {
-    animation: bubbleSadFade 0.8s ease-out forwards;
-  }
-  .bubble-lonely {
-    animation: bubbleLonelyIn 0.6s ease-out forwards;
-  }
-  .sparkle-1 {
-    position: absolute;
-    top: -4px; right: 4px;
-    font-size: 11px;
-    pointer-events: none;
-    animation: sparkleFloat1 1.1s ease-out forwards;
-    z-index: 10;
-    user-select: none;
-  }
-  .sparkle-2 {
-    position: absolute;
-    top: 2px; right: -8px;
-    font-size: 10px;
-    pointer-events: none;
-    animation: sparkleFloat2 1.1s ease-out forwards;
-    animation-delay: 0.2s;
-    opacity: 0;
-    z-index: 10;
-    user-select: none;
-  }
-`;
-
-/* ─────────────── 型定義 ─────────────── */
-// Message と Character は ChatMessageList.tsx からインポート
-
-interface RelationshipInfo {
-  level: number;
-  levelName: string;
-  xp: number;
-  nextLevelXp: number | null;
-  totalMessages: number;
-  relationshipId?: string;
-  character?: { name: string; slug: string };
-  isFanclub?: boolean;
-  isFollowing?: boolean;
-  sharedTopics?: { type: string; text: string }[];
-  streakDays?: number;
-  isStreakActive?: boolean;
-}
-
+import { sleep, detectEmotionForDelay, REACTION_EMOTION, fetchReactionResponse, EMOTION_THEMES, GLOBAL_STYLES } from '@/components/chat/chatUtils';
+import type { TextEmotion } from '@/components/chat/chatUtils';
+import type { RelationshipInfo } from '@/components/chat/types';
+import { MemoryPeekModal } from '@/components/chat/MemoryPeekModal';
+import { CallSelectionModal } from '@/components/chat/CallSelectionModal';
+import { FcSuccessModal } from '@/components/chat/FcSuccessModal';
+import { MessageContextMenu } from '@/components/chat/MessageContextMenu';
+import { TopicCard } from '@/components/chat/TopicCard';
+import { logger } from '@/lib/logger';
 
 
 /* ─────────────── メインページ ─────────────── */
@@ -436,6 +226,15 @@ export default function ChatCharacterPage() {
     }
     setCtxMenu(null);
   }, [character]);
+
+  const handleShareMsg = useCallback((content: string) => {
+    if (navigator.share) {
+      navigator.share({ text: content }).catch(() => {});
+    } else {
+      handleCopyMsg(content);
+    }
+    setCtxMenu(null);
+  }, [handleCopyMsg]);
 
   /* ── リアクション → キャラ反応ハンドラ ── */
   const handleReaction = useCallback((msgId: string, emoji: string, _characterSlug: string) => {
@@ -714,8 +513,8 @@ export default function ChatCharacterPage() {
             sessionStorage.setItem(fcPromptKey, '1');
           }
         }
-        // ストリーク途切れチェック（会話したことがあるキャラのみ）
-        if (relData.streakDays === 0 && relData.isStreakActive === false && relData.totalMessages > 0) {
+        // ストリーク途切れチェック（3日以上連続していた場合のみ表示。0-2日は表示不要）
+        if ((relData.previousStreakDays ?? 0) >= 3 && relData.isStreakActive === false && relData.totalMessages > 0) {
           const streakKey = `streakBreak_${characterId}_${new Date().toDateString()}`;
           if (!sessionStorage.getItem(streakKey)) {
             setShowStreakBreak(true);
@@ -743,7 +542,7 @@ export default function ChatCharacterPage() {
             if (relData2?.id) setRelationshipId(relData2.id);
           }
         } catch (e) {
-          console.error('Auto-follow failed:', e);
+          logger.error('Auto-follow failed', { error: e });
         }
         // ログイン済みユーザーは常にgreet直行（診断スキップ）
         // 診断は /c/[slug] のゲストオンボーディングフローでのみ実施
@@ -790,7 +589,7 @@ export default function ChatCharacterPage() {
 
       setIsLoadingHistory(false);
     } catch (err) {
-      console.error('Failed to load relationship:', err);
+      logger.error('Failed to load relationship', { error: err });
       setIsLoadingHistory(false);
     }
   }, [userId, characterId]);
@@ -1085,6 +884,21 @@ export default function ChatCharacterPage() {
               if (parsed.levelUp) {
                 // レベルアップ演出（既存があれば呼ぶ）
               }
+            } else if (parsed.type === 'deep_mode') {
+              // Deep Mode: 考え中メッセージに置換してストリーム終了
+              setMessages((prev) => [
+                ...prev.filter((m) => m.id !== tempUserMsg.id && m.id !== streamMsgId),
+                { ...tempUserMsg, id: parsed.userMessageId || tempUserMsg.id },
+                {
+                  id: parsed.characterMessageId || `thinking-${Date.now()}`,
+                  role: 'CHARACTER' as const,
+                  content: parsed.thinkingText || '…少し考えさせて。',
+                  createdAt: new Date().toISOString(),
+                  metadata: { isThinking: true, emotion: 'thinking' },
+                },
+              ]);
+              setIsSending(false);
+              break;
             } else if (parsed.type === 'meta') {
               // userMsgのIDを正式IDに更新（サーバーが返したuserMessageId）
               if (parsed.userMessageId) {
@@ -1115,15 +929,6 @@ export default function ChatCharacterPage() {
 
       // 感情エフェクト（ストリーミング完了後）
       if (finalEmotion && finalEmotion !== 'neutral') {
-        const EMOTION_THEMES: Record<string, string> = {
-          excited:   'rgba(234,88,12,0.08), rgba(153,27,27,0.06)',
-          happy:     'rgba(202,138,4,0.08), rgba(161,98,7,0.05)',
-          angry:     'rgba(153,27,27,0.10), rgba(190,18,60,0.07)',
-          sad:       'rgba(29,78,216,0.09), rgba(67,56,202,0.06)',
-          hungry:    'rgba(217,119,6,0.08), rgba(180,83,9,0.05)',
-          surprised: 'rgba(14,116,144,0.08), rgba(15,118,110,0.06)',
-          neutral:   'rgba(88,28,135,0.06), rgba(0,0,0,0)',
-        };
         setBgTheme(EMOTION_THEMES[finalEmotion] ?? EMOTION_THEMES.neutral);
         if (finalCharMsgId) setLastEmotionMsgId(finalCharMsgId);
         if (finalEmotion === 'hungry') {
@@ -1191,7 +996,7 @@ export default function ChatCharacterPage() {
 
       // XP/レベルアップはcompleteイベントのlevelUpフィールドで処理済み
     } catch (err) {
-      console.error('Send message error:', err);
+      logger.error('Send message error', { error: err });
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       inFlightRef.current = false;
@@ -1310,7 +1115,7 @@ export default function ChatCharacterPage() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
-        console.error('画像送信エラー:', err);
+        logger.error('画像送信エラー', { error: err });
       } else {
         const data = await res.json();
         // 楽観的メッセージを実際のメッセージに差し替え
@@ -1323,7 +1128,7 @@ export default function ChatCharacterPage() {
         );
       }
     } catch (e) {
-      console.error('画像送信失敗:', e);
+      logger.error('画像送信失敗', { error: e });
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
     } finally {
       URL.revokeObjectURL(previewUrl);
@@ -1358,7 +1163,7 @@ export default function ChatCharacterPage() {
       setIsPushSubscribed(true);
       alert('プッシュ通知をONにしました 🔔');
     } catch (err) {
-      console.error('Push subscribe error:', err);
+      logger.error('Push subscribe error', { error: err });
       alert('通知の設定に失敗しました');
     }
   };
@@ -1423,7 +1228,7 @@ export default function ChatCharacterPage() {
         }
       }
     } catch (e) {
-      console.error('Greeting failed:', e);
+      logger.error('Greeting failed', { error: e });
     } finally {
       setIsGreeting(false);
     }
@@ -1534,133 +1339,13 @@ export default function ChatCharacterPage() {
       )}
 
       {/* 🧠 記憶ペークモーダル */}
-      {showMemoryPeek && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowMemoryPeek(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-gray-950 border-t border-purple-500/20 rounded-t-3xl p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-h-[75vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* タイトル */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🧠</span>
-                <h3 className="font-bold text-white text-sm">
-                  {character?.name ?? 'キャラ'}の記憶
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowMemoryPeek(false)}
-                className="text-gray-500 hover:text-gray-300 text-xs p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            {memoryLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full" />
-              </div>
-            ) : !memoryData || (memoryData.factMemory.length === 0 && memoryData.episodeMemory.length === 0) ? (
-              <div className="text-center py-10">
-                <p className="text-4xl mb-2">💭</p>
-                <p className="text-gray-400 text-xs">まだ記憶がありません</p>
-                <p className="text-gray-600 text-xs mt-1">会話を重ねると覚えてくれます</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* 統計 */}
-                <div className="flex gap-3">
-                  <div className="flex-1 bg-gray-900 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-purple-400">{memoryData.totalMessages}</p>
-                    <p className="text-gray-500 text-[10px] mt-0.5">通話メッセージ</p>
-                  </div>
-                  {memoryData.firstMessageAt && (
-                    <div className="flex-1 bg-gray-900 rounded-xl p-3 text-center">
-                      <p className="text-sm font-bold text-pink-400">
-                        {new Date(memoryData.firstMessageAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                      </p>
-                      <p className="text-gray-500 text-[10px] mt-0.5">初めて話した日</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* 事実記憶 */}
-                {memoryData.factMemory.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-purple-400 mb-2 flex items-center gap-1">
-                      <span>📌</span> あなたのこと
-                    </p>
-                    <div className="space-y-1.5">
-                      {memoryData.factMemory.map((f, i) => (
-                        <div key={i} className="flex items-start gap-2 bg-gray-900/70 rounded-lg px-3 py-2">
-                          <span className="text-purple-400 mt-0.5 text-xs">•</span>
-                          <span className="text-gray-200 text-xs leading-relaxed flex-1">{f.fact}</span>
-                          <span className="text-gray-600 text-[10px] flex-shrink-0 mt-0.5">{Math.round(f.confidence * 100)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* エピソード記憶 */}
-                {memoryData.episodeMemory.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-pink-400 mb-2 flex items-center gap-1">
-                      <span>✨</span> 大切な思い出
-                    </p>
-                    <div className="space-y-1.5">
-                      {memoryData.episodeMemory.map((e, i) => (
-                        <div key={i} className="bg-gray-900/70 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-sm">{e.emotion}</span>
-                            <span className="text-gray-500 text-[10px]">
-                              {new Date(e.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                            </span>
-                          </div>
-                          <p className="text-gray-200 text-xs leading-relaxed">{e.summary}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 好き嫌い */}
-                {(memoryData.preferences.likes.length > 0 || memoryData.preferences.dislikes.length > 0) && (
-                  <div className="flex gap-2">
-                    {memoryData.preferences.likes.length > 0 && (
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-green-400 mb-1.5">💚 好き</p>
-                        <div className="flex flex-wrap gap-1">
-                          {memoryData.preferences.likes.slice(0, 6).map((l, i) => (
-                            <span key={i} className="text-[10px] bg-green-900/30 border border-green-700/30 text-green-300 rounded-full px-2 py-0.5">
-                              {l}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {memoryData.preferences.dislikes.length > 0 && (
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-red-400 mb-1.5">🔴 苦手</p>
-                        <div className="flex flex-wrap gap-1">
-                          {memoryData.preferences.dislikes.slice(0, 6).map((d, i) => (
-                            <span key={i} className="text-[10px] bg-red-900/30 border border-red-700/30 text-red-300 rounded-full px-2 py-0.5">
-                              {d}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <MemoryPeekModal
+        isOpen={showMemoryPeek}
+        memoryData={memoryData}
+        memoryLoading={memoryLoading}
+        characterName={character?.name}
+        onClose={() => setShowMemoryPeek(false)}
+      />
 
       {/* 📞 準備中トースト */}
       {showComingSoonToast && (
@@ -1672,103 +1357,12 @@ export default function ChatCharacterPage() {
       )}
 
       {/* 📞 通話選択モーダル */}
-      {/* 📞 通話選択モーダル — フルスクリーン グラスモーフィズム */}
-      {showCallModal && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-between"
-          style={{
-            background: 'linear-gradient(160deg, rgba(10,5,30,0.96) 0%, rgba(20,5,50,0.98) 50%, rgba(5,5,20,0.97) 100%)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            paddingTop: 'calc(env(safe-area-inset-top) + 3rem)',
-            paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)',
-          }}
-          onClick={() => setShowCallModal(false)}
-        >
-          {/* 背景グロー */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-purple-600/15 blur-3xl" />
-            <div className="absolute bottom-1/3 left-1/4 w-48 h-48 rounded-full bg-pink-600/10 blur-3xl" />
-          </div>
-
-          {/* 上部: アバター + 名前 */}
-          <div className="flex flex-col items-center gap-4 relative z-10" onClick={(e) => e.stopPropagation()}>
-            {/* アバター */}
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-xl scale-125" />
-              <div className="relative w-28 h-28 rounded-full overflow-hidden ring-4 ring-purple-500/40 ring-offset-4 ring-offset-transparent shadow-2xl shadow-purple-900/60">
-                {character?.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-5xl">🏴‍☠️</div>
-                )}
-              </div>
-            </div>
-            <div className="text-center">
-              <h2 className="text-white text-2xl font-bold tracking-wide">{character?.name ?? 'キャラクター'}</h2>
-              <p className="text-gray-400 text-sm mt-1">通話方法を選んでください</p>
-            </div>
-          </div>
-
-          {/* 中部: 通話選択カード */}
-          <div className="w-full max-w-sm px-5 space-y-3 relative z-10" onClick={(e) => e.stopPropagation()}>
-            {/* 音声通話カード */}
-            <button
-              onClick={() => { setCallToast(true); setTimeout(() => setCallToast(false), 3000); }}
-              className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl text-left transition-all active:scale-[0.98] group"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(12px)',
-              }}
-            >
-              <div className="w-12 h-12 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
-                <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-white font-semibold text-base">音声通話</div>
-                <div className="text-gray-400 text-sm mt-0.5">声を聴く</div>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-gray-700/80 text-gray-400 border border-gray-600/30 flex-shrink-0">近日公開</span>
-            </button>
-
-            {/* ビデオ通話カード */}
-            <button
-              onClick={() => { setCallToast(true); setTimeout(() => setCallToast(false), 3000); }}
-              className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl text-left transition-all active:scale-[0.98] group"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(12px)',
-              }}
-            >
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors">
-                <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-white font-semibold text-base">ビデオ通話</div>
-                <div className="text-gray-400 text-sm mt-0.5">顔を見る</div>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-gray-700/80 text-gray-400 border border-gray-600/30 flex-shrink-0">近日公開</span>
-            </button>
-          </div>
-
-          {/* 下部: キャンセルボタン */}
-          <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setShowCallModal(false)}
-              className="px-10 py-3 rounded-full text-gray-400 hover:text-white text-sm transition-colors border border-white/10 hover:border-white/20 hover:bg-white/5"
-            >
-              キャンセル
-            </button>
-          </div>
-        </div>
-      )}
+      <CallSelectionModal
+        show={showCallModal}
+        character={character}
+        onClose={() => setShowCallModal(false)}
+        onShowCallToast={() => { setCallToast(true); setTimeout(() => setCallToast(false), 3000); }}
+      />
 
       {/* ≡ メニューパネル（右スライド） */}
       <ChatMenu
@@ -1801,7 +1395,7 @@ export default function ChatCharacterPage() {
           characterSlug={character.slug ?? 'luffy'}
           characterName={character.name}
           relationshipId={relationshipId ?? ''}
-          previousStreak={relationship.streakDays ?? 0}
+          previousStreak={relationship.previousStreakDays ?? relationship.streakDays ?? 0}
           onClose={() => setShowStreakBreak(false)}
           onRecovered={(newStreak) => {
             setShowStreakBreak(false);
@@ -1811,35 +1405,11 @@ export default function ChatCharacterPage() {
       )}
 
       {/* FC加入決済完了お祝いモーダル */}
-      {showFcSuccess && character && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="relative bg-gradient-to-b from-[#1a0a2e] to-[#0d0d1a] border border-yellow-500/30 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-            {/* キラキラエフェクト */}
-            <div className="text-5xl mb-2 animate-bounce">🎉</div>
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
-              {['✨','⭐','💫','🌟','✨'].map((s, i) => (
-                <span key={i} className="absolute text-xl animate-ping opacity-70"
-                  style={{ top: `${15 + i * 16}%`, left: `${10 + i * 18}%`, animationDelay: `${i * 0.3}s`, animationDuration: '2s' }}>
-                  {s}
-                </span>
-              ))}
-            </div>
-            <h2 className="text-2xl font-bold text-yellow-400 mb-2">FC加入完了！</h2>
-            <p className="text-white/80 text-sm mb-1">
-              {character.name}のファンクラブへようこそ💖
-            </p>
-            <p className="text-white/60 text-xs mb-6">
-              チャット無制限・月{character.fcMonthlyCoins ?? 500}コイン・特典コンテンツが解放されました
-            </p>
-            <button
-              onClick={() => setShowFcSuccess(false)}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-base hover:opacity-90 transition"
-            >
-              {character.name}と話す ▶
-            </button>
-          </div>
-        </div>
-      )}
+      <FcSuccessModal
+        show={showFcSuccess}
+        character={character}
+        onClose={() => setShowFcSuccess(false)}
+      />
 
       {/* FC加入ポップアップ */}
       {showFcModal && character && (
@@ -1875,10 +1445,11 @@ export default function ChatCharacterPage() {
                 throw new Error(data.error ?? 'Failed to create checkout session');
               }
             } catch (err) {
-              console.error('FC subscribe error:', err);
-              // フォールバック: プロフィールページへ
+              logger.error('FC subscribe error', { error: err });
+              // エラー時: モーダルを閉じてトーストで通知（プロフィールページに飛ばさない）
               setShowFcModal(false);
-              router.push(`/profile/${characterId}#fc`);
+              setShareToast('FC加入処理でエラーが発生しました。しばらくしてから再度お試しください。');
+              setTimeout(() => setShareToast(null), 4000);
             }
           }}
         />
@@ -2076,47 +1647,13 @@ export default function ChatCharacterPage() {
       {/* ══════════════ 入力エリア ══════════════ */}
 
       {/* ── モーメント話題カード（topicパラメータがある場合） ── */}
-      {topicCardVisible && topicText && character && (
-        <div className="px-3 pb-2">
-          <div className="relative bg-purple-900/30 border border-purple-500/30 rounded-2xl p-3 flex items-start gap-3">
-            {/* 閉じるボタン */}
-            <button
-              className="absolute top-2 right-2 text-white/30 hover:text-white/60 transition-colors"
-              onClick={() => { setTopicCardVisible(false); setInputText(''); }}
-              aria-label="話題カードを閉じる"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            {/* キャラアバター */}
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/40">
-              {character.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
-                  {character.name.charAt(0)}
-                </div>
-              )}
-            </div>
-            {/* コンテンツ */}
-            <div className="flex-1 min-w-0 mr-5">
-              <p className="text-purple-300 text-[10px] font-semibold mb-1">📸 タイムラインの話題</p>
-              <p className="text-white/70 text-xs leading-relaxed line-clamp-2">{topicText}</p>
-              <button
-                className="mt-2 flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors active:scale-95"
-                onClick={() => {
-                  setTopicCardVisible(false);
-                  handleSendClick();
-                }}
-              >
-                この話題で話す →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TopicCard
+        visible={topicCardVisible}
+        topicText={topicText}
+        character={character}
+        onClose={() => { setTopicCardVisible(false); setInputText(''); }}
+        onSend={() => { setTopicCardVisible(false); handleSendClick(); }}
+      />
 
       {/* プッシュ通知バナー — チャット開始後15秒で表示 */}
       {character && (
@@ -2153,53 +1690,13 @@ export default function ChatCharacterPage() {
         }
       />
       {/* メッセージ長押しコンテキストメニュー */}
-      {ctxMenu && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center"
-          onClick={() => setCtxMenu(null)}
-        >
-          <div
-            className="bg-gray-800 border border-white/10 rounded-2xl shadow-2xl p-1 min-w-[160px] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => handleCopyMsg(ctxMenu.content)}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
-            >
-              <span className="text-lg">📋</span>
-              <span>コピー</span>
-            </button>
-            <button
-              onClick={() => handleBookmarkMsg(ctxMenu.msgId, ctxMenu.content)}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
-            >
-              <span className="text-lg">🔖</span>
-              <span>ブックマーク</span>
-            </button>
-            <button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ text: ctxMenu.content }).catch(() => {});
-                } else {
-                  handleCopyMsg(ctxMenu.content);
-                }
-                setCtxMenu(null);
-              }}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-white text-sm text-left"
-            >
-              <span className="text-lg">🔗</span>
-              <span>シェア</span>
-            </button>
-            <button
-              onClick={() => setCtxMenu(null)}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-400 text-sm text-left"
-            >
-              <span className="text-lg">✕</span>
-              <span>閉じる</span>
-            </button>
-          </div>
-        </div>
-      )}
+      <MessageContextMenu
+        ctxMenu={ctxMenu}
+        onClose={() => setCtxMenu(null)}
+        onCopy={handleCopyMsg}
+        onBookmark={handleBookmarkMsg}
+        onShare={handleShareMsg}
+      />
 
       {/* 絆XPフロートアニメーション */}
       {xpFloat && (

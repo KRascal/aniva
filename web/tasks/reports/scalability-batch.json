@@ -1,0 +1,76 @@
+{
+  "batchId": "scalability-batch-20260315",
+  "executedAt": "2026-03-15T22:55:00+09:00",
+  "tasks": [
+    {
+      "id": "task1-push-notification",
+      "status": "completed",
+      "description": "Push通知インストール導線強化",
+      "changes": [
+        {
+          "file": "src/components/PWAInstallBanner.tsx",
+          "action": "modified",
+          "summary": "通知許可ボタンを追加（Notification.requestPermission()呼び出し）、「推しからのメッセージを見逃さない」コピーを追加、通知許可済みの場合はバナーを非表示にする処理を追加"
+        },
+        {
+          "file": "src/components/NotificationPrompt.tsx",
+          "action": "created",
+          "summary": "チャットページ初回訪問時の通知許可プロンプト。キャラのアバター付きで「{characterName}からのメッセージをリアルタイムで受け取る」を訴求。許可/後で選択可能。localStorage aniva_notif_prompted で1回のみ表示制御"
+        }
+      ]
+    },
+    {
+      "id": "task2-ogp-dynamic",
+      "status": "completed",
+      "description": "OGP動的生成の確認・修正",
+      "findings": [
+        "opengraph-image.tsx: キャラ名・アバターURLは取得済み。フランチャイズ名が未表示だったため追加修正",
+        "layout.tsx (generateMetadata): og:title, og:description, og:image はすべてキャラ別に動的生成済み。franchiseもdescriptionに含まれており問題なし"
+      ],
+      "changes": [
+        {
+          "file": "src/app/profile/[characterId]/opengraph-image.tsx",
+          "action": "modified",
+          "summary": "franchise フィールドを取得してOGP画像内にフランチャイズ名を表示するように修正"
+        }
+      ]
+    },
+    {
+      "id": "task3-limited-events-seed",
+      "status": "completed",
+      "description": "限定イベントデータ投入（ステージングDB: aniva_staging）",
+      "insertedRecords": [
+        {
+          "id": "df67a1d9-5a52-4a3c-82ff-eac0dc952927",
+          "title": "春のお花見イベント",
+          "characterId": "2c0f08fd-0bf5-4c20-b4e9-832fd9d12a86",
+          "characterName": "竈門禰豆子",
+          "startsAt": "2026-03-15T00:00:00",
+          "endsAt": "2026-04-15T23:59:59"
+        },
+        {
+          "id": "f7d9deb9-fa8e-4c12-ba06-3751a931978d",
+          "title": "ホワイトデー特別シナリオ",
+          "characterId": "fb4630b1-3580-46f7-8ef3-493e1a4d77f7",
+          "characterName": "ボア・ハンコック",
+          "startsAt": "2026-03-14T00:00:00",
+          "endsAt": "2026-03-21T23:59:59"
+        },
+        {
+          "id": "ab963931-07ca-4514-a46a-7582ac769c8b",
+          "title": "新学期キャンペーン",
+          "characterId": "2b9258d5-2748-4862-a7bb-056dd23c5aa5",
+          "characterName": "伏黒恵",
+          "startsAt": "2026-04-01T00:00:00",
+          "endsAt": "2026-04-14T23:59:59"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "shared-context/FEEDBACK-LOG.md は存在しなかったため参照不可",
+    "タスク1: NotificationPromptコンポーネントはチャットページ側でimportして使用すること",
+    "タスク2: layout.tsxのgenerateMetadataはすでに良好な実装済み。og:imageはアバターURLが直接参照されている（動的OGP画像はopengraph-image.tsxが担当）",
+    "タスク3: characterIdは既存キャラクターのIDを使用（DB確認済み）"
+  ]
+}

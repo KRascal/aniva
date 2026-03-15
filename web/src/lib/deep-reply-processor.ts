@@ -29,8 +29,8 @@ export interface DeepReplyQueueJob {
  * Deep Replyジョブを処理する
  * Step 1: 全会話履歴取得 + ユーザー特徴分析（LLMコール）
  * Step 2: SemanticMemory検索（pgvector top-20）
- * Step 3: TODO — 関係性グラフ参照（MVP後）
- * Step 4: TODO — 原作知識・エピソード検索（MVP後）
+ * Step 3: PLANNED — 関係性グラフ参照（MVP後に実装予定）
+ * Step 4: PLANNED — 原作知識・エピソード検索（MVP後に実装予定）
  * Step 5: 最終Deep Response生成
  */
 export async function processDeepReply(job: DeepReplyQueueJob): Promise<void> {
@@ -133,11 +133,11 @@ export async function processDeepReply(job: DeepReplyQueueJob): Promise<void> {
     logger.error('[DeepReply] Semantic memory search failed (skipping):', e);
   }
 
-  // ─── Step 3: TODO — 関係性グラフ参照（MVP後） ──────────────────
+  // ─── Step 3: PLANNED — 関係性グラフ参照（MVP後に実装予定） ────
   // CharacterRelationshipGraphテーブルからキャラの関係性データを取得し、
   // ユーザーの相談内容に関連する原作の経験・関係性をLLMで抽出する
 
-  // ─── Step 4: TODO — 原作知識・エピソード検索（MVP後） ──────────
+  // ─── Step 4: PLANNED — 原作知識・エピソード検索（MVP後に実装予定） ────
   // CharacterBible / LoreEntry / StoryChapter から関連エピソードを検索
 
   // ─── Step 5: 最終Deep Response生成 ─────────────────────────────

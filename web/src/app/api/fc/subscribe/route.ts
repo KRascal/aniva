@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { paymentLimiter, rateLimitResponse } from '@/lib/rate-limit';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +14,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { characterId } = await req.json() as { characterId?: string };
+    // Rate limit: 5回/分（課金API保護）
+    const rl = await paymentLimiter.check(userId);
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { characterId: rawId } = await req.json() as { characterId?: string };
+    const characterId = await resolveCharacterId(rawId ?? '') ?? rawId;
     if (!characterId) {
       return NextResponse.json({ error: 'characterId is required' }, { status: 400 });
     }

@@ -87,7 +87,7 @@ export async function analyzeUserActivity(userId: string): Promise<UserActivityP
     optimalHours,
     avgSessionGap,
     lastActiveAt: messages[0]?.createdAt ?? null,
-    ignoreRate: 0, // TODO: 通知開封率の追跡
+    ignoreRate: 0, // PLANNED: 通知開封率トラッキング（プッシュ通知実装後）
   };
 }
 

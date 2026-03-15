@@ -260,6 +260,8 @@ export default function GroupChatPage() {
   const [coinCostPerMsg, setCoinCostPerMsg] = useState(0);
   const [isLoadingChars, setIsLoadingChars] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isCrosstalk, setIsCrosstalk] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -327,10 +329,66 @@ export default function GroupChatPage() {
     .map(id => characters.find(c => c.id === id))
     .filter((c): c is Character => c != null);
 
-  // チャット開始
-  const handleStartChat = () => {
+  // チャット開始（同一キャラ選択時は既存会話を復帰）
+  const handleStartChat = async () => {
     if (selectedIds.length < 1) return;
     setMessages([]);
+    setConversationId(null);
+
+    try {
+      // 既存のグループ会話を検索
+      const res = await fetch('/api/chat/group');
+      if (res.ok) {
+        const data = await res.json() as {
+          conversations?: Array<{
+            id: string;
+            characters: Array<{ id: string; name: string }>;
+            lastMessage?: { conversationId: string; role: string; content: string; createdAt: string } | null;
+          }>;
+        };
+        const sorted = [...selectedIds].sort();
+        const existing = (data.conversations ?? []).find(conv => {
+          const convIds = (conv.characters ?? []).map((c: { id: string }) => c.id).sort();
+          return convIds.length === sorted.length && convIds.every((id: string, i: number) => id === sorted[i]);
+        });
+
+        if (existing) {
+          // 既存会話のメッセージを /api/chat/group/history?conversationId= で取得
+          const histRes = await fetch(`/api/chat/group/history?conversationId=${existing.id}&limit=30`);
+          if (histRes.ok) {
+            const histData = await histRes.json() as {
+              messages?: Array<{
+                id: string;
+                role: string;
+                content: string;
+                metadata?: Record<string, unknown>;
+                createdAt?: string;
+              }>;
+              conversationId?: string;
+            };
+            // キャラ名マップ（選択中のキャラ）
+            const charNameMap = new Map(selectedChars.map(c => [c.id, c.name]));
+            const loaded: GroupMessage[] = (histData.messages ?? []).map(m => {
+              const meta = m.metadata as Record<string, unknown> | undefined;
+              const charId = typeof meta?.characterId === 'string' ? meta.characterId : undefined;
+              return {
+                id: m.id,
+                role: m.role as 'USER' | 'CHARACTER',
+                characterId: charId,
+                characterName: charId ? (charNameMap.get(charId) ?? charId) : undefined,
+                content: m.content,
+                timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
+              };
+            });
+            setMessages(loaded);
+            if (histData.conversationId) setConversationId(histData.conversationId);
+          }
+        }
+      }
+    } catch {
+      // 取得失敗しても新規で始める
+    }
+
     setStep('chat');
   };
 
@@ -402,12 +460,78 @@ export default function GroupChatPage() {
       if (data.coinBalance !== undefined) {
         setCoinBalance(data.coinBalance);
       }
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
     } catch {
       setErrorMsg('送信エラーが発生しました。もう一度お試しください。');
     } finally {
       setIsSending(false);
     }
   }, [inputText, isSending, selectedIds]);
+
+  // 掛け合い（crosstalk）ハンドラ
+  const handleCrosstalk = useCallback(async () => {
+    if (isCrosstalk || selectedIds.length < 2) return;
+
+    setIsCrosstalk(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/chat/group/crosstalk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterIds: selectedIds,
+          conversationId,
+          locale: 'ja',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.error === 'INSUFFICIENT_COINS') {
+          setErrorMsg(`コインが不足しています（必要: ${data.required}コイン、残高: ${data.current}コイン）`);
+        } else {
+          setErrorMsg(data.error ?? '掛け合いエラーが発生しました');
+        }
+        return;
+      }
+
+      // 掛け合いメッセージを順番に表示
+      const charMessages: GroupMessage[] = (data.messages as Array<{
+        characterId: string;
+        characterName: string;
+        content: string;
+        emotion: string;
+      }>).map(m => ({
+        id: `crosstalk-${m.characterId}-${Date.now()}-${Math.random()}`,
+        role: 'CHARACTER' as const,
+        characterId: m.characterId,
+        characterName: m.characterName,
+        content: m.content,
+        emotion: m.emotion,
+        timestamp: new Date(),
+      }));
+
+      for (const charMsg of charMessages) {
+        setTypingCharacter(charMsg.characterName ?? null);
+        await new Promise(resolve => setTimeout(resolve, 900 + Math.random() * 600));
+        setTypingCharacter(null);
+        setMessages(prev => [...prev, charMsg]);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      if (data.coinBalance !== undefined) {
+        setCoinBalance(data.coinBalance);
+      }
+    } catch {
+      setErrorMsg('掛け合いエラーが発生しました。もう一度お試しください。');
+    } finally {
+      setIsCrosstalk(false);
+    }
+  }, [isCrosstalk, selectedIds, conversationId]);
 
   // ─── キャラ選択画面 ──────────────────────────────────────────────────────────
 
@@ -514,7 +638,7 @@ export default function GroupChatPage() {
               }}
             >
               <span className="text-white/60 text-xs">1メッセージのコスト</span>
-              <span className="text-yellow-400 text-sm font-bold">🪙 {coinCostPerMsg}コイン</span>
+              <span className="text-yellow-400 text-sm font-bold">{coinCostPerMsg}コイン</span>
             </div>
           )}
 
@@ -560,7 +684,7 @@ export default function GroupChatPage() {
 
         {/* 下部CTAボタン */}
         <div
-          className="fixed bottom-[4.5rem] left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-3"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 px-4 pt-3 pb-safe-bottom pb-3"
           style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
         >
           <div className="max-w-lg mx-auto">
@@ -664,23 +788,30 @@ export default function GroupChatPage() {
 
           {/* コイン残高 */}
           {coinBalance !== null && (
-            <div
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full"
+            <button
+              onClick={() => router.push('/coins')}
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full transition-all active:scale-95"
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              <span className="text-yellow-400 text-xs">🪙</span>
+              <svg className="w-3.5 h-3.5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                <text x="12" y="16" textAnchor="middle" fontSize="12" fill="currentColor" fontWeight="bold">C</text>
+              </svg>
               <span className="text-white/70 text-xs font-semibold">{coinBalance.toLocaleString()}</span>
-            </div>
+              <svg className="w-3 h-3 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           )}
         </div>
 
         {/* コスト表示 */}
         <div className="max-w-lg mx-auto px-4 pb-2.5">
           <p className="text-white/30 text-[10px]">
-            💬 1メッセージ = <span className="text-yellow-400/70">{coinCostPerMsg}コイン</span>（{selectedChars.length}体参加）
+            1メッセージ = <span className="text-yellow-400/70">{coinCostPerMsg}コイン</span>（{selectedChars.length}体参加）
           </p>
         </div>
       </header>
@@ -758,6 +889,38 @@ export default function GroupChatPage() {
         className="sticky bottom-0 z-30 border-t border-white/5 px-4 pt-3 pb-6 flex-shrink-0"
         style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(20px)' }}
       >
+        {/* 掛け合いボタン（キャラ2体以上 & メッセージあり） */}
+        {selectedChars.length >= 2 && messages.length > 0 && (
+          <div className="max-w-lg mx-auto mb-2">
+            <button
+              onClick={handleCrosstalk}
+              disabled={isCrosstalk || isSending}
+              className="w-full py-2.5 rounded-2xl font-bold text-sm text-white transition-all active:scale-[0.97] flex items-center justify-center gap-2"
+              style={{
+                background: isCrosstalk || isSending
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'linear-gradient(135deg, rgba(139,92,246,0.7), rgba(236,72,153,0.7))',
+                border: '1px solid rgba(139,92,246,0.4)',
+                boxShadow: isCrosstalk || isSending ? 'none' : '0 2px 12px rgba(139,92,246,0.3)',
+                color: isCrosstalk || isSending ? 'rgba(255,255,255,0.3)' : 'white',
+              }}
+            >
+              {isCrosstalk ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>掛け合い中…</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>キャラ同士で掛け合わせる</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
         <div className="max-w-lg mx-auto flex gap-2.5 items-end">
           <textarea
             value={inputText}
@@ -771,12 +934,13 @@ export default function GroupChatPage() {
             placeholder={`${selectedChars.map(c => c.name.split('・')[0]).join('・')}にメッセージ…`}
             rows={1}
             disabled={isSending}
-            className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all"
+            className="flex-1 resize-none rounded-2xl px-4 py-3 text-white placeholder-white/30 focus:outline-none transition-all"
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',
               maxHeight: '120px',
               overflow: 'auto',
+              fontSize: '16px',
             }}
             onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.5)'; }}
             onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}

@@ -4,12 +4,24 @@ import { useEffect, useState } from 'react';
 
 interface Analytics {
   userGrowthChart: { day: string; count: number }[];
+  conversationsChart: { day: string; count: number }[];
   characterMessages: { id: string; name: string; messageCount: number }[];
+  characterShare: { id: string; name: string; messageCount: number; share: number; colorIndex: number }[];
   planDistribution: { plan: string; count: number }[];
   fanclubRate: number;
   fanclubCount: number;
   totalRelationships: number;
   bondLevelDistribution: { level: number; count: number }[];
+  retentionData: { label: string; registered: number; active: number; rate: number }[];
+  totalConversations: number;
+  // Today's KPIs
+  todayActiveUsers: number;
+  todayMessages: number;
+  todayFanclubJoins: number;
+  todayCoinSpend: number;
+  popularPosts: { id: string; title: string; characterId: string; characterName: string; viewCount: number }[];
+  dau7Days: { day: string; dau: number }[];
+  todayCharMessages: { characterId: string; characterName: string; count: number }[];
 }
 
 function HBarChart({ data, labelKey, valueKey, colorClass = 'bg-purple-600' }: {
@@ -71,6 +83,37 @@ function LineChart({ data }: { data: { day: string; count: number }[] }) {
   );
 }
 
+/** CSS bar chart for DAU 7-day (no Chart.js) */
+function DauBarChart({ data }: { data: { day: string; dau: number }[] }) {
+  const max = Math.max(...data.map((d) => d.dau), 1);
+  return (
+    <div className="flex items-end gap-2 h-32 mt-2">
+      {data.map((d) => (
+        <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+          <span className="text-gray-400 text-xs">{d.dau}</span>
+          <div className="w-full flex flex-col justify-end" style={{ height: '80px' }}>
+            <div
+              className="w-full bg-violet-600 rounded-t transition-all"
+              style={{ height: `${(d.dau / max) * 80}px`, minHeight: d.dau > 0 ? '2px' : '0' }}
+            />
+          </div>
+          <span className="text-gray-500 text-xs">{d.day.slice(5)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function KpiCard({ label, value, sub, color = 'text-white' }: { label: string; value: string | number; sub?: string; color?: string }) {
+  return (
+    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 flex flex-col gap-1">
+      <div className="text-gray-400 text-xs">{label}</div>
+      <div className={`text-2xl font-bold ${color}`}>{typeof value === 'number' ? value.toLocaleString() : value}</div>
+      {sub && <div className="text-gray-500 text-xs">{sub}</div>}
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,10 +132,62 @@ export default function AnalyticsPage() {
 
   const planColors: Record<string, string> = { FREE: 'bg-gray-500', STANDARD: 'bg-purple-500', PREMIUM: 'bg-yellow-500' };
   const totalUsers = data.planDistribution.reduce((s, r) => s + r.count, 0);
+  const today = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-white">分析</h1>
+
+      {/* ── Today's KPIs ── */}
+      <div>
+        <h2 className="text-white font-semibold mb-3">📊 本日のKPI（{today}）</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard label="アクティブユーザー" value={data.todayActiveUsers} sub="本日チャット送信" color="text-green-400" />
+          <KpiCard label="チャットメッセージ" value={data.todayMessages} sub="全キャラ合計" color="text-blue-400" />
+          <KpiCard label="FC新規加入" value={data.todayFanclubJoins} sub="本日ファンクラブ加入" color="text-pink-400" />
+          <KpiCard label="コイン消費量" value={data.todayCoinSpend} sub="本日合計消費" color="text-yellow-400" />
+        </div>
+      </div>
+
+      {/* ── DAU 7-day bar chart ── */}
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <h2 className="text-white font-semibold mb-2">DAU 直近7日</h2>
+        <DauBarChart data={data.dau7Days} />
+      </div>
+
+      {/* ── Today messages by char ── */}
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <h2 className="text-white font-semibold mb-4">本日のキャラ別メッセージ数</h2>
+        {data.todayCharMessages.length === 0 ? (
+          <p className="text-gray-500 text-sm">本日のデータなし</p>
+        ) : (
+          <HBarChart
+            data={data.todayCharMessages.map((c) => ({ name: c.characterName, count: c.count }))}
+            labelKey="name"
+            valueKey="count"
+            colorClass="bg-blue-600"
+          />
+        )}
+      </div>
+
+      {/* ── Popular posts ── */}
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <h2 className="text-white font-semibold mb-4">人気投稿ランキング（閲覧数順）</h2>
+        {data.popularPosts.length === 0 ? (
+          <p className="text-gray-500 text-sm">投稿なし</p>
+        ) : (
+          <div className="space-y-2">
+            {data.popularPosts.map((p, i) => (
+              <div key={p.id} className="flex items-center gap-3 text-sm">
+                <span className="w-6 text-gray-500 font-bold">{i + 1}</span>
+                <span className="flex-1 text-gray-200 truncate">{p.title}</span>
+                <span className="text-gray-400 text-xs">{p.characterName}</span>
+                <span className="text-purple-400 font-medium w-16 text-right">{p.viewCount.toLocaleString()} views</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* User growth chart */}
       <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
@@ -103,7 +198,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Character messages */}
         <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h2 className="text-white font-semibold mb-4">キャラ別メッセージ数（上位10件）</h2>
+          <h2 className="text-white font-semibold mb-4">キャラ別メッセージ数（累計・上位10件）</h2>
           <HBarChart
             data={data.characterMessages as unknown as Record<string, unknown>[]}
             labelKey="name"
@@ -182,6 +277,22 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* Retention */}
+      {data.retentionData && (
+        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <h2 className="text-white font-semibold mb-4">リテンション率</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {data.retentionData.map((r) => (
+              <div key={r.label} className="bg-gray-800 rounded-lg p-4">
+                <div className="text-gray-400 text-xs mb-1">{r.label}</div>
+                <div className="text-2xl font-bold text-white">{r.rate.toFixed(1)}%</div>
+                <div className="text-gray-500 text-xs mt-1">{r.active} / {r.registered} アクティブ</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

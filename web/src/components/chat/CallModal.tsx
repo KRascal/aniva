@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { GiftPanel } from './GiftPanel';
 
 interface CallModalProps {
@@ -17,13 +18,14 @@ type CallState = 'calling' | 'connected' | 'ended';
 const INITIAL_BAR_HEIGHTS = Array.from({ length: 5 }, () => 8 + Math.random() * 16);
 
 export function CallModal({ characterId, characterName, characterAvatar, onClose }: CallModalProps) {
+  const t = useTranslations('chat');
   const [callState, setCallState] = useState<CallState>('calling');
   const [duration, setDuration] = useState(0);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [statusText, setStatusText] = useState('発信中...');
+  const [statusText, setStatusText] = useState(() => t('callStatusCalling'));
   const [showCallGift, setShowCallGift] = useState(false);
   const [giftAnimation, setGiftAnimation] = useState<{ emoji: string; reaction: string } | null>(null);
 
@@ -120,7 +122,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
     const connectTimer = setTimeout(() => {
       if (!isActiveRef.current) return;
       setCallState('connected');
-      setStatusText('通話中');
+      setStatusText(t('callInProgress'));
     }, 1500);
     return () => clearTimeout(connectTimer);
   }, []);
@@ -184,7 +186,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
     if (!isActiveRef.current || !text.trim()) return;
     setIsListening(false);
     setIsSpeaking(true);
-    setStatusText('応答中...');
+    setStatusText(t('callStatusResponding'));
 
     // ユーザー発話をトランスクリプト表示
     showTranscript(text, 'user');
@@ -199,7 +201,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
 
       if (!chatRes.ok || !isActiveRef.current) {
         setIsSpeaking(false);
-        setStatusText('通話中');
+        setStatusText(t('callInProgress'));
         startListening();
         return;
       }
@@ -209,7 +211,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
 
       if (!replyText || !isActiveRef.current) {
         setIsSpeaking(false);
-        setStatusText('通話中');
+        setStatusText(t('callInProgress'));
         startListening();
         return;
       }
@@ -233,7 +235,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
       if (voiceRes.ok) {
         const voiceData = await voiceRes.json();
         if (voiceData.audioUrl && isActiveRef.current) {
-          setStatusText('通話中');
+          setStatusText(t('callInProgress'));
           await playAudio(voiceData.audioUrl);
           return;
         }
@@ -241,12 +243,12 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
 
       // 音声なしの場合はそのままリスニング再開
       setIsSpeaking(false);
-      setStatusText('通話中');
+      setStatusText(t('callInProgress'));
       startListening();
     } catch {
       if (!isActiveRef.current) return;
       setIsSpeaking(false);
-      setStatusText('通話中');
+      setStatusText(t('callInProgress'));
       startListening();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -307,7 +309,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
   const handleEndCall = useCallback(() => {
     isActiveRef.current = false;
     setCallState('ended');
-    setStatusText('通話終了');
+    setStatusText(t('callEnded'));
     if (timerRef.current) clearInterval(timerRef.current);
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
@@ -385,7 +387,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                     transcriptSpeaker === 'user' ? 'text-green-400' : 'text-purple-400'
                   }`}
                 >
-                  {transcriptSpeaker === 'user' ? 'あなた' : characterName}
+                  {transcriptSpeaker === 'user' ? t('youLabel') : characterName}
                 </p>
                 <p className="text-white text-sm leading-snug line-clamp-2">{transcriptText}</p>
               </div>
@@ -398,7 +400,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
           <div className="flex items-center gap-2 h-8">
             {isListening ? (
               <>
-                <span className="text-green-400 text-sm">🎤 聞いています...</span>
+                <span className="text-green-400 text-sm">{t('callStatusListening')}</span>
                 <div className="flex items-center gap-0.5">
                   {barHeights.map((h, i) => (
                     <div
@@ -418,7 +420,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
               </>
             ) : isSpeaking ? (
               <>
-                <span className="text-purple-400 text-sm">💬 話しています...</span>
+                <span className="text-purple-400 text-sm">{t('callStatusSpeaking')}</span>
                 <div className="flex items-center gap-0.5">
                   {barHeights.map((h, i) => (
                     <div
@@ -434,7 +436,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                 </div>
               </>
             ) : (
-              <span className="text-gray-500 text-sm">タップして話す</span>
+              <span className="text-gray-500 text-sm">{t('tapToSpeak')}</span>
             )}
           </div>
         )}
@@ -467,7 +469,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                 </svg>
               )}
             </button>
-            <span className="text-xs text-gray-500">{isMicOn ? 'マイク' : 'ミュート'}</span>
+            <span className="text-xs text-gray-500">{isMicOn ? t('micLabel') : t('muteLabel')}</span>
           </div>
 
           {/* スピーカーボタン */}
@@ -495,7 +497,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                 )}
               </svg>
             </button>
-            <span className="text-xs text-gray-500">{isSpeakerOn ? 'スピーカー' : 'OFF'}</span>
+            <span className="text-xs text-gray-500">{isSpeakerOn ? t('speakerLabel') : t('speakerOff')}</span>
           </div>
         </div>
 
@@ -509,7 +511,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
             >
               <span className="text-3xl">🎁</span>
             </button>
-            <span className="text-xs text-gray-500">ギフト</span>
+            <span className="text-xs text-gray-500">{t('giftLabel')}</span>
           </div>
 
           {/* 終話ボタン */}
@@ -522,7 +524,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
                 <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
               </svg>
             </button>
-            <span className="text-xs text-gray-500">終話</span>
+            <span className="text-xs text-gray-500">{t('endCallLabel')}</span>
           </div>
         </div>
       </div>
@@ -530,7 +532,7 @@ export function CallModal({ characterId, characterName, characterAvatar, onClose
       {/* Web Speech API 非対応の場合のメッセージ */}
       {callState === 'connected' && typeof window !== 'undefined' && !(window as Window & { SpeechRecognition?: unknown }).SpeechRecognition && !(window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition && (
         <div className="absolute bottom-40 left-0 right-0 text-center">
-          <p className="text-xs text-amber-400/60">このブラウザは音声認識に対応していません</p>
+          <p className="text-xs text-amber-400/60">{t('noSpeechRecognition')}</p>
         </div>
       )}
 

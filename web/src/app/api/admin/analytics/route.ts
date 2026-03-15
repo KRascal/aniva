@@ -10,6 +10,8 @@ export async function GET() {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
   const [
     userGrowthRaw,
@@ -18,14 +20,22 @@ export async function GET() {
     planDistribution,
     fanclubStats,
     bondLevelDist,
-    // Retention: users registered 30d ago
     usersRegistered30d,
     usersRegistered7d,
     usersRegistered1d,
-    // Active users (had message) per cohort
     activeFrom30d,
     activeFrom7d,
     activeFrom1d,
+    // Today's metrics
+    todayActiveUsersRaw,
+    todayMessages,
+    todayFanclubJoins,
+    todayCoinSpend,
+    popularPosts,
+    // DAU for last 7 days
+    dauRaw,
+    // Today messages by character
+    todayCharMsgsRaw,
   ] = await Promise.all([
     // User growth (30 days)
     prisma.$queryRaw<{ day: string; count: string }[]>`
@@ -43,7 +53,7 @@ export async function GET() {
       GROUP BY DATE("createdAt")
       ORDER BY day ASC
     `,
-    // Character message counts
+    // Character message counts (cumulative)
     prisma.character.findMany({
       select: {
         id: true,
@@ -68,36 +78,82 @@ export async function GET() {
       _count: { id: true },
       orderBy: { level: 'asc' },
     }),
-    // Retention: total users registered 30d, 7d, 1d ago
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
-    // Active from 30d cohort (had a message in last 7 days)
     prisma.relationship.count({
       where: {
         user: { createdAt: { gte: thirtyDaysAgo } },
         lastMessageAt: { gte: sevenDaysAgo },
       },
     }),
-    // Active from 7d cohort (had a message in last 24h)
     prisma.relationship.count({
       where: {
         user: { createdAt: { gte: sevenDaysAgo } },
         lastMessageAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
     }),
-    // Active from 1d cohort (had any message ever)
     prisma.relationship.count({
       where: {
         user: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
         totalMessages: { gt: 0 },
       },
     }),
+    // Today active users (distinct by conversationId -> unique relationships)
+    prisma.message.findMany({
+      where: { role: 'USER', createdAt: { gte: todayStart } },
+      select: { conversation: { select: { relationship: { select: { userId: true } } } } },
+      distinct: ['conversationId'],
+    }),
+    // Today total messages
+    prisma.message.count({
+      where: { createdAt: { gte: todayStart } },
+    }),
+    // Today new fanclub joins
+    prisma.relationship.count({
+      where: { isFanclub: true, updatedAt: { gte: todayStart } },
+    }),
+    // Today coin spend (negative amounts = spend)
+    prisma.coinTransaction.aggregate({
+      where: { createdAt: { gte: todayStart }, amount: { lt: 0 } },
+      _sum: { amount: true },
+    }),
+    // Popular posts by viewCount
+    prisma.$queryRaw<{ id: string; title: string; characterId: string; characterName: string; viewCount: number }[]>`
+      SELECT ft.id, ft.title, ft."characterId", c.name as "characterName", ft."viewCount"
+      FROM "FanThread" ft
+      JOIN "Character" c ON c.id = ft."characterId"
+      ORDER BY ft."viewCount" DESC
+      LIMIT 10
+    `,
+    // DAU for last 7 days
+    prisma.$queryRaw<{ day: string; dau: string }[]>`
+      SELECT DATE(m."createdAt") as day, COUNT(DISTINCT r."userId") as dau
+      FROM "Message" m
+      JOIN "Conversation" conv ON conv.id = m."conversationId"
+      JOIN "Relationship" r ON r.id = conv."relationshipId"
+      WHERE m."createdAt" >= ${sevenDaysAgo}
+        AND m.role = 'USER'
+      GROUP BY DATE(m."createdAt")
+      ORDER BY day ASC
+    `,
+    // Today messages by character
+    prisma.$queryRaw<{ characterId: string; characterName: string; count: string }[]>`
+      SELECT r."characterId", c.name as "characterName", COUNT(*) as count
+      FROM "Message" m
+      JOIN "Conversation" conv ON conv.id = m."conversationId"
+      JOIN "Relationship" r ON r.id = conv."relationshipId"
+      JOIN "Character" c ON c.id = r."characterId"
+      WHERE m."createdAt" >= ${todayStart}
+        AND m.role = 'USER'
+      GROUP BY r."characterId", c.name
+      ORDER BY count DESC
+      LIMIT 10
+    `,
   ]);
 
   const totalRelationships = await prisma.relationship.count();
 
-  // Build 30-day chart (fill missing days with 0)
   const buildMonthChart = (raw: { day: string; count: string }[]) => {
     const chart: { day: string; count: number }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -105,6 +161,18 @@ export async function GET() {
       const key = d.toISOString().split('T')[0];
       const found = raw.find((r) => String(r.day).startsWith(key));
       chart.push({ day: key, count: found ? Number(found.count) : 0 });
+    }
+    return chart;
+  };
+
+  // Build 7-day DAU chart
+  const build7DayDauChart = (raw: { day: string; dau: string }[]) => {
+    const chart: { day: string; dau: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().split('T')[0];
+      const found = raw.find((r) => String(r.day).startsWith(key));
+      chart.push({ day: key, dau: found ? Number(found.dau) : 0 });
     }
     return chart;
   };
@@ -121,14 +189,12 @@ export async function GET() {
 
   const totalMsgs = charMsgData.reduce((s, c) => s + c.messageCount, 0);
 
-  // Character share for pie-style display
   const characterShare = charMsgData.slice(0, 6).map((c, i) => ({
     ...c,
     share: totalMsgs > 0 ? (c.messageCount / totalMsgs) * 100 : 0,
     colorIndex: i,
   }));
 
-  // Retention metrics
   const retentionData = [
     {
       label: 'Day 1 (登録当日)',
@@ -150,6 +216,13 @@ export async function GET() {
     },
   ];
 
+  // Today active users: extract unique userIds
+  const todayActiveUserIds = new Set(
+    (todayActiveUsersRaw as { conversation: { relationship: { userId: string } | null } | null }[])
+      .map((m) => m.conversation?.relationship?.userId)
+      .filter(Boolean)
+  );
+
   return NextResponse.json({
     userGrowthChart: buildMonthChart(userGrowthRaw),
     conversationsChart: buildMonthChart(conversationsRaw),
@@ -162,6 +235,18 @@ export async function GET() {
     bondLevelDistribution: (bondLevelDist as { level: number; _count: { id: number } }[]).map((r) => ({ level: r.level, count: r._count.id })),
     retentionData,
     totalConversations: (conversationsRaw as { day: string; count: string }[]).reduce((s, r) => s + Number(r.count), 0),
+    // Today's KPIs
+    todayActiveUsers: todayActiveUserIds.size,
+    todayMessages,
+    todayFanclubJoins,
+    todayCoinSpend: Math.abs(todayCoinSpend._sum.amount ?? 0),
+    popularPosts: (popularPosts as { id: string; title: string; characterId: string; characterName: string; viewCount: number }[]),
+    dau7Days: build7DayDauChart(dauRaw),
+    todayCharMessages: (todayCharMsgsRaw as { characterId: string; characterName: string; count: string }[]).map((r) => ({
+      characterId: r.characterId,
+      characterName: r.characterName,
+      count: Number(r.count),
+    })),
   });
   } catch (error) {
     logger.error('[admin/analytics] GET error:', error);

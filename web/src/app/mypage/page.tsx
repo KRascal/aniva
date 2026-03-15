@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 // ThemeToggle: ダークモード固定のため非表示
@@ -8,45 +8,9 @@ import { CoinBalanceDisplay } from '@/components/CoinBalance';
 import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
 import BondCalendar from '@/components/BondCalendar';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
-
-/* ── Achievement definitions ── */
-interface AchievementDef {
-  id: string;
-  icon: string;
-  title: string;
-  desc: string;
-  rarity: 'bronze' | 'silver' | 'gold' | 'rainbow';
-  check: (data: AchievementInput) => boolean;
-}
-
-interface AchievementInput {
-  totalMessages: number;
-  followingCount: number;
-  maxLevel: number;
-  characterCount: number;
-}
-
-const ACHIEVEMENTS: AchievementDef[] = [
-  { id: 'first_chat',    icon: '💬', title: '初めてのチャット',    desc: 'キャラに初めてメッセージを送った',         rarity: 'bronze',  check: d => d.totalMessages >= 1 },
-  { id: 'chat_50',       icon: '🗣️', title: 'おしゃべり好き',      desc: 'メッセージ累計50通以上',                  rarity: 'bronze',  check: d => d.totalMessages >= 50 },
-  { id: 'chat_200',      icon: '🔥', title: 'チャット常連',        desc: 'メッセージ累計200通以上',                 rarity: 'silver',  check: d => d.totalMessages >= 200 },
-  { id: 'chat_1000',     icon: '⚡', title: 'チャット廃人',        desc: 'メッセージ累計1000通以上',                rarity: 'gold',    check: d => d.totalMessages >= 1000 },
-  { id: 'first_follow',  icon: '🤝', title: '初めてのナカマ',      desc: '初めてキャラをフォローした',               rarity: 'bronze',  check: d => d.followingCount >= 1 },
-  { id: 'follow_5',      icon: '⚓', title: '仲間大好き',         desc: '5キャラ以上フォロー中',                   rarity: 'silver',  check: d => d.followingCount >= 5 },
-  { id: 'follow_10',     icon: '🏴‍☠️', title: '大船長',           desc: '10キャラ以上フォロー中',                  rarity: 'gold',    check: d => d.followingCount >= 10 },
-  { id: 'bond_lv3',      icon: '💜', title: '深まる絆',           desc: 'キャラとの絆Lv.3以上',                   rarity: 'bronze',  check: d => d.maxLevel >= 3 },
-  { id: 'bond_lv5',      icon: '💎', title: '心の友',             desc: 'キャラとの絆Lv.5以上',                   rarity: 'silver',  check: d => d.maxLevel >= 5 },
-  { id: 'bond_lv10',     icon: '👑', title: '永遠の仲間',          desc: 'キャラとの絆Lv.10以上',                  rarity: 'gold',    check: d => d.maxLevel >= 10 },
-  { id: 'multi_char',    icon: '🌊', title: '多キャラ愛',         desc: '3キャラ以上とチャット経験あり',            rarity: 'silver',  check: d => d.characterCount >= 3 },
-  { id: 'collector',     icon: '🌟', title: 'コレクター',         desc: '10キャラ以上とチャット経験あり',           rarity: 'gold',    check: d => d.characterCount >= 10 },
-];
-
-const RARITY_STYLES: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  bronze:  { bg: 'bg-amber-900/30',   border: 'border-amber-700/50',   text: 'text-amber-400',   glow: '' },
-  silver:  { bg: 'bg-gray-700/40',    border: 'border-gray-500/60',    text: 'text-gray-200',    glow: '' },
-  gold:    { bg: 'bg-yellow-900/40',  border: 'border-yellow-500/60',  text: 'text-yellow-300',  glow: 'shadow-yellow-500/20 shadow-md' },
-  rainbow: { bg: 'bg-purple-900/40',  border: 'border-pink-400/60',    text: 'text-pink-300',    glow: 'shadow-pink-500/30 shadow-md' },
-};
+import AchievementsSection from '@/components/mypage/AchievementsSection';
+import BookmarkSection from '@/components/mypage/BookmarkSection';
+import { useTranslations } from 'next-intl';
 
 interface UserInfo {
   id: string;
@@ -91,6 +55,10 @@ export default function MyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { openCoinPurchase } = useCoinPurchase();
+  const t = useTranslations('profile');
+  const tAuth = useTranslations('auth');
+  const tCommon = useTranslations('common');
+  const tLegal = useTranslations('legal');
 
   const [user, setUser] = useState<UserInfo | null>(null);
   const [following, setFollowing] = useState<Character[]>([]);
@@ -110,42 +78,7 @@ export default function MyPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // ブックマーク
-  interface BookmarkedMessage {
-    id: string;
-    characterId: string;
-    characterName: string;
-    avatarUrl: string | null;
-    content: string;
-    savedAt: number;
-  }
-  const [bookmarks, setBookmarks] = useState<BookmarkedMessage[]>([]);
-  const [showAllBookmarks, setShowAllBookmarks] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('aniva_bookmarks');
-      if (raw) setBookmarks(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const removeBookmark = (id: string) => {
-    const updated = bookmarks.filter(b => b.id !== id);
-    setBookmarks(updated);
-    try { localStorage.setItem('aniva_bookmarks', JSON.stringify(updated)); } catch {}
-  };
-
-  // 称号バッジ計算
-  const unlockedAchievements = useMemo(() => {
-    const totalMessages = relationships.reduce((sum, r) => sum + r.totalMessages, 0);
-    const followingCount = following.length;
-    const maxLevel = relationships.reduce((max, r) => Math.max(max, r.level), 0);
-    const characterCount = relationships.filter(r => r.totalMessages > 0).length;
-    const input: AchievementInput = { totalMessages, followingCount, maxLevel, characterCount };
-    return ACHIEVEMENTS.filter(a => a.check(input));
-  }, [relationships, following]);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // bfcache / Stripe戻り対策: ページ復元時にフルリロード
@@ -219,7 +152,7 @@ export default function MyPage() {
         setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
       } else {
         const err = await res.json() as { error?: string };
-        setAvatarUploadError(err.error ?? 'アップロードに失敗しました');
+        setAvatarUploadError(err.error ?? tCommon('uploadFailed'));
       }
     } catch {
       setAvatarUploadError('通信エラーが発生しました');
@@ -261,18 +194,18 @@ export default function MyPage() {
 
   const handleToggleNotifications = async () => {
     if (!('Notification' in window)) {
-      alert('このブラウザはプッシュ通知に対応していません');
+      alert(t('pushNotSupported'));
       return;
     }
     if (Notification.permission === 'denied') {
-      alert('ブラウザの設定から通知を許可してください');
+      alert(t('pushDenied'));
       return;
     }
     if (!notificationsEnabled) {
       const permission = await Notification.requestPermission();
       setNotificationsEnabled(permission === 'granted');
     } else {
-      alert('通知をOFFにするにはブラウザの設定から変更してください');
+      alert(t('pushTurnOffNote'));
     }
   };
 
@@ -286,7 +219,7 @@ export default function MyPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
-          <p className="text-gray-400 text-sm animate-pulse">読み込み中...</p>
+          <p className="text-gray-400 text-sm animate-pulse">{tCommon('loading')}</p>
         </div>
       </div>
     );
@@ -304,13 +237,13 @@ export default function MyPage() {
         <button
           onClick={() => router.back()}
           className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800 -ml-1"
-          aria-label="戻る"
+          aria-label={tCommon('back')}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-white">マイページ</h1>
+        <h1 className="text-lg font-bold text-white">{t('pageTitle')}</h1>
         <div className="ml-auto flex items-center gap-2">
           <CoinBalanceDisplay />
           {/* 購入ボタン削除 — CoinBalanceDisplayのタップでポップアップ起動 */}
@@ -351,6 +284,9 @@ export default function MyPage() {
                     // 旧パス(/uploads/...)が404の場合、API経由(/api/uploads/...)にフォールバック
                     if (editAvatarUrl.startsWith('/uploads/')) {
                       setEditAvatarUrl(editAvatarUrl.replace('/uploads/', '/api/uploads/'));
+                    } else if (editAvatarUrl.includes('/api/uploads/') && !editAvatarUrl.includes('?')) {
+                      // キャッシュバスト: タイムスタンプ追加で再取得
+                      setEditAvatarUrl(`${editAvatarUrl}?t=${Date.now()}`);
                     } else {
                       setEditAvatarUrl('');
                     }
@@ -386,13 +322,13 @@ export default function MyPage() {
           <div className="w-full space-y-4">
             {/* 表示名 */}
             <div>
-              <label className="block text-xs text-gray-400 mb-1.5 font-medium">表示名</label>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">{t('displayName')}</label>
               <input
                 type="text"
                 value={editDisplayName}
                 onChange={(e) => setEditDisplayName(e.target.value)}
                 maxLength={30}
-                placeholder="表示名を入力"
+                placeholder={t('displayNamePlaceholder')}
                 className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors"
               />
             </div>
@@ -400,14 +336,14 @@ export default function MyPage() {
             {/* ニックネーム */}
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 font-medium">
-                ニックネーム <span className="text-gray-600">（キャラがこの名前で呼びます）</span>
+                {t('nickname')} <span className="text-gray-600">{t('nicknameSub')}</span>
               </label>
               <input
                 type="text"
                 value={editNickname}
                 onChange={(e) => setEditNickname(e.target.value)}
                 maxLength={30}
-                placeholder="キャラに呼ばれる名前"
+                placeholder={t('nicknamePlaceholder')}
                 className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors"
               />
             </div>
@@ -415,7 +351,7 @@ export default function MyPage() {
             {/* 自己紹介 */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs text-gray-400 font-medium">自己紹介</label>
+                <label className="text-xs text-gray-400 font-medium">{t('bio')}</label>
                 <span className="text-xs text-gray-600">{editBio.length}/200</span>
               </div>
               <textarea
@@ -423,7 +359,7 @@ export default function MyPage() {
                 onChange={(e) => setEditBio(e.target.value.slice(0, 200))}
                 maxLength={200}
                 rows={3}
-                placeholder="自分について一言（200文字以内）"
+                placeholder={t('bioPlaceholder')}
                 className="w-full bg-gray-800 text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 focus:outline-none focus:border-purple-500/60 transition-colors resize-none"
               />
             </div>
@@ -431,8 +367,8 @@ export default function MyPage() {
             {/* 公開設定 */}
             <div className="flex items-center justify-between py-2 border-t border-white/5">
               <div>
-                <p className="text-sm text-white font-medium">プロフィールを公開する</p>
-                <p className="text-xs text-gray-500">ONにすると他のユーザーがあなたのプロフィールを見られます</p>
+                <p className="text-sm text-white font-medium">{t('profilePublicLabel')}</p>
+                <p className="text-xs text-gray-500">{t('profilePublicDesc')}</p>
               </div>
               <button
                 onClick={() => setEditProfilePublic(v => !v)}
@@ -465,10 +401,10 @@ export default function MyPage() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  保存しました
+                  {t('saveSuccess')}
                 </>
               ) : (
-                '保存する'
+                t('saveProfile')
               )}
             </button>
 
@@ -491,7 +427,7 @@ export default function MyPage() {
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
-                公開プロフィールを見る
+                {t('viewPublicProfile')}
               </a>
             )}
           </div>
@@ -504,7 +440,7 @@ export default function MyPage() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 001 1h8a1 1 0 001-1v-1H7v1z"/>
               </svg>
-              ファンクラブ加入中
+              {t('fanclubSection')}
             </h3>
             <div className="space-y-2">
               {following.filter(c => c.isFanclub).map((char) => (
@@ -527,7 +463,7 @@ export default function MyPage() {
                     <p className="text-sm font-medium text-white truncate">{char.name}</p>
                     <p className="text-xs text-gray-500 truncate">{char.franchise}</p>
                   </div>
-                  <span className="text-xs bg-purple-900/40 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">FC加入中</span>
+                  <span className="text-xs bg-purple-900/40 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{t('fcBadge')}</span>
                   <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -540,7 +476,7 @@ export default function MyPage() {
         {/* フォロー中のキャラ一覧 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-400">フォロー中</h3>
+            <h3 className="text-sm font-semibold text-gray-400">{t('followingSection')}</h3>
             {following.length > 0 && (
               <span className="text-xs text-purple-400 font-bold">{following.length}人</span>
             )}
@@ -550,8 +486,8 @@ export default function MyPage() {
               <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl">💫</span>
               </div>
-              <p className="text-gray-500 text-sm mb-1">まだフォローしていません</p>
-              <a href="/explore" className="text-purple-400 text-xs hover:underline">キャラを探す →</a>
+              <p className="text-gray-500 text-sm mb-1">{t('noFollowingText')}</p>
+              <a href="/explore" className="text-purple-400 text-xs hover:underline">{t('findChara')}</a>
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-3">
@@ -594,7 +530,7 @@ export default function MyPage() {
         {relationships.length > 0 && (
           <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
             <h3 className="text-sm font-semibold text-gray-400 mb-3">
-              絆レベル
+              {t('bondLevelSection')}
             </h3>
             <div className="space-y-3">
               {relationships.map((rel) => (
@@ -610,7 +546,7 @@ export default function MyPage() {
                         style={{ width: `${Math.min(100, (rel.xp / 100) * 100)}%` }}
                       />
                     </div>
-                    <p className="text-[10px] text-gray-600 mt-0.5">通算{rel.totalMessages}通</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{t('totalMessages', { count: rel.totalMessages })}</p>
                   </div>
                 </div>
               ))}
@@ -619,34 +555,7 @@ export default function MyPage() {
         )}
 
         {/* 称号バッジ */}
-        {unlockedAchievements.length > 0 && (
-          <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-400">🏅 称号・実績</h3>
-              <span className="text-xs text-purple-400">{unlockedAchievements.length}/{ACHIEVEMENTS.length}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {unlockedAchievements.map(a => {
-                const s = RARITY_STYLES[a.rarity];
-                return (
-                  <div
-                    key={a.id}
-                    title={a.desc}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${s.bg} ${s.border} ${s.text} ${s.glow}`}
-                  >
-                    <span>{a.icon}</span>
-                    <span>{a.title}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {unlockedAchievements.length < ACHIEVEMENTS.length && (
-              <p className="text-xs text-gray-600 mt-2">
-                あと{ACHIEVEMENTS.length - unlockedAchievements.length}個の称号がロック中… 🔒
-              </p>
-            )}
-          </section>
-        )}
+        <AchievementsSection relationships={relationships} followingCount={following.length} />
 
         {/* 絆カレンダー */}
         <BondCalendar />
@@ -657,52 +566,12 @@ export default function MyPage() {
         </div>
 
         {/* ブックマーク */}
-        {bookmarks.length > 0 && (
-          <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-400">🔖 お気に入りメッセージ</h3>
-              <span className="text-xs text-purple-400">{bookmarks.length}件</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {(showAllBookmarks ? bookmarks : bookmarks.slice(0, 3)).map(b => (
-                <div key={b.id} className="flex items-start gap-2 bg-gray-800/60 rounded-xl px-3 py-2.5 group">
-                  {b.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.avatarUrl} alt={b.characterName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
-                      🏴
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-purple-400 font-medium mb-0.5">{b.characterName}</p>
-                    <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">{b.content}</p>
-                  </div>
-                  <button
-                    onClick={() => removeBookmark(b.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-red-400 text-sm flex-shrink-0 mt-0.5"
-                    title="削除"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            {bookmarks.length > 3 && (
-              <button
-                onClick={() => setShowAllBookmarks(v => !v)}
-                className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                {showAllBookmarks ? '折りたたむ ▲' : `さらに${bookmarks.length - 3}件表示 ▼`}
-              </button>
-            )}
-          </section>
-        )}
+        <BookmarkSection />
 
         {/* 特典コンテンツ */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
           <h3 className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
-            特典コンテンツ
+            {t('benefitsSection')}
           </h3>
           {/* ガチャ・コレクションはカードタブに統一済み */}
           <a
@@ -716,8 +585,8 @@ export default function MyPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-white">キャラからのお手紙</p>
-                <p className="text-xs text-gray-500">月1通、特別なメッセージ</p>
+                <p className="text-sm text-white">{t('letters')}</p>
+                <p className="text-xs text-gray-500">{t('lettersSub')}</p>
               </div>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -735,8 +604,8 @@ export default function MyPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-white">ストーリー</p>
-                <p className="text-xs text-gray-500">キャラとの秘密の物語</p>
+                <p className="text-sm text-white">{t('storiesLabel')}</p>
+                <p className="text-xs text-gray-500">{t('storiesSub')}</p>
               </div>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -754,8 +623,8 @@ export default function MyPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-white">投票・アンケート</p>
-                <p className="text-xs text-gray-500">キャラの行動を決める投票</p>
+                <p className="text-sm text-white">{t('pollsLabel')}</p>
+                <p className="text-xs text-gray-500">{t('pollsSub')}</p>
               </div>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -773,8 +642,8 @@ export default function MyPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-white">イベント・記念日</p>
-                <p className="text-xs text-gray-500">今日の記念日・誕生日</p>
+                <p className="text-sm text-white">{t('eventsLabel')}</p>
+                <p className="text-xs text-gray-500">{t('eventsSub')}</p>
               </div>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -792,8 +661,8 @@ export default function MyPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-white">ランキング</p>
-                <p className="text-xs text-gray-500">人気キャラ・ファンランク</p>
+                <p className="text-sm text-white">{t('rankingLabel')}</p>
+                <p className="text-xs text-gray-500">{t('rankingSub')}</p>
               </div>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -805,7 +674,7 @@ export default function MyPage() {
         {/* 設定 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
           <h3 className="text-sm font-semibold text-gray-400 px-4 pt-4 pb-2">
-            設定
+            {t('settingsSection')}
           </h3>
 
           {/* 設定ページへのリンク */}
@@ -814,8 +683,8 @@ export default function MyPage() {
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
             <div>
-              <p className="text-sm text-white">アプリ設定</p>
-              <p className="text-xs text-gray-500">テーマ・通知・言語など</p>
+              <p className="text-sm text-white">{t('appSettings')}</p>
+              <p className="text-xs text-gray-500">{t('appSettingsSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -825,8 +694,8 @@ export default function MyPage() {
           {/* 通知設定 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
             <div>
-              <p className="text-sm text-white">プッシュ通知</p>
-              <p className="text-xs text-gray-500">キャラからのお知らせ</p>
+              <p className="text-sm text-white">{t('pushNotificationLabel')}</p>
+              <p className="text-xs text-gray-500">{t('pushNotificationDesc')}</p>
             </div>
             <button
               onClick={handleToggleNotifications}
@@ -847,7 +716,7 @@ export default function MyPage() {
             href="/privacy"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
-            <p className="text-sm text-white">プライバシーポリシー</p>
+            <p className="text-sm text-white">{tLegal('privacy')}</p>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -856,9 +725,20 @@ export default function MyPage() {
           {/* 利用規約 */}
           <a
             href="/terms"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <p className="text-sm text-white">{tLegal('terms')}</p>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+
+          {/* 特定商取引法に基づく表記 */}
+          <a
+            href="/legal/tokushoho"
             className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
           >
-            <p className="text-sm text-white">利用規約</p>
+            <p className="text-sm text-white">{tLegal('tokushoho')}</p>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -879,11 +759,11 @@ export default function MyPage() {
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           )}
-          {isSigningOut ? 'ログアウト中...' : 'ログアウト'}
+          {isSigningOut ? t('loggingOut') : tAuth('logout')}
         </button>
 
         {/* バージョン情報 */}
-        <p className="text-center text-xs text-gray-700 pb-2">ANIVA v1.0.0</p>
+        <p className="text-center text-xs text-gray-700 pb-2">{t('version')}</p>
       </div>
 
     </div>

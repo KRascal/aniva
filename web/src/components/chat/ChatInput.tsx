@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { isSoundMuted, toggleSoundMute } from '@/lib/sound-effects';
 import { StickerPicker } from './StickerPicker';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -137,6 +138,8 @@ export function ChatInput({
   handleKeyDown,
   lastCharacterMessage,
 }: ChatInputProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const hasInput = inputText.length > 0;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -170,12 +173,12 @@ export function ChatInput({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert('画像サイズは5MB以下にしてください');
+      alert(t('imageSizeTooLarge'));
       return;
     }
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      alert('JPG・PNG・WebP・GIFのみ対応しています');
+      alert(t('imageTypeNotSupported'));
       return;
     }
     if (onSendImage) {
@@ -211,14 +214,14 @@ export function ChatInput({
         <div className="flex flex-col gap-1.5 mb-2 px-1">
           {coinBalance <= 5 && coinBalance > 0 && (
             <button onClick={() => openCoinPurchase(coinBalance)} className="flex items-center gap-2 bg-red-900/40 border border-red-500/30 rounded-xl px-3 py-2 text-xs w-full text-left active:scale-[0.98]">
-              <span className="text-red-300 font-medium">残り{coinBalance}コイン…{character?.name ?? '推し'}との会話が途切れちゃう</span>
-              <span className="text-red-400 ml-auto">→ 補充</span>
+              <span className="text-red-300 font-medium">{t('coinLow', { count: coinBalance, name: character?.name ?? '推し' })}</span>
+              <span className="text-red-400 ml-auto">{t('coinRefill')}</span>
             </button>
           )}
           {coinBalance === 0 && (
             <button onClick={() => openCoinPurchase(0)} className="flex items-center gap-2 bg-red-900/60 border border-red-500/40 rounded-xl px-3 py-2.5 text-xs animate-pulse w-full text-left active:scale-[0.98]">
-              <span className="text-red-200 font-bold">{character?.name ?? '推し'}が待ってるのに…コインがない</span>
-              <span className="text-red-300 ml-auto font-bold">→ 今すぐ補充</span>
+              <span className="text-red-200 font-bold">{t('coinEmpty', { name: character?.name ?? '推し' })}</span>
+              <span className="text-red-300 ml-auto font-bold">{t('coinRefillNow')}</span>
             </button>
           )}
           <div className="flex items-center justify-between">
@@ -237,7 +240,7 @@ export function ChatInput({
             </button>
             <button
               onClick={handleToggleSound}
-              title={soundMuted ? 'サウンドON' : 'サウンドOFF'}
+              title={soundMuted ? t('soundOn') : t('soundOff')}
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors p-1"
             >
               {soundMuted ? (
@@ -259,7 +262,7 @@ export function ChatInput({
             className="flex items-center gap-1 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full px-3 py-1.5 font-medium hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30"
           >
             <span>⭐</span>
-            <span>FC加入でチャット無制限</span>
+            <span>{t('fcJoinUnlimited')}</span>
           </button>
           </div>
         </div>
@@ -328,11 +331,11 @@ export function ChatInput({
           className="hidden"
           aria-hidden="true"
         />
-        {/* カメラフォルダ（画像+動画） */}
+        {/* 写真ライブラリ（画像のみ） */}
         <input
           ref={mediaInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*"
           onChange={handleImageSelect}
           className="hidden"
           aria-hidden="true"
@@ -346,7 +349,7 @@ export function ChatInput({
               <button
                 onClick={() => setIsExpanded(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="メニューを閉じる"
+                aria-label={tc('closeMenu')}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -355,7 +358,7 @@ export function ChatInput({
               {/* + ボタン → ファイル送信 */}
               <button
                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="ファイルを送る"
+                aria-label={t('sendFile')}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -365,7 +368,7 @@ export function ChatInput({
               {/* 📷 カメラ → カメラ起動 */}
               <button
                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="カメラ"
+                aria-label="camera"
                 onClick={() => cameraInputRef.current?.click()}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -377,7 +380,7 @@ export function ChatInput({
               <button
                 onClick={() => mediaInputRef.current?.click()}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="画像・動画を送る"
+                aria-label={t('sendImage')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -391,7 +394,7 @@ export function ChatInput({
             <button
               onClick={() => setIsExpanded(true)}
               className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-              aria-label="メニューを開く"
+              aria-label={tc('openMenu')}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -415,7 +418,7 @@ export function ChatInput({
               e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
             }}
             onKeyDown={handleKeyDown}
-            placeholder={isListening && interimText ? `🎤 ${interimText}` : isListening ? '🎤 聴いてるよ…' : isLateNight ? LATE_NIGHT_PLACEHOLDERS[placeholderIndex % LATE_NIGHT_PLACEHOLDERS.length](character?.name ?? 'キャラクター') : BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
+            placeholder={isListening && interimText ? `🎤 ${interimText}` : isListening ? t('callStatusListening') : isLateNight ? LATE_NIGHT_PLACEHOLDERS[placeholderIndex % LATE_NIGHT_PLACEHOLDERS.length](character?.name ?? 'キャラクター') : BASE_PLACEHOLDERS[placeholderIndex](character?.name ?? 'キャラクター')}
             maxLength={2000}
             rows={1}
             disabled={isSending || isGreeting}
@@ -432,7 +435,7 @@ export function ChatInput({
               <button
                 onClick={() => setShowStickerPicker(true)}
                 className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all touch-manipulation"
-                aria-label="スタンプ"
+                aria-label={t('sticker')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"/>
@@ -457,7 +460,7 @@ export function ChatInput({
               style={{
                 background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%)',
               }}
-              aria-label="送信"
+              aria-label={t('send')}
             >
               <span className="absolute inset-0 bg-white/10 rounded-full" />
               <svg className="w-4 h-4 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -476,7 +479,7 @@ export function ChatInput({
                   ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)'
                   : 'transparent',
               }}
-              aria-label={isListening ? '音声入力停止' : '音声入力'}
+              aria-label={isListening ? t('voiceInputStop') : t('voiceInput')}
             >
               {isListening && (
                 <span className="absolute inset-0 rounded-full animate-ping bg-red-500/30" />
@@ -490,7 +493,7 @@ export function ChatInput({
               onClick={onSend}
               disabled={true}
               className="w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-40 cursor-not-allowed touch-manipulation"
-              aria-label="送信"
+              aria-label={t('send')}
             >
               <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -501,7 +504,7 @@ export function ChatInput({
           <button
             onClick={onGift}
             className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/15 transition-all touch-manipulation -ml-0.5"
-            aria-label="ギフトを贈る"
+            aria-label={t('giftButton')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 12v10H4V12" strokeLinecap="round" strokeLinejoin="round"/>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Character {
   id: string;
@@ -99,6 +100,8 @@ export function ChatHeader({
   onMenuClick,
   onProfileClick,
 }: ChatHeaderProps) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [dailyState, setDailyState] = useState<DailyState | null>(null);
 
   useEffect(() => {
@@ -150,7 +153,7 @@ export function ChatHeader({
           <button
             onClick={onBack}
             className="flex-shrink-0 -ml-1 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors touch-manipulation"
-            aria-label="戻る"
+            aria-label={tc('back')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -161,7 +164,7 @@ export function ChatHeader({
           <button
             onClick={onProfileClick}
             className="flex-shrink-0 relative"
-            aria-label="キャラクタープロフィール"
+            aria-label={t('profileAriaLabel')}
           >
             <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-500/40 ring-offset-1 ring-offset-gray-950">
               {character?.avatarUrl ? (
@@ -203,8 +206,8 @@ export function ChatHeader({
             <button
               onClick={onCallClick}
               className="p-2 rounded-full text-gray-600 cursor-not-allowed opacity-50"
-              aria-label="通話機能（近日公開）"
-              title="通話機能は近日公開予定"
+              aria-label={t('callFeatureAriaLabel')}
+              title={t('callFeatureComingSoon')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -216,7 +219,7 @@ export function ChatHeader({
               </svg>
             </button>
             <span className="absolute -top-1 -right-1 text-[9px] font-bold bg-purple-600/80 text-white px-1 rounded-full leading-4">
-              近日
+              {t('comingSoonShort')}
             </span>
           </div>
 
@@ -224,7 +227,7 @@ export function ChatHeader({
           <button
             onClick={onMenuClick}
             className="flex-shrink-0 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-            aria-label="メニュー"
+            aria-label={tc('menu')}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="5" r="1.5" />
@@ -290,7 +293,7 @@ export function ChatHeader({
           <button
             onClick={toggleCollapse}
             className="flex items-center justify-center w-full py-0.5 -mb-1"
-            aria-label={collapsed ? 'ステータスを展開' : 'ステータスを折りたたむ'}
+            aria-label={collapsed ? t('statusExpand') : t('statusCollapse')}
           >
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

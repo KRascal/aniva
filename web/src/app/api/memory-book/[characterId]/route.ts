@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 /**
  * メモリーブックAPI — 二人の思い出アルバム
@@ -18,12 +19,7 @@ export async function GET(
   const { characterId: rawId } = await params;
 
   // slug→id解決
-  let characterId = rawId;
-  const charBySlug = await prisma.character.findFirst({
-    where: { OR: [{ id: rawId }, { slug: rawId }] },
-    select: { id: true },
-  });
-  if (charBySlug) characterId = charBySlug.id;
+  const characterId = await resolveCharacterId(rawId) ?? rawId;
 
   // Relationship取得
   const relationship = await prisma.relationship.findFirst({

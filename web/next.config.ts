@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30日
     deviceSizes: [390, 768, 1080, 1920],
     imageSizes: [64, 128, 256, 512],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'assets.aniva-project.com' },
+      { protocol: 'https', hostname: 'demo.aniva-project.com' },
+      { protocol: 'https', hostname: 'aniva-project.com' },
+      { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
+      { protocol: 'http', hostname: '162.43.90.97' },
+    ],
   },
   experimental: {
     optimizeCss: true,        // CSS最適化（未使用CSSを削除）

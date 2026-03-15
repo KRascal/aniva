@@ -8,6 +8,7 @@ export const contentType = 'image/png';
 export default async function Image({ params }: { params: { characterId: string } }) {
   let characterName = 'キャラクター';
   let avatarUrl: string | null = null;
+  let franchise: string | null = null;
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -19,6 +20,7 @@ export default async function Image({ params }: { params: { characterId: string 
       if (data.character) {
         characterName = data.character.name;
         avatarUrl = data.character.avatarUrl;
+        franchise = data.character.franchise ?? null;
       }
     }
   } catch {
@@ -120,6 +122,19 @@ export default async function Image({ params }: { params: { characterId: string 
           >
             {characterName}
           </div>
+
+          {franchise && (
+            <div
+              style={{
+                fontSize: '28px',
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.65)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {franchise}
+            </div>
+          )}
 
           <div
             style={{

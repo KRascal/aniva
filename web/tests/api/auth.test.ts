@@ -20,6 +20,19 @@ vi.mock('next-auth/jwt', () => ({
   getToken: vi.fn(),
 }));
 
+// ── Rate Limit モック ──────────────────────────────────────────────────────────
+vi.mock('@/lib/rate-limit', () => ({
+  authLimiter: {
+    check: vi.fn().mockResolvedValue({ success: true }),
+  },
+  rateLimitResponse: vi.fn(() =>
+    new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  ),
+}));
+
 // ── resend モック ──────────────────────────────────────────────────────────────
 vi.mock('resend', () => ({
   Resend: vi.fn().mockImplementation(() => ({

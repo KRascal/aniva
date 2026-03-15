@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { checkEdgeRateLimit, getClientIdentifier } from '@/lib/rate-limit-edge';
 
 const SUPPORTED_LOCALES = ['ja', 'en'];
 const DEFAULT_LOCALE = 'ja';
@@ -67,6 +68,25 @@ export default async function proxy(req: NextRequest) {
     return withSecurityHeaders(res, req);
   }
 
+  // ── Edge Rate Limiting（全API一括防御） ──
+  if (pathname.startsWith('/api/')) {
+    const clientId = getClientIdentifier(req);
+    const rl = checkEdgeRateLimit(clientId, pathname);
+    if (!rl.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rl.retryAfterSec }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': rl.retryAfterSec.toString(),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+  }
+
   // ── Server Action 不正リクエスト防御 ──
   // ボット/スキャナーが "x" 等の無効なAction IDを送信 → 500エラー抑止
   const nextAction = req.headers.get('next-action');
@@ -131,6 +151,7 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith('/api/chat/comment-reply') ||
     pathname.startsWith('/api/onboarding/guest-chat') ||
     pathname === '/api/coins/packages' ||
+    pathname === '/api/pricing' ||
     pathname.startsWith('/api/geoip') ||
     pathname.startsWith('/api/og') ||
     pathname.startsWith('/api/events') ||
@@ -243,5 +264,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|public|robots.txt|sitemap.xml|sw.js|manifest.json|icons|uploads|characters).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|public|robots.txt|sitemap.xml|sw.js|manifest.json|icons|uploads|characters|docs/|lp-redesign-mockup\\.html|opengraph-image).*)'],
 };

@@ -57,8 +57,25 @@ sleep 5
 echo "🔍 Health check..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3061/api/health 2>/dev/null || echo "000")
 if [ "$HTTP_CODE" = "200" ]; then
-  echo "✅ Staging deployed successfully! https://demo.aniva-project.com"
+  echo "✅ Health check OK"
 else
   echo "⚠️ Health check returned $HTTP_CODE - check logs: pm2 logs aniva-staging"
   exit 1
 fi
+
+echo ""
+echo "🔍 全ページ巡回チェック..."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FULL_CHECK="$SCRIPT_DIR/../web/scripts/post-deploy-full-check.sh"
+if [ -f "$FULL_CHECK" ]; then
+  bash "$FULL_CHECK" http://localhost:3061
+  if [ $? -ne 0 ]; then
+    echo "❌ 全ページ巡回チェック FAIL — デプロイを確認してください"
+    exit 1
+  fi
+else
+  echo "⚠️ post-deploy-full-check.sh not found, skipping full check"
+fi
+
+echo ""
+echo "✅ Staging deployed & verified! https://demo.aniva-project.com"

@@ -1,4 +1,30 @@
 /**
+ * チャット共通型定義
+ */
+
+/* ── チャットページ固有型 ── */
+export interface RelationshipInfo {
+  level: number;
+  levelName: string;
+  xp: number;
+  nextLevelXp: number | null;
+  totalMessages: number;
+  relationshipId?: string;
+  character?: { name: string; slug: string };
+  isFanclub?: boolean;
+  isFollowing?: boolean;
+  sharedTopics?: { type: string; text: string }[];
+  streakDays?: number;
+  previousStreakDays?: number;
+  isStreakActive?: boolean;
+  lastMessageAt?: string;
+  id?: string;
+  fcMonthlyPriceJpy?: number;
+  fcIncludedCallMin?: number;
+  fcMonthlyCoins?: number;
+}
+
+/**
  * チャット一覧ページ共通型定義
  */
 

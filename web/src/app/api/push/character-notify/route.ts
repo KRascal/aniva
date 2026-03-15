@@ -138,9 +138,11 @@ export async function POST(req: NextRequest) {
   );
   try {
     // 認証（CRON_SECRETまたはINTERNAL_SECRETを受け付ける）
-    const token = req.headers.get('x-internal-secret') || req.headers.get('x-cron-secret');
-    const validSecret = process.env.INTERNAL_SECRET || process.env.CRON_SECRET;
-    if (!token || token !== validSecret) {
+    const cronToken = req.headers.get('x-cron-secret');
+    const internalToken = req.headers.get('x-internal-secret');
+    const isValidCron = cronToken && process.env.CRON_SECRET && cronToken === process.env.CRON_SECRET;
+    const isValidInternal = internalToken && process.env.INTERNAL_SECRET && internalToken === process.env.INTERNAL_SECRET;
+    if (!isValidCron && !isValidInternal) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

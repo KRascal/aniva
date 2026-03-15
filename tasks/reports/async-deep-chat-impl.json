@@ -1,0 +1,27 @@
+{
+  "task": "async-deep-chat",
+  "status": "completed",
+  "completedAt": "2026-03-15T14:10:00.000Z",
+  "changes": [
+    {
+      "file": "src/lib/message-weight.ts",
+      "type": "addition",
+      "description": "calculateDelayMs(weight), formatDelayText(delayMs), formatScheduledAtText(scheduledAt) の3関数を追加。既存関数は変更なし。"
+    },
+    {
+      "file": "src/app/api/chat/stream/route.ts",
+      "type": "modification",
+      "description": "import に calculateMessageWeight, calculateDelayMs, formatDelayText を追加。Deep Mode分岐内でweight計算→delayMs計算→scheduledAt設定。考え中メッセージを「ちょっと考えさせて…${delayText}に返事するね」に変更。thinkingMsg.metadataにscheduledAtを保存。DeepReplyQueueにscheduledAtを明示設定。SSEイベントにscheduledAtを追加。"
+    },
+    {
+      "file": "src/components/chat/ChatMessageList.tsx",
+      "type": "modification",
+      "description": "Message型のmetadataにscheduledAt?: stringを追加。formatScheduledAtTextをimport。isThinking表示部分にscheduledAtがある場合の残り時間表示を追加。"
+    }
+  ],
+  "notes": {
+    "dbMigration": "不要。scheduledAtカラムは既存。@default(now())により後方互換あり。",
+    "backwardCompat": "scheduledAt未設定の旧レコードはnow()のデフォルト値で即時処理される。",
+    "typeCheck": "npx tsc --noEmit エラーなし"
+  }
+}

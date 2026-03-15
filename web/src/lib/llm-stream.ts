@@ -1,13 +1,59 @@
 import { logger } from '@/lib/logger';
 /**
  * LLM Streaming — SSE対応のストリーミングLLM呼び出し
- * xAI (grok) / Anthropic 両対応
+ * Primary: Gemini 2.5 Flash
+ * Fallback: xAI Grok → Anthropic Haiku
  */
 
 export interface StreamCallbacks {
   onToken: (token: string) => void;
   onDone: (fullText: string) => void;
   onError: (error: Error) => void;
+}
+
+/**
+ * OpenAI互換ストリーミングレスポンスをパースするヘルパー
+ */
+async function parseOpenAIStream(
+  res: Response,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): Promise<string> {
+  if (!res.body) throw new Error('No response body');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ')) continue;
+      const data = trimmed.slice(6);
+      if (data === '[DONE]') continue;
+
+      try {
+        const parsed = JSON.parse(data);
+        const token = parsed.choices?.[0]?.delta?.content;
+        if (token) {
+          fullText += token;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', token })}\n\n`));
+        }
+      } catch {
+        // malformed JSON chunk, skip
+      }
+    }
+  }
+
+  return fullText;
 }
 
 /**
@@ -18,6 +64,7 @@ export async function callLLMStream(
   messages: { role: 'user' | 'assistant'; content: string }[],
   options?: { isFcMember?: boolean },
 ): Promise<ReadableStream<Uint8Array>> {
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const isFc = options?.isFcMember ?? false;
@@ -28,7 +75,7 @@ export async function callLLMStream(
       try {
         let fullText = '';
 
-        // FC会員 → Anthropic claude-sonnet-4-6 ストリーミング
+        // FC会員 → Anthropic claude-sonnet-4-6 ストリーミング（高品質）
         if (isFc && anthropicKey) {
           try {
             const Anthropic = (await import('@anthropic-ai/sdk')).default;
@@ -56,7 +103,41 @@ export async function callLLMStream(
           }
         }
 
-        // 通常 → xAI (grok) ストリーミング（OpenAI互換）
+        // 通常 → Gemini 2.5 Flash ストリーミング（OpenAI互換）
+        if (geminiKey) {
+          try {
+            const res = await fetch(
+              'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${geminiKey}`,
+                },
+                body: JSON.stringify({
+                  model: 'gemini-2.5-flash',
+                  messages: [{ role: 'system', content: systemPrompt }, ...messages],
+                  max_tokens: 600,
+                  temperature: 0.85,
+                  stream: true,
+                }),
+              },
+            );
+
+            if (!res.ok || !res.body) {
+              throw new Error(`Gemini stream error: ${res.status}`);
+            }
+
+            fullText = await parseOpenAIStream(res, controller, encoder);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', text: fullText })}\n\n`));
+            controller.close();
+            return;
+          } catch (e) {
+            logger.error('[llm-stream] Gemini stream failed, falling back to xAI:', e);
+          }
+        }
+
+        // フォールバック① → xAI (grok) ストリーミング
         if (xaiKey) {
           try {
             const res = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -78,46 +159,16 @@ export async function callLLMStream(
               throw new Error(`xAI stream error: ${res.status}`);
             }
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed.startsWith('data: ')) continue;
-                const data = trimmed.slice(6);
-                if (data === '[DONE]') continue;
-
-                try {
-                  const parsed = JSON.parse(data);
-                  const token = parsed.choices?.[0]?.delta?.content;
-                  if (token) {
-                    fullText += token;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', token })}\n\n`));
-                  }
-                } catch {
-                  // malformed JSON chunk, skip
-                }
-              }
-            }
-
+            fullText = await parseOpenAIStream(res, controller, encoder);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', text: fullText })}\n\n`));
             controller.close();
             return;
           } catch (e) {
-            logger.error('[llm-stream] xAI stream failed, falling back:', e);
+            logger.error('[llm-stream] xAI stream failed, falling back to Anthropic:', e);
           }
         }
 
-        // Fallback → Anthropic haiku ストリーミング
+        // フォールバック② → Anthropic haiku ストリーミング
         if (anthropicKey) {
           const Anthropic = (await import('@anthropic-ai/sdk')).default;
           const client = new Anthropic({ apiKey: anthropicKey });

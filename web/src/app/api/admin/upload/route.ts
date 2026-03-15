@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
+import { isR2Available, uploadToR2 } from '@/lib/r2';
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -62,14 +63,27 @@ export async function POST(req: NextRequest) {
     const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filename = `${Date.now()}_${safeName}`;
 
-    // Save to public/uploads/[folder]/[slug?]/
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // R2が利用可能ならR2にアップロード
+    // キー: {folder}/{slug}/{filename} または {folder}/{filename}
+    if (isR2Available()) {
+      const keyPath = slug ? `${folder}/${slug}/${filename}` : `${folder}/${filename}`;
+      const r2Url = await uploadToR2(keyPath, buffer, file.type);
+      if (r2Url) {
+        return NextResponse.json({ url: r2Url }, { status: 200 });
+      }
+      // R2アップロード失敗時はローカルにフォールバック
+    }
+
+    // ローカルファイルシステムに保存（フォールバック）
     const subPath = slug ? join(folder, slug) : folder;
     const publicDir = join(process.cwd(), 'public', 'uploads', subPath);
     mkdirSync(publicDir, { recursive: true });
 
     const filePath = join(publicDir, filename);
-    const bytes = await file.arrayBuffer();
-    writeFileSync(filePath, Buffer.from(bytes));
+    writeFileSync(filePath, buffer);
 
     const url = `/uploads/${subPath}/${filename}`;
     return NextResponse.json({ url }, { status: 200 });

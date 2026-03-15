@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { getDailyState } from '@/lib/character-daily-state';
 import type { Character, RelationshipInfo } from './types';
 
@@ -10,6 +11,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ characters, relationships, onNavigate }: EmptyStateProps) {
+  const t = useTranslations('chatList');
   const suggestedChars = characters
     .filter(c => relationships.get(c.id)?.isFollowing)
     .slice(0, 3);
@@ -28,9 +30,9 @@ export function EmptyState({ characters, relationships, onNavigate }: EmptyState
         </svg>
       </div>
 
-      <h3 className="text-white font-bold text-lg mb-2">キャラと話してみよう</h3>
+      <h3 className="text-white font-bold text-lg mb-2">{t('emptyTitle')}</h3>
       <p className="text-gray-400 text-sm leading-relaxed text-center mb-8 max-w-[260px]">
-        好きなキャラクターを選んで、<br />最初の会話を始めてみよう
+        {t('emptyDesc')}
       </p>
 
       {displayChars.length > 0 && (
@@ -63,7 +65,7 @@ export function EmptyState({ characters, relationships, onNavigate }: EmptyState
                   <p className="text-white text-sm font-bold truncate">{c.name}</p>
                   <p className="text-gray-500 text-xs truncate">{state.moodEmoji} {state.mood} — {c.franchise}</p>
                 </div>
-                <span className="text-purple-400 text-xs font-semibold flex-shrink-0">話す →</span>
+                <span className="text-purple-400 text-xs font-semibold flex-shrink-0">{t('talkTo')} →</span>
               </button>
             );
           })}
@@ -78,7 +80,7 @@ export function EmptyState({ characters, relationships, onNavigate }: EmptyState
           boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
         }}
       >
-        もっとキャラを探す
+        {t('findMore')}
       </button>
     </div>
   );

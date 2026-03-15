@@ -225,8 +225,14 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
       .then(r => r.json())
       .then(data => {
         if (data.banners?.length > 0) {
-          setBanners(data.banners);
-          setSelectedBanner(data.banners[0]);
+          // Normalize cost10Coins: fallback to costCoins * 9 (900 for default 100-coin banners)
+          const normalized = (data.banners as GachaBanner[]).map((b: GachaBanner) => ({
+            ...b,
+            costCoins: b.costCoins ?? 100,
+            cost10Coins: b.cost10Coins ?? ((b.costCoins ?? 100) * 9),
+          }));
+          setBanners(normalized);
+          setSelectedBanner(normalized[0]);
         }
         setFreeAvailable(data.freeGachaAvailable ?? false);
         // allCardCount removed (collection in /cards)
@@ -595,32 +601,35 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 )}
 
-                {/* Results overlay — centered on screen (hidden during pack opening) */}
+                {/* Results overlay — full screen with proper safe area */}
                 {pullResults.length > 0 && !showPackOpening && (
-                  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(3,7,18,0.96)', backdropFilter: 'blur(12px)' }}>
-                    <div className="w-full max-w-lg px-4 overflow-y-auto" style={{ maxHeight: '85vh' }}>
-                      <div className="flex items-center justify-between mb-4 pt-2">
-                        <h2 className="text-white font-bold text-base">結果</h2>
-                        <div className="flex items-center gap-2">
-                          {hasAnyUnflipped && (
-                            <button
-                              onClick={flipAll}
-                              className="text-xs px-3 py-1.5 rounded-full text-purple-300 font-semibold"
-                              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
-                            >
-                              全部開く
-                            </button>
-                          )}
+                  <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(3,7,18,0.97)', backdropFilter: 'blur(16px)' }}>
+                    {/* ヘッダー: 結果 + 閉じる（固定） */}
+                    <div className="flex-shrink-0 flex items-center justify-between px-5 pb-3" style={{ paddingTop: 'max(env(safe-area-inset-top), 20px)' }}>
+                      <h2 className="text-white font-bold text-lg">結果</h2>
+                      <div className="flex items-center gap-2">
+                        {hasAnyUnflipped && (
                           <button
-                            onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                            className="text-xs px-3 py-1.5 rounded-full text-white/60 font-semibold"
-                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                            onClick={flipAll}
+                            className="text-xs px-4 py-2 rounded-full text-purple-300 font-semibold"
+                            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
                           >
-                            閉じる
+                            全部開く
                           </button>
-                        </div>
+                        )}
+                        <button
+                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                          className="text-xs px-4 py-2 rounded-full text-white/70 font-semibold"
+                          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        >
+                          ✕ 閉じる
+                        </button>
                       </div>
-                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[200px] mx-auto' : 'grid-cols-2'} gap-3`}>
+                    </div>
+
+                    {/* カード一覧（スクロール可能） */}
+                    <div className="flex-1 overflow-y-auto px-5 pb-4">
+                      <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[220px] mx-auto' : 'grid-cols-2'} gap-3 max-w-lg mx-auto`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
                             {(result.rarity === 'SSR' || result.rarity === 'UR') && flippedCards[i] && (
@@ -654,16 +663,17 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                           </div>
                         ))}
                       </div>
-                      {/* もう一回引くボタン */}
-                      <div className="mt-6 pb-4">
-                        <button
-                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                          className="w-full py-3 rounded-2xl text-sm font-bold text-white/80 transition-all active:scale-[0.97]"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                        >
-                          もう一度引く
-                        </button>
-                      </div>
+                    </div>
+
+                    {/* フッター: もう一度引く（固定） */}
+                    <div className="flex-shrink-0 px-5 pt-3" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+                      <button
+                        onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                        className="w-full max-w-lg mx-auto block py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97]"
+                        style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.4), rgba(157,23,77,0.35))', border: '1px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 20px rgba(139,92,246,0.2)' }}
+                      >
+                        もう一度引く
+                      </button>
                     </div>
                   </div>
                 )}

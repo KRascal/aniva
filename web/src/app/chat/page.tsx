@@ -7,6 +7,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import { SwipeableChatRow } from '@/components/chat-list/SwipeableChatRow';
 import { EmptyState } from '@/components/chat-list/EmptyState';
 import type { Character, ProactiveMessage, RelationshipInfo } from '@/components/chat-list/types';
+import { logger } from '@/lib/logger';
 
 /* ── main page ── */
 export default function ChatPage() {
@@ -23,6 +24,12 @@ export default function ChatPage() {
   const [dismissedCharMsgs, setDismissedCharMsgs] = useState<Set<string>>(new Set());
   const [proactiveMessages, setProactiveMessages] = useState<ProactiveMessage[]>([]);
   const [dismissedProactive, setDismissedProactive] = useState<Set<string>>(new Set());
+  const [groupConversations, setGroupConversations] = useState<Array<{
+    id: string;
+    updatedAt: string;
+    characters: Array<{ id: string; name: string; slug: string; avatarUrl: string | null }>;
+    lastMessage: { role: string; content: string; createdAt: string } | null;
+  }>>([]);
 
   // Safari bfcache対策: ページ復元時にフルリロード
   useEffect(() => {
@@ -70,7 +77,7 @@ export default function ChatPage() {
         setCharacters(charData.characters || []);
       }
     } catch (err) {
-      console.error('[ChatPage] characters fetch error:', err);
+      logger.error('[ChatPage] characters fetch error', { error: err });
     }
 
     try {
@@ -85,10 +92,10 @@ export default function ChatPage() {
           setRelationships(map);
         }
       } else {
-        console.error('[ChatPage] relationship/all failed:', relRes.status, await relRes.text().catch(() => ''));
+        logger.error('[ChatPage] relationship/all failed', { status: relRes.status });
       }
     } catch (err) {
-      console.error('[ChatPage] relationships fetch error:', err);
+      logger.error('[ChatPage] relationships fetch error', { error: err });
     }
 
     try {
@@ -104,6 +111,14 @@ export default function ChatPage() {
       if (proRes.ok) {
         const data = await proRes.json();
         if (data.messages) setProactiveMessages(data.messages.filter((m: ProactiveMessage) => !m.isRead));
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const groupRes = await fetch('/api/chat/group');
+      if (groupRes.ok) {
+        const data = await groupRes.json();
+        if (data.conversations) setGroupConversations(data.conversations);
       }
     } catch { /* ignore */ }
 
@@ -204,8 +219,8 @@ export default function ChatPage() {
       </header>
 
       <main className="relative z-10 max-w-lg mx-auto px-4 pt-4 pb-32">
-        {/* ══ 新着チャット通知バナー ══ */}
-        {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
+        {/* ══ 新着チャット通知バナー（非表示: exploreに限定メッセージがあるため不要） ══ */}
+        {false && proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).length > 0 && (
           <div className="mb-4 space-y-2">
             {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).slice(0, 3).map(msg => (
               <div
@@ -395,7 +410,7 @@ export default function ChatPage() {
                         });
                       }
                     } catch (err) {
-                      console.error('[ChatPage] pin error:', err);
+                      logger.error('[ChatPage] pin error', { error: err });
                     }
                   }}
                   onMute={async () => {
@@ -415,7 +430,7 @@ export default function ChatPage() {
                         });
                       }
                     } catch (err) {
-                      console.error('[ChatPage] mute error:', err);
+                      logger.error('[ChatPage] mute error', { error: err });
                     }
                   }}
                   onUnfollow={async () => {
@@ -429,12 +444,79 @@ export default function ChatPage() {
                         loadChatList();
                       }
                     } catch (err) {
-                      console.error('[ChatPage] unfollow error:', err);
+                      logger.error('[ChatPage] unfollow error', { error: err });
                     }
                   }}
                 />
               );
             })}
+          </div>
+        )}
+
+        {/* グループチャット履歴 */}
+        {groupConversations.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-white/40 text-xs font-semibold uppercase tracking-wider px-1 mb-2">グループチャット履歴</h2>
+            <div className="space-y-1">
+              {groupConversations.map(conv => {
+                const charNames = conv.characters.map(c => c.name.split('・')[0]).join(' × ');
+                const timeAgo = (() => {
+                  const diff = Date.now() - new Date(conv.updatedAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  if (mins < 1) return 'たった今';
+                  if (mins < 60) return `${mins}分前`;
+                  const hours = Math.floor(mins / 60);
+                  if (hours < 24) return `${hours}時間前`;
+                  return `${Math.floor(hours / 24)}日前`;
+                })();
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => router.push(`/chat/group?conversationId=${conv.id}`)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all active:scale-[0.99]"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                    }}
+                  >
+                    {/* アバターグループ */}
+                    <div className="flex -space-x-2 flex-shrink-0">
+                      {conv.characters.slice(0, 3).map((c, i) => (
+                        c.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={c.id}
+                            src={c.avatarUrl}
+                            alt={c.name}
+                            className="w-9 h-9 rounded-full object-cover"
+                            style={{ boxShadow: '0 0 0 2px rgb(3,7,18)', zIndex: 3 - i }}
+                          />
+                        ) : (
+                          <div
+                            key={c.id}
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-purple-700"
+                            style={{ zIndex: 3 - i }}
+                          >
+                            {c.name.charAt(0)}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                    {/* テキスト */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-bold truncate">{charNames}</p>
+                      {conv.lastMessage && (
+                        <p className="text-white/40 text-xs truncate mt-0.5">
+                          {conv.lastMessage.role === 'USER' ? 'あなた: ' : ''}{conv.lastMessage.content}
+                        </p>
+                      )}
+                    </div>
+                    {/* 時刻 */}
+                    <span className="text-white/30 text-[10px] flex-shrink-0">{timeAgo}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>

@@ -75,3 +75,44 @@ export function shouldUseDeepMode(
 
   return weight >= DEEP_THRESHOLD;
 }
+
+/**
+ * Deep Chatの遅延時間を計算（ミリ秒）
+ * weight ≥ 5 → 4〜8時間（感情+人生相談）
+ * weight ≥ 3 → 2〜4時間（Deep Mode閾値）
+ * weight < 3 → 30分〜1時間
+ */
+export function calculateDelayMs(weight: number): number {
+  if (weight >= 5) return (4 + Math.random() * 4) * 60 * 60 * 1000; // 4-8h
+  if (weight >= 3) return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4h
+  return (30 + Math.random() * 30) * 60 * 1000; // 30-60min
+}
+
+/**
+ * 遅延時間（ミリ秒）をユーザー向けテキストに変換
+ * 例: "3時間後くらい", "30分後くらい"
+ */
+export function formatDelayText(delayMs: number): string {
+  const hours = Math.round(delayMs / (60 * 60 * 1000));
+  if (hours >= 1) return `${hours}時間後くらい`;
+  const mins = Math.round(delayMs / (60 * 1000));
+  return `${mins}分後くらい`;
+}
+
+/**
+ * scheduledAt（予定返信日時）を残り時間テキストに変換（UI表示用）
+ * 例: "3時間後くらいに届くよ", "あと30分くらいで届くよ"
+ */
+export function formatScheduledAtText(scheduledAt: Date): string {
+  const now = new Date();
+  if (scheduledAt <= now) return 'もうすぐ返事がくるかも...';
+
+  const diffMs = scheduledAt.getTime() - now.getTime();
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffMinutes = Math.floor((diffMs % 3600000) / 60000);
+
+  if (diffHours >= 1) {
+    return `${diffHours}時間後くらいに届くよ`;
+  }
+  return `あと${diffMinutes}分くらいで届くよ`;
+}

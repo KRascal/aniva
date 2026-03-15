@@ -1,0 +1,84 @@
+{
+  "task": "ANIVAプロジェクト — スケーラビリティ強化4項目",
+  "completedAt": "2026-03-15T23:30:00+09:00",
+  "status": "completed",
+  "items": [
+    {
+      "id": "task1",
+      "title": "IPホルダー向けリアルタイムダッシュボード強化",
+      "status": "done",
+      "files": [
+        "src/app/admin/analytics/page.tsx",
+        "src/app/api/admin/analytics/route.ts"
+      ],
+      "details": {
+        "newMetrics": [
+          "todayActiveUsers — 今日チャットを送信したユニークユーザー数（Prisma distinct集計）",
+          "todayMessages — 今日のチャットメッセージ総数",
+          "todayFanclubJoins — 今日のFC新規加入数（Relationship.updatedAt）",
+          "todayCoinSpend — 今日のコイン消費量（CoinTransaction.amount < 0 の絶対値）",
+          "popularPosts — FanThreadのviewCount順TOP10",
+          "dau7Days — 直近7日のDAUグラフ（CSS bar、Chart.js不要）",
+          "todayCharMessages — 今日のキャラ別メッセージ数"
+        ],
+        "ui": "KpiCard x4グリッド, DauBarChartコンポーネント(CSS), HBarChart(キャラ別・今日), ランキングリスト"
+      }
+    },
+    {
+      "id": "task2",
+      "title": "DBバックアップリストアテスト",
+      "status": "done",
+      "files": [
+        "scripts/backup-restore-test.sh"
+      ],
+      "details": {
+        "features": [
+          "最新のaniva_staging_*.sql.gzを自動検出",
+          "一時テストDB（aniva_restore_test_<timestamp>）に復元",
+          "テーブル数・キャラ数・メッセージ数・ユーザー数を確認",
+          "バックアップサイズと日時も表示",
+          "テストDB削除で後片付け"
+        ],
+        "executable": true
+      }
+    },
+    {
+      "id": "task3",
+      "title": "監査ログUI",
+      "status": "done",
+      "files": [
+        "src/app/admin/audit-log/page.tsx",
+        "src/app/api/admin/audit-log/route.ts"
+      ],
+      "details": {
+        "schema": "既存のAdminAuditLogモデルを使用（prisma/schema.prismaに定義済み）",
+        "features": [
+          "ページネーション（50件/ページ）",
+          "フィルタ: 操作タイプ・対象タイプ・管理者",
+          "クリックで詳細JSON展開",
+          "操作タイプ別カラーバッジ（CREATE/UPDATE/DELETE等）",
+          "ダークモードスタイル（他管理画面と統一）"
+        ]
+      }
+    },
+    {
+      "id": "task4",
+      "title": "IPホルダー向けドキュメント生成",
+      "status": "done",
+      "files": [
+        "public/docs/ip-holder-guide.html"
+      ],
+      "details": {
+        "sections": [
+          "キャラ登録手順（5ステップ）",
+          "ガチャバナー設定（4ステップ）",
+          "ストーリー作成（5ステップ）",
+          "収益確認方法（カード + フロー）",
+          "コンテンツ監修フロー（5ステップ）",
+          "クイックリファレンステーブル"
+        ],
+        "design": "Apple Keynote風ダークモード、グラデーションヒーロー、スティッキーナビ、インタラクティブカード"
+      }
+    }
+  ]
+}
