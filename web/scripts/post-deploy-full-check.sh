@@ -125,7 +125,7 @@ check_api "/api/health" "200"
 check_api "/api/characters" "200"
 check_api "/api/moments?page=1&limit=1" "200"
 check_api "/api/stories" "200"
-check_api "/api/pricing" "200"
+check_api "/api/coins/packages" "200"
 check_api "/api/geoip" "200"
 
 echo ""
@@ -137,7 +137,7 @@ check_api "/api/notifications" "401,403"
 
 echo ""
 echo "── エラーログ確認 ──"
-RECENT_ERRORS=$(pm2 logs aniva-staging --nostream --lines 20 2>/dev/null | grep -iE "InvariantError|ENOENT|Cannot find|Internal Server Error" | wc -l)
+RECENT_ERRORS=$(pm2 logs aniva-staging --nostream --lines 20 2>/dev/null | grep -ciE "InvariantError|ENOENT|Cannot find|Internal Server Error" || true)
 if [ "$RECENT_ERRORS" -gt 0 ]; then
   log_fail "PM2エラーログに${RECENT_ERRORS}件のエラーあり"
   pm2 logs aniva-staging --nostream --lines 20 2>/dev/null | grep -iE "InvariantError|ENOENT|Cannot find|Internal Server Error" | head -5
