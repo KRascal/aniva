@@ -329,10 +329,66 @@ export default function GroupChatPage() {
     .map(id => characters.find(c => c.id === id))
     .filter((c): c is Character => c != null);
 
-  // チャット開始
-  const handleStartChat = () => {
+  // チャット開始（同一キャラ選択時は既存会話を復帰）
+  const handleStartChat = async () => {
     if (selectedIds.length < 1) return;
     setMessages([]);
+    setConversationId(null);
+
+    try {
+      // 既存のグループ会話を検索
+      const res = await fetch('/api/chat/group');
+      if (res.ok) {
+        const data = await res.json() as {
+          conversations?: Array<{
+            id: string;
+            characters: Array<{ id: string; name: string }>;
+            lastMessage?: { conversationId: string; role: string; content: string; createdAt: string } | null;
+          }>;
+        };
+        const sorted = [...selectedIds].sort();
+        const existing = (data.conversations ?? []).find(conv => {
+          const convIds = (conv.characters ?? []).map((c: { id: string }) => c.id).sort();
+          return convIds.length === sorted.length && convIds.every((id: string, i: number) => id === sorted[i]);
+        });
+
+        if (existing) {
+          // 既存会話のメッセージを /api/chat/group/history?conversationId= で取得
+          const histRes = await fetch(`/api/chat/group/history?conversationId=${existing.id}&limit=30`);
+          if (histRes.ok) {
+            const histData = await histRes.json() as {
+              messages?: Array<{
+                id: string;
+                role: string;
+                content: string;
+                metadata?: Record<string, unknown>;
+                createdAt?: string;
+              }>;
+              conversationId?: string;
+            };
+            // キャラ名マップ（選択中のキャラ）
+            const charNameMap = new Map(selectedChars.map(c => [c.id, c.name]));
+            const loaded: GroupMessage[] = (histData.messages ?? []).map(m => {
+              const meta = m.metadata as Record<string, unknown> | undefined;
+              const charId = typeof meta?.characterId === 'string' ? meta.characterId : undefined;
+              return {
+                id: m.id,
+                role: m.role as 'USER' | 'CHARACTER',
+                characterId: charId,
+                characterName: charId ? (charNameMap.get(charId) ?? charId) : undefined,
+                content: m.content,
+                timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
+              };
+            });
+            setMessages(loaded);
+            if (histData.conversationId) setConversationId(histData.conversationId);
+          }
+        }
+      }
+    } catch {
+      // 取得失敗しても新規で始める
+    }
+
     setStep('chat');
   };
 

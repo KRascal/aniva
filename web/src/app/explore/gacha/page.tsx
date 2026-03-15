@@ -225,8 +225,14 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
       .then(r => r.json())
       .then(data => {
         if (data.banners?.length > 0) {
-          setBanners(data.banners);
-          setSelectedBanner(data.banners[0]);
+          // Normalize cost10Coins: fallback to costCoins * 9 (900 for default 100-coin banners)
+          const normalized = (data.banners as GachaBanner[]).map((b: GachaBanner) => ({
+            ...b,
+            costCoins: b.costCoins ?? 100,
+            cost10Coins: b.cost10Coins ?? ((b.costCoins ?? 100) * 9),
+          }));
+          setBanners(normalized);
+          setSelectedBanner(normalized[0]);
         }
         setFreeAvailable(data.freeGachaAvailable ?? false);
         // allCardCount removed (collection in /cards)

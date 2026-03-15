@@ -1,0 +1,38 @@
+{
+  "batch": "feature-batch2",
+  "timestamp": "2026-03-15T21:17:00+09:00",
+  "status": "completed",
+  "tsErrors": 0,
+  "features": [
+    {
+      "id": "event-chat-injector",
+      "status": "done",
+      "file": "src/lib/event-chat-injector.ts",
+      "notes": "LimitedScenarioモデルの実際のフィールド名（startsAt/endsAt）に合わせて実装。typeフィールドはスキーマに存在しないため省略。priorityフィールドも存在しないためstartsAt:descで代替。"
+    },
+    {
+      "id": "relationship-map",
+      "status": "done",
+      "files": [
+        "src/components/profile/RelationshipMap.tsx",
+        "src/app/api/characters/[slug]/relationships/route.ts"
+      ],
+      "notes": "CharacterRelationshipGraphテーブルを使用。slugまたはidで検索対応。APIエンドポイント新規作成（既存なし確認）。関連キャラのavatarUrlも引いてレンダリング。"
+    },
+    {
+      "id": "gacha-price-fix",
+      "status": "done",
+      "file": "src/app/explore/gacha/page.tsx",
+      "notes": "DBスキーマのcostCoins @default(100)、APIのCOSTS={1:100,10:900}は既に正しかった。フロントエンドでcost10CoinsがnullのときcostCoins*9でフォールバックする正規化ロジックを追加（バナーデータ受信時）。"
+    },
+    {
+      "id": "group-chat-resume",
+      "status": "done",
+      "files": [
+        "src/app/chat/group/page.tsx",
+        "src/app/api/chat/group/history/route.ts"
+      ],
+      "notes": "handleStartChatを非同期化。同一キャラ組み合わせ（characterIds順不同一致）の既存会話を検索し、見つかれば履歴をロードして続きから開始。新規エンドポイント /api/chat/group/history を作成（IDOR対策済み）。"
+    }
+  ]
+}
