@@ -205,6 +205,7 @@ const NAV_SECTIONS = [
     minRole: 'editor',
     items: [
       { href: '/admin/characters', label: 'キャラクター一覧', icon: <IconCharacter />, minRole: 'editor' },
+      { href: '/admin/auto-posts', label: '自律投稿設定', icon: <IconSparkle />, minRole: 'editor' },
       { href: '/admin/moments', label: 'モーメンツ', icon: <IconCamera />, minRole: 'editor' },
       { href: '/admin/stories', label: 'ストーリーズ', icon: <IconBook />, minRole: 'editor' },
       { href: '/admin/events', label: 'イベント管理', icon: <IconSparkle />, minRole: 'editor' },
@@ -286,6 +287,8 @@ const NAV_SECTIONS = [
       { href: '/admin/crons', label: 'Cron制御', icon: <IconClock />, minRole: 'super_admin' },
       { href: '/admin/reports-management', label: '通報管理', icon: <IconFlag />, minRole: 'super_admin' },
       { href: '/admin/community', label: 'コミュニティ管理', icon: <IconChat />, minRole: 'super_admin' },
+      { href: '/admin/i18n', label: '多言語管理', icon: <IconGlobe />, minRole: 'editor' },
+      { href: '/admin/media', label: 'メディア管理', icon: <IconCamera />, minRole: 'editor' },
     ],
   },
 ];

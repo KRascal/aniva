@@ -3,6 +3,150 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+// ─── Emergency Stop Dialog ─────────────────────────────────────────────────
+
+interface EmergencyStopDialogProps {
+  onClose: () => void;
+}
+
+function EmergencyStopDialog({ onClose }: EmergencyStopDialogProps) {
+  const [characters, setCharacters] = useState<{ id: string; name: string; slug: string; isActive: boolean }[]>([]);
+  const [selectedChar, setSelectedChar] = useState('');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [stopping, setStopping] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/characters')
+      .then((r) => r.json())
+      .then((d) => {
+        const arr = Array.isArray(d) ? d : d.characters ?? [];
+        setCharacters(arr.filter((c: { isActive: boolean }) => c.isActive));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function handleStop() {
+    if (!selectedChar) return;
+    setStopping(true);
+    try {
+      const r = await fetch('/api/admin/emergency-stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId: selectedChar, reason }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        setResult({ ok: true, message: data.message ?? '緊急停止しました' });
+      } else {
+        setResult({ ok: false, message: data.error ?? '停止に失敗しました' });
+      }
+    } catch {
+      setResult({ ok: false, message: 'ネットワークエラー' });
+    } finally {
+      setStopping(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-6 space-y-5"
+        style={{ background: '#1a0a2e', border: '1px solid rgba(239,68,68,0.3)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-xl">🚨</div>
+          <div>
+            <h2 className="text-lg font-bold text-white">緊急停止</h2>
+            <p className="text-xs text-red-300">キャラクターを即座にオフライン化します</p>
+          </div>
+        </div>
+
+        {result ? (
+          <div className="space-y-4">
+            <div
+              className={`p-4 rounded-xl text-sm ${
+                result.ok
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-300'
+              }`}
+            >
+              {result.message}
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-2 rounded-xl text-sm font-medium text-gray-300 transition-all hover:bg-white/5"
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              閉じる
+            </button>
+          </div>
+        ) : (
+          <>
+            {loading ? (
+              <div className="h-20 flex items-center justify-center">
+                <div className="text-gray-400 text-sm">読み込み中...</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">停止するキャラクター *</label>
+                  <select
+                    value={selectedChar}
+                    onChange={(e) => setSelectedChar(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <option value="">選択してください</option>
+                    {characters.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">停止理由（任意）</label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={3}
+                    placeholder="停止理由を入力..."
+                    className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder-gray-600 outline-none resize-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 py-2 rounded-xl text-sm font-medium text-gray-400 transition-all hover:bg-white/5"
+                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleStop}
+                disabled={!selectedChar || stopping}
+                className="flex-1 py-2 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] disabled:opacity-40"
+                style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}
+              >
+                {stopping ? '停止中...' : '🚨 緊急停止実行'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface DashboardData {
   today: {
     dau: number;
@@ -247,6 +391,7 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEmergencyStop, setShowEmergencyStop] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/dashboard')
@@ -320,6 +465,9 @@ export default function AdminDashboardPage() {
       className="min-h-full space-y-8 pb-12"
       style={{ color: '#e2e8f0' }}
     >
+      {/* Emergency Stop Dialog */}
+      {showEmergencyStop && <EmergencyStopDialog onClose={() => setShowEmergencyStop(false)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between pt-2">
         <div>
@@ -352,6 +500,16 @@ export default function AdminDashboardPage() {
               {totalAlerts}件の要対応
             </div>
           )}
+          {/* Emergency Stop Button */}
+          <button
+            onClick={() => setShowEmergencyStop(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-red-500/20"
+            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}
+            title="緊急停止"
+          >
+            <span>🚨</span>
+            緊急停止
+          </button>
           <button
             onClick={() => window.location.reload()}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
