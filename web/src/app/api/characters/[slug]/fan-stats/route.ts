@@ -112,9 +112,3 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch fan stats' }, { status: 500 });
   }
 }
-
-  } catch (error) {
-    logger.error('Fan stats error:', error);
-    return NextResponse.json({ error: 'Failed to fetch fan stats' }, { status: 500 });
-  }
-}
