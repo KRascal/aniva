@@ -36,6 +36,16 @@ const STATUS_TABS = [
   { value: '', label: '全件', icon: '📋' },
 ];
 
+// コンテンツ公開タイプのみ抽出するフィルタ
+const CONTENT_TYPES = [
+  { value: '', label: 'すべてのタイプ' },
+  { value: 'content_publish', label: '🎯 コンテンツ公開' },
+  { value: 'prompt_change', label: '📝 プロンプト変更' },
+  { value: 'personality_change', label: '🎭 人格設定変更' },
+  { value: 'boundary_change', label: '🛡 バウンダリ変更' },
+  { value: 'voice_change', label: '🎤 口調設定変更' },
+];
+
 const PRIORITY_COLORS: Record<string, string> = {
   low: 'text-gray-400',
   normal: 'text-blue-300',
@@ -55,6 +65,7 @@ export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
+  const [activeTypeFilter, setActiveTypeFilter] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -62,13 +73,16 @@ export default function ApprovalsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const url = activeTab ? `/api/admin/approvals?status=${activeTab}` : '/api/admin/approvals';
+      const params = new URLSearchParams();
+      if (activeTab) params.set('status', activeTab);
+      if (activeTypeFilter) params.set('type', activeTypeFilter);
+      const url = `/api/admin/approvals?${params.toString()}`;
       const res = await fetch(url);
       const data = await res.json();
       setApprovals(data.approvals ?? []);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [activeTab]);
+  }, [activeTab, activeTypeFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -118,19 +132,27 @@ export default function ApprovalsPage() {
     <div className="max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">📋 監修・承認ダッシュボード</h1>
 
-      {/* タブ */}
-      <div className="flex gap-2 mb-4">
+      {/* ステータスタブ */}
+      <div className="flex gap-2 mb-3 flex-wrap">
         {STATUS_TABS.map(tab => {
-          const count = tab.value
-            ? approvals.length // current tab count is already filtered
-            : approvals.length;
+          const count = tab.value === activeTab ? approvals.length : undefined;
           return (
             <button key={tab.value} onClick={() => { setActiveTab(tab.value); setSelectedId(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.value ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
-              {tab.icon} {tab.label} {tab.value === activeTab ? `(${count})` : ''}
+              {tab.icon} {tab.label} {count !== undefined ? `(${count})` : ''}
             </button>
           );
         })}
+      </div>
+
+      {/* タイプフィルタ */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {CONTENT_TYPES.map(ct => (
+          <button key={ct.value} onClick={() => { setActiveTypeFilter(ct.value); setSelectedId(null); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTypeFilter === ct.value ? 'bg-pink-700 text-white' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}>
+            {ct.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
