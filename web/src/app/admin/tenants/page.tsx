@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 
 // ---- Types ----
 interface AdminUserRow {
@@ -24,6 +25,9 @@ interface TenantRow {
     characters: number;
     contracts: number;
   };
+  // 追加: 収益データ（revenue APIから非同期で埋める）
+  fcMembers?: number;
+  monthlyRevenue?: number;
 }
 
 interface TenantForm {
@@ -62,9 +66,30 @@ export default function TenantsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/tenants');
-      const data = await res.json();
-      setTenants(data.tenants ?? []);
+      const [tenantsRes, revenueRes] = await Promise.all([
+        fetch('/api/admin/tenants'),
+        fetch('/api/admin/revenue').catch(() => null),
+      ]);
+      const tenantsData = await tenantsRes.json();
+      const rows: TenantRow[] = tenantsData.tenants ?? [];
+
+      // 収益データをテナントにマージ
+      if (revenueRes?.ok) {
+        const revenueData = await revenueRes.json();
+        const revByTenant = new Map<string, { fcMembers: number; monthlyRevenue: number }>();
+        for (const t of revenueData.revenueByTenant ?? []) {
+          revByTenant.set(t.tenantId, { fcMembers: t.fcMembers, monthlyRevenue: t.revenue });
+        }
+        for (const row of rows) {
+          const rev = revByTenant.get(row.id);
+          if (rev) {
+            row.fcMembers = rev.fcMembers;
+            row.monthlyRevenue = rev.monthlyRevenue;
+          }
+        }
+      }
+
+      setTenants(rows);
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
@@ -154,7 +179,8 @@ export default function TenantsPage() {
                     <th className="text-left px-4 py-3">スラグ</th>
                     <th className="text-center px-4 py-3">メンバー</th>
                     <th className="text-center px-4 py-3">キャラ数</th>
-                    <th className="text-center px-4 py-3">契約数</th>
+                    <th className="text-center px-4 py-3">FC会員数</th>
+                    <th className="text-right px-4 py-3">今月収益</th>
                     <th className="text-center px-4 py-3">状態</th>
                     <th className="text-right px-4 py-3">操作</th>
                   </tr>
@@ -167,13 +193,39 @@ export default function TenantsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {t.logoUrl && <img src={t.logoUrl} alt="" className="w-6 h-6 rounded" />}
-                          <span className="text-white font-medium">{t.name}</span>
+                          <div>
+                            <div className="text-white font-medium">{t.name}</div>
+                            <Link
+                              href={`/admin/ip-dashboard`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] text-purple-400 hover:text-purple-300"
+                            >
+                              IPダッシュボード →
+                            </Link>
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-400 font-mono text-xs">{t.slug}</td>
                       <td className="px-4 py-3 text-center text-gray-400">{t._count.adminUsers}</td>
                       <td className="px-4 py-3 text-center text-gray-400">{t._count.characters}</td>
-                      <td className="px-4 py-3 text-center text-gray-400">{t._count.contracts}</td>
+                      <td className="px-4 py-3 text-center">
+                        {t.fcMembers !== undefined ? (
+                          <span className="text-violet-300 font-medium">{t.fcMembers.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {t.monthlyRevenue !== undefined ? (
+                          <span className="text-emerald-400 font-medium tabular-nums">
+                            {t.monthlyRevenue >= 10000
+                              ? `¥${(t.monthlyRevenue / 10000).toFixed(1)}万`
+                              : `¥${t.monthlyRevenue.toLocaleString()}`}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <button onClick={(e) => { e.stopPropagation(); handleToggleActive(t.id, t.isActive); }}
                           className={`px-2 py-0.5 rounded text-xs ${t.isActive ? 'bg-green-700/50 text-green-300' : 'bg-gray-700 text-gray-400'}`}>
@@ -187,7 +239,7 @@ export default function TenantsPage() {
                     </tr>
                   ))}
                   {tenants.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-8 text-gray-500">テナントがありません</td></tr>
+                    <tr><td colSpan={8} className="text-center py-8 text-gray-500">テナントがありません</td></tr>
                   )}
                 </tbody>
               </table>

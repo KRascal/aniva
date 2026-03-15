@@ -1,0 +1,24 @@
+{
+  "task": "revenue-dashboard",
+  "status": "success",
+  "started_at": "2026-03-16T00:00:00+09:00",
+  "completed_at": "2026-03-16T00:10:00+09:00",
+  "files_changed": [
+    "src/app/api/admin/revenue/route.ts",
+    "src/app/admin/revenue/page.tsx",
+    "src/app/admin/ip-dashboard/page.tsx",
+    "src/app/api/admin/tenants/[id]/characters/route.ts",
+    "src/app/admin/layout.tsx",
+    "src/app/admin/tenants/page.tsx",
+    "src/app/admin/approvals/page.tsx"
+  ],
+  "summary": {
+    "task1_revenue_api": "FC収益・コイン売上・キャラ別/フランチャイズ別/テナント別・日別推移を集計するAPIを実装",
+    "task1_revenue_page": "KPI4枚・30日バーチャート・キャラ別横棒・フランチャイズセグメント・IP70/30配分・支払い見込みカードを実装",
+    "task2a_tenants": "テナント一覧にFC会員数・今月収益列を追加、IPダッシュボードへのリンク付与",
+    "task2b_approvals": "タイプフィルタ（コンテンツ公開・プロンプト変更等）を追加",
+    "task2c_ip_dashboard": "テナント選択式のIPホルダー専用ビュー：品質スコアリング・収益・監修キューを実装",
+    "sidebar": "収益・IPセクションを追加（収益ダッシュボード + IPダッシュボード）",
+    "new_api": "GET /api/admin/tenants/[id]/characters を新規追加"
+  }
+}
