@@ -387,11 +387,46 @@ function KpiCard({
   );
 }
 
+interface CharacterLaunchSummary {
+  id: string;
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+  score: number;
+  isActive: boolean;
+  canLaunch: boolean;
+}
+
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEmergencyStop, setShowEmergencyStop] = useState(false);
+  const [launchSummaries, setLaunchSummaries] = useState<CharacterLaunchSummary[]>([]);
+
+  useEffect(() => {
+    // キャラ別ローンチ状態を並列取得
+    fetch('/api/admin/characters')
+      .then(r => r.ok ? r.json() : [])
+      .then(async (chars: { id: string; name: string; slug: string; avatarUrl: string | null; isActive: boolean }[]) => {
+        const arr = Array.isArray(chars) ? chars : [];
+        // 最大6キャラ分のlaunch-statusを並列取得
+        const summaries = await Promise.all(
+          arr.slice(0, 6).map(async (c) => {
+            try {
+              const res = await fetch(`/api/admin/characters/${c.id}/launch-status`);
+              if (!res.ok) return { ...c, score: 0, canLaunch: false };
+              const d = await res.json();
+              return { id: c.id, name: c.name, slug: c.slug, avatarUrl: c.avatarUrl, score: d.score, isActive: d.isActive, canLaunch: d.canLaunch };
+            } catch {
+              return { id: c.id, name: c.name, slug: c.slug, avatarUrl: c.avatarUrl, score: 0, isActive: c.isActive, canLaunch: false };
+            }
+          })
+        );
+        setLaunchSummaries(summaries);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/dashboard')
@@ -689,6 +724,63 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* キャラ別ローンチ状態 */}
+      {launchSummaries.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">キャラ別ローンチ状態</span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            <Link href="/admin/characters" className="text-xs text-purple-400 hover:text-purple-300">全て表示 →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {launchSummaries.map((c) => {
+              const barColor = c.score >= 80 ? '#22c55e' : c.score >= 50 ? '#f59e0b' : '#ef4444';
+              return (
+                <Link
+                  key={c.id}
+                  href={`/admin/characters/${c.id}/launch`}
+                  className="group flex items-center gap-3 rounded-xl border border-white/8 px-4 py-3 hover:bg-white/5 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.02)' }}
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-800 overflow-hidden shrink-0 border border-gray-700">
+                    {c.avatarUrl ? (
+                      <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-sm">
+                        {c.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white truncate">{c.name}</span>
+                      {c.isActive ? (
+                        <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full shrink-0">公開中</span>
+                      ) : c.canLaunch ? (
+                        <span className="text-[10px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded-full shrink-0">公開可能</span>
+                      ) : (
+                        <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full shrink-0">準備中</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${c.score}%`, background: barColor }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 shrink-0">{c.score}%</span>
+                    </div>
+                  </div>
+                  <span className="text-gray-600 group-hover:text-gray-400 text-xs transition-colors">→</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }
