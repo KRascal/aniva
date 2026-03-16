@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIVA Sentry 設定ガイド</title>
+<style>
+body { font-family: -apple-system, sans-serif; background: #0a0a0a; color: #e0e0e0; max-width: 700px; margin: 0 auto; padding: 2rem; line-height: 1.8; }
+h1 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+h2 { color: #a78bfa; margin-top: 2rem; }
+code { background: #1a1a2e; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre { background: #1a1a2e; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+a { color: #818cf8; }
+.done { color: #22c55e; }
+</style>
+</head>
+<body>
+<h1>ANIVA Sentry 設定ガイド</h1>
+
+<h2>現在の状態</h2>
+<ul>
+<li class="done">✅ Sentry SDK インストール済み（@sentry/nextjs v10.42.0）</li>
+<li class="done">✅ DSN 設定済み（.env + .env.staging）</li>
+<li class="done">✅ Client/Server/Edge 初期化完了</li>
+<li class="done">✅ next.config.ts に withSentryConfig 統合済み</li>
+<li class="done">✅ PII除外（パスワード・トークン自動フィルタ）</li>
+</ul>
+
+<h2>ダッシュボードへのアクセス</h2>
+<ol>
+<li><a href="https://k-rascal.sentry.io" target="_blank">https://k-rascal.sentry.io</a> にアクセス</li>
+<li>Keisukeのアカウントでログイン</li>
+<li>プロジェクト「javascript-nextjs」を選択</li>
+</ol>
+
+<h2>見るべき画面</h2>
+<ul>
+<li><strong>Issues</strong>: 発生しているエラー一覧。頻度・影響ユーザー数でソート</li>
+<li><strong>Performance</strong>: ページ/APIのレスポンスタイム。遅いルートを特定</li>
+<li><strong>Alerts</strong>: エラー急増時の通知設定（Slack/メール）</li>
+</ul>
+
+<h2>おすすめ設定</h2>
+<ol>
+<li><strong>Slack通知</strong>: Settings → Integrations → Slack → #aniva-product に新規エラーを通知</li>
+<li><strong>アラートルール</strong>: Alerts → Create Alert → 「1時間に同じエラー10回以上で通知」</li>
+<li><strong>リリース追跡</strong>: 自動（withSentryConfigが各デプロイをリリースとして記録）</li>
+</ol>
+
+<h2>設定値</h2>
+<pre>
+NEXT_PUBLIC_SENTRY_DSN=https://a053...@o451...ingest.us.sentry.io/451...
+SENTRY_ORG=k-rascal
+SENTRY_PROJECT=javascript-nextjs
+tracesSampleRate=0.1（10%サンプリング）
+replaysOnErrorSampleRate=1.0（エラー時100%リプレイ）
+</pre>
+</body>
+</html>

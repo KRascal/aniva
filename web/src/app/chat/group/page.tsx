@@ -650,19 +650,40 @@ export default function GroupChatPage() {
               ))
             ) : characters.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mx-auto mb-3">
                   <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
                 </div>
-                <p className="text-white/50 text-sm">キャラをフォローして招待しよう</p>
+                <p className="text-white/80 font-bold">まずはキャラをフォローしよう</p>
+                <p className="text-white/50 text-sm mt-1">掛け合いには2人以上のキャラが必要です</p>
                 <button
-                  onClick={() => router.push('/explore')}
+                  onClick={() => router.push('/discover')}
                   className="mt-4 px-5 py-2 rounded-full text-sm font-bold text-white"
                   style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}
                 >
                   キャラを探す →
                 </button>
+              </div>
+            ) : characters.length === 1 ? (
+              <div className="text-center py-8">
+                <CharacterSelectCard
+                  key={characters[0].id}
+                  character={characters[0]}
+                  selected={selectedIds.indexOf(characters[0].id) !== -1}
+                  colorIndex={0}
+                  disabled={false}
+                  onToggle={() => handleToggleChar(characters[0].id)}
+                />
+                <div className="mt-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                  <p className="text-white/70 text-sm">掛け合いにはもう1人フォローが必要です</p>
+                  <button
+                    onClick={() => router.push('/discover')}
+                    className="mt-2 px-4 py-1.5 rounded-full text-xs font-bold text-white bg-purple-500/30 hover:bg-purple-500/50 transition-colors"
+                  >
+                    もう1人探す →
+                  </button>
+                </div>
               </div>
             ) : (
               characters.map(char => {
