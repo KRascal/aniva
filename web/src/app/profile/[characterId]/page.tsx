@@ -234,14 +234,12 @@ export default function ProfilePage() {
   // 限定DLコンテンツ取得
   useEffect(() => {
     if (!characterId) return;
-    setDlLoading(true);
     fetch(`/api/content?characterId=${characterId}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.contents) setDlContents(data.contents as DlContent[]);
       })
-      .catch((err) => logger.error('content fetch error', { error: err }))
-      .finally(() => setDlLoading(false));
+      .catch((err) => logger.error('content fetch error', { error: err }));
   }, [characterId]);
 
   // ランキングフェッチ（嫉妬メカニクス）

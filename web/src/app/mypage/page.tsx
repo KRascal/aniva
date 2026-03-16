@@ -574,18 +574,15 @@ export default function MyPage() {
             {t('benefitsSection')}
           </h3>
           {/* ガチャ・コレクションはカードタブに統一済み */}
-          <a
-            href="/pricing"
-            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          <div
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 opacity-60"
           >
             <div>
               <p className="text-sm text-white">ショップ</p>
-              <p className="text-xs text-gray-500">限定コンテンツ</p>
+              <p className="text-xs text-gray-500">限定コンテンツ — 近日公開</p>
             </div>
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+            <span className="text-xs text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">準備中</span>
+          </div>
           <a
             href="/letters"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { resolveCharacterId } from '@/lib/resolve-character';
 import { logger } from '@/lib/logger';
 
 // ギフト定義（将来的にDBに移行可能）
@@ -29,11 +30,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { characterId, giftType } = await req.json();
+    const { characterId: rawCharacterId, giftType } = await req.json();
 
-    if (!characterId || !giftType) {
+    if (!rawCharacterId || !giftType) {
       return NextResponse.json({ error: 'Missing characterId or giftType' }, { status: 400 });
     }
+
+    // slug/UUID両対応（フロントがslugを送ってくるケースに対応）
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     const gift = GIFT_CATALOG.find(g => g.id === giftType);
     if (!gift) {
