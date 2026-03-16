@@ -250,7 +250,9 @@ export default function GroupChatPage() {
   const searchParams = useSearchParams();
 
   // ステップ: 'select' | 'chat'
-  const [step, setStep] = useState<'select' | 'chat'>('select');
+  // URLにconversationIdがある場合は直接チャット画面から開始
+  const hasUrlConvId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('conversationId') !== null : false;
+  const [step, setStep] = useState<'select' | 'chat'>(hasUrlConvId ? 'chat' : 'select');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
@@ -264,12 +266,13 @@ export default function GroupChatPage() {
   const [isCrosstalk, setIsCrosstalk] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // URLのconversationIdクエリから既存会話を自動ロード
+  // URLのconversationIdクエリから既存会話を自動ロード（直接チャット画面に遷移）
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   useEffect(() => {
     const urlConvId = searchParams.get('conversationId');
     if (!urlConvId) return;
     setConversationId(urlConvId);
-    // 履歴をロード
+    setIsLoadingHistory(true);
     (async () => {
       try {
         const histRes = await fetch(`/api/chat/group/history?conversationId=${urlConvId}&limit=30`);
@@ -278,12 +281,12 @@ export default function GroupChatPage() {
           if (histData.messages && Array.isArray(histData.messages)) {
             setMessages(histData.messages);
           }
-          // characterIdsからキャラ情報をselectedIdsにセット
           if (histData.characterIds && Array.isArray(histData.characterIds)) {
             setSelectedIds(histData.characterIds);
           }
         }
       } catch { /* ignore */ }
+      setIsLoadingHistory(false);
     })();
   }, [searchParams]);
 
