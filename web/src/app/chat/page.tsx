@@ -320,8 +320,8 @@ export default function ChatPage() {
           );
         })}
 
-        {/* ══ キャラ主導メッセージ（Proactive Messages）バナー ══ */}
-        {proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).map(msg => {
+        {/* ══ キャラ主導メッセージ — 不要（探すに限定メッセージがあるため）══ */}
+        {false && proactiveMessages.filter(m => !dismissedProactive.has(m.id) && m.character).map(msg => {
           const diffMs = Date.now() - new Date(msg.createdAt).getTime();
           const diffH = Math.floor(diffMs / 3600000);
           const handleClick = async () => {
@@ -453,10 +453,9 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* グループチャット履歴 */}
+        {/* グループチャット履歴（1on1一覧の下に時系列で表示） */}
         {groupConversations.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-white/40 text-xs font-semibold uppercase tracking-wider px-1 mb-2">グループチャット履歴</h2>
+          <div className="mt-2">
             <div className="space-y-1">
               {groupConversations.map(conv => {
                 const charNames = conv.characters.map(c => c.name.split('・')[0]).join(' × ');

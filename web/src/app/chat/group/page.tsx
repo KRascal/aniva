@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -247,6 +247,7 @@ function TypingIndicator({
 export default function GroupChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ステップ: 'select' | 'chat'
   const [step, setStep] = useState<'select' | 'chat'>('select');
@@ -262,6 +263,29 @@ export default function GroupChatPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCrosstalk, setIsCrosstalk] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // URLのconversationIdクエリから既存会話を自動ロード
+  useEffect(() => {
+    const urlConvId = searchParams.get('conversationId');
+    if (!urlConvId) return;
+    setConversationId(urlConvId);
+    // 履歴をロード
+    (async () => {
+      try {
+        const histRes = await fetch(`/api/chat/group/history?conversationId=${urlConvId}&limit=30`);
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          if (histData.messages && Array.isArray(histData.messages)) {
+            setMessages(histData.messages);
+          }
+          // characterIdsからキャラ情報をselectedIdsにセット
+          if (histData.characterIds && Array.isArray(histData.characterIds)) {
+            setSelectedIds(histData.characterIds);
+          }
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [searchParams]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

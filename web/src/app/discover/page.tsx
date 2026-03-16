@@ -54,11 +54,12 @@ export default function DiscoverPage() {
         // フォロー済みキャラIDを取得して除外
         let followingCharIds: string[] = [];
         try {
-          const followRes = await fetch('/api/chat/list');
+          const followRes = await fetch('/api/relationship/all');
           if (followRes.ok) {
             const followData = await followRes.json();
-            followingCharIds = (followData.conversations ?? followData.chats ?? [])
-              .map((c: { characterId?: string }) => c.characterId)
+            followingCharIds = (followData.relationships ?? [])
+              .filter((r: { isFollowing?: boolean }) => r.isFollowing)
+              .map((r: { characterId?: string }) => r.characterId)
               .filter(Boolean);
           }
         } catch { /* ignore */ }
