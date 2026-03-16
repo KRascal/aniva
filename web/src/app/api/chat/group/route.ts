@@ -356,10 +356,22 @@ export async function POST(req: NextRequest) {
       ? updatedBalance.freeBalance + updatedBalance.paidBalance
       : totalBalance - totalCoinCost;
 
+    // 11. グループ代表のconversationIdを取得（最初のキャラのConversation）
+    const firstCharRelId = relationshipMap.get(orderedCharacters[0].id);
+    const groupConversation = firstCharRelId
+      ? await prisma.conversation.findFirst({
+          where: { relationshipId: firstCharRelId, isActive: true },
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true },
+        })
+      : null;
+
     return NextResponse.json({
       messages: groupMessages,
       coinCost: totalCoinCost,
       coinBalance: newBalance,
+      conversationId: groupConversation?.id ?? null,
+      characterIds,
     });
   } catch (error) {
     logger.error('[GroupChat] Error:', error);
