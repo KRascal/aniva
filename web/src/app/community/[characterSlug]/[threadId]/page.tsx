@@ -434,6 +434,7 @@ export default function ThreadPage() {
 
           <div className="flex gap-2">
             <input
+              ref={inputRef as React.Ref<HTMLInputElement>}
               type="text"
               placeholder={replyTarget ? '返信を入力...' : 'コメントを入力...'}
               value={replyContent}
