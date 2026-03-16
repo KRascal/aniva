@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
 
   try {
-    const today = todayJst().toISOString().slice(0, 10);
+    const today = todayJst();
 
     // アクティブなキャラクターを取得
     const characters = await prisma.character.findMany({
