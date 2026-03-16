@@ -579,8 +579,8 @@ export default function MyPage() {
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
             <div>
-              <p className="text-sm text-white">🛍 ショップ</p>
-              <p className="text-xs text-gray-500">コイン・プラン購入</p>
+              <p className="text-sm text-white">ショップ</p>
+              <p className="text-xs text-gray-500">限定コンテンツ</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

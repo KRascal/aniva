@@ -59,15 +59,15 @@ export function FcTab({
               <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={onLike} currentUserId={userId} />
             ))
           )}
-          {/* FC限定DLコンテンツ */}
-          {dlContents && dlContents.filter(d => !d.locked).length > 0 && (
+          {/* FC限定DLコンテンツ（ロック/アンロック全件表示） */}
+          {dlContents && dlContents.length > 0 && (
             <>
               <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1 mt-4">限定ダウンロード</p>
               <div className="grid grid-cols-2 gap-3">
-                {dlContents.filter(d => !d.locked).map((item) => (
+                {dlContents.map((item) => (
                   <div
                     key={item.id}
-                    className="relative rounded-2xl overflow-hidden border border-purple-500/30 bg-gray-900/80"
+                    className={`relative rounded-2xl overflow-hidden border bg-gray-900/80 ${item.locked ? 'border-gray-700/30 opacity-70' : 'border-purple-500/30'}`}
                   >
                     {item.thumbnailUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -79,6 +79,13 @@ export function FcTab({
                         </svg>
                       </div>
                     )}
+                    {item.locked && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                      </div>
+                    )}
                     <div className="p-3">
                       <p className="text-xs font-semibold truncate text-white">{item.title}</p>
                       {item.description && (
@@ -86,12 +93,18 @@ export function FcTab({
                       )}
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-gray-600 text-xs">{item.downloadCount.toLocaleString()}DL</span>
-                        <a
-                          href={`/api/content/${item.id}/download`}
-                          className="inline-flex items-center gap-1 text-xs bg-purple-700/60 hover:bg-purple-700/80 text-purple-200 px-2.5 py-1 rounded-lg transition-colors border border-purple-600/30"
-                        >
-                          <span>↓</span>DL
-                        </a>
+                        {item.locked ? (
+                          <span className="inline-flex items-center gap-1 text-xs bg-gray-700/60 text-gray-400 px-2.5 py-1 rounded-lg border border-gray-600/30">
+                            🔒 ロック
+                          </span>
+                        ) : (
+                          <a
+                            href={`/api/content/${item.id}/download`}
+                            className="inline-flex items-center gap-1 text-xs bg-purple-700/60 hover:bg-purple-700/80 text-purple-200 px-2.5 py-1 rounded-lg transition-colors border border-purple-600/30"
+                          >
+                            <span>↓</span>DL
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

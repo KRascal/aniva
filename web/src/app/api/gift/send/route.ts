@@ -146,10 +146,29 @@ export async function POST(req: Request) {
 
     // ギフト送信をチャットメッセージとしてDB保存（ページリロードでも残る）
     try {
-      const conversation = await prisma.conversation.findFirst({
-        where: { relationship: { userId, characterId }, isActive: true },
+      // Conversation検索: relationship経由 OR userId直接（両方対応で堅牢に）
+      let conversation = await prisma.conversation.findFirst({
+        where: {
+          OR: [
+            { relationship: { userId, characterId } },
+            { userId, relationshipId: relationship?.id ?? undefined },
+          ],
+          isActive: true,
+        },
         orderBy: { updatedAt: 'desc' },
       });
+
+      // Conversationが見つからない場合は新規作成
+      if (!conversation && relationship) {
+        conversation = await prisma.conversation.create({
+          data: {
+            relationshipId: relationship.id,
+            userId,
+            isActive: true,
+          },
+        });
+      }
+
       if (conversation) {
         // ユーザーのギフト送信メッセージ
         await prisma.message.create({
@@ -178,6 +197,8 @@ export async function POST(req: Request) {
           where: { userId, characterId },
           data: { lastMessageAt: new Date() },
         });
+      } else {
+        logger.warn('[gift/send] No conversation found and could not create one', { userId, characterId });
       }
     } catch (giftMsgErr) {
       logger.error('[gift/send] Failed to save gift messages:', giftMsgErr);

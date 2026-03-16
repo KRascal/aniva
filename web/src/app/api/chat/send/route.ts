@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // DeepReplyQueueにジョブ追加
+      // DeepReplyQueueにジョブ追加（scheduledAtを明示的にUTC new Date()で設定 — DB timezone不一致対策）
       await prisma.deepReplyQueue.create({
         data: {
           userId,
@@ -221,6 +221,7 @@ export async function POST(req: NextRequest) {
           conversationId: conversation.id,
           userMessageId: userMsg.id,
           thinkingMsgId: thinkingMsg.id,
+          scheduledAt: new Date(),
         },
       });
 
