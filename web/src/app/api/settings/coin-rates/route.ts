@@ -5,10 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { redis } from '@/lib/redis-cache';
+import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/rbac';
-
-const COIN_RATES_KEY = 'settings:coin-rates';
 
 const DEFAULT_RATES = {
   chat: 10,
@@ -21,14 +19,19 @@ const DEFAULT_RATES = {
 
 export type CoinRates = typeof DEFAULT_RATES;
 
+/**
+ * GET: 管理画面のSystemConfigテーブルから設定値を取得（なければデフォルト）
+ */
 export async function GET() {
   try {
-    if (redis) {
-      const cached = await redis.get(COIN_RATES_KEY);
-      if (cached) {
-        const rates = JSON.parse(cached as string);
-        return NextResponse.json({ rates: { ...DEFAULT_RATES, ...rates } });
-      }
+    // prisma.$queryRawでsettingsテーブルの coin_rates を取得
+    const rows = await prisma.$queryRaw<Array<{ value: string }>>`
+      SELECT value FROM "SystemConfig" WHERE key = 'coin_rates' LIMIT 1
+    `.catch(() => []);
+
+    if (rows.length > 0) {
+      const rates = JSON.parse(rows[0].value);
+      return NextResponse.json({ rates: { ...DEFAULT_RATES, ...rates } });
     }
     return NextResponse.json({ rates: DEFAULT_RATES });
   } catch {
@@ -36,6 +39,9 @@ export async function GET() {
   }
 }
 
+/**
+ * POST: 管理画面からコイン設定値を更新
+ */
 export async function POST(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
@@ -44,7 +50,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const updates: Partial<CoinRates> = {};
 
-    // 数値バリデーション
     for (const key of Object.keys(DEFAULT_RATES) as (keyof CoinRates)[]) {
       if (body[key] !== undefined) {
         const val = Number(body[key]);
@@ -54,11 +59,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (redis) {
-      const current = await redis.get(COIN_RATES_KEY);
-      const existing = current ? JSON.parse(current as string) : {};
-      await redis.set(COIN_RATES_KEY, JSON.stringify({ ...existing, ...updates }), { ex: 86400 * 365 });
-    }
+    // upsert to SystemConfig
+    await prisma.$executeRaw`
+      INSERT INTO "SystemConfig" (id, key, value, "updatedAt")
+      VALUES (gen_random_uuid(), 'coin_rates', ${JSON.stringify({ ...DEFAULT_RATES, ...updates })}, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, "updatedAt" = NOW()
+    `.catch(() => {});
 
     return NextResponse.json({ success: true, rates: { ...DEFAULT_RATES, ...updates } });
   } catch {
