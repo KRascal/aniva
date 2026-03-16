@@ -19,6 +19,7 @@ import { getSeasonalPromptContext } from '../seasonal-event-system';
 import { getGrowthContext } from '../character-growth-system';
 import { buildImageMemoryContext } from '../multimodal-memory';
 import { formatLearningsForPrompt, type CharacterLearning } from './character-learnings';
+import { buildEmpathyContext } from './empathy-layer';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -598,6 +599,8 @@ export function buildSystemPrompt(
   narrativeSummary?: string,
   yesterdayHook?: string,
   characterLearnings?: CharacterLearning[],
+  empathyContext: string = '',
+  followUpContext: string = '',
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -656,7 +659,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${userProfileContext ? `${userProfileContext}\n` : ''}${narrativeSummary ? `## この人について（大切に扱え）\n${narrativeSummary}\n` : ''}${yesterdayHook ? `## 昨日の続き（自然に触れろ）\n${yesterdayHook}\n` : ''}${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${narrativeSummary ? `## この人について（大切に扱え）\n${narrativeSummary}\n` : ''}${yesterdayHook ? `## 昨日の続き（自然に触れろ）\n${yesterdayHook}\n` : ''}${followUpContext ? `${followUpContext}\n` : ''}${empathyContext ? `${empathyContext}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況

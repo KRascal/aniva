@@ -10,6 +10,8 @@ import { loadCharacterContext, getDailyFanCount } from '../character-loader';
 
 import { callLLM } from './llm';
 import { buildSystemPrompt, buildBibleContext } from './prompt-builder';
+import { buildEmpathyContext } from './empathy-layer';
+import { buildFollowUpContext } from './followup-injector';
 import { buildMemoryContext, updateMemory } from './memory-manager';
 import { updateRelationshipXP } from './xp-system';
 import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
@@ -128,12 +130,20 @@ export class CharacterEngine {
       yesterdayHook = yesterdayLog?.nextDayHook ?? undefined;
     } catch { /* */ }
 
+    // 共感レイヤー（ユーザーの感情を検出→傾聴・肯定・深掘り指示）
+    const empathyCtx = buildEmpathyContext(userMessage, recentMessages);
+
+    // フォローアップ注入（前回の悩みの続きをキャラから聞く）
+    let followUpCtx = '';
+    try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
       bibleCtx, '', undefined, profileCtx, narrativeSummary, yesterdayHook,
+      undefined, empathyCtx, followUpCtx,
     );
 
     const llmMessages = [
@@ -263,12 +273,18 @@ export class CharacterEngine {
       logger.warn('[CharacterEngine] userProfileEngine.buildProfileContext failed:', e);
     }
 
+    // 共感レイヤー + フォローアップ注入
+    const empathyCtx = buildEmpathyContext(userMessage, recentMessages);
+    let followUpCtx = '';
+    try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, dailyEventType,
       hiddenCommandContext, jealousyContext, characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState,
       semanticMemoryContext, bibleCtx, loreContext, undefined, profileCtx,
+      undefined, undefined, undefined, empathyCtx, followUpCtx,
     );
 
     const llmMessages = [
