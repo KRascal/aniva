@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 // ThemeToggle: ダークモード固定のため非表示
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
 import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
-import BondCalendar from '@/components/BondCalendar';
+import StreakRewardCard from '@/components/StreakRewardCard';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 import AchievementsSection from '@/components/mypage/AchievementsSection';
 import BookmarkSection from '@/components/mypage/BookmarkSection';
@@ -557,8 +557,8 @@ export default function MyPage() {
         {/* 称号バッジ */}
         <AchievementsSection relationships={relationships} followingCount={following.length} />
 
-        {/* 絆カレンダー */}
-        <BondCalendar />
+        {/* ログインボーナス & ストリーク */}
+        <StreakRewardCard />
 
         {/* デイリーミッション */}
         <div id="daily-missions">
