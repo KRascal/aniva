@@ -272,7 +272,7 @@ export default function CommunityPage() {
             </div>
 
             <div className="flex gap-1 mb-3 overflow-x-auto">
-              {CATEGORIES.filter(c => c.id !== 'all').map((cat) => (
+              {CATEGORIES.filter(c => c.id !== 'all' && c.id !== 'popular').map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setNewCategory(cat.id)}

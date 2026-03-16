@@ -113,35 +113,7 @@ export default function CoinGuidePage() {
           </div>
         </section>
 
-        {/* ── コインパッケージ購入 ── */}
-        <section
-          className="rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(250,204,21,0.1), rgba(245,158,11,0.07))',
-            border: '1px solid rgba(250,204,21,0.25)',
-          }}
-        >
-          <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-            <span className="text-base"></span>
-            <h2 className="text-sm font-bold text-yellow-300">コインを購入する</h2>
-          </div>
-          <p className="px-4 pb-3 text-xs text-gray-400 leading-relaxed">
-            もっとたくさん楽しみたい方向けに、コインパッケージをご用意しています。
-            まとめ買いほどお得なレートで購入できます。
-          </p>
-          <div className="px-4 pb-4">
-            <a
-              href="/pricing"
-              className="block w-full text-center py-3.5 rounded-xl font-bold text-sm text-white transition-all active:scale-[0.97]"
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
-              }}
-            >
-              コインパッケージを見る
-            </a>
-          </div>
-        </section>
+        {/* コインパッケージセクション削除済み */}
 
         {/* ── よくある質問 ── */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
