@@ -150,14 +150,15 @@ export async function POST(req: Request) {
 
     // ギフト送信をチャットメッセージとしてDB保存（ページリロードでも残る）
     try {
-      // Conversation検索: relationship経由 OR userId直接（両方対応で堅牢に）
+      // Conversation検索: relationship経由 OR userId直接（グループチャット除外）
       let conversation = await prisma.conversation.findFirst({
         where: {
           OR: [
             { relationship: { userId, characterId } },
-            { userId, relationshipId: relationship?.id ?? undefined },
+            ...(relationship ? [{ userId, relationshipId: relationship.id }] : []),
           ],
           isActive: true,
+          NOT: { metadata: { path: ['type'], equals: 'group' } },
         },
         orderBy: { updatedAt: 'desc' },
       });
