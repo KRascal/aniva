@@ -432,7 +432,7 @@ export default function ThreadPage() {
 
       {/* Reply Input */}
       {session?.user && (
-        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-[#0a0a0a] border-t border-white/5 px-4 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
+        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-[#0a0a0a] border-t border-white/5 px-4 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}>
           {/* Quote preview */}
           {replyTarget && replyTarget.quotedContent && (
             <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-white/20 bg-white/[0.03] rounded-r-lg py-1.5 pr-2">
