@@ -548,7 +548,6 @@ model Letter {
   @@index([characterId])
 }
 
-// ========== ガチャシステム ==========
 
 enum GachaRarity {
   N
@@ -646,7 +645,6 @@ model UserDailyEvent {
   @@index([userId])
 }
 
-// ========== ストーリーモード ==========
 model StoryChapter {
   id            String              @id @default(cuid())
   characterId   String
@@ -707,7 +705,6 @@ model UserStoryProgress {
   @@index([userId, characterId])
 }
 
-// ========== ショップ（EC） ==========
 model ShopItem {
   id          String      @id @default(cuid())
   characterId String
@@ -745,7 +742,6 @@ model ShopOrder {
   @@index([itemId])
 }
 
-// ========== キャラ主導メッセージ ==========
 model CharacterProactiveMessage {
   id          String    @id @default(cuid())
   characterId String
@@ -768,7 +764,6 @@ model CharacterProactiveMessage {
   @@index([expiresAt])
 }
 
-// ========== 感情状態システム ==========
 model CharacterDailyState {
   id                String    @id @default(uuid())
   characterId       String
@@ -786,7 +781,6 @@ model CharacterDailyState {
   @@unique([characterId, date])
 }
 
-// ========== キャラ感情日記タイムライン ==========
 model CharacterDiary {
   id          String               @id @default(uuid())
   characterId String
@@ -815,7 +809,6 @@ model CharacterDiaryLike {
   @@index([diaryId])
 }
 
-// ========== 期間限定絆シナリオ（FOMO演出） ==========
 model LimitedScenario {
   id          String                @id @default(uuid())
   characterId String
@@ -844,7 +837,6 @@ model LimitedScenarioRead {
   @@unique([userId, scenarioId])
 }
 
-// ========== ユーザー投票型ストーリー ==========
 model StoryPoll {
   id             String          @id @default(uuid())
   characterId    String
@@ -912,9 +904,7 @@ model SemanticMemory {
   @@index([userId, characterId])
 }
 
-// ============================================================
 // キャラクターバイブルシステム（Layer 1）
-// ============================================================
 
 model CharacterSoul {
   id                String    @id @default(uuid())
@@ -982,9 +972,7 @@ model CharacterVoice {
   updatedAt       DateTime  @updatedAt
 }
 
-// ============================================================
 // ローアブック/World Info（Layer 2）
-// ============================================================
 
 model LoreFranchise {
   id          String      @id @default(uuid())
@@ -1013,9 +1001,7 @@ model LoreEntry {
   @@index([franchiseId, importance])
 }
 
-// ============================================================
 // キャラ画像管理 + フィードバック
-// ============================================================
 
 model CharacterImage {
   id          String    @id @default(uuid())
@@ -1107,9 +1093,7 @@ model LetterDelivery {
 // ダウンロードコンテンツ（FC限定可）
 // ═══════════════════════════════════════════════════
 
-// ============================================
 // Phase 3: RBAC & マルチテナント
-// ============================================
 
 model AdminUser {
   id          String    @id @default(uuid())
@@ -1141,9 +1125,7 @@ model Tenant {
   characters Character[]
 }
 
-// ============================================
 // Phase 3: 権利・契約管理
-// ============================================
 
 model Contract {
   id               String   @id @default(uuid())
@@ -1190,9 +1172,7 @@ model Contract {
   @@index([endDate])
 }
 
-// ============================================
 // Phase 3: 監修・承認ワークフロー
-// ============================================
 
 model ApprovalRequest {
   id          String    @id @default(uuid())
@@ -1234,9 +1214,7 @@ model ApprovalAction {
   @@index([requestId])
 }
 
-// ============================================
 // Phase 3: ガードレール管理
-// ============================================
 
 model GuardrailRule {
   id          String     @id @default(uuid())
@@ -1280,9 +1258,7 @@ model GuardrailLog {
   @@index([action, resolved])
 }
 
-// ============================================
 // Phase 3: 管理操作監査ログ
-// ============================================
 
 model AdminAuditLog {
   id          String    @id @default(uuid())
@@ -1300,9 +1276,7 @@ model AdminAuditLog {
   @@index([action, createdAt])
 }
 
-// ============================================
 // Deep Chat — 非同期チャットパイプライン
-// ============================================
 
 model DeepReplyQueue {
   id             String          @id @default(cuid())
@@ -1353,9 +1327,7 @@ model CharacterRelationshipGraph {
   @@index([characterId])
 }
 
-// ============================================
 // ファン掲示板（キャラごとのコミュニティ）
-// ============================================
 
 model FanThread {
   id          String    @id @default(cuid())
@@ -1404,9 +1376,7 @@ model FanReply {
   @@index([quotedReplyId])
 }
 
-// ============================================
 // ユーザー理解エンジン（User Understanding Engine）
-// ============================================
 
 model UserProfile {
   id                 String                 @id @default(uuid())

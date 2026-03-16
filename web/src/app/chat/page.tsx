@@ -375,6 +375,7 @@ export default function ChatPage() {
             relationships={relationships}
             onNavigate={(path) => router.push(path)}
           />
+
         ) : (() => {
           // ── union type list ──
           type ChatItem =
