@@ -247,6 +247,8 @@ model Relationship {
   agentLastDecisionAt    DateTime? // 最後にDecisionEngineが判断した時刻
   agentDailyContactCount Int                      @default(0) // 今日のエージェント接触数
   agentDailyResetAt      DateTime? // dailyContactCountのリセット日
+  // 体験品質 #2 ユーザーナラティブサマリー
+  narrativeSummary       String?                  @db.Text
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   user                   User                     @relation(fields: [userId], references: [id])
@@ -254,9 +256,27 @@ model Relationship {
   conversations          Conversation[]
   letters                Letter[]
   agentDecisions         CharacterAgentDecision[]
+  dailySessionLogs       DailySessionLog[]
 
   @@unique([userId, characterId, locale])
   @@index([userId, locale])
+}
+
+// 体験品質 #3 日次セッションログ
+model DailySessionLog {
+  id                 String       @id @default(cuid())
+  relationshipId     String
+  relationship       Relationship @relation(fields: [relationshipId], references: [id])
+  date               String       // "2026-03-16"
+  summary            String       @db.Text
+  followUpItems      Json         @default("[]")
+  nextDayHook        String?      @db.Text
+  emotionalHighlight String?      @db.Text
+  messageCount       Int          @default(0)
+  createdAt          DateTime     @default(now())
+
+  @@unique([relationshipId, date])
+  @@index([relationshipId, date])
 }
 
 model Conversation {

@@ -594,6 +594,8 @@ export function buildSystemPrompt(
   loreContext: string = '',
   memorySummary?: Record<string, unknown> | null,
   userProfileContext: string = '',
+  narrativeSummary?: string,
+  yesterdayHook?: string,
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -647,7 +649,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${userProfileContext ? `${userProfileContext}\n` : ''}${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${narrativeSummary ? `## この人について（大切に扱え）\n${narrativeSummary}\n` : ''}${yesterdayHook ? `## 昨日の続き（自然に触れろ）\n${yesterdayHook}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況

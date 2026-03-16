@@ -15,6 +15,7 @@ import { updateRelationshipXP } from './xp-system';
 import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
 import { applyNGGuard, detectHiddenCommand } from './ng-guard';
 import { userProfileEngine } from './user-profile-engine';
+import { getYesterdaySessionLog } from './session-logger';
 
 import { logger } from '@/lib/logger';
 import type {
@@ -41,7 +42,21 @@ export class CharacterEngine {
     options?: { isFcMember?: boolean },
   ): Promise<{ systemPrompt: string; llmMessages: { role: 'user' | 'assistant'; content: string }[]; memoryRecalled?: boolean }> {
     const character = await prisma.character.findUniqueOrThrow({ where: { id: characterId } });
-    const relationship = await prisma.relationship.findUniqueOrThrow({ where: { id: relationshipId } });
+    const relationship = await prisma.relationship.findUniqueOrThrow({
+      where: { id: relationshipId },
+      select: {
+        id: true, userId: true, characterId: true, level: true,
+        experiencePoints: true, totalMessages: true, firstMessageAt: true,
+        lastMessageAt: true, memorySummary: true, milestones: true,
+        isFollowing: true, isFanclub: true, characterEmotion: true,
+        characterEmotionNote: true, emotionUpdatedAt: true, streakDays: true,
+        streakLastDate: true, pendingCliffhanger: true, locale: true,
+        isPinned: true, pinnedAt: true, isMuted: true, mutedUntil: true,
+        agentLastDecisionAt: true, agentDailyContactCount: true, agentDailyResetAt: true,
+        narrativeSummary: true,
+        createdAt: true, updatedAt: true,
+      },
+    });
 
     const conversation = await prisma.conversation.findFirst({
       where: { relationshipId },
@@ -103,12 +118,22 @@ export class CharacterEngine {
     let profileCtx = '';
     try { profileCtx = await userProfileEngine.buildProfileContext(relationship.userId, characterId); } catch { /* */ }
 
+    // 体験品質 #2: narrativeSummary
+    const narrativeSummary = relationship.narrativeSummary ?? undefined;
+
+    // 体験品質 #3: 前日セッションログのnextDayHook
+    let yesterdayHook: string | undefined;
+    try {
+      const yesterdayLog = await getYesterdaySessionLog(relationshipId);
+      yesterdayHook = yesterdayLog?.nextDayHook ?? undefined;
+    } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
-      bibleCtx, '', undefined, profileCtx,
+      bibleCtx, '', undefined, profileCtx, narrativeSummary, yesterdayHook,
     );
 
     const llmMessages = [
