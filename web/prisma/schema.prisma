@@ -69,6 +69,7 @@ model User {
   blocksReceived         UserBlock[] @relation("BlocksReceived")
   chatMedia              ChatMedia[]
   chatDeliveries         ChatDelivery[]
+  groupConversations     Conversation[] @relation("userConversations")
 }
 
 model PushSubscription {
@@ -281,17 +282,20 @@ model DailySessionLog {
 
 model Conversation {
   id             String       @id @default(uuid())
-  relationshipId String
+  relationshipId String?
+  userId         String?
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   metadata       Json         @default("{}")
-  relationship   Relationship @relation(fields: [relationshipId], references: [id])
+  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
+  user           User?        @relation("userConversations", fields: [userId], references: [id])
   messages       Message[]
   chatMedia      ChatMedia[]
   chatDeliveries ChatDelivery[]
 
   @@index([relationshipId])
+  @@index([userId, updatedAt])
   @@index([updatedAt])
 }
 
