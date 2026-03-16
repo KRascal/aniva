@@ -32,8 +32,8 @@ interface CharacterInfo {
 }
 
 const CATEGORIES = [
+  { id: 'popular', label: '人気', highlight: true },
   { id: 'all', label: 'すべて' },
-  { id: 'popular', label: '人気' },
   { id: 'general', label: '雑談' },
   { id: 'discussion', label: '考察' },
   { id: 'fanart', label: 'ファンアート' },
@@ -152,8 +152,8 @@ export default function CommunityPage() {
               onClick={() => setCategory(cat.id)}
               className={`px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
                 category === cat.id
-                  ? 'bg-white text-black font-medium'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10'
+                  ? (cat as { highlight?: boolean }).highlight ? 'bg-purple-500 text-white font-medium' : 'bg-white text-black font-medium'
+                  : (cat as { highlight?: boolean }).highlight ? 'bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30' : 'bg-white/5 text-white/50 hover:bg-white/10'
               }`}
             >
               {cat.label}

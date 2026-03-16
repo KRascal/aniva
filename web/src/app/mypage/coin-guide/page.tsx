@@ -3,20 +3,20 @@
 import { useRouter } from 'next/navigation';
 
 const COIN_SPENDS = [
-  { icon: '💬', label: 'チャット送信', cost: '10コイン / 回', note: '1on1チャット1通ごと' },
-  { icon: '🖼️', label: '画像送信', cost: '15コイン / 回', note: 'チャットに画像を送る' },
-  { icon: '👥', label: 'グループチャット', cost: 'キャラ数 × 10コイン', note: '参加キャラ数分を消費' },
-  { icon: '✨', label: 'ガチャ（1回）', cost: '100コイン', note: '単発ガチャ' },
-  { icon: '🎰', label: 'ガチャ（10連）', cost: '900コイン', note: '10連一括（1割お得）' },
-  { icon: '💌', label: 'キャラレター送信', cost: '20コイン', note: 'ファンレター機能' },
+  { label: 'チャット送信', cost: '10コイン / 回', note: '1on1チャット1通ごと' },
+  { label: '画像送信', cost: '15コイン / 回', note: 'チャットに画像を送る' },
+  { label: '深い回答リクエスト', cost: '20コイン / 回', note: 'じっくり考えた返答を受け取る' },
+  { label: 'グループチャット', cost: 'キャラ数 × 10コイン', note: '参加キャラ数分を消費' },
+  { label: 'ガチャ（1回）', cost: '100コイン', note: '単発ガチャ' },
+  { label: 'ガチャ（10連）', cost: '900コイン', note: '10連一括（1割お得）' },
 ];
 
 const COIN_EARNS = [
-  { icon: '🎁', label: 'ログインボーナス', amount: '10〜50コイン', note: '毎日ログインで獲得。連続日数で増加' },
-  { icon: '📋', label: 'デイリーミッション', amount: '最大100コイン/日', note: 'チャット・ガチャ・探索など日替わりタスク' },
-  { icon: '🏆', label: '週チャレンジ', amount: '最大500コイン/週', note: '週間目標を達成でまとめて獲得' },
-  { icon: '🎖️', label: '称号・実績解除', amount: '50〜200コイン', note: '初回クリアで報酬コインをゲット' },
-  { icon: '📅', label: '月間ログイン達成', amount: '500コイン', note: '月15日以上ログインで獲得' },
+  { label: 'ログインボーナス', amount: '10〜50コイン', note: '毎日ログインで獲得。連続日数で増加' },
+  { label: 'デイリーミッション', amount: '最大100コイン/日', note: 'チャット・ガチャ・探索など日替わりタスク' },
+  { label: '週チャレンジ', amount: '最大500コイン/週', note: '週間目標を達成でまとめて獲得' },
+  { label: '称号・実績解除', amount: '50〜200コイン', note: '初回クリアで報酬コインをゲット' },
+  { label: '月間ログイン達成', amount: '500コイン', note: '月15日以上ログインで獲得' },
 ];
 
 export default function CoinGuidePage() {
@@ -36,7 +36,7 @@ export default function CoinGuidePage() {
           </svg>
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-xl">🪙</span>
+          
           <h1 className="text-lg font-bold text-white">コイン経済について</h1>
         </div>
       </header>
@@ -53,7 +53,7 @@ export default function CoinGuidePage() {
               <div key={i} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-gray-800 flex items-center justify-center text-base flex-shrink-0">
-                    {item.icon}
+                    
                   </div>
                   <div>
                     <p className="text-sm text-white font-medium">{item.label}</p>
@@ -79,7 +79,7 @@ export default function CoinGuidePage() {
               <div key={i} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-gray-800 flex items-center justify-center text-base flex-shrink-0">
-                    {item.icon}
+                    
                   </div>
                   <div>
                     <p className="text-sm text-white font-medium">{item.label}</p>
@@ -119,7 +119,7 @@ export default function CoinGuidePage() {
                 boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
               }}
             >
-              🪙 コインパッケージを見る
+              コインパッケージを見る
             </a>
           </div>
         </section>

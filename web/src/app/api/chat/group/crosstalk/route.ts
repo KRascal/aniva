@@ -58,9 +58,10 @@ export async function POST(req: NextRequest) {
     // 4. Conversation取得・オーナーチェック
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { relationship: true },
+      select: { id: true, userId: true, metadata: true, relationship: { select: { userId: true } } },
     });
-    if (!conversation || conversation.relationship.userId !== userId) {
+    const ownerUserId = conversation?.userId ?? conversation?.relationship?.userId;
+    if (!conversation || ownerUserId !== userId) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
