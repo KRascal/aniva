@@ -711,6 +711,25 @@ export default function MyPage() {
             </button>
           </div>
 
+          {/* コイン経済について */}
+          <a
+            href="/mypage/coin-guide"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 flex items-center justify-center text-base">
+                🪙
+              </div>
+              <div>
+                <p className="text-sm text-white">コイン経済について</p>
+                <p className="text-xs text-gray-500">消費・獲得・購入の仕組み</p>
+              </div>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+
           {/* プライバシーポリシー */}
           <a
             href="/privacy"
