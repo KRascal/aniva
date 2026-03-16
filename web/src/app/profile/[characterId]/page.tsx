@@ -646,7 +646,7 @@ export default function ProfilePage() {
         {activeTab === 'shop' && (
           <ShopTab
             characterId={characterId}
-            dlContents={dlContents}
+            characterSlug={character?.slug}
           />
         )}
 
