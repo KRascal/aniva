@@ -67,6 +67,8 @@ model User {
   reports                Report[]    @relation("ReportsMade")
   blocksMade             UserBlock[] @relation("BlocksMade")
   blocksReceived         UserBlock[] @relation("BlocksReceived")
+  chatMedia              ChatMedia[]
+  chatDeliveries         ChatDelivery[]
 }
 
 model PushSubscription {
@@ -199,6 +201,8 @@ model Character {
   fanThreads              FanThread[]
   fanReplies              FanReply[]                   @relation("FanReplyCharacter")
   agentDecisions          CharacterAgentDecision[]
+  chatMedia               ChatMedia[]
+  chatDeliveries          ChatDelivery[]
 }
 
 model SecretContent {
@@ -243,6 +247,8 @@ model Relationship {
   agentLastDecisionAt    DateTime? // 最後にDecisionEngineが判断した時刻
   agentDailyContactCount Int                      @default(0) // 今日のエージェント接触数
   agentDailyResetAt      DateTime? // dailyContactCountのリセット日
+  // 体験品質 #2 ユーザーナラティブサマリー
+  narrativeSummary       String?                  @db.Text
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   user                   User                     @relation(fields: [userId], references: [id])
@@ -250,9 +256,27 @@ model Relationship {
   conversations          Conversation[]
   letters                Letter[]
   agentDecisions         CharacterAgentDecision[]
+  dailySessionLogs       DailySessionLog[]
 
   @@unique([userId, characterId, locale])
   @@index([userId, locale])
+}
+
+// 体験品質 #3 日次セッションログ
+model DailySessionLog {
+  id                 String       @id @default(cuid())
+  relationshipId     String
+  relationship       Relationship @relation(fields: [relationshipId], references: [id])
+  date               String       // "2026-03-16"
+  summary            String       @db.Text
+  followUpItems      Json         @default("[]")
+  nextDayHook        String?      @db.Text
+  emotionalHighlight String?      @db.Text
+  messageCount       Int          @default(0)
+  createdAt          DateTime     @default(now())
+
+  @@unique([relationshipId, date])
+  @@index([relationshipId, date])
 }
 
 model Conversation {
@@ -264,6 +288,8 @@ model Conversation {
   metadata       Json         @default("{}")
   relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
+  chatMedia      ChatMedia[]
+  chatDeliveries ChatDelivery[]
 
   @@index([relationshipId])
   @@index([updatedAt])
@@ -279,6 +305,7 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+  media          ChatMedia[]
 
   @@index([conversationId, createdAt])
   @@index([conversationId, role])
@@ -1470,4 +1497,58 @@ model UserBlock {
   createdAt DateTime @default(now())
 
   @@unique([blockerId, blockedId])
+}
+
+model ChatMedia {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+
+  originalUrl    String       // R2 URL or local path
+  thumbnailUrl   String?      // 300px thumbnail
+  mimeType       String       @default("image/webp")
+  fileSizeBytes  Int          @default(0)
+  width          Int?
+  height         Int?
+
+  uploadedBy     String       @default("user") // "user" | "character" | "system"
+
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([userId, characterId])
+  @@index([characterId])
+}
+
+// ═══════════════════════════════════════════════════
+// チャット配信（手紙・ストーリー章・限定イベントのチャット内通知）
+// ═══════════════════════════════════════════════════
+
+model ChatDelivery {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+
+  deliveryType   String       // "letter" | "story_chapter" | "event_scenario"
+  referenceId    String       // Letter.id or StoryChapter.id or LimitedScenario.id
+
+  messageId      String?      // 作成されたMessageのID（チャットに注入済みの場合）
+
+  isRead         Boolean      @default(false)
+  deliveredAt    DateTime     @default(now())
+  readAt         DateTime?
+
+  @@unique([conversationId, deliveryType, referenceId])
+  @@index([userId, isRead])
+  @@index([conversationId, deliveredAt])
 }

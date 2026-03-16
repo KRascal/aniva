@@ -24,6 +24,8 @@ import { callLLMStream } from '@/lib/llm-stream';
 import { logger } from '@/lib/logger';
 import { shouldUseDeepMode, calculateMessageWeight, calculateDelayMs, formatDelayText } from '@/lib/message-weight';
 import { getThinkingReaction } from '@/lib/thinking-reactions';
+import { logSessionEnd } from '@/lib/engine/session-logger';
+import { generateNarrative } from '@/lib/engine/user-narrative';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -322,6 +324,24 @@ export async function POST(req: NextRequest) {
           // ── セマンティックメモリ保存（非同期） ──
           extractAndStoreMemories(userId, characterId, message, fullText, charMsg?.id)
             .catch((e: unknown) => logger.warn('[SemanticMemory] store failed:', e));
+
+          // ── 体験品質 #3: 日次セッションログ（非同期） ──
+          setImmediate(() => {
+            logSessionEnd(relationship.id, conversation.id)
+              .catch((e: unknown) => logger.warn('[SessionLogger] logSessionEnd failed:', e));
+          });
+
+          // ── 体験品質 #2: 50メッセージごとにナラティブサマリー更新（非同期） ──
+          const updatedRelForNarrative = await prisma.relationship.findUnique({
+            where: { id: relationship.id },
+            select: { totalMessages: true },
+          });
+          if (updatedRelForNarrative && updatedRelForNarrative.totalMessages > 0 && updatedRelForNarrative.totalMessages % 50 === 0) {
+            setImmediate(() => {
+              generateNarrative(relationship.id)
+                .catch((e: unknown) => logger.warn('[UserNarrative] generateNarrative failed:', e));
+            });
+          }
 
           controller.close();
         } catch (error) {

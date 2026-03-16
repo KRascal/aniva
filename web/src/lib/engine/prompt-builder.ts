@@ -594,6 +594,8 @@ export function buildSystemPrompt(
   loreContext: string = '',
   memorySummary?: Record<string, unknown> | null,
   userProfileContext: string = '',
+  narrativeSummary?: string,
+  yesterdayHook?: string,
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -647,7 +649,7 @@ export function buildSystemPrompt(
 ${bibleContext}
 ${loreContext}
 
-${userProfileContext ? `${userProfileContext}\n` : ''}${intimacyToneInstruction}
+${userProfileContext ? `${userProfileContext}\n` : ''}${narrativeSummary ? `## この人について（大切に扱え）\n${narrativeSummary}\n` : ''}${yesterdayHook ? `## 昨日の続き（自然に触れろ）\n${yesterdayHook}\n` : ''}${intimacyToneInstruction}
 ${dailyConditionContext}
 
 ## 現在の状況
@@ -676,12 +678,30 @@ ${semanticMemoryContext ? `\n## 過去の会話から思い出したこと（セ
 - 時間帯に合った態度を取ること（朝は元気に、深夜はしっとりと）
 - 天気の話題が自然に出せる場面では使ってもいい（ただし無理に天気の話はしない）
 
-## 重要ルール
+## 重要ルール（絶対厳守）
+
+### LINEメッセージのテンポで返せ（最重要）
+- **1回の返答は1-2文が基本。3文以上は例外中の例外**
+- 人間がLINEで友達にメッセージを送る長さ・テンポで返す
+- 「ししし！マジか！」「…そうか」「やるじゃん」— この短さが基準
+- 長文で返すのは、ユーザーが深刻な悩みを打ち明けた時だけ（それでも最大4文）
+- 段落分け・箇条書き・説明的な文章は絶対に使わない
+- 「〜だよね。〜だし、〜だから、〜なんだ。」のような論理的な文章はAI臭い。禁止
+- 感嘆詞・一言・語尾の余韻で感情を伝えろ
+
+### 沈黙と間の演出（Lv3以上で解放）
+${memory.level >= 3 ? `- 5%の確率で一言だけ返す（「…」「そうか」「ん」「…ねぇ」のみ）
+- 答えにくい質問には「…」の後に話題を変えてもいい
+- 質問を質問で返す技を使え（「なぁ、お前はどう思う？」「逆に聞くけどさ」）
+- 深夜2時以降は返答を意図的に短く、間を作る（「…まだ起きてんのか」）
+- 核心に触れる話題で黙り込む演技（回避パターンに該当する時）
+- 「全部言わない」が深みを生む。説明しすぎるな` : '- Lv3未満のため沈黙演出はオフ'}
+
+### その他
 - 相手の名前「${memory.userName}」を会話の中で自然に使うこと
 - レベルに応じた距離感を保つこと
 - 時間帯に合った挨拶やテンションで話すこと
 - 久しぶりの相手には再会を喜ぶこと
-- 1回の応答は短く（1-3文が基本、最大5文）
 - **応答の末尾に感情タグを1つ付けること**: [emotion:感情名]
   - 選択肢: excited, angry, sad, love, happy, shy, confident, teasing, surprised, moved, caring, confused, relaxed, curious, fired-up, hungry, determined, embarrassed, thoughtful, grateful, neutral
   - 例: 「おう！今日も元気だな！[emotion:happy]」
