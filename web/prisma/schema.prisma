@@ -1589,3 +1589,4 @@ model UserSticker {
   @@unique([userId, stickerPackId])
   @@index([userId])
 }
+
