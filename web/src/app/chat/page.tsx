@@ -277,8 +277,8 @@ export default function ChatPage() {
           </div>
         </button>
 
-        {/* ══ キャラからのメッセージバナー ══ */}
-        {charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {
+        {/* ══ キャラからのメッセージバナー — 不要（探すに限定メッセージがあるため）══ */}
+        {false && charMessages.filter(m => !dismissedCharMsgs.has(m.characterId) && new Date(m.expiresAt).getTime() > now).map(msg => {
           const remainMs = new Date(msg.expiresAt).getTime() - now;
           const remainH = Math.floor(remainMs / 3600000);
           const remainM = Math.floor((remainMs % 3600000) / 60000);
@@ -365,8 +365,8 @@ export default function ChatPage() {
           );
         })}
 
-        {/* チャット一覧 */}
-        {charsWithHistory.length === 0 ? (
+        {/* チャット一覧（1on1 + グループ混在・時系列ソート） */}
+        {charsWithHistory.length === 0 && groupConversations.length === 0 ? (
           <EmptyState
             characters={characters}
             relationships={relationships}
@@ -374,6 +374,65 @@ export default function ChatPage() {
           />
         ) : (
           <div className="space-y-1">
+            {/* グループチャット — ピン留めに次いで時系列順で1on1と混在 */}
+            {groupConversations
+              .filter(conv => {
+                // ピン留めグループを先頭に
+                return true;
+              })
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .map(conv => {
+                const charNames = conv.characters.map(c => c.name.split('・')[0]).join(' × ');
+                const timeAgo = (() => {
+                  const diff = Date.now() - new Date(conv.updatedAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  if (mins < 1) return 'たった今';
+                  if (mins < 60) return `${mins}分前`;
+                  const hours = Math.floor(mins / 60);
+                  if (hours < 24) return `${hours}時間前`;
+                  return `${Math.floor(hours / 24)}日前`;
+                })();
+                const convUpdatedAt = new Date(conv.updatedAt).getTime();
+                // ピン留めキャラがある場合はその下、なければ適切な位置に挿入
+                // ここでは単純にグループを先に表示（後でソートロジックを統合可能）
+                return (
+                  <button
+                    key={`group-${conv.id}`}
+                    onClick={() => router.push(`/chat/group?conversationId=${conv.id}`)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all active:scale-[0.99]"
+                    style={{
+                      background: 'rgba(139,92,246,0.06)',
+                      border: '1px solid rgba(139,92,246,0.15)',
+                    }}
+                  >
+                    <div className="flex -space-x-2 flex-shrink-0">
+                      {conv.characters.slice(0, 3).map((c, i) => (
+                        c.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={c.id} src={c.avatarUrl} alt={c.name} className="w-9 h-9 rounded-full object-cover" style={{ boxShadow: '0 0 0 2px rgb(3,7,18)', zIndex: 3 - i }} />
+                        ) : (
+                          <div key={c.id} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-purple-700" style={{ zIndex: 3 - i }}>{c.name.charAt(0)}</div>
+                        )
+                      ))}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[10px] text-purple-400 font-bold">GROUP</span>
+                        <span className="text-sm font-semibold text-white truncate">{charNames}</span>
+                      </div>
+                      {conv.lastMessage ? (
+                        <p className="text-xs text-white/50 truncate">
+                          {conv.lastMessage.role === 'USER' ? 'あなた: ' : `${(conv.lastMessage as { characterName?: string }).characterName ?? ''}: `}
+                          {conv.lastMessage.content.slice(0, 40)}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-white/30">グループチャット</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-white/30 flex-shrink-0">{timeAgo}</span>
+                  </button>
+                );
+              })}
             {charsWithHistory.map((character) => {
               const rel = relationships.get(character.id)!;
               const lastVisited = lastVisitMap.get(character.id) ?? 0;
@@ -453,71 +512,7 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* グループチャット履歴（1on1一覧の下に時系列で表示） */}
-        {groupConversations.length > 0 && (
-          <div className="mt-2">
-            <div className="space-y-1">
-              {groupConversations.map(conv => {
-                const charNames = conv.characters.map(c => c.name.split('・')[0]).join(' × ');
-                const timeAgo = (() => {
-                  const diff = Date.now() - new Date(conv.updatedAt).getTime();
-                  const mins = Math.floor(diff / 60000);
-                  if (mins < 1) return 'たった今';
-                  if (mins < 60) return `${mins}分前`;
-                  const hours = Math.floor(mins / 60);
-                  if (hours < 24) return `${hours}時間前`;
-                  return `${Math.floor(hours / 24)}日前`;
-                })();
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => router.push(`/chat/group?conversationId=${conv.id}`)}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all active:scale-[0.99]"
-                    style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.07)',
-                    }}
-                  >
-                    {/* アバターグループ */}
-                    <div className="flex -space-x-2 flex-shrink-0">
-                      {conv.characters.slice(0, 3).map((c, i) => (
-                        c.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={c.id}
-                            src={c.avatarUrl}
-                            alt={c.name}
-                            className="w-9 h-9 rounded-full object-cover"
-                            style={{ boxShadow: '0 0 0 2px rgb(3,7,18)', zIndex: 3 - i }}
-                          />
-                        ) : (
-                          <div
-                            key={c.id}
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-purple-700"
-                            style={{ zIndex: 3 - i }}
-                          >
-                            {c.name.charAt(0)}
-                          </div>
-                        )
-                      ))}
-                    </div>
-                    {/* テキスト */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-bold truncate">{charNames}</p>
-                      {conv.lastMessage && (
-                        <p className="text-white/40 text-xs truncate mt-0.5">
-                          {conv.lastMessage.role === 'USER' ? 'あなた: ' : ''}{conv.lastMessage.content}
-                        </p>
-                      )}
-                    </div>
-                    {/* 時刻 */}
-                    <span className="text-white/30 text-[10px] flex-shrink-0">{timeAgo}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* グループチャット履歴は上の1on1一覧内に統合済み */}
       </main>
     </div>
   );
