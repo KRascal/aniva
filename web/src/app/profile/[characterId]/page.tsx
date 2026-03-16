@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FanStatsPanel } from '@/components/character/FanStatsPanel';
 import { MOMENT_CARD_STYLES } from '@/components/moments/MomentCard';
@@ -29,7 +29,9 @@ export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const characterId = params.characterId as string;
+  const initialTab = searchParams.get('tab') as 'posts' | 'fc' | 'story' | 'shop' | 'profile' | null;
 
   const [userId, setUserId] = useState<string | null>(null);
   const [character, setCharacter] = useState<Character | null>(null);
@@ -43,7 +45,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'story' | 'shop' | 'profile' | 'diary'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'story' | 'shop' | 'profile' | 'diary'>(initialTab ?? 'posts');
   const [dlContents, setDlContents] = useState<DlContent[]>([]);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [diaryLoading, setDiaryLoading] = useState(false);
