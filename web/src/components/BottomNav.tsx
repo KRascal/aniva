@@ -10,7 +10,7 @@ const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy'
 // チャット中（個別チャット・グループチャット内）はBottomNavを非表示
 // /chat は表示、/chat/group は表示、/chat/group/[id] は非表示、/chat/[slug] は非表示
 const CHAT_VISIBLE_EXACT = ['/chat'];
-const HIDDEN_PREFIXES = ['/chat/', '/group-chat'];
+const HIDDEN_PREFIXES = ['/chat/', '/group-chat', '/community/'];
 
 const navItems = [
   {

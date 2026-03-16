@@ -432,7 +432,7 @@ export default function ThreadPage() {
 
       {/* Reply Input */}
       {session?.user && (
-        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-[#0a0a0a] border-t border-white/5 px-4 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}>
+        <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0a0a0a] border-t border-white/5 px-4 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}>
           {/* Quote preview */}
           {replyTarget && replyTarget.quotedContent && (
             <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-white/20 bg-white/[0.03] rounded-r-lg py-1.5 pr-2">
@@ -473,7 +473,7 @@ export default function ThreadPage() {
               onChange={(e) => setReplyContent(e.target.value)}
               maxLength={2000}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleReply()}
-              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20"
+              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-base text-white placeholder-white/30 focus:outline-none focus:border-white/20"
             />
             <button
               onClick={handleReply}

@@ -250,7 +250,7 @@ export default function CommunityPage() {
       {session?.user && (
         <button
           onClick={() => setShowNewThread(true)}
-          className="fixed bottom-20 right-4 w-12 h-12 bg-white text-black rounded-full shadow-lg flex items-center justify-center hover:bg-white/90 active:scale-95 transition-all"
+          className="fixed bottom-6 right-4 w-12 h-12 bg-white text-black rounded-full shadow-lg flex items-center justify-center hover:bg-white/90 active:scale-95 transition-all"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 5v14M5 12h14" />
@@ -293,7 +293,7 @@ export default function CommunityPage() {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               maxLength={100}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 mb-3"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white placeholder-white/30 focus:outline-none focus:border-white/20 mb-3"
             />
 
             <textarea
@@ -302,7 +302,7 @@ export default function CommunityPage() {
               onChange={(e) => setNewContent(e.target.value)}
               maxLength={5000}
               rows={4}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 resize-none mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-base text-white placeholder-white/30 focus:outline-none focus:border-white/20 resize-none mb-4"
             />
 
             {/* 画像アップロード */}
