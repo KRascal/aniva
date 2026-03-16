@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -247,6 +247,7 @@ function TypingIndicator({
 export default function GroupChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ステップ: 'select' | 'chat'
   const [step, setStep] = useState<'select' | 'chat'>('select');
@@ -262,6 +263,31 @@ export default function GroupChatPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCrosstalk, setIsCrosstalk] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // URLのconversationIdクエリから既存会話を自動ロード（直接チャット画面に遷移）
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  useEffect(() => {
+    const urlConvId = searchParams.get('conversationId');
+    if (!urlConvId) return;
+    setConversationId(urlConvId);
+    setStep('chat'); // 直接チャット画面に遷移
+    setIsLoadingHistory(true);
+    (async () => {
+      try {
+        const histRes = await fetch(`/api/chat/group/history?conversationId=${urlConvId}&limit=30`);
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          if (histData.messages && Array.isArray(histData.messages)) {
+            setMessages(histData.messages);
+          }
+          if (histData.characterIds && Array.isArray(histData.characterIds)) {
+            setSelectedIds(histData.characterIds);
+          }
+        }
+      } catch { /* ignore */ }
+      setIsLoadingHistory(false);
+    })();
+  }, [searchParams]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -839,7 +865,7 @@ export default function GroupChatPage() {
 
       {/* メッセージエリア */}
       <main className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full relative z-10">
-        {messages.length === 0 && !isSending && (
+        {messages.length === 0 && !isSending && !searchParams.get('conversationId') && (
           <div className="text-center py-12">
             <div className="flex justify-center mb-4 -space-x-3">
               {selectedChars.map((c, i) => {

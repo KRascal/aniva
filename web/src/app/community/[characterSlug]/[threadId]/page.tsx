@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -223,6 +223,7 @@ export default function ThreadPage() {
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -252,6 +253,10 @@ export default function ThreadPage() {
       quotedContent: null,
       quotedAuthor: null,
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleSetQuoteTarget = (reply: Reply) => {
@@ -261,6 +266,10 @@ export default function ThreadPage() {
       quotedContent: reply.content,
       quotedAuthor: getAuthorName(reply.author),
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleReply = async () => {
@@ -346,6 +355,21 @@ export default function ThreadPage() {
           <span className="text-[10px] text-white/30">{thread.viewCount}回閲覧</span>
         </div>
         <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">{thread.content}</p>
+        {/* トップ投稿への返信ボタン */}
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            onClick={() => {
+              setReplyTarget(null);
+              inputRef.current?.focus();
+            }}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v6M3 10l6 6m-6-6l6-6" />
+            </svg>
+            返信する
+          </button>
+        </div>
       </div>
 
       {/* Replies */}
@@ -418,6 +442,7 @@ export default function ThreadPage() {
 
           <div className="flex gap-2">
             <input
+              ref={inputRef as React.Ref<HTMLInputElement>}
               type="text"
               placeholder={replyTarget ? '返信を入力...' : 'コメントを入力...'}
               value={replyContent}

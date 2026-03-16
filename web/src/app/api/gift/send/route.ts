@@ -144,6 +144,45 @@ export async function POST(req: Request) {
       reaction = 'う、うれしくなんかないんだからなっ！…えへへ';
     }
 
+    // ギフト送信をチャットメッセージとしてDB保存（ページリロードでも残る）
+    try {
+      const conversation = await prisma.conversation.findFirst({
+        where: { relationship: { userId, characterId }, isActive: true },
+        orderBy: { updatedAt: 'desc' },
+      });
+      if (conversation) {
+        // ユーザーのギフト送信メッセージ
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'USER',
+            content: `[ギフト] ${gift.emoji} ${gift.name}を贈りました`,
+            metadata: { type: 'gift', giftType: gift.id, giftEmoji: gift.emoji, giftName: gift.name },
+          },
+        });
+        // キャラの反応メッセージ
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: reaction,
+            metadata: { type: 'gift_reaction', giftType: gift.id, emotion: 'happy' },
+          },
+        });
+        // Conversation更新
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
+        await prisma.relationship.updateMany({
+          where: { userId, characterId },
+          data: { lastMessageAt: new Date() },
+        });
+      }
+    } catch (giftMsgErr) {
+      logger.error('[gift/send] Failed to save gift messages:', giftMsgErr);
+    }
+
     return NextResponse.json({
       success: true,
       reaction,

@@ -1,0 +1,55 @@
+{
+  "task": "Keisuke 15:52 6件修正",
+  "status": "success",
+  "summary": "6件すべて実装完了（チャット統合ソート・グループスワイプ・画像アルバム調査・エラー対策・Vision API統合・ガチャUI修正・コインガイドページ新規追加）",
+  "files_changed": [
+    "src/app/chat/page.tsx",
+    "src/components/chat-list/SwipeableGroupChatRow.tsx (新規)",
+    "src/app/api/chat/group/route.ts",
+    "src/app/api/chat/group/pin/route.ts (新規)",
+    "src/app/api/chat/send-image/route.ts",
+    "src/app/explore/gacha/page.tsx",
+    "src/app/mypage/page.tsx",
+    "src/app/mypage/coin-guide/page.tsx (新規)"
+  ],
+  "details": {
+    "1_chat_unified_sort": {
+      "status": "done",
+      "description": "charsWithHistoryとgroupConversationsをunion type配列に統合。ピン優先→ピン時刻降順→非ピン→時系列降順でソート。IIFEパターンで1つのmap()に統合。",
+      "new_component": "SwipeableGroupChatRow - ピン留め(右スワイプ)/削除(左スワイプ)付きスワイプメニュー",
+      "new_api": "POST /api/chat/group/pin - metadata.isPinned/pinnedAtで管理（Conversationモデル変更なし）",
+      "new_api_delete": "DELETE /api/chat/group?conversationId=xxx - ソフト削除(isActive=false)"
+    },
+    "2_album_investigation": {
+      "status": "confirmed_working",
+      "description": "uploadChatMedia関数を精査: Prisma型エラーなし・ChatMediaフィールドは全部揃っている。アルバムAPIはMessage.imageUrlとChatMedia両方を参照して重複排除済み。問題なし。",
+      "group_api_fix": "GET /api/chat/group レスポンスにisPinned/pinnedAtを追加（metadataから取得）"
+    },
+    "3_image_error_handling": {
+      "status": "done",
+      "description": "既にcharacterReaction部分はtry-catchで囲まれていた。Vision APIエラーも別途try-catchを追加してnon-fatalに。画像送信自体は常に成功を返す。"
+    },
+    "4_image_quality": {
+      "status": "done",
+      "description": "send-image/route.ts: analyzeImage(Vision API: xAI grok-vision or Claude Vision)を呼び出してdescriptionを取得→imageAnalysisToPromptHintでキャラに渡す方式に変更。Vision APIが使えない環境でもフォールバックメッセージ（キャラとして興味を示し、短く自然に反応して）を設定。"
+    },
+    "5_gacha_ui": {
+      "status": "done",
+      "description": "フッターのpaddingBottomをcalc(env(safe-area-inset-bottom) + 80px)に変更（BottomNav被り解消）。「閉じる」ボタンを「もう一度引く」の隣に追加（flex row）。カード一覧にpt-2を追加（ヘッダーバー被り解消）。"
+    },
+    "6_coin_guide": {
+      "status": "done",
+      "description": "mypage/page.tsx: Push Notifications行の下に🪙コイン経済についてリンク追加（/mypage/coin-guide）。新規ページ src/app/mypage/coin-guide/page.tsx: 消費先一覧・獲得方法・FAQ・/pricingへの購入リンク付き。"
+    }
+  },
+  "risks": [
+    "グループのisPinned/pinnedAtはConversation.metadataに保存（スキーマ変更なし）。将来的にConversationモデルに正式カラム追加推奨。",
+    "Vision API（xAI/Claude）の環境変数（XAI_API_KEY or ANTHROPIC_API_KEY）が未設定の場合、画像分析はスキップされフォールバックメッセージが使われる。動作には影響なし。",
+    "GROUP削除はソフト削除（isActive=false）。ハード削除・メッセージ削除は未実装。"
+  ],
+  "next_actions": [
+    "Conversationモデルにis_pinned/pinned_atカラムを正式追加する場合はprisma migrate dev実行",
+    "グループチャットのpinnedAtソートを本番でテスト確認",
+    "Vision API環境変数（XAI_API_KEY）の設定確認"
+  ]
+}

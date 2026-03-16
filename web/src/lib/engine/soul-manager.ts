@@ -1,107 +1,199 @@
-/**
- * SoulManager — キャラクターが会話を通じて成長する仕組み
- * OpenClawのSOUL.md自己更新思想の移植
- * 
- * 週次で実行し、キャラクターのSOUL.mdに「最近の発見」セクションを追加・更新
- */
+// ============================================================
+// SoulManager — SOUL.md 自己更新機能
+// 週次でDailySessionLogを解析し、SOUL.mdの「## 最近の発見」を更新
+// エラー時はスキップ（既存を壊さない）
+// ============================================================
 
-import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { prisma } from '../prisma';
+import { logger } from '../logger';
 
-const INSIGHT_MODEL = 'grok-3-mini';
+const SECTION_HEADER = '## 最近の発見';
 
 /**
- * キャラのSOUL.mdに「最近の発見」を追記
+ * xAI grok-3-mini でセッションログから洞察を抽出
+ */
+async function extractInsightsWithLLM(
+  characterName: string,
+  sessionSummaries: string[],
+): Promise<string | null> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `あなたは「${characterName}」というキャラクターです。
+以下は直近1週間のユーザーとの会話サマリーです。
+
+${sessionSummaries.map((s, i) => `[${i + 1}] ${s}`).join('\n')}
+
+これらの会話から、あなた（${characterName}）として気づいたことを3〜5点、箇条書きで書いてください。
+- このユーザーの特徴や変化
+- 有効だったアプローチ
+- 次の会話で試したいこと
+キャラクターとして一人称で、簡潔に書いてください。`;
+
+  try {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `あなたは${characterName}です。ユーザーとの会話から学んだことを簡潔に整理してください。`,
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!res.ok) {
+      logger.warn(`[SoulManager] xAI API error: ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? null;
+  } catch (e) {
+    logger.warn('[SoulManager] xAI call failed:', e);
+    return null;
+  }
+}
+
+/**
+ * SOUL.mdの「## 最近の発見」セクションを更新する
+ */
+function updateSoulMdSection(soulPath: string, insights: string): void {
+  const content = readFileSync(soulPath, 'utf-8');
+  const now = new Date().toISOString().split('T')[0];
+
+  const newSection = `${SECTION_HEADER}
+_最終更新: ${now}_
+
+${insights}`;
+
+  if (content.includes(SECTION_HEADER)) {
+    // 既存セクションを置換
+    const sectionStart = content.indexOf(SECTION_HEADER);
+    // 次のH2セクションを探す
+    const nextSection = content.indexOf('\n## ', sectionStart + SECTION_HEADER.length);
+    const before = content.substring(0, sectionStart);
+    const after = nextSection !== -1 ? content.substring(nextSection) : '';
+    writeFileSync(soulPath, `${before}${newSection}\n${after}`, 'utf-8');
+  } else {
+    // セクションを末尾に追加
+    writeFileSync(soulPath, `${content}\n\n${newSection}\n`, 'utf-8');
+  }
+}
+
+/**
+ * 指定キャラクターのSOUL.mdを直近1週間のセッションログから更新する
+ * エラー時はスキップ（既存を壊さない）
  */
 export async function updateSoulInsights(
   characterId: string,
   slug: string,
-): Promise<void> {
+): Promise<{ updated: boolean; reason?: string }> {
   try {
-    const xaiKey = process.env.XAI_API_KEY;
-    if (!xaiKey) return;
+    // SOUL.mdのパスを解決
+    const soulPath = join(process.cwd(), 'characters', slug, 'SOUL.md');
+    if (!existsSync(soulPath)) {
+      return { updated: false, reason: `SOUL.md not found for ${slug}` };
+    }
 
-    // 直近7日のDailySessionLogを取得
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const dateStr = sevenDaysAgo.toISOString().slice(0, 10);
+    // キャラクター名を取得
+    const character = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: { name: true },
+    });
+    if (!character) {
+      return { updated: false, reason: `Character not found: ${characterId}` };
+    }
+
+    // 直近1週間のDailySessionLogを取得
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const weekAgoStr = oneWeekAgo.toISOString().split('T')[0]; // "2026-03-09"
 
     const logs = await prisma.dailySessionLog.findMany({
       where: {
         relationship: { characterId },
-        date: { gte: dateStr },
+        date: { gte: weekAgoStr },
       },
-      select: { summary: true, emotionalHighlight: true, date: true },
       orderBy: { date: 'desc' },
-      take: 20,
-    });
-
-    if (logs.length === 0) return;
-
-    const logsText = logs
-      .map(l => `[${l.date}] ${l.summary}${l.emotionalHighlight ? ` (感情的瞬間: ${l.emotionalHighlight})` : ''}`)
-      .join('\n');
-
-    const prompt = `あなたはキャラクター「${slug}」の内省を代行します。
-以下は直近1週間のユーザーとの会話サマリーです。
-
-${logsText}
-
-この1週間のやり取りから、キャラクターとして気づいたこと・学んだことを2-3個抽出してください。
-フォーマット:
-- YYYY-MM-DD: 気づき（1文で）
-
-例:
-- 2026-03-16: 悩みに寄り添う時、正論より「共感→沈黙→一言」の順番が効く
-- 2026-03-15: ユーザーが夢を語る時、一緒に盛り上がると距離が縮まる`;
-
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${xaiKey}`,
-        'Content-Type': 'application/json',
+      take: 30,
+      select: {
+        date: true,
+        summary: true,
+        emotionalHighlight: true,
       },
-      body: JSON.stringify({
-        model: INSIGHT_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 300,
-        temperature: 0.7,
-      }),
-      signal: AbortSignal.timeout(30000),
     });
 
-    if (!res.ok) return;
-    const data = await res.json();
-    const insights = data.choices?.[0]?.message?.content?.trim();
-    if (!insights) return;
-
-    // SOUL.mdに追記
-    const candidates = [
-      join(process.cwd(), '..', 'characters', slug, 'SOUL.md'),
-      join(process.cwd(), 'characters', slug, 'SOUL.md'),
-    ];
-
-    for (const soulPath of candidates) {
-      if (existsSync(soulPath)) {
-        let content = readFileSync(soulPath, 'utf-8');
-        const marker = '## 最近の発見';
-        if (content.includes(marker)) {
-          // 既存セクションを更新（最新5件のみ保持）
-          const idx = content.indexOf(marker);
-          const before = content.slice(0, idx);
-          content = `${before}${marker}\n<!-- auto-updated by SoulManager -->\n${insights}\n`;
-        } else {
-          content += `\n\n${marker}\n<!-- auto-updated by SoulManager -->\n${insights}\n`;
-        }
-        writeFileSync(soulPath, content, 'utf-8');
-        logger.info(`[SoulManager] Updated SOUL.md for ${slug}`);
-        break;
-      }
+    if (logs.length === 0) {
+      return { updated: false, reason: 'No session logs in past week' };
     }
-  } catch (error) {
-    logger.error('[SoulManager] Error:', error);
-    // エラー時はスキップ（既存を壊さない）
+
+    const summaries = logs.map(l =>
+      `${l.date}: ${l.summary}${l.emotionalHighlight ? ` [感情: ${l.emotionalHighlight}]` : ''}`
+    );
+
+    // LLMで洞察を抽出
+    const insights = await extractInsightsWithLLM(character.name, summaries);
+    if (!insights) {
+      return { updated: false, reason: 'LLM extraction failed' };
+    }
+
+    // SOUL.mdを更新
+    updateSoulMdSection(soulPath, insights);
+
+    logger.info(`[SoulManager] Updated SOUL.md for ${slug} with ${logs.length} session logs`);
+    return { updated: true };
+  } catch (e) {
+    // エラーは全てスキップ（既存を壊さない）
+    logger.warn(`[SoulManager] updateSoulInsights failed for ${slug}:`, e);
+    return { updated: false, reason: String(e) };
   }
+}
+
+/**
+ * 全キャラクターのSOUL.mdを一括更新（週次cron用）
+ */
+export async function updateAllSoulInsights(): Promise<{
+  total: number;
+  updated: number;
+  skipped: number;
+}> {
+  let updated = 0;
+  let skipped = 0;
+
+  try {
+    const characters = await prisma.character.findMany({
+      select: { id: true, slug: true },
+    });
+
+    for (const char of characters) {
+      const result = await updateSoulInsights(char.id, char.slug);
+      if (result.updated) {
+        updated++;
+      } else {
+        skipped++;
+        if (result.reason) {
+          logger.debug(`[SoulManager] Skipped ${char.slug}: ${result.reason}`);
+        }
+      }
+
+      // API rate limit対策: 200ms待機
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  } catch (e) {
+    logger.error('[SoulManager] updateAllSoulInsights failed:', e);
+  }
+
+  return { total: updated + skipped, updated, skipped };
 }

@@ -185,7 +185,7 @@ function SignupForm() {
                   sessionStorage.setItem('aniva_just_logged_in', '1');
                   signIn('google', { callbackUrl: redirectTo });
                 }}
-                className="w-full py-4 bg-white text-gray-900 rounded-2xl font-semibold hover:bg-gray-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg mb-6"
+                className="w-full py-4 bg-white text-gray-900 rounded-2xl font-semibold hover:bg-gray-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg mb-3"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -195,6 +195,22 @@ function SignupForm() {
                 </svg>
                 Googleで始める
               </button>
+              {/* LINE Login */}
+              {process.env.NEXT_PUBLIC_LINE_CLIENT_ID || true ? (
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('aniva_just_logged_in', '1');
+                    signIn('line', { callbackUrl: redirectTo });
+                  }}
+                  className="w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg mb-6 text-white"
+                  style={{ background: '#06C755' }}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+                    <path d="M19.365 9.89c.50 0 .866.366.866.816 0 .45-.366.817-.866.817H17.61v1.058h1.755c.5 0 .866.366.866.817 0 .45-.366.816-.866.816h-2.572a.817.817 0 01-.816-.816V9.89c0-.45.366-.816.816-.816h2.572zm-5.477 3.308c0 .45-.366.816-.816.816a.817.817 0 01-.816-.816V9.89c0-.45.366-.816.816-.816.45 0 .816.366.816.816v3.308zm-2.89.816h-2.57a.817.817 0 01-.817-.816V9.89c0-.45.366-.816.816-.816.45 0 .816.366.816.816v2.49h1.755c.5 0 .866.367.866.817 0 .45-.366.816-.866.816zM12 0C5.373 0 0 4.925 0 11c0 5.446 4.31 9.99 10.138 10.852.394.085.933.26 1.069.598.122.307.08.788.039 1.098l-.173 1.038c-.053.307-.242 1.2 1.05.655 1.293-.546 6.975-4.108 9.516-7.032C23.327 15.915 24 13.543 24 11 24 4.925 18.627 0 12 0z"/>
+                  </svg>
+                  LINEで始める
+                </button>
+              ) : null}
 
               <div className="my-5 relative">
                 <div className="absolute inset-0 flex items-center">

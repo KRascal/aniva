@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { resolveCharacterId } from '@/lib/resolve-character';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,7 +10,10 @@ export async function GET(req: NextRequest) {
     const userId = session?.user?.id;
 
     const url = new URL(req.url);
-    const characterId = url.searchParams.get('characterId') ?? undefined;
+    const rawCharacterId = url.searchParams.get('characterId');
+    const characterId = rawCharacterId
+      ? ((await resolveCharacterId(rawCharacterId)) ?? rawCharacterId)
+      : undefined;
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 50);
     const cursor = url.searchParams.get('cursor') ?? undefined;
     const mode = url.searchParams.get('mode') ?? 'following'; // 'following' | 'recommend'

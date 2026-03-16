@@ -18,6 +18,7 @@ import { getCharacterEmotionContext } from './emotion';
 import { getSeasonalPromptContext } from '../seasonal-event-system';
 import { getGrowthContext } from '../character-growth-system';
 import { buildImageMemoryContext } from '../multimodal-memory';
+import { formatLearningsForPrompt, type CharacterLearning } from './character-learnings';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -596,6 +597,10 @@ export function buildSystemPrompt(
   userProfileContext: string = '',
   narrativeSummary?: string,
   yesterdayHook?: string,
+<<<<<<< HEAD
+=======
+  characterLearnings?: CharacterLearning[],
+>>>>>>> origin/staging
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -644,6 +649,11 @@ export function buildSystemPrompt(
   const seasonalContext = getSeasonalPromptContext(character.slug);
   const growthContext = getGrowthContext(character.slug, memory.level, memory.totalMessages ?? 0);
   const imageMemoryCtx = buildImageMemoryContext(memorySummary ?? null);
+
+  // キャラクター学習コンテキスト（最大5件）
+  const learningsCtx = characterLearnings && characterLearnings.length > 0
+    ? formatLearningsForPrompt(characterLearnings)
+    : '';
 
   return `${soulContent}
 ${bibleContext}
@@ -743,6 +753,7 @@ ${getSpecialDayContext(character, memory)}
 ${seasonalContext}
 ${growthContext}
 ${imageMemoryCtx}
+${learningsCtx ? `\n${learningsCtx}` : ''}
 
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;

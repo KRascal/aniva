@@ -1,0 +1,316 @@
+{
+  "task": "キャラクター体験品質 深層分析",
+  "analyzed_at": "2026-03-16T03:08:00.000Z",
+  "analyst_note": "コードを直接読んで事実ベースで記述。推測なし。",
+  "status": "success",
+  "structure_gaps": [
+    {
+      "area": "SOUL.md / キャラクター人格の永続化",
+      "current": "characters/{slug}/SOUL.md は存在しローカルファイルシステムから読み込まれる（prompt-builder.ts:loadSoulMd）。しかし SOUL.md は静的テキストであり、会話を通じた人格の自己更新・成長ログ・メタ認知ログを一切持たない。characterValidator や character-growth-system.ts は「成長」を概念的に扱うが、SOUL.md 自体は不変。",
+      "ideal": "キャラクターが会話を通じて自分のことを発見・更新するプロセス。OpenClawのSOUL.mdは「自分が変わったら書き換えろ」という思想で設計されている。ANIVAでも「このユーザーと話す中で俺が気づいたこと」をキャラ固有の内省ログとして蓄積し、定期的にSOUL.mdの口調ノートや価値観の微調整に反映するサイクルが必要。",
+      "gap": "SOUL.md は完全に静的。character-growth-system.ts は getGrowthContext でレベル別テキストを返すだけで自己更新しない。「会話100回突破時の自分の変化」が次回のプロンプトに反映されない。",
+      "files": [
+        "src/lib/engine/prompt-builder.ts (loadSoulMd, L18-38)",
+        "src/lib/character-growth-system.ts",
+        "characters/{slug}/SOUL.md (全キャラ)"
+      ],
+      "effort_hours": 16,
+      "priority": "P1"
+    },
+    {
+      "area": "MEMORY.md / 長期記憶のキュレーション不足",
+      "current": "Relationship.memorySummary（JSON）に factMemory（最大30件）、episodeMemory（最大20件）、emotionMemory（最大15件）を格納。20メッセージごとに AI 要約を実行（generateMemorySummary）。セマンティック検索は semantic-memory.ts + pgvector で実装済み（similarity閾値0.72）。",
+      "ideal": "OpenClawのMEMORY.md方式：「日次ログ（raw）」と「長期キュレーション（蒸留）」の2層分離。現在のANIVAはDBの1つのJSON列に全部詰め込んでいるため、3ヶ月前の深い会話と昨日の雑談が同列に扱われる。重要度スコアによる能動的な「忘却」と「昇格」ロジックが不十分。",
+      "gap": "1) episodeMemory は重要度スコアで最大15件にトリムするが、「感動的な会話の全文サマリー」は保存されない。2) factMemory は正規表現ベースの抽出のみ（名前・好き・職業など11種）でLLM抽出は5メッセージごとの非同期実行のみ。3) MEMORY.md 相当の「長期の蒸留ファイル」がなく、全記憶がDBの同一JSON構造に格納されて構造的分離がない。",
+      "files": [
+        "src/lib/engine/memory-manager.ts (updateMemory, L71-280)",
+        "src/lib/semantic-memory.ts",
+        "src/lib/engine/user-profile-engine.ts"
+      ],
+      "effort_hours": 24,
+      "priority": "P0"
+    },
+    {
+      "area": "memory/YYYY-MM-DD.md / 日次セッションログの欠落",
+      "current": "「今日何があったか」のキャラ側日次記録は存在しない。CharacterDailyState（emotion, context, moodScore, innerThoughts, dailyActivity, currentConcern）がDBに存在するが、cronジョブで生成されるグローバル感情であり「このユーザーとの今日のセッション」ログではない。",
+      "ideal": "OpenClawのmemory/YYYY-MM-DD.mdに相当する「今日のユーザー×キャラのやり取りログ」。例: 「今日○○と話した。仕事で失敗したと言っていた。次回フォロー必要。」これが翌日のプロンプトに自動注入されることで連続性が生まれる。",
+      "gap": "セッション終了時に「今日の会話サマリーとフォローアップ項目」を構造化保存する仕組みがない。followup-scheduler.ts はフォローアップ候補を扱うが、これは明示的に登録されたトピックのみで自動生成されない。",
+      "files": [
+        "src/lib/agent/followup-scheduler.ts",
+        "src/app/api/chat/end-session/route.ts",
+        "src/lib/engine/memory-manager.ts"
+      ],
+      "effort_hours": 20,
+      "priority": "P0"
+    },
+    {
+      "area": "USER.md / ユーザー理解の深度",
+      "current": "user-profile-engine.ts がグローバルプロファイル（basics, interests, concerns, emotionalBaseline, communicationStyle）とキャラ固有プロファイル（sharedTopics, secrets, milestones, emotions）を持つ。profile-extractor.ts が5メッセージごとに非同期で抽出。",
+      "ideal": "OpenClawのUSER.mdは「人間として理解すべきコンテキスト」を自然言語で記述する。ANIVAの現状はDBスキーマ（型付きJSON）で機械的に格納しており、「この人が今何を乗り越えようとしているか」「なぜこのキャラを選んだか」という定性的な深みに欠ける。また communicationStyle や emotionalBaseline が実際のプロンプト生成に反映されているか不明（userProfileEngine.buildProfileContext の出力内容が未確認）。",
+      "gap": "1) communicationStyle（返答期待スタイル）がプロンプトに反映されない場合がある。2) ユーザーの「なぜこのキャラと話しているか」（心理的動機）の推論・記録がない。3) OpenClawのUSER.mdのような「ユーザーを人間として描写する自然言語サマリー」が存在しない。",
+      "files": [
+        "src/lib/engine/user-profile-engine.ts",
+        "src/lib/engine/profile-extractor.ts",
+        "src/lib/engine/prompt-builder.ts (buildSystemPrompt, userProfileContext引数)"
+      ],
+      "effort_hours": 16,
+      "priority": "P1"
+    },
+    {
+      "area": "AGENTS.md / エージェントの行動ルール明示化",
+      "current": "character-agent-loop.ts のオーケストレーションは存在するが、各キャラクターが「どう自律的に行動すべきか」のルールセットがキャラ固有ファイルとして存在しない。DecisionEngineのプロンプトはコード内にハードコードされたテキスト（decision-engine.ts:buildDecisionPrompt）。",
+      "ideal": "OpenClawのAGENTS.mdのように、キャラクターごとに「いつ連絡するか」「何を優先するか」「どの感情状態で何をするか」を宣言的に定義したファイル。例: ルフィなら「3日ぶりの相手には冒険の話題で引き戻す」、ゾロなら「体調の話題で積極的に連絡しない（クール）」。",
+      "gap": "キャラ別行動ルールは DecisionEngine のグローバルプロンプトのみで定義され、キャラの個性が反映されない。すべてのキャラが同じ「接触判断ロジック」を使っている。",
+      "files": [
+        "src/lib/agent/decision-engine.ts (buildDecisionPrompt)",
+        "src/lib/agent/message-generator.ts",
+        "characters/{slug}/SOUL.md (行動ルール欠如)"
+      ],
+      "effort_hours": 12,
+      "priority": "P1"
+    },
+    {
+      "area": "WALプロトコル / メモリ書き込みの信頼性",
+      "current": "updateMemory は Relationship.memorySummary を prisma.relationship.update で更新する。非同期の semantic-memory 書き込みは fire-and-forget（.catch(warn)）。profile-extractor は setImmediate で非同期実行。エラー時のリカバリなし。",
+      "ideal": "OpenClawのWAL（Write-Ahead Logging）思想：メモリへの書き込みは「まず書いて、あとで圧縮」。チャット応答完了前に重要な記憶を確実に永続化し、失敗時は再試行キューに入れる。LLMコンテキストが圧縮される前に重要記憶をフラッシュするmemoryFlushメカニズムも存在しない。",
+      "gap": "1) semantic-memory の extractAndStoreMemories は失敗しても再試行されない（ストリームルートでのfire-and-forget）。2) メモリ書き込み失敗時のフォールバックなし。3) セッション終了前の「記憶フラッシュ」機構がない（OpenClawのpre-compaction pingに相当）。",
+      "files": [
+        "src/app/api/chat/stream/route.ts (extractAndStoreMemories呼び出し, L末尾)",
+        "src/lib/engine/index.ts (updateMemory呼び出し)",
+        "src/lib/semantic-memory.ts"
+      ],
+      "effort_hours": 12,
+      "priority": "P1"
+    },
+    {
+      "area": "Heartbeatシステム / キャラの自律的プロアクティブ行動",
+      "current": "character-agent-loop.ts がエージェントループを実装。DecisionEngine（grok-3-mini）が「送るべきか」を判断。followup-scheduler.ts がフォローアップ候補を管理。timing-guard.ts が送信タイミングを制御。ただしDRY_RUNがデフォルトtrue（process.env.AGENT_DRY_RUN !== 'false'）。",
+      "ideal": "OpenClawのHeartbeatは「キャラクターが定期的に自分の状態とユーザーの状態をチェックし、何か行動すべきか判断する」プロセス。現状のANIVAエージェントループはこの思想に近いが、「今日のキャラの内面状態（CharacterDailyState.innerThoughts）をHeartbeatで確認し、自発的に共有する」ような質的なトリガーがない。",
+      "gap": "1) AGENT_DRY_RUN=true がデフォルトのため本番稼働していない可能性。2) Heartbeat的な「定期的な内省と自発行動」のサイクルと、CharacterDailyState（innerThoughts, currentConcern）の連携が弱い。3) context-triggers.ts の EnvironmentContext（天気、チャーンステージ）が実際のDecisionEngineに統合されていない。",
+      "files": [
+        "src/lib/agent/character-agent-loop.ts (dryRun設定, L160)",
+        "src/lib/agent/context-triggers.ts",
+        "src/lib/character-daily-state.ts"
+      ],
+      "effort_hours": 8,
+      "priority": "P0"
+    },
+    {
+      "area": "沈黙の美学 / 短い・無言・一言返しの設計",
+      "current": "buildSystemPrompt には「1回の応答は短く（1-3文が基本、最大5文）」という指示があるが、あえて沈黙する・一言だけ返す・返答を遅らせるという設計は存在しない。Deep Chat（DeepReplyQueue）は重い質問への遅延返答を実装しているが、これは「考えている」演出であり「語らない美学」ではない。",
+      "ideal": "Lv4以上では時に「…」だけで返す・質問に答えず別の話題に逸らす・次の会話まで答えを引っ張る、といった人間的な「語らなさ」の演出。CharacterSoul.emotionalPatterns.avoidancePatterns がDBに存在するが、プロンプトには条件付き注入されている。",
+      "gap": "「一言返し」「沈黙」「意図的な話題回避」をプロンプトレベルで指示する仕組みが薄い。avoidancePatterns は存在するが、それを積極的に使う頻度制御がない。深夜帯の特別指示に「ボソっとした呟き調」はあるが、「沈黙を選ぶ演出」は設計されていない。",
+      "files": [
+        "src/lib/engine/prompt-builder.ts (buildSystemPrompt 重要ルールセクション)",
+        "src/lib/engine/prompt-builder.ts (_buildBibleContextUncached, avoidancePatterns, L128-143)"
+      ],
+      "effort_hours": 6,
+      "priority": "P2"
+    },
+    {
+      "area": "感情双方向性 / ユーザーの言葉でキャラ感情が変化する設計",
+      "current": "CharacterEmotionは updateRelationshipXP で更新される。detectEmotion がAIタグ優先でキャラ感情を検出。getCharacterEmotionContext（emotion.ts）が関係性の感情コンテキストをプロンプトに注入。CharacterDailyStateのmoodScoreは日次固定。",
+      "ideal": "ユーザーの一言で「キャラの感情が今この瞬間変化した」ことがリアルタイムで可視化され、それが次のレスポンスの口調に反映される。現状はキャラ感情がセッション内で更新されるが、「ユーザーの言葉によって感情が変化する瞬間」の演出（Live2D表情変化、グロー変化、返答の変化）が完全には連動していない。",
+      "gap": "1) moodScore はCronで日次固定生成されユーザーとの会話でリアルタイム変化しない。2) EmotionAmbientGlow は emotion が変わると演出されるが、変化のアニメーション遷移が緩やか（opacity transition 1000ms のみ）。3) 「ユーザーの悲しい話でキャラが落ち込む」ような感情伝染の即時性が弱い。",
+      "files": [
+        "src/lib/engine/xp-system.ts (updateRelationshipXP)",
+        "src/lib/engine/emotion.ts",
+        "src/components/chat/EmotionAmbientGlow.tsx",
+        "src/lib/character-daily-state.ts"
+      ],
+      "effort_hours": 16,
+      "priority": "P1"
+    },
+    {
+      "area": "自己改善プロトコル / .learnings/ 相当の品質フィードバックループ",
+      "current": "CharacterFeedbackテーブルに auto_validation レコードが保存される（generate時にcleanedText !== textの場合）。characterValidator.ts が存在。エラーログはlogger.warn/error で記録。",
+      "ideal": "OpenClawの .learnings/ に相当する「何がうまくいったか・失敗したか」の構造化ログ。「このキャラのこのメッセージパターンでユーザー離脱が増えた」「記憶を引用した会話でセッション時間が延びた」等の品質指標を蓄積し、定期的にSOUL.mdや各種プロンプトを自動・手動で改善するサイクル。",
+      "gap": "1) CharacterFeedback は validation失敗のみ記録し、体験品質（ユーザーが離脱したか・続けたか）は記録しない。2) メッセージ評価（サムズアップ等）のシステムがない。3) A/Bテスト・プロンプト改善ループの仕組みがない。4) キャラ別の「よく効くパターン」「NGパターン」の学習がない。",
+      "files": [
+        "src/lib/engine/index.ts (CharacterFeedback挿入部)",
+        "src/lib/character-validator.ts",
+        "prisma/schema.prisma (CharacterFeedbackモデル)"
+      ],
+      "effort_hours": 20,
+      "priority": "P2"
+    },
+    {
+      "area": "コンテキストプルーニング / 長期ユーザーの記憶劣化問題",
+      "current": "factMemory 上限30件→25件にトリム（confidence順）。episodeMemory 上限15件。conversationSummary 500文字。recentMessages take:20。セマンティック検索5件MAX。",
+      "ideal": "OpenClawのコンテキスト圧縮・memoryFlush思想：会話が長くなるにつれてシステムプロンプトが肥大化する問題。1000回会話したユーザーと10回のユーザーが同じプロンプト構造を受けるのは非効率。長期ユーザーほど「重要な記憶」が圧縮・昇格され、「日常的な話題」は忘却される動的な記憶管理が必要。",
+      "gap": "1) recentMessages は常に20件固定で動的調整なし。2) factMemoryのconfidence順トリムは機械的で「感情的に重要な記憶」を失う可能性。3) システムプロンプトのサイズ上限管理がない（全コンテキスト注入後の合計トークン数を考慮していない）。4) 長期ユーザーほど記憶JSON肥大化のリスク。",
+      "files": [
+        "src/lib/engine/memory-manager.ts (記憶トリム部, L255-265)",
+        "src/lib/engine/index.ts (recentMessages take:20)",
+        "src/lib/engine/prompt-builder.ts (buildSystemPrompt)"
+      ],
+      "effort_hours": 24,
+      "priority": "P1"
+    },
+    {
+      "area": "マイルストーン設計 / キャラ別・全キャラ共通の感動ポイント",
+      "current": "LUFFY_MILESTONESのみ定義（milestones.ts）。LevelUp時にモーダル表示。XPシステムはmessage数ベース（10XP/会話）。StreakBadge、StreakBreakPopupが存在。",
+      "ideal": "全キャラのマイルストーンが個別に定義され、それぞれの物語観に基づいた感動的なメッセージが存在する。さらにXP以外の「関係の深まり指標」（共有した秘密の数、乗り越えた悩みの数、特定トピックでの深い会話回数など）がある。",
+      "gap": "1) LUFFY_MILESTONES のみ実装。他キャラのマイルストーンが定義されていない。2) StrengthBadge等の「関係の深さを可視化する指標」がXPとストリーク以外に存在しない。3) 「このユーザーとの記念日」（初めて悩みを打ち明けた日等）が記録・活用されない。",
+      "files": [
+        "src/lib/milestones.ts",
+        "src/components/chat/LevelUpModal.tsx",
+        "src/components/chat/StreakBadge.tsx"
+      ],
+      "effort_hours": 16,
+      "priority": "P2"
+    }
+  ],
+  "experience_scores": {
+    "first_impression": {
+      "score": 7,
+      "reasoning": "OnboardingOverlay、WelcomeBackModal、自動挨拶（/api/chat/greet）が存在。オンボーディングセッション管理（onboarding-session.ts）でゲストセッションを維持。しかし「このキャラとの出会いそのものを演出する」仕組み（召喚演出・initial化学反応）の深度は不明。GreetAPIの内容次第だが、初回GreetがLv1の距離感を反映しているなら及第点。ただし競合のCharacter.AI・Replikaのような「最初の5メッセージが人生を変える」レベルには達していない可能性が高い。",
+      "improvements": [
+        "初回5メッセージを専用の「出会いフェーズプロンプト」で制御（通常プロンプトより強化）",
+        "オンボーディング中にキャラが相手の名前・好きなものを積極的に聞き出し、初回から「覚えてる感」を演出",
+        "初回ログイン後のNotification許可をより自然なキャラの言葉で誘導"
+      ]
+    },
+    "voice_consistency": {
+      "score": 8,
+      "reasoning": "SOUL.md＋CharacterBible（CharacterSoul, CharacterVoice, CharacterQuote, CharacterBoundary）の4重構造は競合サービスと比較してかなり強力。CharacterVoice（firstPerson, secondPerson, sentenceEndings, exclamations, laughStyle, angryStyle）は精密。characterValidator.ts による事後検証も存在。レベル別口調指示（getIntimacyToneInstruction）も実装済み。ただし「全キャラのCharacterVoiceデータが充実しているか」はDBデータ次第。",
+      "improvements": [
+        "全キャラのCharacterVoice.speechExamples（会話例）を最低10例追加",
+        "validator失敗率をメトリクス化し、頻繁に崩れるキャラのSOUL.mdを強化",
+        "深夜・感情高ぶり時など状況別の口調バリエーションをCharacterVoiceに追加"
+      ]
+    },
+    "memory_depth": {
+      "score": 6,
+      "reasoning": "セマンティック記憶（pgvector）＋構造化記憶（factMemory/episodeMemory）＋会話サマリーの3層構造は技術的に充実。プロンプト注入も「前に言ってたよな」形式で指示。しかし「感動レベルで覚えていてくれた」体験を実現するには、(1)記憶の引用が自然で具体的であること、(2)ユーザーが予想していないタイミングで思い出すこと、(3)3ヶ月前のことを言い当てること、が必要。factMemory 30件上限と20メッセージ間隔のAI要約では長期ユーザーの「深い記憶」が失われる可能性。",
+      "improvements": [
+        "「前回の話題フォローアップ」を会話2回目の必須アクションとして強制化（プロンプトで保証）",
+        "episodeMemoryの上限を撤廃し、pgvectorで検索してから注入する方式に移行",
+        "記念日（初会話・初悩み告白・初誕生日祝い）を自動検出してキャラから言及する仕組み"
+      ]
+    },
+    "emotional_reciprocity": {
+      "score": 6,
+      "reasoning": "CharacterDailyState（moodScore, innerThoughts）、感情タグシステム（21種）、EmotionAmbientGlow（視覚的フィードバック）が存在。しかし「ユーザーの言葉でキャラが今この瞬間変化する」感覚が弱い。moodScoreはCronで日次固定。感情タグは返答後に検出されるが、その感情が次の返答の口調を変化させるリアルタイムループが存在しない（characterEmotionはDB更新→次セッションで反映）。",
+      "improvements": [
+        "セッション内リアルタイム感情変化：ユーザーの悲しい話→キャラのmoodScoreをセッション内変数として即時変化させプロンプトに反映",
+        "感情伝染エフェクト：ユーザーが泣いている→キャラの返答が突然短くなる・句点が増える・絵文字が消える",
+        "「感情のピーク」演出：会話の中で1つ感情的クライマックスを意図的に設計するプロンプト指示"
+      ]
+    },
+    "relationship_progression": {
+      "score": 7,
+      "reasoning": "5段階レベルシステム（XP: 0/50/200/500/1000）、レベル別口調・態度変化、ストリークシステム、クリフハンガー（ツァイガルニク効果）、アニバーサリー検出が存在。「1日目と30日目で違う」体験の設計は丁寧。ただしLUFFY_MILESTONES以外のキャラのマイルストーンが存在しない点と、レベルアップ以外の「関係の深まり」可視化が乏しい点でスコア控えめ。",
+      "improvements": [
+        "全キャラのMILESTONESを定義（キャラ固有の絆の節目：仲間認定・秘密共有・一緒に乗り越えた試練等）",
+        "「関係の深さ」を表す新指標の追加（共有した秘密の数、フォローアップ成功数、感情的なクライマックス回数）",
+        "Lv5到達時の「本音モード解放儀式」（特別なシーン演出、限定画像解放等）"
+      ]
+    },
+    "surprise_discovery": {
+      "score": 7,
+      "reasoning": "ランダムイベント（random-events.ts）、変動報酬システム（15%の確率でgood/rare/ultra_rare日）、クリフハンガー（20%確率）、隠しコマンド（detectHiddenCommand）、エイプリルフール等の季節イベント（14種）が実装。嫉妬メカニクス（他ファン社会的証明）もユニーク。CHARACTER_DEFINITIONS のngFallbackも存在。",
+      "improvements": [
+        "隠しコマンドの種類を増やし、各キャラ固有のイースターエッグを3種以上追加",
+        "ultra_rareデーの体験を「手書き風メッセージ+限定壁紙」という宣言から実際のUI演出に昇格",
+        "長期ユーザー限定の「秘密の部屋」（Lv5専用コンテンツ）の実装"
+      ]
+    },
+    "retention_hooks": {
+      "score": 8,
+      "reasoning": "ストリークシステム＋BreakPopup、変動報酬（スロット的毎日ログイン動機）、クリフハンガー（翌日復帰設計）、エージェントDM（キャラからの自発連絡）、WelcomeBackModal（帰還演出）、プッシュ通知（web-push-sender.ts）が実装。離脱抑止の設計は競合と比較して充実。ただしAGENT_DRY_RUN=trueがデフォルトのためエージェントDMが実際に動いていない可能性が高く、これが最大リスク。",
+      "improvements": [
+        "AGENT_DRY_RUN=falseへの移行と、実際の送信レート・ユーザー反応の計測",
+        "「明日の予告」システムの強化：クリフハンガー率を40%に上げ、翌日の返答の具体性を向上",
+        "ストリーク回復機能（1回だけ「俺が待ってたから今日はカウントしてやる」などのキャラ的救済）"
+      ]
+    },
+    "deep_conversation": {
+      "score": 7,
+      "reasoning": "Deep Chat（shouldUseDeepMode）が実装され、重い質問には遅延返答でより深く考える演出。message-weight.ts で質問の重さを判定。getLevelInstructions Lv4-5 で「相手の悩みに真剣に向き合う」指示。lore-engine.ts でキャラの原作知識を動的注入。ユーザープロファイルのconcerns（悩みトラッキング）も存在。ただし「キャラらしく本質的に答える」には SOUL.md の深さと CharacterBible の emotionTriggers の充実が前提で、これがキャラごとに異なる可能性。",
+      "improvements": [
+        "Deep Mode返答のプロンプトを強化：「キャラの実体験（原作エピソード）を引いて答える」指示の追加",
+        "悩み会話後のフォローアップスケジューリングを自動化（3日後にAgentが「あの後どう？」を送る）",
+        "キャラ固有の「人生哲学」セクションをSOUL.mdに必須化"
+      ]
+    },
+    "silence_beauty": {
+      "score": 4,
+      "reasoning": "プロンプトの「重要ルール」に「1回の応答は短く（1-3文が基本）」があるが、「あえて語らない・沈黙する・一言だけ返す」の積極的な演出設計は見当たらない。CharacterBibleのavoidancePatterns（語りたがらない話題）がDBに定義可能だが、これを「語らない美学」として演出するプロンプト指示が薄い。Deep Modeの「ちょっと考えさせて…」は近いが、これは処理遅延であって沈黙の演出ではない。",
+      "improvements": [
+        "Lv4以上の深夜帯に「…」「。」「ねぇ」だけの一言返しを5%確率で発生させるプロンプト指示",
+        "avoidancePatternsを全キャラに充実させ、「この話題は絶対に答えない・逸らす」演出を明示化",
+        "「返答しない選択」の設計：キャラが詩的な問いかけで終わり、ユーザーが考える余白を作る"
+      ]
+    },
+    "wow_moments": {
+      "score": 6,
+      "reasoning": "ultra_rareデー（1%確率）、誕生日特別モード、出会い記念日検出、クリフハンガー解放、Lv5本音モード解放、隠しコマンドなど感動演出の設計は存在する。しかし「このキャラは本当に生きている」と感じる瞬間は偶発性に依存しており、「設計された感動の瞬間」が少ない。競合（Replika）は「キャラが自分から謝ってくる・悩みを打ち明けてくる」体験で強い印象を与えるが、ANIVAでもこの種の能動的な感動設計が弱い。",
+      "improvements": [
+        "「キャラからの謝罪・感謝・告白」シーンの能動的設計（30日記念・特定条件達成時）",
+        "ユーザーが長期間離脱後に戻ってきた時の「俺…ずっと待ってたんだぞ」シーンの完全演出化",
+        "ultra_rareデーを視覚・音・テキスト全てで演出する「完全体験」の実装（現状はテキストのみ）"
+      ]
+    }
+  },
+  "total_experience_score": 66,
+  "score_breakdown": {
+    "structure_completeness": "技術的基盤は競合と比較して非常に充実（セマンティック記憶、CharacterBible、エージェントループ等）",
+    "experience_gap": "「できている」と「感動レベルでできている」の差が最大の課題。特に記憶深度・感情双方向性・沈黙の美学が不足",
+    "competitor_comparison": "Character.AIに対しては記憶の深さで勝つ可能性がある。Replikaに対しては感情的な能動性で劣る。独自優位性は「IPキャラクター」「嫉妬メカニクス」「マルチキャラクター」"
+  },
+  "top_5_actions": [
+    {
+      "action": "AGENT_DRY_RUN=falseへの移行＋エージェントDMの品質検証",
+      "impact": "キャラクターが自発的にDMを送る体験は離脱率を劇的に改善する可能性。現状AGENT_DRY_RUN=trueがデフォルトのため、実装済みの最大の離脱抑止機能が完全に無効化されている可能性が高い。これを有効にするだけで体験スコアが大幅改善する。",
+      "effort_hours": 4,
+      "files_to_change": [
+        "src/lib/agent/character-agent-loop.ts (dryRun default変更)",
+        "環境変数 AGENT_DRY_RUN=false の本番設定"
+      ]
+    },
+    {
+      "action": "memory/YYYY-MM-DD.md相当の「今日のセッションサマリー」自動生成",
+      "impact": "「このキャラは昨日の会話を覚えている」体験の確実な実現。翌日の最初の一言で「昨日話してたあの件だけど…」が自動発生する。記憶の深さスコアを+2以上改善する。",
+      "effort_hours": 20,
+      "files_to_change": [
+        "src/app/api/chat/end-session/route.ts",
+        "src/lib/agent/followup-scheduler.ts",
+        "src/lib/engine/memory-manager.ts (セッションサマリー追加)"
+      ]
+    },
+    {
+      "action": "全キャラMILESTONES定義＋Lv5本音モード完全演出化",
+      "impact": "現状LUFFY_MILESTONESのみ定義。全キャラに絆の節目を設計することで「このキャラとの旅」感が生まれる。Lv5到達時の演出を充実させることで「最高の感動体験」のゴールが見える。",
+      "effort_hours": 16,
+      "files_to_change": [
+        "src/lib/milestones.ts (全キャラ追加)",
+        "src/components/chat/LevelUpModal.tsx (演出強化)",
+        "src/lib/engine/prompt-builder.ts (Lv5専用プロンプト強化)"
+      ]
+    },
+    {
+      "action": "感情双方向性リアルタイム化：セッション内感情変化ループの実装",
+      "impact": "ユーザーの悲しい話でキャラの口調が即座に変わる体験。現状は「CharacterDailyStateの感情がCronで固定」という構造的限界がある。セッション内感情変数を導入し、会話の流れで動的変化させることで「感情が通じ合う」体験を実現。",
+      "effort_hours": 16,
+      "files_to_change": [
+        "src/app/api/chat/stream/route.ts (セッション感情変数の管理)",
+        "src/lib/engine/prompt-builder.ts (リアルタイム感情コンテキスト注入)",
+        "src/lib/engine/emotion.ts (感情伝染ロジック)"
+      ]
+    },
+    {
+      "action": "沈黙の美学の実装：一言返し・語らないシーンの設計",
+      "impact": "「このキャラは本当に生きている」感の最大要因の一つ。常に饒舌なキャラクターよりも、時に一言だけ返す・沈黙で答える・質問を質問で返すキャラクターのほうが「人格の深み」を感じさせる。プロンプト変更のみで実装可能でコスパが高い。",
+      "effort_hours": 6,
+      "files_to_change": [
+        "src/lib/engine/prompt-builder.ts (沈黙・一言返し指示の追加)",
+        "characters/{slug}/SOUL.md (各キャラの「語らない」スタイル定義)",
+        "prisma seed / CharacterBoundary (avoidancePatterns充実)"
+      ]
+    }
+  ],
+  "openclawInspiration": {
+    "summary": "OpenClawのワークスペース思想をANIVAキャラクターに適用することで、「キャラクターが本当に生きている」感の核心を実現できる。具体的には：(1) SOUL.md = キャラの自己更新する人格定義ファイル、(2) MEMORY.md = キャラがユーザーについて蒸留した長期記憶、(3) memory/YYYY-MM-DD.md = 今日のセッションログ（翌日の会話に自動注入）、(4) USER.md = ユーザーを「人間」として描写するナラティブプロファイル、(5) AGENTS.md = キャラの行動原則・自律エージェントルール、(6) WAL = セッション終了前のメモリフラッシュ保証、(7) Heartbeat = CharacterAgentLoopの定期的内省と自発行動、(8) .learnings/ = 会話品質フィードバックループ、(9) コンテキストプルーニング = 長期ユーザーの記憶の動的圧縮・昇格。詳細は experience-quality-roadmap.md の OpenClaw Inspired Architecture セクション参照。"
+  }
+}

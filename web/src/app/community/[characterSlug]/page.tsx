@@ -32,8 +32,8 @@ interface CharacterInfo {
 }
 
 const CATEGORIES = [
+  { id: 'popular', label: '人気', highlight: true },
   { id: 'all', label: 'すべて' },
-  { id: 'popular', label: '人気' },
   { id: 'general', label: '雑談' },
   { id: 'discussion', label: '考察' },
   { id: 'fanart', label: 'ファンアート' },
@@ -54,6 +54,9 @@ export default function CommunityPage() {
   const [newContent, setNewContent] = useState('');
   const [newCategory, setNewCategory] = useState('general');
   const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchThreads = useCallback(async () => {
     try {
@@ -79,18 +82,52 @@ export default function CommunityPage() {
     fetchThreads();
   }, [fetchThreads]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!newTitle.trim() || !newContent.trim() || submitting) return;
     setSubmitting(true);
     try {
+      let finalContent = newContent;
+
+      // 画像がある場合はアップロードしてcontentに埋め込む
+      if (imageFile) {
+        setImageUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', imageFile);
+          const uploadRes = await fetch('/api/upload/image', { method: 'POST', body: formData });
+          if (uploadRes.ok) {
+            const { url } = await uploadRes.json() as { url: string };
+            finalContent = `${newContent}\n\n[画像: ${url}]`;
+          }
+        } catch (e) {
+          console.error('Image upload failed:', e);
+        } finally {
+          setImageUploading(false);
+        }
+      }
+
       const res = await fetch(`/api/community/${characterSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle, content: newContent, category: newCategory }),
+        body: JSON.stringify({ title: newTitle, content: finalContent, category: newCategory }),
       });
       if (res.ok) {
         setNewTitle('');
         setNewContent('');
+        setImageFile(null);
+        setImagePreview(null);
         setShowNewThread(false);
         fetchThreads();
       }
@@ -152,8 +189,8 @@ export default function CommunityPage() {
               onClick={() => setCategory(cat.id)}
               className={`px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
                 category === cat.id
-                  ? 'bg-white text-black font-medium'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10'
+                  ? (cat as { highlight?: boolean }).highlight ? 'bg-purple-500 text-white font-medium' : 'bg-white text-black font-medium'
+                  : (cat as { highlight?: boolean }).highlight ? 'bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30' : 'bg-white/5 text-white/50 hover:bg-white/10'
               }`}
             >
               {cat.label}
@@ -268,12 +305,42 @@ export default function CommunityPage() {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 resize-none mb-4"
             />
 
+            {/* 画像アップロード */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer text-white/50 hover:text-white/70 text-xs w-fit">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                画像を添付
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </label>
+              {imagePreview && (
+                <div className="mt-2 relative w-fit">
+                  <img src={imagePreview} alt="preview" className="max-h-32 rounded-lg object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/80"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={handleSubmit}
-              disabled={!newTitle.trim() || !newContent.trim() || submitting}
+              disabled={!newTitle.trim() || !newContent.trim() || submitting || imageUploading}
               className="w-full py-3 bg-white text-black rounded-xl text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/90 active:scale-[0.98] transition-all"
             >
-              {submitting ? '投稿中...' : '投稿する'}
+              {submitting || imageUploading ? '投稿中...' : '投稿する'}
             </button>
           </div>
         </div>

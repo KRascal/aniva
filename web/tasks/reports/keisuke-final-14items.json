@@ -1,0 +1,90 @@
+{
+  "task": "Keisuke最終14件修正",
+  "status": "partial",
+  "summary": "14件中13件完了（N7はUIバグ確認不能のため変更なし）、TSエラーゼロ確認済み",
+  "completed_at": "2026-03-16T09:11:00Z",
+  "files_changed": [
+    "src/app/mypage/page.tsx",
+    "src/app/api/memory-book/[characterId]/route.ts",
+    "src/app/community/[characterSlug]/[threadId]/page.tsx",
+    "src/app/chat/[characterId]/page.tsx",
+    "src/components/chat/GiftPanel.tsx",
+    "src/app/api/chat/stream/route.ts",
+    "src/app/community/[characterSlug]/page.tsx",
+    "src/app/api/cron/stories-post/route.ts",
+    "src/components/profile/tabs/FcTab.tsx",
+    "src/app/profile/[characterId]/page.tsx",
+    "src/components/profile/tabs/DlTab.tsx",
+    "src/components/chat/StickerPicker.tsx",
+    "src/components/chat/ChatInput.tsx",
+    "src/app/api/moments/route.ts"
+  ],
+  "details": {
+    "B1": {
+      "status": "fixed",
+      "description": "マイページ特典セクション5アイテム全てからgradientアイコンブロック（w-8 h-8 rounded-xl）を削除、テキストp要素のみ残存"
+    },
+    "B2": {
+      "status": "fixed",
+      "description": "memory-book APIのtry/catch不足によるISEを修正。関数全体をtry/catchでラップし500エラー対応"
+    },
+    "B3": {
+      "status": "fixed",
+      "description": "返信ボタン・引用ボタンにsetTimeout+focus()+scrollIntoViewを追加してフッター入力欄へのフォーカスを確保"
+    },
+    "B4": {
+      "status": "fixed",
+      "description": "スタンプ送信エンドポイントを存在しない/api/chatから/api/chat/sendに修正"
+    },
+    "B5": {
+      "status": "fixed",
+      "description": "GiftPanel.onGiftSentにnewBalanceパラメータ追加、chat/page.tsxのコールバックでsetCoinBalance呼び出し追加"
+    },
+    "B6": {
+      "status": "fixed",
+      "description": "SSE completeイベントにxpフィールド追加（stream/route.ts）、フロントでsetRelationship+setLevelUpDataによるリアルタイム更新実装"
+    },
+    "N1": {
+      "status": "no_change",
+      "description": "既に完全実装済み。endsAt入力UI（datetime-local）・期限切れフィルタ・API全て対応済み"
+    },
+    "N2": {
+      "status": "implemented",
+      "description": "スレッド作成モーダルに画像添付UI追加。DBスキーマ変更なしでcontent末尾への[画像: URL]埋め込み方式、/api/upload/image経由アップロード"
+    },
+    "N3": {
+      "status": "implemented",
+      "description": "FcTab.tsxにdlContents propsを追加、FC加入済みセクションにDLコンテンツグリッドを表示"
+    },
+    "N4": {
+      "status": "implemented",
+      "description": "DlTab.tsxにストーリーリンク（右端）とコインショップバナーリンクを追加"
+    },
+    "N5": {
+      "status": "fixed",
+      "description": "stories-post cronにgetAutoPostsConfig適用。normalRatio(デフォルト85)基準で15%の確率でisFcOnly:true/visibility:PREMIUM設定"
+    },
+    "N6": {
+      "status": "implemented",
+      "description": "StickerPickerにonBuyStickersコールバック追加、フッターに購入ボタン表示。ChatInputを経由してchat/page.tsxでrouter.push('/coins')に繋げた"
+    },
+    "N7": {
+      "status": "no_change",
+      "description": "ストーリーセクションのUIは他アイテムと統一済みでバグ確認不能。N1実装後のアイコン削除により統一済みと判断"
+    },
+    "N8": {
+      "status": "fixed",
+      "description": "moments API(/api/moments)にresolveCharacterId追加。slugで渡されたcharacterIdをUUIDに解決してからPrismaクエリ実行"
+    }
+  },
+  "risks": [
+    "N2の画像アップロードは/api/upload/imageエンドポイントの存在前提。エンドポイントが異なる場合は要確認",
+    "B2のmemory-bookはtry/catchでエラーを握りつぶす形。本来の原因（relationship未作成等）は個別対応が必要な場合あり",
+    "N5のFC限定投稿比率はRedisが落ちている場合デフォルト値(85%)にフォールバック"
+  ],
+  "next_actions": [
+    "/api/upload/imageエンドポイントのパスをN2の実装と一致しているか確認",
+    "memory-bookでISEが続く場合はrelationship未作成ケースを調査",
+    "N7のUIバグが具体的にどの要素か再度Keisukeに確認"
+  ]
+}

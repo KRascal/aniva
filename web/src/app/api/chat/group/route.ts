@@ -55,12 +55,21 @@ export async function GET() {
     const charMap = new Map(characters.map(c => [c.id, c]));
 
     const conversations = groupConvs.map(conv => {
+<<<<<<< HEAD
       const meta = conv.metadata as { characterIds?: string[] };
+=======
+      const meta = conv.metadata as { characterIds?: string[]; isPinned?: boolean; pinnedAt?: string | null };
+>>>>>>> origin/staging
       const charIds = meta?.characterIds ?? [];
       const lastMsg = conv.messages[0] ?? null;
       return {
         id: conv.id,
         updatedAt: conv.updatedAt.toISOString(),
+<<<<<<< HEAD
+=======
+        isPinned: meta?.isPinned ?? false,
+        pinnedAt: meta?.pinnedAt ?? null,
+>>>>>>> origin/staging
         characters: charIds.map(id => charMap.get(id)).filter(Boolean),
         lastMessage: lastMsg ? {
           role: lastMsg.role,
@@ -352,6 +361,44 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error('[GroupChat] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * グループチャット削除（ソフト削除: isActive = false）
+ * DELETE /api/chat/group?conversationId=xxx
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const userId = await getVerifiedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const conversationId = searchParams.get('conversationId');
+    if (!conversationId) {
+      return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
+    }
+
+    // 所有確認
+    const conv = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+    if (!conv) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // ソフト削除（isActive = false）
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { isActive: false },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error('[GroupChat] DELETE error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

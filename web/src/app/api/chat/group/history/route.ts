@@ -24,18 +24,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
     }
 
-    // IDOR対策: 会話がユーザーのRelationshipに属していることを確認
+    // IDOR対策: 会話がユーザーに属していることを確認（グループ=userId直接、1on1=relationship経由）
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: {
         id: true,
+        userId: true,
+        metadata: true,
         relationship: {
           select: { userId: true },
         },
       },
     });
 
-    if (!conversation || conversation.relationship.userId !== userId) {
+    const ownerUserId = conversation?.userId ?? conversation?.relationship?.userId;
+    if (!conversation || ownerUserId !== userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
@@ -52,9 +55,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const meta = conversation.metadata as { characterIds?: string[] };
     return NextResponse.json({
       conversationId,
       messages,
+      characterIds: meta?.characterIds ?? [],
     });
   } catch (error) {
     logger.error('[GroupChat/History] Error:', error);

@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { uploadChatMedia } from '@/lib/media-manager';
 
 const imageSendLimiter = createRateLimiter({ prefix: 'chat-image', limit: 10, windowSec: 60 });
 
@@ -114,6 +115,19 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // ChatMediaレコードを非同期で作成（エラーでも送信は止めない）
+  uploadChatMedia({
+    file: buffer,
+    mimeType: file.type,
+    conversationId: conversation.id,
+    userId,
+    characterId,
+    messageId: userMsg.id,
+    uploadedBy: 'user',
+  }).catch((err) => {
+    console.error('[send-image] ChatMedia upload failed (non-fatal):', err);
+  });
+
   // conversation + relationship の時刻を更新（チャット順序ソートに必須）
   const nowTs = new Date();
   await Promise.all([
@@ -127,7 +141,7 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
-  // キャラクター応答生成（画像リアクション）
+  // キャラクター応答生成（画像リアクション）— 失敗しても画像送信は成功として返す
   let characterReply: { id: string; role: string; content: string; createdAt: string } | null = null;
   try {
     const character = await prisma.character.findUnique({
@@ -135,9 +149,22 @@ export async function POST(req: NextRequest) {
       select: { id: true, name: true, slug: true },
     });
     if (character) {
+      // Vision APIで画像を分析してキャラ反応の質を向上
+      let imageHint = 'ユーザーが何かの画像を共有してくれた。キャラとして興味を示し、短く自然に反応して。';
+      try {
+        const { analyzeImage, imageAnalysisToPromptHint } = await import('@/lib/image-analysis');
+        // 外部公開URLでVision API呼び出し（内部パスはフルURLに変換）
+        const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+        const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`;
+        const analysis = await analyzeImage(fullImageUrl);
+        if (analysis) {
+          imageHint = imageAnalysisToPromptHint(analysis);
+        }
+      } catch (visionErr) {
+        console.error('[send-image] vision analysis failed (non-fatal):', visionErr);
+      }
+
       const { getCharacterImagePrompt } = await import('@/lib/image-character-reaction');
-      // 画像URLをプロンプトのヒントとして使用
-      const imageHint = `ユーザーが画像（${imageUrl}）を送ってきました。`;
       const reactionPrompt = getCharacterImagePrompt(character.slug, imageHint);
 
       // characterEngineで応答生成
@@ -168,7 +195,8 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error('[send-image] character reaction error', err);
+    // 応答生成失敗は非致命的 — 画像送信成功として返す
+    console.error('[send-image] character reaction error (non-fatal):', err);
   }
 
   return NextResponse.json({
