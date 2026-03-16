@@ -250,9 +250,7 @@ export default function GroupChatPage() {
   const searchParams = useSearchParams();
 
   // ステップ: 'select' | 'chat'
-  // URLにconversationIdがある場合は直接チャット画面から開始
-  const hasUrlConvId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('conversationId') !== null : false;
-  const [step, setStep] = useState<'select' | 'chat'>(hasUrlConvId ? 'chat' : 'select');
+  const [step, setStep] = useState<'select' | 'chat'>('select');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
@@ -272,6 +270,7 @@ export default function GroupChatPage() {
     const urlConvId = searchParams.get('conversationId');
     if (!urlConvId) return;
     setConversationId(urlConvId);
+    setStep('chat'); // 直接チャット画面に遷移
     setIsLoadingHistory(true);
     (async () => {
       try {
