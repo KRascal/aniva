@@ -55,21 +55,14 @@ export async function GET() {
     const charMap = new Map(characters.map(c => [c.id, c]));
 
     const conversations = groupConvs.map(conv => {
-<<<<<<< HEAD
-      const meta = conv.metadata as { characterIds?: string[] };
-=======
       const meta = conv.metadata as { characterIds?: string[]; isPinned?: boolean; pinnedAt?: string | null };
->>>>>>> origin/staging
       const charIds = meta?.characterIds ?? [];
       const lastMsg = conv.messages[0] ?? null;
       return {
         id: conv.id,
         updatedAt: conv.updatedAt.toISOString(),
-<<<<<<< HEAD
-=======
         isPinned: meta?.isPinned ?? false,
         pinnedAt: meta?.pinnedAt ?? null,
->>>>>>> origin/staging
         characters: charIds.map(id => charMap.get(id)).filter(Boolean),
         lastMessage: lastMsg ? {
           role: lastMsg.role,

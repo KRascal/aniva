@@ -368,160 +368,14 @@ export default function ChatPage() {
           );
         })}
 
-<<<<<<< HEAD
-        {/* チャット一覧（1on1 + グループ混在・時系列ソート） */}
-=======
         {/* チャット一覧（1on1 + グループ混在・ピン優先→時系列降順） */}
->>>>>>> origin/staging
         {charsWithHistory.length === 0 && groupConversations.length === 0 ? (
           <EmptyState
             characters={characters}
             relationships={relationships}
             onNavigate={(path) => router.push(path)}
           />
-<<<<<<< HEAD
-        ) : (
-          <div className="space-y-1">
-            {/* グループチャット — ピン留めに次いで時系列順で1on1と混在 */}
-            {groupConversations
-              .filter(conv => {
-                // ピン留めグループを先頭に
-                return true;
-              })
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-              .map(conv => {
-                const charNames = conv.characters.map(c => c.name.split('・')[0]).join(' × ');
-                const timeAgo = (() => {
-                  const diff = Date.now() - new Date(conv.updatedAt).getTime();
-                  const mins = Math.floor(diff / 60000);
-                  if (mins < 1) return 'たった今';
-                  if (mins < 60) return `${mins}分前`;
-                  const hours = Math.floor(mins / 60);
-                  if (hours < 24) return `${hours}時間前`;
-                  return `${Math.floor(hours / 24)}日前`;
-                })();
-                const convUpdatedAt = new Date(conv.updatedAt).getTime();
-                // ピン留めキャラがある場合はその下、なければ適切な位置に挿入
-                // ここでは単純にグループを先に表示（後でソートロジックを統合可能）
-                return (
-                  <button
-                    key={`group-${conv.id}`}
-                    onClick={() => router.push(`/chat/group?conversationId=${conv.id}`)}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all active:scale-[0.99]"
-                    style={{
-                      background: 'rgba(139,92,246,0.06)',
-                      border: '1px solid rgba(139,92,246,0.15)',
-                    }}
-                  >
-                    <div className="flex -space-x-2 flex-shrink-0">
-                      {conv.characters.slice(0, 3).map((c, i) => (
-                        c.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img key={c.id} src={c.avatarUrl} alt={c.name} className="w-9 h-9 rounded-full object-cover" style={{ boxShadow: '0 0 0 2px rgb(3,7,18)', zIndex: 3 - i }} />
-                        ) : (
-                          <div key={c.id} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-purple-700" style={{ zIndex: 3 - i }}>{c.name.charAt(0)}</div>
-                        )
-                      ))}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[10px] text-purple-400 font-bold">GROUP</span>
-                        <span className="text-sm font-semibold text-white truncate">{charNames}</span>
-                      </div>
-                      {conv.lastMessage ? (
-                        <p className="text-xs text-white/50 truncate">
-                          {conv.lastMessage.role === 'USER' ? 'あなた: ' : `${(conv.lastMessage as { characterName?: string }).characterName ?? ''}: `}
-                          {conv.lastMessage.content.slice(0, 40)}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-white/30">グループチャット</p>
-                      )}
-                    </div>
-                    <span className="text-xs text-white/30 flex-shrink-0">{timeAgo}</span>
-                  </button>
-                );
-              })}
-            {charsWithHistory.map((character) => {
-              const rel = relationships.get(character.id)!;
-              const lastVisited = lastVisitMap.get(character.id) ?? 0;
-              const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
-              const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
-              const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
-              const charProactiveCount = proactiveMessages.filter(m => m.character?.id === character.id && !dismissedProactive.has(m.id)).length;
-              const totalUnread = (hasUnread ? 1 : 0) + charProactiveCount;
-              return (
-                <SwipeableChatRow
-                  key={character.id}
-                  character={character}
-                  relationship={rel}
-                  hasUnread={hasUnread || charProactiveCount > 0}
-                  unreadCount={totalUnread}
-                  isPinned={!!rel.isPinned}
-                  isMuted={!!rel.isMuted}
-                  isFanclub={!!rel.isFanclub}
-                  onClick={() => router.push(`/chat/${character.slug || character.id}`)}
-                  onPin={async () => {
-                    const newPin = !rel.isPinned;
-                    try {
-                      const res = await fetch('/api/relationship/pin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ characterId: character.id, pin: newPin }),
-                      });
-                      if (res.ok) {
-                        setRelationships(prev => {
-                          const next = new Map(prev);
-                          const updated = { ...rel, isPinned: newPin, pinnedAt: newPin ? new Date().toISOString() : null };
-                          next.set(character.id, updated);
-                          return next;
-                        });
-                      }
-                    } catch (err) {
-                      logger.error('[ChatPage] pin error', { error: err });
-                    }
-                  }}
-                  onMute={async () => {
-                    const newMute = !rel.isMuted;
-                    try {
-                      const res = await fetch('/api/relationship/mute', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ characterId: character.id, mute: newMute }),
-                      });
-                      if (res.ok) {
-                        setRelationships(prev => {
-                          const next = new Map(prev);
-                          const updated = { ...rel, isMuted: newMute };
-                          next.set(character.id, updated);
-                          return next;
-                        });
-                      }
-                    } catch (err) {
-                      logger.error('[ChatPage] mute error', { error: err });
-                    }
-                  }}
-                  onUnfollow={async () => {
-                    try {
-                      const res = await fetch(`/api/relationship/${character.id}/follow`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ follow: false }),
-                      });
-                      if (res.ok) {
-                        loadChatList();
-                      }
-                    } catch (err) {
-                      logger.error('[ChatPage] unfollow error', { error: err });
-                    }
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
 
-        {/* グループチャット履歴は上の1on1一覧内に統合済み */}
-=======
         ) : (() => {
           // ── union type list ──
           type ChatItem =
@@ -679,7 +533,6 @@ export default function ChatPage() {
             </div>
           );
         })()}
->>>>>>> origin/staging
       </main>
     </div>
   );

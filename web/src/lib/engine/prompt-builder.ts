@@ -597,10 +597,7 @@ export function buildSystemPrompt(
   userProfileContext: string = '',
   narrativeSummary?: string,
   yesterdayHook?: string,
-<<<<<<< HEAD
-=======
   characterLearnings?: CharacterLearning[],
->>>>>>> origin/staging
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
