@@ -1,18 +1,26 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { vibrateEmotion } from '@/lib/sound-effects';
 import { formatScheduledAtText } from '@/lib/message-weight';
+import type { ChatDeliveryMeta } from '@/components/chat/ChatDeliveryBubble';
+
+/* ChatDeliveryBubble はコード分割（動的インポート） */
+const ChatDeliveryBubble = dynamic(
+  () => import('@/components/chat/ChatDeliveryBubble').then((m) => m.ChatDeliveryBubble),
+  { ssr: false },
+);
 
 /* ─────────────── 型定義（page.tsxから移動・export） ─────────────── */
 export interface Message {
   id: string;
   role: 'USER' | 'CHARACTER' | 'SYSTEM';
   content: string;
-  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isThinking?: boolean; deepReply?: boolean; scheduledAt?: string };
+  metadata?: { emotion?: string; isSystemHint?: boolean; isFarewell?: boolean; isCliffhanger?: boolean; imageUrl?: string; stickerUrl?: string; isStreaming?: boolean; isTyping?: boolean; isThinking?: boolean; deepReply?: boolean; scheduledAt?: string; isDelivery?: boolean; type?: string; referenceId?: string };
   createdAt: string;
   audioUrl?: string | null;
 }
@@ -443,6 +451,37 @@ export function ChatMessageList({
             } else {
               dateLabelText = `${msgDate.getMonth() + 1}月${msgDate.getDate()}日`;
             }
+          }
+
+          // 配信メッセージ（手紙・ストーリー章・限定イベント）は ChatDeliveryBubble で表示
+          if (msg.metadata?.isDelivery === true && msg.metadata.type && msg.metadata.referenceId) {
+            const deliveryMeta: ChatDeliveryMeta = {
+              type: msg.metadata.type as ChatDeliveryMeta['type'],
+              referenceId: msg.metadata.referenceId,
+              isDelivery: true,
+            };
+            return (
+              <div key={msg.id}>
+                {showDateSeparator && (
+                  <div className="flex items-center gap-3 my-4 px-2">
+                    <div className="flex-1 h-px bg-gray-800" />
+                    <span className="text-xs text-gray-600 font-medium px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800">{dateLabelText}</span>
+                    <div className="flex-1 h-px bg-gray-800" />
+                  </div>
+                )}
+                <ChatDeliveryBubble
+                  messageId={msg.id}
+                  metadata={deliveryMeta}
+                  characterName={character?.name}
+                  characterId={character?.id}
+                  createdAt={msg.createdAt}
+                  onMarkRead={async (msgId) => {
+                    // ChatDelivery既読API呼び出し（best effort）
+                    await fetch('/api/chat/deliveries/by-message/' + msgId + '/read', { method: 'POST' }).catch(() => {});
+                  }}
+                />
+              </div>
+            );
           }
 
           // SYSTEM メッセージ（CTA等）は専用UI

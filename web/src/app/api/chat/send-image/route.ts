@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { uploadChatMedia } from '@/lib/media-manager';
 
 const imageSendLimiter = createRateLimiter({ prefix: 'chat-image', limit: 10, windowSec: 60 });
 
@@ -112,6 +113,19 @@ export async function POST(req: NextRequest) {
       imageUrl,
       metadata: { imageUrl },
     },
+  });
+
+  // ChatMediaレコードを非同期で作成（エラーでも送信は止めない）
+  uploadChatMedia({
+    file: buffer,
+    mimeType: file.type,
+    conversationId: conversation.id,
+    userId,
+    characterId,
+    messageId: userMsg.id,
+    uploadedBy: 'user',
+  }).catch((err) => {
+    console.error('[send-image] ChatMedia upload failed (non-fatal):', err);
   });
 
   // conversation + relationship の時刻を更新（チャット順序ソートに必須）
