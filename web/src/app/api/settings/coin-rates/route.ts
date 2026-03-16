@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin } from '@/lib/rbac';
+import { requireRole } from '@/lib/rbac';
 
 const DEFAULT_RATES = {
   chat: 10,
@@ -43,8 +43,8 @@ export async function GET() {
  * POST: 管理画面からコイン設定値を更新
  */
 export async function POST(req: NextRequest) {
-  const authError = await requireAdmin(req);
-  if (authError) return authError;
+  const ctx = await requireRole('editor');
+  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const body = await req.json();
