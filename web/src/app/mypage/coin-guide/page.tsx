@@ -64,7 +64,7 @@ export default function CoinGuidePage() {
         {/* ── コインの消費 ── */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-            <span className="text-base">💸</span>
+            <span className="text-base"></span>
             <h2 className="text-sm font-bold text-gray-300">コインの消費先</h2>
           </div>
           <div className="divide-y divide-white/5">
@@ -90,7 +90,7 @@ export default function CoinGuidePage() {
         {/* ── コインの獲得方法 ── */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-            <span className="text-base">🌟</span>
+            <span className="text-base"></span>
             <h2 className="text-sm font-bold text-gray-300">コインの獲得方法</h2>
           </div>
           <div className="divide-y divide-white/5">
@@ -122,7 +122,7 @@ export default function CoinGuidePage() {
           }}
         >
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-            <span className="text-base">🛒</span>
+            <span className="text-base"></span>
             <h2 className="text-sm font-bold text-yellow-300">コインを購入する</h2>
           </div>
           <p className="px-4 pb-3 text-xs text-gray-400 leading-relaxed">
@@ -146,7 +146,7 @@ export default function CoinGuidePage() {
         {/* ── よくある質問 ── */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">❓</span>
+            <span className="text-base"></span>
             <h2 className="text-sm font-bold text-gray-300">よくある質問</h2>
           </div>
           <div className="space-y-4">
