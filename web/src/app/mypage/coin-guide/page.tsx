@@ -1,15 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
-const COIN_SPENDS = [
-  { label: 'チャット送信', cost: '10コイン / 回', note: '1on1チャット1通ごと' },
-  { label: '画像送信', cost: '15コイン / 回', note: 'チャットに画像を送る' },
-  { label: '深い回答リクエスト', cost: '20コイン / 回', note: 'じっくり考えた返答を受け取る' },
-  { label: 'グループチャット', cost: 'キャラ数 × 10コイン', note: '参加キャラ数分を消費' },
-  { label: 'ガチャ（1回）', cost: '100コイン', note: '単発ガチャ' },
-  { label: 'ガチャ（10連）', cost: '900コイン', note: '10連一括（1割お得）' },
-];
+// デフォルト値（APIからの動的取得でオーバーライド）
+const DEFAULT_RATES = {
+  chat: 10,
+  image: 15,
+  deepReply: 20,
+  groupChatPerChar: 10,
+  gachaSingle: 100,
+  gachaTen: 900,
+};
 
 const COIN_EARNS = [
   { label: 'ログインボーナス', amount: '10〜50コイン', note: '毎日ログインで獲得。連続日数で増加' },
@@ -21,6 +23,23 @@ const COIN_EARNS = [
 
 export default function CoinGuidePage() {
   const router = useRouter();
+  const [rates, setRates] = useState(DEFAULT_RATES);
+
+  useEffect(() => {
+    fetch('/api/settings/coin-rates')
+      .then(r => r.json())
+      .then(d => { if (d.rates) setRates(prev => ({ ...prev, ...d.rates })); })
+      .catch(() => {});
+  }, []);
+
+  const COIN_SPENDS = [
+    { label: 'チャット送信', cost: `${rates.chat}コイン / 回`, note: '1on1チャット1通ごと' },
+    { label: '画像送信', cost: `${rates.image}コイン / 回`, note: 'チャットに画像を送る' },
+    { label: '深い回答リクエスト', cost: `${rates.deepReply}コイン / 回`, note: 'じっくり考えた返答を受け取る' },
+    { label: 'グループチャット', cost: `キャラ数 × ${rates.groupChatPerChar}コイン`, note: '参加キャラ数分を消費' },
+    { label: 'ガチャ（1回）', cost: `${rates.gachaSingle}コイン`, note: '単発ガチャ' },
+    { label: 'ガチャ（10連）', cost: `${rates.gachaTen}コイン`, note: '10連一括（1割お得）' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-24">
