@@ -195,7 +195,7 @@ ${recentTexts || '（なし）'}
           content,
           visibility,
           publishedAt: staggeredPublishedAt,
-          ...(isPremiumPost ? { metadata: { isPremium: true } } : {}),
+          ...(isPremiumPost ? { isFcOnly: true } : {}),
         },
       });
 
