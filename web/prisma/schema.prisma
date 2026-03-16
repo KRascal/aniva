@@ -70,6 +70,7 @@ model User {
   chatMedia              ChatMedia[]
   chatDeliveries         ChatDelivery[]
   groupConversations     Conversation[] @relation("userConversations")
+  userStickers           UserSticker[]
 }
 
 model PushSubscription {
@@ -1555,4 +1556,36 @@ model ChatDelivery {
   @@unique([conversationId, deliveryType, referenceId])
   @@index([userId, isRead])
   @@index([conversationId, deliveredAt])
+}
+
+// ═══════════════════════════════════════════════════
+// スタンプパック
+// ═══════════════════════════════════════════════════
+
+model StickerPack {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  price       Int      @default(100)
+  stickers    Json     // [{url: "...", label: "..."}, ...]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases   UserSticker[]
+
+  @@index([isActive])
+}
+
+model UserSticker {
+  id            String      @id @default(cuid())
+  userId        String
+  stickerPackId String
+  purchasedAt   DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stickerPack   StickerPack @relation(fields: [stickerPackId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stickerPackId])
+  @@index([userId])
 }
