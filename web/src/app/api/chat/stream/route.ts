@@ -316,6 +316,7 @@ export async function POST(req: NextRequest) {
             streak: streakResult ? { days: streakResult.streakDays, isNew: streakResult.isNew } : undefined,
             cliffhangerTease,
             levelUp,
+            xp: updatedRel?.experiencePoints,
           }));
 
           // ── 月次チャット集計 ──

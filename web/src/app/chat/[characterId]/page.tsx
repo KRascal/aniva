@@ -880,9 +880,16 @@ export default function ChatCharacterPage() {
                 // streak更新のハンドリング（既存のstreakロジックがあればここで呼ぶ）
               }
 
+              // XP・レベル更新
+              if (parsed.xp !== undefined) {
+                setRelationship(prev =>
+                  prev ? { ...prev, xp: parsed.xp, ...(parsed.levelUp ? { level: parsed.levelUp.newLevel } : {}) } : prev
+                );
+              }
+
               // レベルアップ
               if (parsed.levelUp) {
-                // レベルアップ演出（既存があれば呼ぶ）
+                setLevelUpData({ newLevel: parsed.levelUp.newLevel });
               }
             } else if (parsed.type === 'deep_mode') {
               // Deep Mode: 考え中メッセージに置換してストリーム終了
@@ -1062,23 +1069,41 @@ export default function ChatCharacterPage() {
 
     try {
       // スタンプ送信 (テキストメッセージとして送信)
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
           message: `[スタンプを送った: ${label}]`,
-          userId,
-          metadata: { stickerUrl },
         }),
       });
       if (res.ok) {
         const data = await res.json();
         setMessages((prev: Message[]) =>
-          prev.map((m: Message) => m.id === tempId ? { ...m, id: data.userMessageId || tempId } : m)
+          prev.map((m: Message) => m.id === tempId ? { ...m, id: data.userMessage?.id || tempId } : m)
         );
         if (data.characterMessage) {
           setMessages((prev: Message[]) => [...prev, data.characterMessage]);
+        }
+        // B4/B6: スタンプ送信後にXP/レベルを更新（絆ゲージリアルタイム + レベルアップ対応）
+        if (data.relationship) {
+          setRelationship(prev =>
+            prev ? { ...prev, xp: data.relationship.xp, ...(data.relationship.leveledUp ? { level: data.relationship.newLevel } : {}) } : prev
+          );
+          if (data.relationship.leveledUp && data.relationship.newLevel) {
+            setLevelUpData({ newLevel: data.relationship.newLevel });
+          }
+        } else {
+          // フォールバック: re-fetch
+          fetch(`/api/relationship/${characterId}`)
+            .then(r => r.json())
+            .then(d => {
+              if (d.relationship) {
+                setRelationship(d.relationship);
+                if (d.relationship.id) setRelationshipId(d.relationship.id);
+              }
+            })
+            .catch(() => {});
         }
       }
     } catch {
@@ -1313,7 +1338,7 @@ export default function ChatCharacterPage() {
           characterName={character.name}
           isOpen={showGift}
           onClose={() => setShowGift(false)}
-          onGiftSent={(reaction, giftEmoji) => {
+          onGiftSent={(reaction, giftEmoji, newBalance) => {
             // ギフトリアクションをメッセージとして表示
             const giftMsg: Message = {
               id: `gift-${Date.now()}`,
@@ -1324,6 +1349,7 @@ export default function ChatCharacterPage() {
             };
             setMessages((prev) => [...prev, giftMsg]);
             setCurrentEmotion('excited');
+            if (newBalance !== undefined) setCoinBalance(newBalance);
           }}
         />
       )}
@@ -1684,6 +1710,7 @@ export default function ChatCharacterPage() {
         setShowPlusMenu={setShowPlusMenu}
         onGift={() => setShowGift(true)}
         onFcClick={() => setShowFcModal(true)}
+        onBuyStickers={() => router.push('/coins')}
         handleKeyDown={handleKeyDown}
         lastCharacterMessage={
           [...messages].reverse().find((m: Message) => m.role === 'CHARACTER')?.content ?? undefined

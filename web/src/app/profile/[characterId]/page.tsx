@@ -620,6 +620,7 @@ export default function ProfilePage() {
             toSharedMoment={toSharedMoment}
             onLike={handleLike}
             onJoinFC={handleFanclub}
+            dlContents={dlContents}
           />
         )}
 

@@ -253,6 +253,10 @@ export default function ThreadPage() {
       quotedContent: null,
       quotedAuthor: null,
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleSetQuoteTarget = (reply: Reply) => {
@@ -262,6 +266,10 @@ export default function ThreadPage() {
       quotedContent: reply.content,
       quotedAuthor: getAuthorName(reply.author),
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleReply = async () => {
