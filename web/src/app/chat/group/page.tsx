@@ -863,7 +863,7 @@ export default function GroupChatPage() {
 
       {/* メッセージエリア */}
       <main className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full relative z-10">
-        {messages.length === 0 && !isSending && (
+        {messages.length === 0 && !isSending && !searchParams.get('conversationId') && (
           <div className="text-center py-12">
             <div className="flex justify-center mb-4 -space-x-3">
               {selectedChars.map((c, i) => {
