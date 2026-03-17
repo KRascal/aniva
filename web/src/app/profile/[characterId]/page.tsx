@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const searchParams = useSearchParams();
   const characterId = params.characterId as string;
   const initialTab = searchParams.get('tab') as 'posts' | 'fc' | 'story' | 'shop' | 'profile' | null;
+  const shouldScrollToJoin = searchParams.get('join') === '1';
 
   const [userId, setUserId] = useState<string | null>(null);
   const [character, setCharacter] = useState<Character | null>(null);
@@ -121,6 +122,16 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfileData();
   }, [loadProfileData]);
+
+  // FC入会セクションへスクロール（?join=1 パラメータ時）
+  useEffect(() => {
+    if (!isLoading && shouldScrollToJoin && activeTab === 'fc') {
+      setTimeout(() => {
+        const el = document.getElementById('fc-join-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
+    }
+  }, [isLoading, shouldScrollToJoin, activeTab]);
 
   // ページ復帰時にrelationship再フェッチ（チャット/ギフト後の絆ゲージ反映）
   useEffect(() => {

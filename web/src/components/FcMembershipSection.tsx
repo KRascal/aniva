@@ -78,7 +78,7 @@ export function FcMembershipSection({
 
   // ── 未加入表示 ──
   return (
-    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 overflow-hidden">
+    <div id="fc-join-section" className="bg-gray-900 rounded-2xl border border-gray-800 p-5 overflow-hidden">
       {/* Header */}
       <div className="mb-4">
         <h3 className="text-white font-bold text-base mb-0.5">FCメンバーになる</h3>
