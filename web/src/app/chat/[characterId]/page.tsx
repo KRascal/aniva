@@ -891,6 +891,11 @@ export default function ChatCharacterPage() {
 
               // XP・レベル更新
               if (parsed.xp !== undefined) {
+                const xpGain = parsed.xp - prevXpRef.current;
+                if (xpGain > 0) {
+                  setXpFloat({ amount: xpGain, id: Date.now() });
+                  prevXpRef.current = parsed.xp;
+                }
                 setRelationship(prev =>
                   prev ? { ...prev, xp: parsed.xp, ...(parsed.levelUp ? { level: parsed.levelUp.newLevel } : {}) } : prev
                 );
@@ -1364,6 +1369,11 @@ export default function ChatCharacterPage() {
             setMessages((prev) => [...prev, giftMsg]);
             setCurrentEmotion('excited');
             if (newBalance !== undefined) setCoinBalance(newBalance);
+            // 絆ゲージをリアルタイム更新（ギフトでXP加算済み）
+            fetch(`/api/relationship/${characterId}`)
+              .then(r => r.json())
+              .then(d => { if (d.relationship) setRelationship(d.relationship); })
+              .catch(() => {});
           }}
         />
       )}

@@ -17,6 +17,7 @@ import { chatLimiter, rateLimitResponse } from '@/lib/rate-limit';
 import { checkChatAccess, incrementMonthlyChat } from '@/lib/freemium';
 import { updateStreak } from '@/lib/streak-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
+import { updateRelationshipXP } from '@/lib/engine/xp-system';
 import { Prisma } from '@prisma/client';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
@@ -285,6 +286,13 @@ export async function POST(req: NextRequest) {
               data: { lastMessageAt: nowTs },
             }),
           ]);
+
+          // ── XP加算（絆ゲージ更新） ──
+          try {
+            await updateRelationshipXP(relationship.id, emotion);
+          } catch (xpErr) {
+            logger.warn('[stream] XP update failed:', xpErr);
+          }
 
           // ── ストリーク更新 ──
           let streakResult: { streakDays: number; isNew: boolean; milestone: number | null } | null = null;
