@@ -153,10 +153,8 @@ export async function POST(req: NextRequest) {
       let imageHint = 'ユーザーが何かの画像を共有してくれた。キャラとして興味を示し、短く自然に反応して。';
       try {
         const { analyzeImage, imageAnalysisToPromptHint } = await import('@/lib/image-analysis');
-        // 外部公開URLでVision API呼び出し（内部パスはフルURLに変換）
-        const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-        const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`;
-        const analysis = await analyzeImage(fullImageUrl);
+        // bufferを直接渡す（URLフェッチの404リスクを回避）
+        const analysis = await analyzeImage({ buffer, mimeType: file.type });
         if (analysis) {
           imageHint = imageAnalysisToPromptHint(analysis);
         }
@@ -171,7 +169,7 @@ export async function POST(req: NextRequest) {
       const { characterEngine } = await import('@/lib/character-engine');
       const response = await characterEngine.generateResponse(
         character.id,
-        conversation.relationshipId!,
+        relationship.id,
         `[画像を受け取りました] ${reactionPrompt}`,
         'ja',
         { isFcMember: false }

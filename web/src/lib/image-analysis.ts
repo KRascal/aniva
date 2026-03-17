@@ -14,12 +14,42 @@ interface ImageAnalysisResult {
 /**
  * 画像をVision APIで解析する
  * xAI grok-vision → Anthropic Claude Vision フォールバック
+ * 
+ * imageUrlOrBuffer: URL文字列 or Base64データURI or { buffer, mimeType }
  */
-export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult | null> {
+export async function analyzeImage(
+  imageUrlOrBuffer: string | { buffer: Buffer; mimeType: string }
+): Promise<ImageAnalysisResult | null> {
+  // base64データを準備（bufferが渡された場合は直接使う）
+  let base64Data: string | null = null;
+  let mediaType = 'image/jpeg';
+  let imageUrl: string | null = null;
+
+  if (typeof imageUrlOrBuffer === 'object' && 'buffer' in imageUrlOrBuffer) {
+    base64Data = imageUrlOrBuffer.buffer.toString('base64');
+    mediaType = imageUrlOrBuffer.mimeType;
+  } else {
+    imageUrl = imageUrlOrBuffer;
+  }
+
+  const visionPrompt = `この画像を簡潔に分析して以下のJSON形式で返してください:
+{
+  "description": "画像の簡潔な説明（日本語、30文字以内）",
+  "objects": ["主要な被写体1", "被写体2"],
+  "mood": "画像全体の雰囲気（楽しい/美しい/面白い/美味しそう/可愛い/格好いい/感動的/日常的）",
+  "suggestedReaction": "この画像を見たアニメキャラクターが言いそうな自然な反応のヒント（20文字以内）"
+}
+JSONのみ返してください。`;
+
   // xAI Grok Vision
   const xaiKey = process.env.XAI_API_KEY;
   if (xaiKey) {
     try {
+      // xAIはbase64 data URIまたはURLを受け付ける
+      const imageContent = base64Data
+        ? { type: 'image_url' as const, image_url: { url: `data:${mediaType};base64,${base64Data}` } }
+        : { type: 'image_url' as const, image_url: { url: imageUrl! } };
+
       const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -31,23 +61,7 @@ export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResul
           messages: [
             {
               role: 'user',
-              content: [
-                {
-                  type: 'image_url',
-                  image_url: { url: imageUrl },
-                },
-                {
-                  type: 'text',
-                  text: `この画像を簡潔に分析して以下のJSON形式で返してください:
-{
-  "description": "画像の簡潔な説明（日本語、30文字以内）",
-  "objects": ["主要な被写体1", "被写体2"],
-  "mood": "画像全体の雰囲気（楽しい/美しい/面白い/美味しそう/可愛い/格好いい/感動的/日常的）",
-  "suggestedReaction": "この画像を見たアニメキャラクターが言いそうな自然な反応のヒント（20文字以内）"
-}
-JSONのみ返してください。`,
-                },
-              ],
+              content: [imageContent, { type: 'text', text: visionPrompt }],
             },
           ],
           max_tokens: 300,
@@ -62,6 +76,8 @@ JSONのみ返してください。`,
         if (jsonMatch) {
           return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
         }
+      } else {
+        logger.warn('[ImageAnalysis] xAI Vision HTTP error:', response.status);
       }
     } catch (err) {
       logger.warn('[ImageAnalysis] xAI Vision failed:', err);
@@ -72,12 +88,15 @@ JSONのみ返してください。`,
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
     try {
-      // Base64変換が必要な場合のフォールバック
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) return null;
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-      const base64 = imageBuffer.toString('base64');
-      const mediaType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      // base64データがなければURLからfetchして変換
+      if (!base64Data && imageUrl) {
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) return null;
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        base64Data = imageBuffer.toString('base64');
+        mediaType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      }
+      if (!base64Data) return null;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -95,14 +114,9 @@ JSONのみ返してください。`,
               content: [
                 {
                   type: 'image',
-                  source: { type: 'base64', media_type: mediaType, data: base64 },
+                  source: { type: 'base64', media_type: mediaType, data: base64Data },
                 },
-                {
-                  type: 'text',
-                  text: `この画像を簡潔に分析して以下のJSON形式で返してください:
-{"description":"画像の簡潔な説明（日本語30文字以内）","objects":["被写体"],"mood":"雰囲気","suggestedReaction":"キャラの反応ヒント20文字以内"}
-JSONのみ返してください。`,
-                },
+                { type: 'text', text: visionPrompt },
               ],
             },
           ],
@@ -116,6 +130,8 @@ JSONのみ返してください。`,
         if (jsonMatch) {
           return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
         }
+      } else {
+        logger.warn('[ImageAnalysis] Claude Vision HTTP error:', response.status);
       }
     } catch (err) {
       logger.warn('[ImageAnalysis] Claude Vision failed:', err);

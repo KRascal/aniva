@@ -1152,14 +1152,19 @@ export default function ChatCharacterPage() {
         logger.error('画像送信エラー', { error: err });
       } else {
         const data = await res.json();
-        // 楽観的メッセージを実際のメッセージに差し替え
-        setMessages((prev) =>
-          prev.map((m) =>
+        // 楽観的メッセージを実際のメッセージに差し替え + キャラ返答を追加
+        setMessages((prev) => {
+          const updated = prev.map((m) =>
             m.id === tempMsg.id
               ? { ...data.message, metadata: { imageUrl: data.imageUrl } }
               : m,
-          ),
-        );
+          );
+          // キャラクターの画像リアクションがあれば追加
+          if (data.characterReply) {
+            updated.push(data.characterReply);
+          }
+          return updated;
+        });
       }
     } catch (e) {
       logger.error('画像送信失敗', { error: e });
