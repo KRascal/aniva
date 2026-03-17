@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
@@ -171,7 +172,7 @@ export default function CommunityPage() {
           {character && (
             <div className="flex items-center gap-2">
               {character.avatarUrl && (
-                <img src={character.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                <Image src={character.avatarUrl} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" unoptimized />
               )}
               <div>
                 <h1 className="text-base font-semibold">{character.name} ファン掲示板</h1>
@@ -323,7 +324,7 @@ export default function CommunityPage() {
               </label>
               {imagePreview && (
                 <div className="mt-2 relative w-fit">
-                  <img src={imagePreview} alt="preview" className="max-h-32 rounded-lg object-cover" />
+                  <Image src={imagePreview} alt="preview" width={320} height={128} className="max-h-32 rounded-lg object-cover" unoptimized />
                   <button
                     type="button"
                     onClick={() => { setImageFile(null); setImagePreview(null); }}

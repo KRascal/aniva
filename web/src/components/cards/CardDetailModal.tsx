@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useRef, useState } from 'react';
 import { type OwnedCard, getRarityStyle } from './cards-types';
 
@@ -72,11 +73,9 @@ export function CardDetailModal({ card, onClose }: { card: OwnedCard; onClose: (
         >
           {/* Image */}
           {card.card.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.card.imageUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
+            <Image src={card.card.imageUrl} alt={card.card.name} fill className="object-cover object-top" unoptimized />
           ) : card.card.character?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.card.character.avatarUrl} alt={card.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
+            <Image src={card.card.character.avatarUrl} alt={card.card.name} fill className="object-cover object-top" unoptimized />
           ) : (
             <div className={`absolute inset-0 bg-gradient-to-br ${style.bg} opacity-40`} />
           )}

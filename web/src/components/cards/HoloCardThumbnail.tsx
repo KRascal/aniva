@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useRef, useState } from 'react';
 import { type OwnedCard, getRarityStyle } from './cards-types';
 
@@ -54,9 +55,9 @@ export function HoloCardThumbnail({ oc, onClick }: { oc: OwnedCard; onClick: () 
     >
       {/* Card image or avatar fallback */}
       {oc.card.imageUrl ? (
-        <img src={oc.card.imageUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
+        <Image src={oc.card.imageUrl} alt={oc.card.name} fill className="object-cover object-top" unoptimized />
       ) : oc.card.character?.avatarUrl ? (
-        <img src={oc.card.character.avatarUrl} alt={oc.card.name} className="absolute inset-0 w-full h-full object-cover object-top" />
+        <Image src={oc.card.character.avatarUrl} alt={oc.card.name} fill className="object-cover object-top" unoptimized />
       ) : (
         <div className={`absolute inset-0 bg-gradient-to-br ${style.bg} opacity-30`} />
       )}

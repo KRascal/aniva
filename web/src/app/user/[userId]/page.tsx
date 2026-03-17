@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -149,7 +150,7 @@ export default function UserProfilePage() {
       {/* Cover + Avatar */}
       <div className="relative h-44 overflow-hidden">
         {profile.coverImageUrl ? (
-          <img src={profile.coverImageUrl} alt="" className="w-full h-full object-cover" />
+          <Image src={profile.coverImageUrl} alt="" fill className="object-cover" unoptimized />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-purple-900/60 via-indigo-900/40 to-[#0a0a0a]" />
         )}
@@ -162,7 +163,7 @@ export default function UserProfilePage() {
           <div className="flex items-end gap-4">
             <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl ring-4 ring-[#0a0a0a] flex-shrink-0">
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                <Image src={profile.avatarUrl} alt={displayName} width={112} height={112} className="w-full h-full object-cover" unoptimized />
               ) : avatarLetter}
             </div>
             <div className="pb-2 flex-1 min-w-0">
@@ -267,7 +268,7 @@ export default function UserProfilePage() {
                       </span>
                       <div className={`w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ${oshi.isFanclub ? 'ring-purple-500' : 'ring-white/10'} group-hover:ring-purple-400/60 transition-all`}>
                         {oshi.characterAvatar ? (
-                          <img src={oshi.characterAvatar} alt={oshi.characterName} className="w-full h-full object-cover" />
+                          <Image src={oshi.characterAvatar} alt={oshi.characterName} width={44} height={44} className="w-full h-full object-cover" unoptimized />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold">{oshi.characterName.charAt(0)}</div>
                         )}
@@ -316,7 +317,7 @@ export default function UserProfilePage() {
                     return (
                       <div key={card.id} className={`relative rounded-xl overflow-hidden border ${style.border} ${style.bg} aspect-[3/4] shadow-lg ${style.glow}`}>
                         {card.characterAvatar ? (
-                          <img src={card.characterAvatar} alt={card.name} className="w-full h-full object-cover" />
+                          <Image src={card.characterAvatar} alt={card.name} fill className="object-cover" unoptimized />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-2xl">🃏</div>
                         )}
@@ -356,7 +357,7 @@ export default function UserProfilePage() {
                     <a key={char.characterId} href={`/profile/${char.characterId}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
                       <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/40">
                         {char.characterAvatarUrl ? (
-                          <img src={char.characterAvatarUrl} alt={char.characterName} className="w-full h-full object-cover" />
+                          <Image src={char.characterAvatarUrl} alt={char.characterName} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold">{char.characterName.charAt(0)}</div>
                         )}
@@ -388,7 +389,7 @@ export default function UserProfilePage() {
                     >
                       <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
                         {char.characterAvatarUrl ? (
-                          <img src={char.characterAvatarUrl} alt="" className="w-full h-full object-cover" />
+                          <Image src={char.characterAvatarUrl} alt="" width={24} height={24} className="w-full h-full object-cover" unoptimized />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600" />
                         )}

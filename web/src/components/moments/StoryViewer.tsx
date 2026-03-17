@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { type StoryItem } from './InstaStoriesBar';
 
@@ -68,7 +69,7 @@ export function StoryViewer({ stories, initialIndex, onClose, onChat }: {
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4" style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 16px), 24px)' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/40 bg-gray-800">
-            {story.avatarUrl && <img src={story.avatarUrl} alt="" className="w-full h-full object-cover" />}
+            {story.avatarUrl && <Image src={story.avatarUrl} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized />}
           </div>
           <div>
             <p className="text-white text-sm font-bold drop-shadow-lg">{story.name}</p>
@@ -80,7 +81,7 @@ export function StoryViewer({ stories, initialIndex, onClose, onChat }: {
       {/* Content */}
       <div className="absolute inset-0">
         {story.coverUrl ? (
-          <img src={story.coverUrl} alt={story.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          <Image src={story.coverUrl} alt={story.name} fill className="object-cover" draggable={false} unoptimized />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-purple-900 to-gray-900" />
         )}

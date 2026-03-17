@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -99,8 +100,7 @@ export default function EventsPage() {
                   <div className="relative">
                     <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-pink-500/50">
                       {char.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                        <Image src={char.avatarUrl} alt={char.name} width={56} height={56} className="w-full h-full object-cover" unoptimized />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-pink-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
                           {char.name.charAt(0)}
@@ -137,8 +137,7 @@ export default function EventsPage() {
                 >
                   <div className="w-10 h-10 rounded-full overflow-hidden">
                     {char.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                      <Image src={char.avatarUrl} alt={char.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                         {char.name.charAt(0)}

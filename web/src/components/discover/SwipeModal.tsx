@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { track, EVENTS } from '@/lib/analytics';
@@ -255,7 +256,7 @@ export function SwipeModal({ onClose }: SwipeModalProps) {
                     {currentChar.avatarUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-xl flex-shrink-0">
-                        <img src={currentChar.avatarUrl} alt={currentChar.name} className="w-full h-full object-cover" />
+                        <Image src={currentChar.avatarUrl} alt={currentChar.name} width={48} height={48} className="w-full h-full object-cover" unoptimized />
                       </div>
                     )}
                     <div>

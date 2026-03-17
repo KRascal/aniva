@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { FcMembershipSection } from '@/components/FcMembershipSection';
 import { MomentCard as SharedMomentCard, type Moment as SharedMoment } from '@/components/moments/MomentCard';
 import type { Character, MomentItem, DlContent } from '../profileTypes';
@@ -70,8 +71,7 @@ export function FcTab({
                     className={`relative rounded-2xl overflow-hidden border bg-gray-900/80 ${item.locked ? 'border-gray-700/30 opacity-70' : 'border-purple-500/30'}`}
                   >
                     {item.thumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.thumbnailUrl} alt={item.title} className="w-full h-28 object-cover" />
+                      <Image src={item.thumbnailUrl} alt={item.title} width={200} height={112} className="w-full h-28 object-cover" unoptimized />
                     ) : (
                       <div className="w-full h-28 flex items-center justify-center bg-gray-800/50">
                         <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>

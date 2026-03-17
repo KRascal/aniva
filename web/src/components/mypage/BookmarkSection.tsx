@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 interface BookmarkedMessage {
@@ -42,8 +43,7 @@ export default function BookmarkSection() {
         {(showAllBookmarks ? bookmarks : bookmarks.slice(0, 3)).map(b => (
           <div key={b.id} className="flex items-start gap-2 bg-gray-800/60 rounded-xl px-3 py-2.5 group">
             {b.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={b.avatarUrl} alt={b.characterName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
+              <Image src={b.avatarUrl} alt={b.characterName} width={28} height={28} className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" unoptimized />
             ) : (
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
                 🏴

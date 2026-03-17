@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 
@@ -264,8 +265,7 @@ export default function TinderSwipe({ onComplete, isLoading, onSelectCharacter }
                       isSelected ? 'border-purple-400 ring-2 ring-purple-500/50 scale-110' : 'border-white/20'
                     }`}>
                       {c.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                        <Image src={c.avatarUrl} alt={c.name} width={56} height={56} className="w-full h-full object-cover" unoptimized />
                       ) : (
                         <div className="w-full h-full bg-purple-900 flex items-center justify-center text-lg">✨</div>
                       )}

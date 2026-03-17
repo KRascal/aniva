@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 /**
  * Deep Reply 「考え中」バブル
  * キャラがじっくり考えている状態をアニメーションで表現
@@ -17,7 +18,7 @@ export function DeepReplyBubble({ characterName, thinkingText, avatarUrl }: Deep
       {/* Character avatar */}
       <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gray-700">
         {avatarUrl ? (
-          <img src={avatarUrl} alt={characterName} className="w-full h-full object-cover" />
+          <Image src={avatarUrl} alt={characterName} width={32} height={32} className="w-full h-full object-cover" unoptimized />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">
             {characterName.charAt(0)}

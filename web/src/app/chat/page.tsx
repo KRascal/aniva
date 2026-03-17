@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -236,7 +237,7 @@ export default function ChatPage() {
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-400/50">
                   {msg.character?.avatarUrl ? (
-                    <img src={msg.character.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    <Image src={msg.character.avatarUrl} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{msg.character?.name?.[0] || '?'}</div>
                   )}
@@ -298,8 +299,7 @@ export default function ChatPage() {
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-purple-400/50">
                   {msg.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={msg.avatarUrl} alt={msg.characterName} className="w-full h-full object-cover" />
+                    <Image src={msg.avatarUrl} alt={msg.characterName} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-purple-700 flex items-center justify-center text-white font-bold">{msg.characterName.charAt(0)}</div>
                   )}
@@ -341,8 +341,7 @@ export default function ChatPage() {
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-indigo-400/50">
                   {msg.character?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={msg.character.avatarUrl} alt={msg.character?.name || ''} className="w-full h-full object-cover" />
+                    <Image src={msg.character.avatarUrl} alt={msg.character?.name || ''} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-indigo-700 flex items-center justify-center text-white font-bold">{msg.character?.name?.charAt(0) || '?'}</div>
                   )}

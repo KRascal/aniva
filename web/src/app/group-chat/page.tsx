@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -139,7 +140,7 @@ export default function GroupChatPage() {
             {selectedChars.map(char => (
               <div key={char.id} className="flex items-center gap-1 bg-purple-900/30 border border-purple-500/30 rounded-full px-2 py-0.5 text-xs">
                 {char.avatarUrl && (
-                  <img src={char.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+                  <Image src={char.avatarUrl} alt="" width={16} height={16} className="w-4 h-4 rounded-full object-cover" unoptimized />
                 )}
                 <span>{char.name}</span>
                 <button onClick={() => toggleCharacter(char)} className="text-gray-500 hover:text-white ml-1">×</button>
@@ -168,7 +169,7 @@ export default function GroupChatPage() {
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden">
                     {char.avatarUrl ? (
-                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                      <Image src={char.avatarUrl} alt={char.name} width={48} height={48} className="w-full h-full object-cover" unoptimized />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600" />
                     )}
@@ -198,7 +199,7 @@ export default function GroupChatPage() {
               {msg.type === 'character' && (
                 <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1">
                   {msg.characterAvatarUrl ? (
-                    <img src={msg.characterAvatarUrl} alt="" className="w-full h-full object-cover" />
+                    <Image src={msg.characterAvatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600" />
                   )}
@@ -224,7 +225,7 @@ export default function GroupChatPage() {
               {selectedChars.map(char => (
                 <div key={char.id} className="flex items-center gap-1.5">
                   {char.avatarUrl && (
-                    <img src={char.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                    <Image src={char.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
                   )}
                   <div className="flex gap-1 bg-white/5 px-3 py-2 rounded-full">
                     {[0, 1, 2].map(i => (

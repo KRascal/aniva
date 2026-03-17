@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import type { Character } from './ChatMessageList';
 
 interface Props {
@@ -27,8 +28,7 @@ export function TopicCard({ visible, topicText, character, onClose, onSend }: Pr
         </button>
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/40">
           {character.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.avatarUrl} alt={character.name} className="w-full h-full object-cover" />
+            <Image src={character.avatarUrl} alt={character.name} width={40} height={40} className="w-full h-full object-cover" unoptimized />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
               {character.name.charAt(0)}
