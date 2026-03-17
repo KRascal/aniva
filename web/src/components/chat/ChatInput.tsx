@@ -184,9 +184,7 @@ export function ChatInput({
       return;
     }
     if (onSendImage) {
-      setSelectedImageName(file.name);
-      const url = URL.createObjectURL(file);
-      setImagePreviewUrl(url);
+      // 即送信 — プレビューは不要（親コンポーネントが楽観的UIで表示する）
       onSendImage(file);
     } else {
       setSelectedImageName(file.name);
