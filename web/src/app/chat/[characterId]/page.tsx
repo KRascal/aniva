@@ -421,11 +421,20 @@ export default function ChatCharacterPage() {
   }, [characterId]);
 
   // チャット画面を開いた時刻をlocalStorageに記録（未読バッジのクリア用）
+  // URLパラム(slug)とcharacter.id(UUID)の両方で保存し、一覧ページのUUID参照と一致させる
   useEffect(() => {
     if (!characterId || typeof window === 'undefined') return;
     localStorage.setItem(`aniva_chat_visited_${characterId}`, Date.now().toString());
     track(EVENTS.CHAT_OPENED, { characterId });
   }, [characterId]);
+
+  // character.id（UUID）でも訪問時刻を保存（slug≠UUIDの場合に一覧の未読バッジをクリアするため）
+  useEffect(() => {
+    if (!character?.id || typeof window === 'undefined') return;
+    if (character.id !== characterId) {
+      localStorage.setItem(`aniva_chat_visited_${character.id}`, Date.now().toString());
+    }
+  }, [character?.id, characterId]);
 
   // プレゼンス（オンライン状態）取得
   useEffect(() => {

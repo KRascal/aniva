@@ -456,7 +456,7 @@ export default function ChatPage() {
 
                 const character = item.character;
                 const rel = relationships.get(character.id)!;
-                const lastVisited = lastVisitMap.get(character.id) ?? 0;
+                const lastVisited = lastVisitMap.get(character.id) ?? (character.slug ? lastVisitMap.get(character.slug) ?? 0 : 0);
                 const lastMsgAt = rel.lastMessageAt ? new Date(rel.lastMessageAt).getTime() : 0;
                 const lastMsgIsFromChar = rel.lastMessage?.role !== 'USER';
                 const hasUnread = lastMsgIsFromChar && lastMsgAt > lastVisited;
