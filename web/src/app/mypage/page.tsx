@@ -258,9 +258,9 @@ export default function MyPage() {
         {/* タブバー */}
         <div className="flex bg-gray-900/60 rounded-xl p-1 gap-1">
           {([
-            { key: 'profile' as const, label: 'プロフィール', icon: '👤' },
-            { key: 'activity' as const, label: '活動', icon: '⚡' },
-            { key: 'settings' as const, label: '設定', icon: '⚙️' },
+            { key: 'profile' as const, label: 'プロフィール' },
+            { key: 'activity' as const, label: '活動' },
+            { key: 'settings' as const, label: '設定' },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -271,7 +271,7 @@ export default function MyPage() {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              <span className="mr-1">{tab.icon}</span>{tab.label}
+              {tab.label}
             </button>
           ))}
         </div>
