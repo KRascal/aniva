@@ -17,6 +17,7 @@ import { getCharacterImagePrompt } from '@/lib/image-character-reaction';
 import { storeImageMemory } from '@/lib/multimodal-memory';
 import { logger } from '@/lib/logger';
 import { getOrCreateConversation } from '@/lib/conversation';
+import { scorePreviousResponse } from '@/lib/engine/response-scorer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -168,6 +169,9 @@ export async function POST(req: NextRequest) {
 
     // 2. 会話取得 or 作成（getOrCreateで一元管理）
     const conversation = await getOrCreateConversation(relationship.id);
+
+    // 前回のキャラ応答を非同期スコアリング（疎結合 — 失敗しても続行）
+    scorePreviousResponse(conversation.id, characterId).catch(() => {});
 
     // 3. ユーザーメッセージ保存
     const userMsg = await prisma.message.create({

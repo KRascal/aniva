@@ -18,6 +18,9 @@ import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
 import { applyNGGuard, detectHiddenCommand } from './ng-guard';
 import { userProfileEngine } from './user-profile-engine';
 import { getYesterdaySessionLog } from './session-logger';
+import { buildConversationStrategy } from './conversation-strategist';
+import { scorePreviousResponse, buildEngagementContext } from './response-scorer';
+import { analyzeBehavior } from './behavior-analyzer';
 
 import { logger } from '@/lib/logger';
 import type {
@@ -137,6 +140,21 @@ export class CharacterEngine {
     let followUpCtx = '';
     try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
 
+    // NEW: 会話戦略プランナー（疎結合 — 失敗時は空文字）
+    let strategyCtx = '';
+    try { strategyCtx = buildConversationStrategy(recentMessages, userMessage, memory.level); } catch { /* */ }
+
+    // NEW: 行動パターン分析（疎結合 — 失敗時は空文字）
+    let behaviorCtx = '';
+    try { behaviorCtx = await analyzeBehavior(relationshipId, relationship.userId, characterId); } catch { /* */ }
+
+    // NEW: エンゲージメントパターン（疎結合 — 失敗時は空文字）
+    let engagementCtx = '';
+    try {
+      const conv = await prisma.conversation.findFirst({ where: { relationshipId }, orderBy: { updatedAt: 'desc' }, select: { id: true } });
+      if (conv) engagementCtx = await buildEngagementContext(conv.id);
+    } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
@@ -144,6 +162,7 @@ export class CharacterEngine {
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
       bibleCtx, '', undefined, profileCtx, narrativeSummary, yesterdayHook,
       undefined, empathyCtx, followUpCtx,
+      strategyCtx, behaviorCtx, engagementCtx,
     );
 
     const llmMessages = [
@@ -278,6 +297,21 @@ export class CharacterEngine {
     let followUpCtx = '';
     try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
 
+    // NEW: 会話戦略プランナー
+    let strategyCtx = '';
+    try { strategyCtx = buildConversationStrategy(recentMessages, userMessage, memory.level); } catch { /* */ }
+
+    // NEW: 行動パターン分析
+    let behaviorCtx = '';
+    try { behaviorCtx = await analyzeBehavior(relationshipId, relationship.userId, characterId); } catch { /* */ }
+
+    // NEW: エンゲージメントパターン
+    let engagementCtx = '';
+    try {
+      const conv = await prisma.conversation.findFirst({ where: { relationshipId }, orderBy: { updatedAt: 'desc' }, select: { id: true } });
+      if (conv) engagementCtx = await buildEngagementContext(conv.id);
+    } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, dailyEventType,
@@ -285,6 +319,7 @@ export class CharacterEngine {
       dailyFanCount, relationship.experiencePoints, dailyState,
       semanticMemoryContext, bibleCtx, loreContext, undefined, profileCtx,
       undefined, undefined, undefined, empathyCtx, followUpCtx,
+      strategyCtx, behaviorCtx, engagementCtx,
     );
 
     const llmMessages = [

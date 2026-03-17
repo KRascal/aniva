@@ -601,6 +601,9 @@ export function buildSystemPrompt(
   characterLearnings?: CharacterLearning[],
   empathyContext: string = '',
   followUpContext: string = '',
+  conversationStrategy: string = '',
+  behaviorContext: string = '',
+  engagementContext: string = '',
 ): string {
   const levelInstructions = getLevelInstructions(memory.level, memory.userName);
   const memoryInstructions = getMemoryInstructions(memory);
@@ -754,6 +757,8 @@ ${seasonalContext}
 ${growthContext}
 ${imageMemoryCtx}
 ${learningsCtx ? `\n${learningsCtx}` : ''}
+
+${conversationStrategy ? `\n${conversationStrategy}` : ''}${behaviorContext ? `\n${behaviorContext}` : ''}${engagementContext ? `\n${engagementContext}` : ''}
 
 ${locale === 'ja' ? '- 日本語で応答すること' : `- ${localeOverride?.responseLanguage || 'English'}で応答すること`}
 ${localeOverride?.toneNotes ? `- 口調: ${localeOverride.toneNotes}` : ''}`;
