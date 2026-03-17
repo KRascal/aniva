@@ -58,10 +58,15 @@ export async function POST(req: NextRequest) {
   }
 
   // ローカルファイルシステムに保存（フォールバック）
-  const dirPath = path.join(process.cwd(), 'public', 'uploads', 'chat', userId);
-  await mkdir(dirPath, { recursive: true });
-  await writeFile(path.join(dirPath, filename), buffer);
+  // 永続ディレクトリ（デプロイで消えない）+ public（即座に配信可能）の両方に保存
+  const persistDir = path.resolve('/home/openclaw/.openclaw/workspace/uploads/chat', userId);
+  const publicDir = path.join(process.cwd(), 'public', 'uploads', 'chat', userId);
+  await mkdir(persistDir, { recursive: true });
+  await mkdir(publicDir, { recursive: true });
+  await writeFile(path.join(persistDir, filename), buffer);
+  await writeFile(path.join(publicDir, filename), buffer);
 
-  const url = `/uploads/chat/${userId}/${filename}`;
+  // API経由のURLを返す（デプロイ後もpersistentから配信可能）
+  const url = `/api/uploads/chat/${userId}/${filename}`;
   return NextResponse.json({ url, size: file.size });
 }

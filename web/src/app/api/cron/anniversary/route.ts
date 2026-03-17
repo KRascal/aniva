@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 const ANNIVERSARY_MESSAGES = [
   '覚えてるか？今日は俺たちが出会った日だ！🎉',
@@ -199,16 +200,8 @@ export async function POST(req: NextRequest) {
       );
       if (voiceUrl) results.voicesGenerated++;
 
-      // DMとしてメッセージ保存（最新会話を取得 or 新規作成）
-      let annivConv = await prisma.conversation.findFirst({
-        where: { relationshipId: rel.id },
-        orderBy: { updatedAt: 'desc' },
-      });
-      if (!annivConv) {
-        annivConv = await prisma.conversation.create({
-          data: { relationshipId: rel.id },
-        });
-      }
+      // DMとしてメッセージ保存（getOrCreateで既存会話に追記）
+      const annivConv = await getOrCreateConversation(rel.id);
       await prisma.message.create({
         data: {
           conversationId: annivConv.id,
@@ -284,17 +277,8 @@ export async function POST(req: NextRequest) {
     const voiceUrl = await generateVoiceMessage(msg, rel.character.voiceModelId, voiceFilename);
     if (voiceUrl) results.voicesGenerated++;
 
-    // 会話取得 or 作成
-    let conv = await prisma.conversation.findFirst({
-      where: { relationshipId: rel.id },
-      orderBy: { updatedAt: 'desc' },
-    });
-    if (!conv) {
-      conv = await prisma.conversation.create({
-        data: { relationshipId: rel.id },
-      });
-    }
-
+    // 会話取得 or 作成（getOrCreateで既存会話に追記）
+    const conv = await getOrCreateConversation(rel.id);
     await prisma.message.create({
       data: {
         conversationId: conv.id,
@@ -376,16 +360,8 @@ export async function POST(req: NextRequest) {
     if (sharedVoiceUrl) results.voicesGenerated++;
 
     for (const rel of followers) {
-      // 最新会話を取得 or 新規作成
-      let conversation = await prisma.conversation.findFirst({
-        where: { relationshipId: rel.id },
-        orderBy: { updatedAt: 'desc' },
-      });
-      if (!conversation) {
-        conversation = await prisma.conversation.create({
-          data: { relationshipId: rel.id },
-        });
-      }
+      // 既存のConversationを取得 or 作成（getOrCreateで既存会話に追記）
+      const conversation = await getOrCreateConversation(rel.id);
       await prisma.message.create({
         data: {
           conversationId: conversation.id,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 // ギフト定義（将来的にDBに移行可能）
 const GIFT_CATALOG = [
@@ -150,29 +151,10 @@ export async function POST(req: Request) {
 
     // ギフト送信をチャットメッセージとしてDB保存（ページリロードでも残る）
     try {
-      // Conversation検索: relationship経由 OR userId直接（グループチャット除外）
-      let conversation = await prisma.conversation.findFirst({
-        where: {
-          OR: [
-            { relationship: { userId, characterId } },
-            ...(relationship ? [{ userId, relationshipId: relationship.id }] : []),
-          ],
-          isActive: true,
-          NOT: { metadata: { path: ['type'], equals: 'group' } },
-        },
-        orderBy: { updatedAt: 'desc' },
-      });
-
-      // Conversationが見つからない場合は新規作成
-      if (!conversation && relationship) {
-        conversation = await prisma.conversation.create({
-          data: {
-            relationshipId: relationship.id,
-            userId,
-            isActive: true,
-          },
-        });
-      }
+      // getOrCreateConversation で一元管理
+      const conversation = relationship
+        ? await getOrCreateConversation(relationship.id)
+        : null;
 
       if (conversation) {
         // ユーザーのギフト送信メッセージ

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 /**
  * POST /api/onboarding/follow-and-greet
@@ -52,15 +53,7 @@ export async function POST(req: NextRequest) {
         where: { userId_characterId_locale: { userId, characterId: char.id, locale: 'ja' } },
       });
       if (relationship) {
-        let conversation = await prisma.conversation.findFirst({
-          where: { relationshipId: relationship.id },
-          orderBy: { createdAt: 'asc' },
-        });
-        if (!conversation) {
-          conversation = await prisma.conversation.create({
-            data: { relationshipId: relationship.id },
-          });
-        }
+        const conversation = await getOrCreateConversation(relationship.id);
 
         // キャラ固有のウェルカムメッセージ
         const slugGreetings: Record<string, string> = {

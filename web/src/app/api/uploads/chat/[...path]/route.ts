@@ -27,19 +27,19 @@ export async function GET(
 ) {
   const { path: segments } = await params;
 
-  // パストラバーサル防止
+  // パストラバーサル防止 — 2セグメント: [dirId]/[filename]
   if (!segments || segments.length !== 2) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
   }
 
-  const [conversationId, filename] = segments;
-  const sanitizedConvId = path.basename(conversationId);
-  const sanitizedFilename = path.basename(filename.split('?')[0]);
+  const [dirId, rawFilename] = segments;
+  const sanitizedDirId = path.basename(dirId);
+  const sanitizedFilename = path.basename(rawFilename.split('?')[0]);
 
   if (
-    sanitizedConvId !== conversationId ||
-    sanitizedFilename !== filename.split('?')[0] ||
-    sanitizedConvId.includes('..') ||
+    sanitizedDirId !== dirId ||
+    sanitizedFilename !== rawFilename.split('?')[0] ||
+    sanitizedDirId.includes('..') ||
     sanitizedFilename.includes('..')
   ) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
@@ -52,13 +52,14 @@ export async function GET(
   }
 
   // 永続ディレクトリ → public/uploads/ フォールバック
+  // dirIdはconversationId or userId（どちらも同じディレクトリ構造）
   let fileBuffer: Buffer | null = null;
-  const persistentPath = path.join(PERSISTENT_DIR, sanitizedConvId, sanitizedFilename);
+  const persistentPath = path.join(PERSISTENT_DIR, sanitizedDirId, sanitizedFilename);
 
   if (existsSync(persistentPath)) {
     fileBuffer = await readFile(persistentPath);
   } else {
-    const publicPath = path.join(process.cwd(), 'public', 'uploads', 'chat', sanitizedConvId, sanitizedFilename);
+    const publicPath = path.join(process.cwd(), 'public', 'uploads', 'chat', sanitizedDirId, sanitizedFilename);
     if (existsSync(publicPath)) {
       fileBuffer = await readFile(publicPath);
     }

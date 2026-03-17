@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { resolveCharacterId } from '@/lib/resolve-character';
+import { getAllConversationIds } from '@/lib/conversation';
 
 export async function GET(
   _req: NextRequest,
@@ -27,20 +28,27 @@ export async function GET(
       select: { name: true },
     });
 
-    // Find conversation
-    const conversation = await prisma.conversation.findFirst({
-      where: { relationship: { userId, characterId } },
+    // Find relationship
+    const relationship = await prisma.relationship.findUnique({
+      where: { userId_characterId_locale: { userId, characterId, locale: 'ja' } },
       select: { id: true },
     });
 
-    if (!conversation) {
+    if (!relationship) {
       return NextResponse.json({ images: [], characterName: character?.name ?? '' });
     }
 
-    // 既存: Message.imageUrl ベースの取得
+    // 全conversationを横断取得（conversation分散問題対策）
+    const conversationIds = await getAllConversationIds(relationship.id);
+
+    if (conversationIds.length === 0) {
+      return NextResponse.json({ images: [], characterName: character?.name ?? '' });
+    }
+
+    // 既存: Message.imageUrl ベースの取得（全conversation横断）
     const messagesWithImages = await prisma.message.findMany({
       where: {
-        conversationId: conversation.id,
+        conversationId: { in: conversationIds },
         imageUrl: { not: null },
       },
       select: {
@@ -50,14 +58,14 @@ export async function GET(
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: 500,
     });
 
-    // 新規: ChatMedia テーブルからも取得
+    // 新規: ChatMedia テーブルからも取得（全conversation横断）
     const chatMediaRecords = await prisma.chatMedia.findMany({
-      where: { conversationId: conversation.id },
+      where: { conversationId: { in: conversationIds } },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: 500,
     });
 
     // ChatMedia に対応するメッセージIDを収集（重複排除用）

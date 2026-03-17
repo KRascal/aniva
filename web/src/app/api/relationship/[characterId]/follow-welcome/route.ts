@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 /**
  * POST /api/relationship/[characterId]/follow-welcome
@@ -37,16 +38,8 @@ export async function POST(
       update: {},
     });
 
-    // conversation を取得・作成
-    let conversation = await prisma.conversation.findFirst({
-      where: { relationshipId: relationship.id },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { relationshipId: relationship.id },
-      });
-    }
+    // conversation を取得・作成（getOrCreateで既存会話を継続）
+    const conversation = await getOrCreateConversation(relationship.id);
 
     // すでに過去24時間以内にウェルカムを送っていたらスキップ
     const recentWelcome = await prisma.message.findFirst({

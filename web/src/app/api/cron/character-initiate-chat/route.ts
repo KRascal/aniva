@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 function readSoulMd(slug: string): string {
   const paths = [
@@ -134,17 +135,20 @@ export async function POST(req: NextRequest) {
 
         if (!content) continue;
 
-        // 新しいConversationを作成 + キャラからの最初のメッセージ
-        const conversation = await prisma.conversation.create({
+        // 既存のConversationを取得 or 作成（新規作成しない）
+        const conversation = await getOrCreateConversation(rel.id);
+        // キャラからのメッセージを追加
+        await prisma.message.create({
           data: {
-            relationshipId: rel.id,
-            messages: {
-              create: {
-                role: 'CHARACTER',
-                content: content.slice(0, 500),
-              },
-            },
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: content.slice(0, 500),
           },
+        });
+        // updatedAt を更新（チャット順序ソートに必須）
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
         });
 
         // Relationship の lastMessageAt を更新

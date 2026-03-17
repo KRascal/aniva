@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { uploadChatMedia } from '@/lib/media-manager';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 const imageSendLimiter = createRateLimiter({ prefix: 'chat-image', limit: 10, windowSec: 60 });
 
@@ -77,16 +78,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Conversation 取得 or 作成
-  let conversation = await prisma.conversation.findFirst({
-    where: { relationshipId: relationship.id },
-    orderBy: { updatedAt: 'desc' },
-  });
-  if (!conversation) {
-    conversation = await prisma.conversation.create({
-      data: { relationshipId: relationship.id },
-    });
-  }
+  // Conversation 取得 or 作成（getOrCreateで一元管理）
+  const conversation = await getOrCreateConversation(relationship.id);
 
   // 保存先: デプロイで消えない永続ディレクトリ + public（静的配信互換）
   const persistentUploadDir = path.resolve('/home/openclaw/.openclaw/workspace/uploads/chat', conversation.id);
@@ -165,12 +158,33 @@ export async function POST(req: NextRequest) {
       const { getCharacterImagePrompt } = await import('@/lib/image-character-reaction');
       const reactionPrompt = getCharacterImagePrompt(character.slug, imageHint);
 
-      // characterEngineで応答生成
+      // 直近の会話文脈を取得（画像への返答精度向上）
+      const { getAllConversationIds } = await import('@/lib/conversation');
+      const convIds = await getAllConversationIds(relationship.id);
+      const recentMessages = await prisma.message.findMany({
+        where: {
+          conversationId: { in: convIds },
+          role: { in: ['USER', 'CHARACTER'] },
+          content: { not: '[画像]' }, // 画像メッセージ自体は除外
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        select: { role: true, content: true },
+      });
+      const contextLines = recentMessages
+        .reverse()
+        .map((m) => `${m.role === 'USER' ? 'ユーザー' : 'キャラ'}: ${m.content.slice(0, 100)}`)
+        .join('\n');
+      const contextBlock = contextLines
+        ? `\n\n【直近の会話文脈】\n${contextLines}`
+        : '';
+
+      // characterEngineで応答生成（会話文脈付き）
       const { characterEngine } = await import('@/lib/character-engine');
       const response = await characterEngine.generateResponse(
         character.id,
         relationship.id,
-        `[画像を受け取りました] ${reactionPrompt}`,
+        `[画像を受け取りました] ${reactionPrompt}${contextBlock}`,
         'ja',
         { isFcMember: false }
       );

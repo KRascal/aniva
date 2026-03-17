@@ -16,21 +16,18 @@ interface ImageItem {
   source?: string;
 }
 
-interface UsageInfo {
-  totalBytes: number;
-  limitBytes: number;
-  usedPercent: number;
-  isFc: boolean;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function formatMonth(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+}
+
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return '今日';
+  if (diff === 1) return '昨日';
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 function groupByMonth(images: ImageItem[]): { month: string; items: ImageItem[] }[] {
@@ -52,10 +49,10 @@ export default function AlbumPage() {
   const [loading, setLoading] = useState(true);
   const [characterName, setCharacterName] = useState('');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [usage, setUsage] = useState<UsageInfo | null>(null);
 
   // スワイプ用
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -65,23 +62,6 @@ export default function AlbumPage() {
         const data = await res.json();
         setImages(data.images ?? []);
         setCharacterName(data.characterName ?? '');
-        // 容量情報は別エンドポイントから取得（なければスキップ）
-        try {
-          const usageRes = await fetch(`/api/chat/${characterId}/media-usage`);
-          if (usageRes.ok) {
-            setUsage(await usageRes.json());
-          }
-        } catch {
-          // 容量情報が取れない場合は画像サイズから計算
-          const imgs: ImageItem[] = data.images ?? [];
-          const totalBytes = imgs.reduce((sum: number, img: ImageItem) => sum + (img.fileSizeBytes ?? 0), 0);
-          setUsage({
-            totalBytes,
-            limitBytes: 50 * 1024 * 1024,
-            usedPercent: Math.min(100, Math.round((totalBytes / (50 * 1024 * 1024)) * 100)),
-            isFc: false,
-          });
-        }
       } catch {
         // fallback
       } finally {
@@ -94,35 +74,43 @@ export default function AlbumPage() {
 
   const openViewer = useCallback((index: number) => {
     setSelectedIndex(index);
+    // スクロールを固定
+    document.body.style.overflow = 'hidden';
   }, []);
 
   const closeViewer = useCallback(() => {
     setSelectedIndex(null);
+    document.body.style.overflow = '';
   }, []);
 
   const goNext = useCallback(() => {
-    if (selectedIndex === null) return;
     setSelectedIndex((prev) => (prev !== null ? Math.min(prev + 1, images.length - 1) : null));
-  }, [selectedIndex, images.length]);
+  }, [images.length]);
 
   const goPrev = useCallback(() => {
-    if (selectedIndex === null) return;
     setSelectedIndex((prev) => (prev !== null ? Math.max(prev - 1, 0) : null));
-  }, [selectedIndex]);
+  }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) goNext();
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    const dy = touchStartY.current - e.changedTouches[0].clientY;
+    // 水平スワイプ優先（縦スワイプより横スワイプが大きい場合）
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      if (dx > 0) goNext();
       else goPrev();
+    } else if (dy > 80) {
+      // 下スワイプで閉じる
+      closeViewer();
     }
     touchStartX.current = null;
-  }, [goNext, goPrev]);
+    touchStartY.current = null;
+  }, [goNext, goPrev, closeViewer]);
 
   // キーボード操作
   useEffect(() => {
@@ -136,160 +124,236 @@ export default function AlbumPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [selectedIndex, goNext, goPrev, closeViewer]);
 
+  // クリーンアップ
+  useEffect(() => {
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* ヘッダー */}
-      <div className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-md border-b border-white/8">
-        <div className="flex items-center gap-3 px-4 py-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+    <div className="min-h-screen bg-black text-white select-none">
+      {/* ヘッダー — iOS Photos風 */}
+      <div
+        className="sticky top-0 z-20 bg-black/90 backdrop-blur-xl"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1 text-[#0A84FF] text-base font-normal active:opacity-60 transition-opacity"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+              <path d="M9 1L1 9L9 17" stroke="#0A84FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
+            <span>チャット</span>
           </button>
-          <div>
-            <h1 className="text-base font-bold">アルバム</h1>
-            <p className="text-xs text-gray-500">{characterName}との共有画像</p>
-          </div>
+          <h1 className="text-base font-semibold text-white">
+            {characterName ? `${characterName}との思い出` : 'アルバム'}
+          </h1>
+          <div className="w-14" /> {/* spacing balancer */}
         </div>
-
-        {/* 容量使用量バー */}
-        {usage && (
-          <div className="px-4 pb-3">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>
-                {usage.isFc ? 'FC' : 'FREE'}: {formatBytes(usage.limitBytes)}中 {formatBytes(usage.totalBytes)} 使用
-              </span>
-              <span>{usage.usedPercent}%</span>
-            </div>
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  usage.usedPercent >= 90 ? 'bg-red-500' :
-                  usage.usedPercent >= 70 ? 'bg-yellow-500' :
-                  'bg-purple-500'
-                }`}
-                style={{ width: `${usage.usedPercent}%` }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* コンテンツ */}
-      <div className="px-2 py-4">
+      <div className="pb-8" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-32">
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         ) : images.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-gray-500 text-sm">まだ画像はありません</p>
-            <p className="text-gray-600 text-xs">チャットで画像を送るとここに保存されます</p>
+          /* Empty state — iOS Photos風 */
+          <div className="flex flex-col items-center justify-center py-32 gap-4 px-8">
+            <div className="w-20 h-20 rounded-2xl bg-white/8 flex items-center justify-center">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/40">
+                <rect x="3" y="3" width="18" height="18" rx="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-white/80 text-base font-medium mb-1">まだ写真がありません</p>
+              <p className="text-white/40 text-sm">チャットで画像を送ると<br />ここに自動で保存されます</p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {grouped.map(({ month, items }) => (
-              <div key={month}>
-                {/* 月別セクションヘッダー */}
-                <div className="px-1 pb-2">
-                  <h2 className="text-sm font-semibold text-gray-400">{month}</h2>
-                  <p className="text-xs text-gray-600">{items.length}枚</p>
+          <>
+            {/* 枚数サマリー */}
+            <div className="px-4 pt-2 pb-3">
+              <p className="text-white/40 text-xs font-medium tracking-wide uppercase">
+                {images.length}枚の写真
+              </p>
+            </div>
+
+            {/* 月別グリッド */}
+            <div className="space-y-0">
+              {grouped.map(({ month, items }) => (
+                <div key={month}>
+                  {/* 月ヘッダー */}
+                  <div className="px-4 pt-4 pb-2 flex items-baseline justify-between">
+                    <h2 className="text-white text-xl font-bold">{month}</h2>
+                    <span className="text-white/40 text-sm">{items.length}枚</span>
+                  </div>
+
+                  {/* グリッド — iOS Photos風 3列、gap-px */}
+                  <div
+                    className="grid gap-px"
+                    style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
+                  >
+                    {items.map((img) => {
+                      const globalIndex = images.findIndex((i) => i.id === img.id);
+                      const isRecent = (() => {
+                        const d = new Date(img.createdAt);
+                        const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+                        return diff <= 1;
+                      })();
+                      return (
+                        <button
+                          key={img.id}
+                          onClick={() => openViewer(globalIndex)}
+                          className="relative overflow-hidden bg-zinc-900 active:opacity-80 transition-opacity"
+                          style={{ aspectRatio: '1 / 1' }}
+                        >
+                          {/* サムネイル */}
+                          <img
+                            src={img.thumbnailUrl ?? img.imageUrl}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {/* 最近バッジ */}
+                          {isRecent && (
+                            <div className="absolute top-1.5 left-1.5">
+                              <span className="text-[10px] font-semibold bg-black/60 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                                {formatDateLabel(img.createdAt)}
+                              </span>
+                            </div>
+                          )}
+                          {/* キャラが送った画像バッジ */}
+                          {img.role === 'CHARACTER' && (
+                            <div className="absolute bottom-1.5 right-1.5">
+                              <span className="text-[9px] font-semibold bg-purple-600/90 text-white px-1.5 py-0.5 rounded-full">
+                                From {characterName}
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                {/* グリッド（3列、gap-1、Instagram風） */}
-                <div className="grid grid-cols-3 gap-1">
-                  {items.map((img) => {
-                    const globalIndex = images.findIndex((i) => i.id === img.id);
-                    return (
-                      <button
-                        key={img.id}
-                        onClick={() => openViewer(globalIndex)}
-                        className="relative aspect-square overflow-hidden rounded-sm bg-gray-800 group"
-                      >
-                        <Image
-                          src={img.thumbnailUrl ?? img.imageUrl}
-                          alt=""
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-200"
-                          unoptimized
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      {/* フルスクリーンビューワー */}
+      {/* フルスクリーンビューワー — iOS Photos風 */}
       {selectedImage && selectedIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onClick={(e) => {
+            // 背景タップで閉じる（画像以外）
+            if (e.target === e.currentTarget) closeViewer();
+          }}
         >
-          {/* 閉じるボタン */}
-          <button
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white z-10"
-            style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
-            onClick={closeViewer}
+          {/* トップバー */}
+          <div
+            className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent"
+            style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+            <button
+              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center active:bg-black/60 transition-colors"
+              onClick={closeViewer}
+              aria-label="閉じる"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
 
-          {/* 前へボタン */}
+            <div className="text-center">
+              <p className="text-white text-sm font-semibold">
+                {selectedIndex + 1} / {images.length}
+              </p>
+              <p className="text-white/60 text-xs">
+                {formatDateLabel(selectedImage.createdAt)}
+              </p>
+            </div>
+
+            {/* シェアボタン（将来拡張用） */}
+            <div className="w-9" />
+          </div>
+
+          {/* 画像本体 — 左右フリックで切替 */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-full h-full flex items-center justify-center px-2">
+              <img
+                src={selectedImage.imageUrl}
+                alt=""
+                className="max-w-full max-h-full object-contain"
+                style={{ maxHeight: '85dvh' }}
+              />
+            </div>
+          </div>
+
+          {/* 前へ / 次へ — タブレット・デスクトップ向け */}
           {selectedIndex > 0 && (
             <button
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white z-10"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white z-10 active:bg-black/60 transition-colors md:flex hidden"
               onClick={goPrev}
+              aria-label="前の画像"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
           )}
-
-          {/* 次へボタン */}
           {selectedIndex < images.length - 1 && (
             <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white z-10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white z-10 active:bg-black/60 transition-colors md:flex hidden"
               onClick={goNext}
+              aria-label="次の画像"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
           )}
 
-          {/* 画像本体 */}
-          <div className="relative w-full h-full max-w-lg max-h-[80vh] mx-4">
-            <Image
-              src={selectedImage.imageUrl}
-              alt=""
-              fill
-              className="object-contain"
-              unoptimized
-            />
+          {/* ボトム情報バー */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-4 pt-8 bg-gradient-to-t from-black/60 to-transparent"
+            style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${selectedImage.role === 'USER' ? 'bg-blue-400' : 'bg-purple-400'}`} />
+              <p className="text-white/70 text-sm">
+                {selectedImage.role === 'USER' ? 'あなたが送った写真' : `${characterName}が送った写真`}
+              </p>
+            </div>
+            {/* 下スワイプヒント */}
+            <p className="text-white/30 text-xs mt-1.5">下にスワイプで閉じる</p>
           </div>
 
-          {/* 枚数インジケーター */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-white/60"
-            style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-            {selectedIndex + 1} / {images.length}
-          </div>
+          {/* インジケータードット（10枚以下の場合） */}
+          {images.length <= 10 && (
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5 z-10"
+              style={{ bottom: 'max(4rem, calc(2rem + env(safe-area-inset-bottom)))' }}>
+              {images.map((_, i) => (
+                <div
+                  key={i}
+                  className={`rounded-full transition-all duration-200 ${
+                    i === selectedIndex
+                      ? 'w-4 h-1.5 bg-white'
+                      : 'w-1.5 h-1.5 bg-white/40'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

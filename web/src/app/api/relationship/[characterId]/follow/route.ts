@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 /** フォロー直後にウェルカムメッセージをDBに書く */
 async function sendFollowWelcome(userId: string, characterId: string, characterSlug: string, catchphrases: string[]) {
@@ -13,15 +14,7 @@ async function sendFollowWelcome(userId: string, characterId: string, characterS
     });
     if (!relationship) return;
 
-    let conversation = await prisma.conversation.findFirst({
-      where: { relationshipId: relationship.id },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { relationshipId: relationship.id },
-      });
-    }
+    const conversation = await getOrCreateConversation(relationship.id);
 
     // 過去24h以内にwelcomeを送っていたらスキップ
     const recentWelcome = await prisma.message.findFirst({

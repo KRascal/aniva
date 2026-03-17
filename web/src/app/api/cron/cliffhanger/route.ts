@@ -10,6 +10,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { setCliffhanger, getCliffhangerTease } from '@/lib/cliffhanger-system';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 const MAX_PER_RUN = 30;
 
@@ -76,19 +77,8 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // 3. 最新のConversationを取得（なければ新規作成）
-        let conversation = await prisma.conversation.findFirst({
-          where: { relationshipId: rel.id },
-          orderBy: { updatedAt: 'desc' },
-          select: { id: true },
-        });
-
-        if (!conversation) {
-          conversation = await prisma.conversation.create({
-            data: { relationshipId: rel.id },
-            select: { id: true },
-          });
-        }
+        // 3. 既存のConversationを取得 or 作成（getOrCreateで一元管理）
+        const conversation = await getOrCreateConversation(rel.id);
 
         // 4. Messageとして保存（metadata: { isCliffhanger: true }）
         await prisma.message.create({

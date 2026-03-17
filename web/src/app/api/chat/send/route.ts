@@ -16,6 +16,7 @@ import { getThinkingReaction } from '@/lib/thinking-reactions';
 import { getCharacterImagePrompt } from '@/lib/image-character-reaction';
 import { storeImageMemory } from '@/lib/multimodal-memory';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -165,17 +166,8 @@ export async function POST(req: NextRequest) {
     // 送信前のlevelを記憶
     const prevLevel = relationship?.level ?? 1;
 
-    // 2. 会話取得 or 作成
-    let conversation = await prisma.conversation.findFirst({
-      where: { relationshipId: relationship.id },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { relationshipId: relationship.id },
-      });
-    }
+    // 2. 会話取得 or 作成（getOrCreateで一元管理）
+    const conversation = await getOrCreateConversation(relationship.id);
 
     // 3. ユーザーメッセージ保存
     const userMsg = await prisma.message.create({

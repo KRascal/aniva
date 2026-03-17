@@ -19,6 +19,7 @@ import { updateStreak } from '@/lib/streak-system';
 import { setCliffhanger } from '@/lib/cliffhanger-system';
 import { updateRelationshipXP } from '@/lib/engine/xp-system';
 import { Prisma } from '@prisma/client';
+import { getOrCreateConversation } from '@/lib/conversation';
 import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { callLLMStream } from '@/lib/llm-stream';
@@ -135,14 +136,8 @@ export async function POST(req: NextRequest) {
 
     const prevLevel = relationship?.level ?? 1;
 
-    // ── Conversation ──
-    let conversation = await prisma.conversation.findFirst({
-      where: { relationshipId: relationship.id },
-      orderBy: { updatedAt: 'desc' },
-    });
-    if (!conversation) {
-      conversation = await prisma.conversation.create({ data: { relationshipId: relationship.id } });
-    }
+    // ── Conversation（getOrCreateで一元管理） ──
+    const conversation = await getOrCreateConversation(relationship.id);
 
     // ── ユーザーメッセージ保存 ──
     const userMsg = await prisma.message.create({

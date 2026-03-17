@@ -4,6 +4,7 @@ import { voiceEngine } from '@/lib/voice-engine';
 import { audioStorage } from '@/lib/audio-storage';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { logger } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/conversation';
 
 // デフォルトの音声モデルID (Adam voice)
 const DEFAULT_VOICE_MODEL_ID = 'pNInz6obpgDQGcFmaJgB';
@@ -109,17 +110,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Conversation 作成
-    let conversation = await prisma.conversation.findFirst({
-      where: { relationshipId: relationship.id },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { relationshipId: relationship.id },
-      });
-    }
+    // 4. Conversation 取得 or 作成（getOrCreateで一元管理）
+    const conversation = await getOrCreateConversation(relationship.id);
 
     // 5. キャラクターメッセージ保存
     const charMsg = await prisma.message.create({
