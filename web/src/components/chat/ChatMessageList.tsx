@@ -45,7 +45,7 @@ export interface Character {
 }
 
 /* ─────────────── リアクション設定 ─────────────── */
-const REACTION_EMOJIS = ['❤️', '😂', '😢', '🔥', '👏'] as const;
+const REACTION_EMOJIS = ['❤️', '😂', '😢', '🔥', '👏', '😍', '💪', '😮', '👍'] as const;
 type ReactionEmoji = typeof REACTION_EMOJIS[number];
 
 /* ─────────────── 感情ユーティリティ ─────────────── */
@@ -373,6 +373,18 @@ export function ChatMessageList({
         .emotion-transition-shy   { animation: emotionRipplePink 0.7s ease-out; }
         .emotion-transition-sad   { animation: emotionFadeSad   0.7s ease-out; }
         .emotion-status-bar { animation: emotionStatusIn 0.3s ease-out forwards; }
+        @keyframes emojiPop {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.45); }
+          70%  { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+        .emoji-pop { animation: emojiPop 0.3s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes readStatusFadeIn {
+          from { opacity: 0; transform: translateY(3px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .read-status { animation: readStatusFadeIn 0.35s ease-out forwards; }
         @keyframes firstCharAppear {
           0% { opacity: 0; transform: scale(0.85) translateY(16px); filter: blur(4px); }
           60% { opacity: 1; transform: scale(1.03) translateY(-2px); filter: blur(0); }
@@ -587,31 +599,32 @@ export function ChatMessageList({
                   {/* ── 吹き出しラッパー (relative: パレット・バッジの基点) ── */}
                   <div className="relative">
                     {/* ✨ リアクションパレット（長押しで表示） */}
-                    {!isUser && showPalette && (
+                    {showPalette && (
                       <div
-                        className="absolute bottom-full mb-2 left-0 z-30"
+                        className={`absolute bottom-full mb-2 z-30 ${isUser ? 'right-0' : 'left-0'}`}
                         style={{ animation: 'reactionPaletteIn 0.2s ease-out' }}
                         onClick={(e) => e.stopPropagation()}
                         onTouchEnd={(e) => e.stopPropagation()}
                       >
                         <div
-                          className="flex items-center gap-1 px-3 py-2"
+                          className="flex items-center gap-0.5 px-2.5 py-2"
                           style={{
-                            background: 'rgba(0,0,0,0.85)',
-                            backdropFilter: 'blur(12px)',
-                            WebkitBackdropFilter: 'blur(12px)',
-                            borderRadius: 16,
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                            background: 'rgba(10,10,20,0.88)',
+                            backdropFilter: 'blur(20px) saturate(1.8)',
+                            WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+                            borderRadius: 18,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07)',
+                            border: '1px solid rgba(255,255,255,0.08)',
                           }}
                         >
                           {REACTION_EMOJIS.map((emoji) => (
                             <button
                               key={emoji}
                               onClick={() => handleEmojiSelect(msg.id, emoji, reactions)}
-                              className="w-10 h-10 flex items-center justify-center text-2xl rounded-xl transition-transform active:scale-90 hover:scale-110"
+                              className={`w-9 h-9 flex items-center justify-center text-xl rounded-xl transition-transform active:scale-90 hover:scale-125 ${msgReaction === emoji ? 'emoji-pop' : ''}`}
                               style={
                                 msgReaction === emoji
-                                  ? { background: 'rgba(255,255,255,0.18)', transform: 'scale(1.1)' }
+                                  ? { background: 'rgba(168,85,247,0.25)', outline: '1.5px solid rgba(168,85,247,0.5)' }
                                   : {}
                               }
                               aria-label={emoji}
@@ -634,12 +647,12 @@ export function ChatMessageList({
                         } ${emotionTransitionClass}`
                       } ${msgReaction ? 'mb-2' : ''}`}
                       style={hasMemoryRef ? { boxShadow: '0 0 12px 3px rgba(168,85,247,0.35)' } : undefined}
-                      onTouchStart={!isUser ? () => handleLongPressStart(msg.id) : undefined}
-                      onTouchEnd={!isUser ? handleLongPressEnd : undefined}
-                      onTouchMove={!isUser ? handleLongPressEnd : undefined}
-                      onMouseDown={!isUser ? () => handleLongPressStart(msg.id) : undefined}
-                      onMouseUp={!isUser ? handleLongPressEnd : undefined}
-                      onMouseLeave={!isUser ? handleLongPressEnd : undefined}
+                      onTouchStart={() => handleLongPressStart(msg.id)}
+                      onTouchEnd={handleLongPressEnd}
+                      onTouchMove={handleLongPressEnd}
+                      onMouseDown={() => handleLongPressStart(msg.id)}
+                      onMouseUp={handleLongPressEnd}
+                      onMouseLeave={handleLongPressEnd}
                       onContextMenu={!isUser ? (e) => { e.preventDefault(); onCtxMenu(msg.id, displayContent); } : undefined}
                     >
                       {/* タイピング中演出（ストリーミング開始直後の2秒間） */}
@@ -766,13 +779,19 @@ export function ChatMessageList({
                       (() => {
                         const hasCharReply = messages.slice(idx + 1).some((m: Message) => m.role === 'CHARACTER');
                         return hasCharReply ? (
-                          <svg className="w-3.5 h-3.5 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M1 12l5 5L17 6M7 12l5 5L23 6" />
-                          </svg>
+                          <span className="read-status flex items-center gap-0.5">
+                            <svg className="w-3.5 h-3.5 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M1 12l5 5L17 6M7 12l5 5L23 6" />
+                            </svg>
+                            <span className="text-[9px] text-purple-400">既読</span>
+                          </span>
                         ) : (
-                          <svg className="w-3 h-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L20 7" />
-                          </svg>
+                          <span className="read-status flex items-center gap-0.5">
+                            <svg className="w-3 h-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L20 7" />
+                            </svg>
+                            <span className="text-[9px] text-gray-500">送信済</span>
+                          </span>
                         );
                       })()
                     )}
