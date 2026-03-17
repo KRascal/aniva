@@ -216,10 +216,11 @@ export function MomentCard({
           </span>
         </div>
       )}
-      {!moment.isLocked && moment.visibility === 'PREMIUM' && (
+      {!moment.isLocked && (moment.visibility === 'PREMIUM' || moment.isFcOnly) && (
         <div className="px-4 mb-2">
-          <span className="inline-flex items-center gap-1 bg-yellow-500/15 text-yellow-300 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/20">
-            👑 PREMIUMメンバー限定
+          <span className="inline-flex items-center gap-1 bg-purple-500/15 text-purple-300 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/20">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+            FC限定
           </span>
         </div>
       )}
@@ -227,25 +228,47 @@ export function MomentCard({
       {/* Content */}
       <div className={moment.type === 'IMAGE' && !moment.isLocked ? '' : 'px-4 pb-1'}>
         {moment.isLocked ? (
-          moment.visibility === 'PREMIUM' || moment.visibility === 'STANDARD' ? (
-            <div className="relative bg-gray-900/60 rounded-xl p-4 border border-purple-900/30 overflow-hidden mb-3">
-              {/* ぼかし背景 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-sm" />
-              <div className="relative z-10 flex flex-col items-center gap-3 py-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔒</span>
-                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent text-xs font-bold uppercase tracking-wider">FC限定</span>
+          moment.isFcOnly || moment.visibility === 'PREMIUM' || moment.visibility === 'STANDARD' ? (
+            /* ─── FC限定ロック表示 ─── */
+            <div className="relative rounded-2xl overflow-hidden mb-3">
+              {/* マスク: ぼかしコンテンツ */}
+              <div className="relative">
+                {moment.type === 'IMAGE' && (
+                  <div className="w-full aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-purple-900/30 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-purple-400/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                {moment.type !== 'IMAGE' && (
+                  <p className="text-gray-500 text-sm leading-relaxed blur-md select-none py-6 px-2">
+                    この投稿はファンクラブ会員限定です。入会するとすべてのコンテンツをお楽しみいただけます。特別な投稿を見逃さないでください。
+                  </p>
+                )}
+                {/* オーバーレイ */}
+                <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-[6px] flex flex-col items-center justify-center gap-3 p-4">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                    <span className="text-purple-300 text-xs font-bold tracking-wide">FC限定</span>
+                  </div>
+                  <p className="text-gray-300 text-sm text-center leading-relaxed">
+                    ファンクラブに入会して<br/>投稿を見る
+                  </p>
+                  <a
+                    href={`/profile/${moment.characterId}#fc`}
+                    className="mt-1 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30 active:scale-95"
+                  >
+                    {moment.character.name}のFCに入会
+                  </a>
                 </div>
-                <p className="text-gray-400 text-sm text-center">ファンクラブ会員だけが見れる<br/>特別なMoment</p>
-                <a
-                  href={`/profile/${moment.characterId}#fc`}
-                  className="mt-1 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-full hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-900/30"
-                >
-                  💜 {moment.character.name}のFC会員になる
-                </a>
               </div>
             </div>
           ) : (
+            /* ─── レベルロック表示 ─── */
             <div className="relative rounded-2xl overflow-hidden mb-3">
               <p className="text-gray-300 text-sm leading-relaxed blur-sm select-none py-2">
                 ロックされたコンテンツです。レベルを上げることで解放されます。もう少し頑張ってみてください！
@@ -271,16 +294,10 @@ export function MomentCard({
               />
             )}
             {moment.content && (
-              <p className={`text-gray-100 text-sm leading-relaxed mb-3 ${moment.type === 'IMAGE' ? 'px-4' : ''} ${moment.isFcOnly && moment.isLocked ? 'blur-sm select-none' : ''}`}>
+              <p className="text-gray-100 text-sm leading-relaxed mb-3"
+                 style={moment.type === 'IMAGE' ? { paddingLeft: '1rem', paddingRight: '1rem' } : undefined}>
                 {moment.content}
               </p>
-            )}
-            {moment.isFcOnly && moment.isLocked && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-900/30 to-pink-900/20 rounded-xl border border-purple-500/20 mx-4 mb-3">
-                <span className="text-sm">👑</span>
-                <span className="text-xs text-purple-300 font-medium">FC限定コンテンツ</span>
-                <span className="text-[10px] text-purple-400/60 ml-auto">FC会員になると見れます</span>
-              </div>
             )}
           </>
         )}

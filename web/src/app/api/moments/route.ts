@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
         ...(characterId
           ? { characterId }
           : mode === 'recommend'
-          ? { visibility: 'PUBLIC' } // おすすめモード: PUBLIC投稿のみ、フォロー関係なし
+          ? { OR: [{ visibility: 'PUBLIC' }, { isFcOnly: true }] } // おすすめ: PUBLIC + FC限定（ロック表示で含める）
           : followingCharacterIds !== null
           ? { characterId: { in: followingCharacterIds } }
           : {}),
