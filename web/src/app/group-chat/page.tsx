@@ -44,13 +44,17 @@ export default function GroupChatPage() {
   const [conversationHistory, setConversationHistory] = useState<Array<{ role: string; characterId: string; content: string }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // キャラ一覧取得
+  // 掛け合い可能キャラ一覧取得（選択に応じて動的にフィルタ）
   useEffect(() => {
-    fetch('/api/characters?limit=40')
+    const selectedIds = selectedChars.map(c => c.id);
+    const query = selectedIds.length > 0
+      ? `/api/chat/group/available?characterIds=${selectedIds.join(',')}`
+      : '/api/chat/group/available';
+    fetch(query)
       .then(r => r.json())
       .then(d => setCharacters(d.characters || []))
       .catch(console.error);
-  }, []);
+  }, [selectedChars]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -153,9 +157,11 @@ export default function GroupChatPage() {
       {/* キャラ選択（会話前） */}
       {messages.length === 0 && (
         <div className="p-4 flex-1">
-          <p className="text-gray-400 text-sm mb-4">2〜3体のキャラを選んでグループチャットを始めよう</p>
+          <p className="text-gray-400 text-sm mb-2">2〜3体のキャラを選んでグループチャットを始めよう</p>
+          <p className="text-gray-500 text-xs mb-4">※ キャラの世界観の都合上、掛け合わせられない組み合わせも存在します</p>
           <div className="grid grid-cols-3 gap-2">
-            {characters.slice(0, 18).map(char => {
+            {/* 選択済みキャラ + 利用可能キャラを重複なしでマージ表示 */}
+            {[...selectedChars, ...characters.filter(c => !selectedChars.find(s => s.id === c.id))].slice(0, 18).map(char => {
               const isSelected = selectedChars.find(c => c.id === char.id);
               return (
                 <button
