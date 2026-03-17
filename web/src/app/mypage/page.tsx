@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -80,6 +81,7 @@ export default function MyPage() {
 
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'activity' | 'settings'>('profile');
 
   // bfcache / Stripe戻り対策: ページ復元時にフルリロード
   useEffect(() => {
@@ -251,7 +253,31 @@ export default function MyPage() {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-5">
+
+        {/* タブバー */}
+        <div className="flex bg-gray-900/60 rounded-xl p-1 gap-1">
+          {([
+            { key: 'profile' as const, label: 'プロフィール', icon: '👤' },
+            { key: 'activity' as const, label: '活動', icon: '⚡' },
+            { key: 'settings' as const, label: '設定', icon: '⚙️' },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === tab.key
+                  ? 'bg-gray-800 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <span className="mr-1">{tab.icon}</span>{tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ===== プロフィールタブ ===== */}
+        {activeTab === 'profile' && (<>
 
         {/* ユーザープロフィールカード（編集可能） */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl p-5 flex flex-col items-center gap-4">
@@ -279,8 +305,7 @@ export default function MyPage() {
                 {isUploadingAvatar ? (
                   <div className="w-8 h-8 rounded-full border-3 border-white border-t-transparent animate-spin" style={{ borderWidth: '3px' }} />
                 ) : editAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={editAvatarUrl} alt="avatar" className="w-full h-full object-cover" onError={() => {
+                  <Image src={editAvatarUrl} alt="avatar" width={96} height={96} className="w-full h-full object-cover" onError={() => {
                     // 旧パス(/uploads/...)が404の場合、API経由(/api/uploads/...)にフォールバック
                     if (editAvatarUrl.startsWith('/uploads/')) {
                       setEditAvatarUrl(editAvatarUrl.replace('/uploads/', '/api/uploads/'));
@@ -290,7 +315,7 @@ export default function MyPage() {
                     } else {
                       setEditAvatarUrl('');
                     }
-                  }} />
+                  }} unoptimized />
                 ) : (
                   avatarLetter
                 )}
@@ -451,8 +476,7 @@ export default function MyPage() {
                 >
                   <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/30">
                     {char.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                      <Image src={char.avatarUrl} alt={char.name} width={44} height={44} className="w-full h-full object-cover" unoptimized />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold text-white">
                         {char.name.charAt(0)}
@@ -501,8 +525,7 @@ export default function MyPage() {
                   >
                     <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
                       {char.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover group-active:scale-95 transition-transform" />
+                        <Image src={char.avatarUrl} alt={char.name} fill className="object-cover group-active:scale-95 transition-transform" unoptimized />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg font-black text-white">
                           {char.name.charAt(0)}
@@ -553,6 +576,11 @@ export default function MyPage() {
             </div>
           </section>
         )}
+
+        </>)}
+
+        {/* ===== 活動タブ ===== */}
+        {activeTab === 'activity' && (<>
 
         {/* 称号バッジ */}
         <AchievementsSection relationships={relationships} followingCount={following.length} />
@@ -647,6 +675,11 @@ export default function MyPage() {
             </svg>
           </a>
         </section>
+
+        </>)}
+
+        {/* ===== 設定タブ ===== */}
+        {activeTab === 'settings' && (<>
 
         {/* 設定 */}
         <section className="bg-gray-900/80 border border-white/8 rounded-2xl overflow-hidden">
@@ -755,6 +788,8 @@ export default function MyPage() {
 
         {/* バージョン情報 */}
         <p className="text-center text-xs text-gray-700 pb-2">{t('version')}</p>
+
+        </>)}
       </div>
 
     </div>
