@@ -188,6 +188,11 @@ model Character {
   feedbacks               CharacterFeedback[]
   rankingScores           RankingScore[]
   characterLetters        CharacterLetter[]
+  // === 掛け合い制御 ===
+  // allowedCrosstalkCharacterIds: nullなら全キャラとOK、空配列なら全禁止、IDリストなら許可リスト
+  allowedCrosstalkCharacterIds Json?                   // null = 制限なし | [] = 全禁止 | ["id1","id2"] = 許可リスト
+  // bannedCrosstalkFranchises: 指定フランチャイズのキャラとの掛け合いを禁止
+  bannedCrosstalkFranchises    String[]                @default([])
   // Phase 3: IP管理
   tenantId                String?
   tenant                  Tenant?                      @relation(fields: [tenantId], references: [id])

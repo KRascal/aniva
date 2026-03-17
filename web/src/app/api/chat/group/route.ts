@@ -5,6 +5,7 @@ import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { validateCrosstalk } from '@/lib/crosstalk-control';
 
 /**
  * グループチャット一覧取得API
@@ -153,6 +154,17 @@ export async function POST(req: NextRequest) {
 
     if (characters.length !== characterIds.length) {
       return NextResponse.json({ error: 'Some characters not found' }, { status: 404 });
+    }
+
+    // 4b. 掛け合い制御バリデーション（複数キャラの場合のみ）
+    if (characterIds.length >= 2) {
+      const crosstalkCheck = await validateCrosstalk(characterIds);
+      if (!crosstalkCheck.allowed) {
+        return NextResponse.json(
+          { error: 'CROSSTALK_NOT_ALLOWED', reason: crosstalkCheck.reason },
+          { status: 403 },
+        );
+      }
     }
 
     // 5. コイン消費: 参加キャラ数 × 通常チャットコスト

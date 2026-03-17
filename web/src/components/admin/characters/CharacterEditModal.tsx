@@ -4,13 +4,14 @@ import React from 'react';
 import { CharacterLocaleConfig, LocaleConfigMap, SupportedLocale } from '@/types/character-locale';
 import { BasicSettingsTab } from '@/components/admin/characters/BasicSettingsTab';
 import { LocaleTab } from '@/components/admin/characters/LocaleTab';
+import { CrosstalkControlTab } from '@/components/admin/characters/CrosstalkControlTab';
 import { CharacterFormData } from '@/components/admin/characters/types';
 import { SecretItem, SecretDraft } from '@/components/admin/characters/SecretsSection';
 
 interface CharacterEditModalProps {
   form: CharacterFormData;
   editingId: string | null;
-  editTab: 'basic' | 'locale';
+  editTab: 'basic' | 'locale' | 'crosstalk';
   saving: boolean;
   error: string;
   // Locale
@@ -33,7 +34,7 @@ interface CharacterEditModalProps {
   secretsError: string;
   generatingSecrets: boolean;
   // Handlers
-  onSetEditTab: (tab: 'basic' | 'locale') => void;
+  onSetEditTab: (tab: 'basic' | 'locale' | 'crosstalk') => void;
   onChange: (key: keyof CharacterFormData, value: string | boolean) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -105,10 +106,22 @@ export function CharacterEditModal({
           type="button"
           onClick={() => onSetEditTab('locale')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${editTab === 'locale' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-        >🌐 多言語設定</button>
+        >多言語設定</button>
+        {editingId && (
+          <button
+            type="button"
+            onClick={() => onSetEditTab('crosstalk')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${editTab === 'crosstalk' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+          >掛け合い制御</button>
+        )}
       </div>
 
-      {editTab === 'locale' ? (
+      {editTab === 'crosstalk' && editingId ? (
+        <CrosstalkControlTab
+          characterId={editingId}
+          characterName={form.name}
+        />
+      ) : editTab === 'locale' ? (
         <LocaleTab
           formName={form.name}
           formSystemPrompt={form.systemPrompt}

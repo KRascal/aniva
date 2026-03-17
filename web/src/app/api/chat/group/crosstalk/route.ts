@@ -5,6 +5,7 @@ import { getVerifiedUserId } from '@/lib/auth-helpers';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { validateCrosstalk } from '@/lib/crosstalk-control';
 
 /**
  * POST /api/chat/group/crosstalk
@@ -79,6 +80,15 @@ export async function POST(req: NextRequest) {
 
     if (characters.length < 2) {
       return NextResponse.json({ error: 'Characters not found' }, { status: 404 });
+    }
+
+    // 5b. 掛け合い制御バリデーション
+    const crosstalkCheck = await validateCrosstalk(characterIds);
+    if (!crosstalkCheck.allowed) {
+      return NextResponse.json(
+        { error: 'CROSSTALK_NOT_ALLOWED', reason: crosstalkCheck.reason },
+        { status: 403 },
+      );
     }
 
     // 6. FC会員チェック — FC会員は掛け合い無料

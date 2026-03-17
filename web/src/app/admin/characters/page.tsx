@@ -27,7 +27,7 @@ export default function CharactersPage() {
   const [secrets, setSecrets] = useState<{ id?: string; unlockLevel: number; title: string; type: string; content: string; promptAddition?: string | null; order?: number }[]>([]);
 
   // Locale config state
-  const [editTab, setEditTab] = useState<'basic' | 'locale'>('basic');
+  const [editTab, setEditTab] = useState<'basic' | 'locale' | 'crosstalk'>('basic');
   const [localeConfig, setLocaleConfig] = useState<LocaleConfigMap>({});
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>('en');
   const [translating, setTranslating] = useState(false);
