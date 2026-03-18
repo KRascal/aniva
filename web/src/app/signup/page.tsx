@@ -300,7 +300,7 @@ function SignupForm() {
                   disabled={isLoading || codeDigits.join('').length !== 6}
                   className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold text-base hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg shadow-purple-900/40"
                 >
-                  {isLoading ? '認証中...' : '推しに会いに行く ✨'}
+                  {isLoading ? '認証中...' : '推しに会いに行く'}
                 </button>
               </form>
 
