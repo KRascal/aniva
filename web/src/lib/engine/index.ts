@@ -18,6 +18,7 @@ import { extractEmotion, detectEmotion, getEmotionReason } from './emotion';
 import { applyNGGuard, detectHiddenCommand } from './ng-guard';
 import { userProfileEngine } from './user-profile-engine';
 import { getYesterdaySessionLog } from './session-logger';
+import { analyzeBehavior, buildBehaviorContext } from './user-behavior-analyzer';
 
 import { logger } from '@/lib/logger';
 import type {
@@ -137,12 +138,19 @@ export class CharacterEngine {
     let followUpCtx = '';
     try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
 
+    // P1-1: メタ行動分析（訪問パターン/返信速度/文章長変化）
+    let behaviorCtx = '';
+    try {
+      const signals = await analyzeBehavior(relationshipId, relationship.userId);
+      behaviorCtx = buildBehaviorContext(signals);
+    } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, (dailyEventType as DailyEventType) ?? 'normal',
       hiddenCommandContext ?? '', jealousyContext ?? '', characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState, semanticMemoryContext,
-      bibleCtx, '', undefined, profileCtx, narrativeSummary, yesterdayHook,
+      bibleCtx, '', undefined, profileCtx + behaviorCtx, narrativeSummary, yesterdayHook,
       undefined, empathyCtx, followUpCtx,
     );
 
@@ -278,12 +286,19 @@ export class CharacterEngine {
     let followUpCtx = '';
     try { followUpCtx = await buildFollowUpContext(relationship.userId, characterId); } catch { /* */ }
 
+    // P1-1: メタ行動分析（訪問パターン/返信速度/文章長変化）
+    let behaviorCtx = '';
+    try {
+      const signals = await analyzeBehavior(relationshipId, relationship.id);
+      behaviorCtx = buildBehaviorContext(signals);
+    } catch { /* */ }
+
     const systemPrompt = buildSystemPrompt(
       character as unknown as CharacterRecord,
       memory, locale, cliffhangerFollowUp, dailyEventType,
       hiddenCommandContext, jealousyContext, characterContext,
       dailyFanCount, relationship.experiencePoints, dailyState,
-      semanticMemoryContext, bibleCtx, loreContext, undefined, profileCtx,
+      semanticMemoryContext, bibleCtx, loreContext, undefined, profileCtx + behaviorCtx,
       undefined, undefined, undefined, empathyCtx, followUpCtx,
     );
 
