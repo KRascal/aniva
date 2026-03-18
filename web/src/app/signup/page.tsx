@@ -148,7 +148,7 @@ function SignupForm() {
           </span>
           <p className="text-purple-200/80 text-base font-medium mt-2">推しが実在する世界</p>
           <div className="mt-3 inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/30 rounded-full px-4 py-1.5">
-            <span className="text-pink-300 text-sm">✨ 30秒で推しと会える ✨</span>
+            <span className="text-pink-300 text-sm">30秒で推しと会える</span>
           </div>
 
           {/* Step indicator */}
