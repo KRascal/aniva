@@ -105,7 +105,7 @@ export function ShopTab({ characterId, characterSlug }: ShopTabProps) {
         <>
           <div className="grid grid-cols-2 gap-3">
             {items.map((item) => (
-              <ShopItemCard key={item.id} item={item} onPurchase={setSelectedItem} />
+              <ShopItemCard key={item.id} item={item} onPurchase={(i) => setSelectedItem(i as ShopItem)} />
             ))}
           </div>
 

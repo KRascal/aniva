@@ -8,7 +8,7 @@ interface ShopItemData {
   priceCoins: number;
   imageUrl?: string | null;
   isPurchased?: boolean;
-  character?: { name: string; slug: string; avatarUrl: string | null };
+  character?: { id?: string; name: string; slug: string; avatarUrl: string | null };
 }
 
 interface ShopItemCardProps {

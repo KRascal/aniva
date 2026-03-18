@@ -10,10 +10,10 @@ import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const item = await prisma.shopItem.findUnique({
       where: { id },
@@ -51,7 +51,7 @@ export async function GET(
 
     return NextResponse.json({ item, isPurchased });
   } catch (error) {
-    logger.error('GET /api/shop/items/[id] failed', { error, itemId: params.id });
+    logger.error('GET /api/shop/items/[id] failed', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -85,7 +85,7 @@ export default function DiscoverPage() {
           
           // フォローできるキャラが0人の場合
           if (chars.length === 0) {
-            setIsComplete(true);
+            setCharacters([]);
           }
         }
       } catch { /* ignore */ }

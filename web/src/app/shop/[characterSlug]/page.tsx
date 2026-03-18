@@ -131,7 +131,7 @@ export default function CharacterShopPage() {
               <ShopItemCard
                 key={item.id}
                 item={item}
-                onPurchase={setSelectedItem}
+                onPurchase={(item) => setSelectedItem(item as ShopItem)}
               />
             ))}
           </div>
