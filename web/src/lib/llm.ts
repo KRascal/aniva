@@ -1,8 +1,8 @@
 /**
  * 共通LLMテキスト生成ユーティリティ
- * xAI (Grok) → Anthropic (Claude) のフォールバック
+ * Gemini 2.5 Flash → xAI (Grok) → Anthropic (Claude) のフォールバック
  * 
- * 使用箇所: cron/moments, cron/character-comments, cron/smart-dm, etc.
+ * 使用箇所: cron/moments, cron/character-comments, cron/smart-dm, memory-extractor, etc.
  */
 
 export interface GenerateTextOptions {
@@ -11,7 +11,7 @@ export interface GenerateTextOptions {
 }
 
 /**
- * LLMでテキスト生成。xAI → Anthropic のフォールバック。
+ * LLMでテキスト生成。Gemini Flash → xAI → Anthropic のフォールバック。
  */
 export async function generateText(
   systemMessage: string,
@@ -19,9 +19,44 @@ export async function generateText(
   options: GenerateTextOptions = {},
 ): Promise<string> {
   const { maxTokens = 300, temperature = 0.85 } = options;
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
+  // Gemini 2.5 Flash（最安・最速）
+  if (geminiKey) {
+    try {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${geminiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemMessage },
+              { role: 'user', content: userMessage },
+            ],
+            max_tokens: maxTokens,
+            temperature,
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      }
+      // Gemini失敗 → フォールバック
+    } catch {
+      // Gemini失敗 → フォールバック
+    }
+  }
+
+  // xAI (Grok)
   if (xaiKey) {
     const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',

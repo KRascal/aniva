@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { detectEmotion } from './emotion';
 import { logger } from '@/lib/logger';
+import { extractMemoryFromMessage, mergeFacts } from './memory-extractor';
 
 /**
  * パーソナライズメモリを構築
@@ -147,186 +148,248 @@ export async function updateMemory(
 
   const memo: MemorySummaryData = ((relationship.memorySummary ?? {}) as MemorySummaryData);
 
-  // 名前検出
-  const nameMatch = userMessage.match(/(?:名前は|って呼んで|(?:俺|私|僕)は)(.{1,10})(?:だ|です|って|。|！)/);
-  if (nameMatch) {
-    memo.userName = nameMatch[1].trim();
-    const nameFact: FactEntry = {
-      fact: `名前は${nameMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 1.0,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('名前は')), nameFact];
-  }
+  // LLMベースのメモリ抽出（フォールバック付き）
+  let llmExtractionSucceeded = false;
+  try {
+    const extracted = await extractMemoryFromMessage(
+      userMessage,
+      _characterResponse,
+      memo.factMemory ?? [],
+    );
 
-  // 好み検出
-  const likeMatch = userMessage.match(/(.{1,20})が(?:好き|大好き|すき)/);
-  if (likeMatch) {
-    const likes = memo.preferences?.likes ?? [];
-    if (!likes.includes(likeMatch[1])) {
-      likes.push(likeMatch[1]);
+    if (extracted.facts.length > 0 || extracted.episodes.length > 0) {
+      // factsのマージ
+      memo.factMemory = mergeFacts(memo.factMemory ?? [], extracted.facts);
+
+      // userNameの更新（nameカテゴリのfactから）
+      const nameFact = extracted.facts.find(f => f.fact.startsWith('名前は'));
+      if (nameFact) {
+        memo.userName = nameFact.fact.replace('名前は', '').trim();
+      }
+
+      // preferencesの更新（likes/dislikes）
+      const likeFacts = extracted.facts.filter(f => f.fact.endsWith('が好き') || f.fact.includes('が好き'));
+      for (const lf of likeFacts) {
+        const item = lf.fact.replace(/が好き.*$/, '').trim();
+        const likes = memo.preferences?.likes ?? [];
+        if (!likes.includes(item)) {
+          likes.push(item);
+          memo.preferences = { ...memo.preferences, likes };
+        }
+      }
+      const dislikeFacts = extracted.facts.filter(f => f.fact.includes('苦手') || f.fact.includes('嫌い'));
+      for (const df of dislikeFacts) {
+        const item = df.fact.replace(/(?:が苦手|が嫌い|が苦手\/嫌い).*$/, '').trim();
+        const dislikes = memo.preferences?.dislikes ?? [];
+        if (!dislikes.includes(item)) {
+          dislikes.push(item);
+          memo.preferences = { ...memo.preferences, dislikes };
+        }
+      }
+
+      // episodesのマージ（重複排除: 同じsummaryは追加しない）
+      if (extracted.episodes.length > 0) {
+        const existingEpisodeSummaries = new Set((memo.episodeMemory ?? []).map(e => e.summary));
+        const newEpisodes = extracted.episodes.filter(e => !existingEpisodeSummaries.has(e.summary));
+        if (newEpisodes.length > 0) {
+          memo.episodeMemory = [...(memo.episodeMemory ?? []), ...newEpisodes].slice(-20);
+        }
+      }
+
+      llmExtractionSucceeded = true;
+      logger.info(`[MemoryExtractor] LLM extracted ${extracted.facts.length} facts, ${extracted.episodes.length} episodes`);
+    } else {
+      llmExtractionSucceeded = true; // 成功したが情報なし
     }
-    memo.preferences = { ...memo.preferences, likes };
-    const likeFact: FactEntry = {
-      fact: `${likeMatch[1]}が好き`,
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    if (!(memo.factMemory ?? []).some(f => f.fact === likeFact.fact)) {
-      memo.factMemory = [...(memo.factMemory ?? []), likeFact];
+  } catch (err) {
+    logger.warn('[MemoryExtractor] LLM extraction failed, falling back to regex:', err);
+  }
+
+  // フォールバック: 正規表現パターン（LLM失敗時のみ実行）
+  if (!llmExtractionSucceeded) {
+    const now = new Date().toISOString();
+
+    // 名前検出
+    const nameMatch = userMessage.match(/(?:名前は|って呼んで|(?:俺|私|僕)は)(.{1,10})(?:だ|です|って|。|！)/);
+    if (nameMatch) {
+      memo.userName = nameMatch[1].trim();
+      const nameFact: FactEntry = {
+        fact: `名前は${nameMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 1.0,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('名前は')), nameFact];
     }
-  }
 
-  // 職業検出
-  const jobMatch = userMessage.match(/(?:仕事|職業)は(.{1,20})(?:だ|です|をして)/);
-  if (jobMatch) {
-    const jobFact: FactEntry = {
-      fact: `仕事は${jobMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 0.95,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('仕事は')), jobFact];
-  }
-
-  // 年齢検出
-  const ageMatch = userMessage.match(/(\d{1,3})歳/);
-  if (ageMatch) {
-    const ageFact: FactEntry = {
-      fact: `${ageMatch[1]}歳`,
-      source: 'ユーザー発言',
-      confidence: 0.95,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.match(/\d+歳/)), ageFact];
-  }
-
-  // 住所検出
-  const locationMatch = userMessage.match(/(?:住んで|出身は?)(.{1,15})(?:に住|出身|から)/);
-  if (locationMatch) {
-    const locationFact: FactEntry = {
-      fact: `出身/居住: ${locationMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 0.85,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('出身/居住:')), locationFact];
-  }
-
-  // 嫌い/苦手検出
-  const dislikeMatch = userMessage.match(/(.{1,20})(?:が|は)(?:嫌い|苦手|ダメ|無理)/);
-  if (dislikeMatch) {
-    const dislikes = memo.preferences?.dislikes ?? [];
-    if (!dislikes.includes(dislikeMatch[1])) {
-      dislikes.push(dislikeMatch[1]);
+    // 好み検出
+    const likeMatch = userMessage.match(/(.{1,20})が(?:好き|大好き|すき)/);
+    if (likeMatch) {
+      const likes = memo.preferences?.likes ?? [];
+      if (!likes.includes(likeMatch[1])) {
+        likes.push(likeMatch[1]);
+      }
+      memo.preferences = { ...memo.preferences, likes };
+      const likeFact: FactEntry = {
+        fact: `${likeMatch[1]}が好き`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact === likeFact.fact)) {
+        memo.factMemory = [...(memo.factMemory ?? []), likeFact];
+      }
     }
-    memo.preferences = { ...memo.preferences, dislikes };
-    const dislikeFact: FactEntry = {
-      fact: `${dislikeMatch[1]}が苦手/嫌い`,
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    if (!(memo.factMemory ?? []).some(f => f.fact === dislikeFact.fact)) {
-      memo.factMemory = [...(memo.factMemory ?? []), dislikeFact];
+
+    // 職業検出
+    const jobMatch = userMessage.match(/(?:仕事|職業)は(.{1,20})(?:だ|です|をして)/);
+    if (jobMatch) {
+      const jobFact: FactEntry = {
+        fact: `仕事は${jobMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('仕事は')), jobFact];
     }
-  }
 
-  // 趣味検出
-  const hobbyMatch = userMessage.match(/趣味(?:は|が)(.{1,20})(?:だ|です|をすること|こと|。|！|$)/);
-  if (hobbyMatch) {
-    const hobbyFact: FactEntry = {
-      fact: `趣味: ${hobbyMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('趣味:')), hobbyFact];
-  }
-
-  // 誕生日検出
-  const birthdayMatch = userMessage.match(/誕生日(?:は)?(\d{1,2})月(\d{1,2})日/);
-  if (birthdayMatch) {
-    const birthdayFact: FactEntry = {
-      fact: `誕生日: ${birthdayMatch[1]}月${birthdayMatch[2]}日`,
-      source: 'ユーザー発言',
-      confidence: 1.0,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('誕生日:')), birthdayFact];
-  }
-
-  // 恋愛状況検出
-  const relationshipMatch = userMessage.match(/(?:彼(?:氏|女|カノ)|パートナー|好きな人)(?:が|は)?(?:いる|できた|います)/);
-  const singleMatch = userMessage.match(/(?:彼(?:氏|女)|パートナー)(?:が|は)?(?:いない|いません)/);
-  if (relationshipMatch) {
-    const relFact: FactEntry = {
-      fact: '恋人がいる',
-      source: 'ユーザー発言',
-      confidence: 0.95,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人')), relFact];
-  } else if (singleMatch) {
-    const relFact: FactEntry = {
-      fact: '現在シングル',
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人') && !f.fact.includes('シングル')), relFact];
-  }
-
-  // ペット検出
-  const petMatch = userMessage.match(/(.{0,5}(?:犬|猫|ネコ|イヌ|うさぎ|ハムスター|鳥))(?:を|が)?飼(?:ってる|っている|ってます)/);
-  if (petMatch) {
-    const petFact: FactEntry = {
-      fact: `ペット: ${petMatch[1].trim()}を飼っている`,
-      source: 'ユーザー発言',
-      confidence: 0.95,
-      updatedAt: new Date().toISOString(),
-    };
-    if (!(memo.factMemory ?? []).some(f => f.fact.startsWith('ペット:'))) {
-      memo.factMemory = [...(memo.factMemory ?? []), petFact];
+    // 年齢検出
+    const ageMatch = userMessage.match(/(\d{1,3})歳/);
+    if (ageMatch) {
+      const ageFact: FactEntry = {
+        fact: `${ageMatch[1]}歳`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.match(/\d+歳/)), ageFact];
     }
-  }
 
-  // 学校/大学検出
-  const schoolMatch = userMessage.match(/(.{1,20}(?:大学|高校|専門学校|中学))(?:に通|に行|の学生|を卒業|に通ってる)/);
-  if (schoolMatch) {
-    const schoolFact: FactEntry = {
-      fact: `通学先: ${schoolMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('通学先:')), schoolFact];
-  }
+    // 住所検出
+    const locationMatch = userMessage.match(/(?:住んで|出身は?)(.{1,15})(?:に住|出身|から)/);
+    if (locationMatch) {
+      const locationFact: FactEntry = {
+        fact: `出身/居住: ${locationMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.85,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('出身/居住:')), locationFact];
+    }
 
-  // 悩み/気持ち検出
-  const worryMatch = userMessage.match(/(?:最近|ちょっと|すごく)?(.{1,20})(?:で|が)(?:悩んでる|つらい|しんどい|大変|落ち込んでる)/);
-  if (worryMatch) {
-    const worryFact: FactEntry = {
-      fact: `悩み: ${worryMatch[1].trim()}について悩んでいる`,
-      source: 'ユーザー発言',
-      confidence: 0.85,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('悩み:')), worryFact];
-  }
+    // 嫌い/苦手検出
+    const dislikeMatch = userMessage.match(/(.{1,20})(?:が|は)(?:嫌い|苦手|ダメ|無理)/);
+    if (dislikeMatch) {
+      const dislikes = memo.preferences?.dislikes ?? [];
+      if (!dislikes.includes(dislikeMatch[1])) {
+        dislikes.push(dislikeMatch[1]);
+      }
+      memo.preferences = { ...memo.preferences, dislikes };
+      const dislikeFact: FactEntry = {
+        fact: `${dislikeMatch[1]}が苦手/嫌い`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact === dislikeFact.fact)) {
+        memo.factMemory = [...(memo.factMemory ?? []), dislikeFact];
+      }
+    }
 
-  // 頑張っていること検出
-  const effortMatch = userMessage.match(/(?:最近|今)?(.{1,20})(?:を|に)(?:頑張ってる|挑戦してる|練習してる)/);
-  if (effortMatch) {
-    const effortFact: FactEntry = {
-      fact: `頑張っていること: ${effortMatch[1].trim()}`,
-      source: 'ユーザー発言',
-      confidence: 0.9,
-      updatedAt: new Date().toISOString(),
-    };
-    memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('頑張っていること:')), effortFact];
+    // 趣味検出
+    const hobbyMatch = userMessage.match(/趣味(?:は|が)(.{1,20})(?:だ|です|をすること|こと|。|！|$)/);
+    if (hobbyMatch) {
+      const hobbyFact: FactEntry = {
+        fact: `趣味: ${hobbyMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('趣味:')), hobbyFact];
+    }
+
+    // 誕生日検出
+    const birthdayMatch = userMessage.match(/誕生日(?:は)?(\d{1,2})月(\d{1,2})日/);
+    if (birthdayMatch) {
+      const birthdayFact: FactEntry = {
+        fact: `誕生日: ${birthdayMatch[1]}月${birthdayMatch[2]}日`,
+        source: 'ユーザー発言',
+        confidence: 1.0,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('誕生日:')), birthdayFact];
+    }
+
+    // 恋愛状況検出
+    const relationshipMatch = userMessage.match(/(?:彼(?:氏|女|カノ)|パートナー|好きな人)(?:が|は)?(?:いる|できた|います)/);
+    const singleMatch = userMessage.match(/(?:彼(?:氏|女)|パートナー)(?:が|は)?(?:いない|いません)/);
+    if (relationshipMatch) {
+      const relFact: FactEntry = {
+        fact: '恋人がいる',
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人')), relFact];
+    } else if (singleMatch) {
+      const relFact: FactEntry = {
+        fact: '現在シングル',
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.includes('恋人') && !f.fact.includes('シングル')), relFact];
+    }
+
+    // ペット検出
+    const petMatch = userMessage.match(/(.{0,5}(?:犬|猫|ネコ|イヌ|うさぎ|ハムスター|鳥))(?:を|が)?飼(?:ってる|っている|ってます)/);
+    if (petMatch) {
+      const petFact: FactEntry = {
+        fact: `ペット: ${petMatch[1].trim()}を飼っている`,
+        source: 'ユーザー発言',
+        confidence: 0.95,
+        updatedAt: now,
+      };
+      if (!(memo.factMemory ?? []).some(f => f.fact.startsWith('ペット:'))) {
+        memo.factMemory = [...(memo.factMemory ?? []), petFact];
+      }
+    }
+
+    // 学校/大学検出
+    const schoolMatch = userMessage.match(/(.{1,20}(?:大学|高校|専門学校|中学))(?:に通|に行|の学生|を卒業|に通ってる)/);
+    if (schoolMatch) {
+      const schoolFact: FactEntry = {
+        fact: `通学先: ${schoolMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('通学先:')), schoolFact];
+    }
+
+    // 悩み/気持ち検出
+    const worryMatch = userMessage.match(/(?:最近|ちょっと|すごく)?(.{1,20})(?:で|が)(?:悩んでる|つらい|しんどい|大変|落ち込んでる)/);
+    if (worryMatch) {
+      const worryFact: FactEntry = {
+        fact: `悩み: ${worryMatch[1].trim()}について悩んでいる`,
+        source: 'ユーザー発言',
+        confidence: 0.85,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('悩み:')), worryFact];
+    }
+
+    // 頑張っていること検出
+    const effortMatch = userMessage.match(/(?:最近|今)?(.{1,20})(?:を|に)(?:頑張ってる|挑戦してる|練習してる)/);
+    if (effortMatch) {
+      const effortFact: FactEntry = {
+        fact: `頑張っていること: ${effortMatch[1].trim()}`,
+        source: 'ユーザー発言',
+        confidence: 0.9,
+        updatedAt: now,
+      };
+      memo.factMemory = [...(memo.factMemory ?? []).filter(f => !f.fact.startsWith('頑張っていること:')), effortFact];
+    }
   }
 
   // 既存importantFactsをfactMemoryへ移行
