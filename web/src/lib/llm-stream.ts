@@ -1,7 +1,8 @@
 import { logger } from '@/lib/logger';
 /**
  * LLM Streaming — SSE対応のストリーミングLLM呼び出し
- * Primary: Gemini 2.5 Flash
+ * 通常会話: Gemini 2.5 Flash（全ユーザー共通）
+ * 深い会話: Gemini 2.5 Pro（thinking有効、全ユーザー共通）
  * Fallback: xAI Grok → Anthropic Haiku
  */
 
@@ -58,16 +59,17 @@ async function parseOpenAIStream(
 
 /**
  * ストリーミングでLLM応答を生成し、ReadableStreamを返す
+ * isDeepMode: true → Gemini 2.5 Pro（深い会話）、false → Gemini 2.5 Flash（通常）
  */
 export async function callLLMStream(
   systemPrompt: string,
   messages: { role: 'user' | 'assistant'; content: string }[],
-  options?: { isFcMember?: boolean },
+  options?: { isDeepMode?: boolean },
 ): Promise<ReadableStream<Uint8Array>> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const isFc = options?.isFcMember ?? false;
+  const isDeep = options?.isDeepMode ?? false;
   const encoder = new TextEncoder();
 
   return new ReadableStream({
@@ -75,35 +77,42 @@ export async function callLLMStream(
       try {
         let fullText = '';
 
-        // FC会員 → Anthropic claude-sonnet-4-6 ストリーミング（高品質）
-        if (isFc && anthropicKey) {
+        // Deep会話 → Gemini 2.5 Pro（thinking有効）
+        if (isDeep && geminiKey) {
           try {
-            const Anthropic = (await import('@anthropic-ai/sdk')).default;
-            const client = new Anthropic({ apiKey: anthropicKey });
-            const stream = client.messages.stream({
-              model: process.env.LLM_MODEL_FC || 'claude-sonnet-4-6',
-              max_tokens: 600,
-              system: systemPrompt,
-              messages,
-            });
+            logger.info('[llm-stream] Deep mode: using Gemini 2.5 Pro');
+            const res = await fetch(
+              'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${geminiKey}`,
+                },
+                body: JSON.stringify({
+                  model: 'gemini-2.5-pro',
+                  messages: [{ role: 'system', content: systemPrompt }, ...messages],
+                  max_tokens: 800,
+                  temperature: 0.85,
+                  stream: true,
+                }),
+              },
+            );
 
-            for await (const event of stream) {
-              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-                const token = event.delta.text;
-                fullText += token;
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', token })}\n\n`));
-              }
+            if (!res.ok || !res.body) {
+              throw new Error(`Gemini Pro stream error: ${res.status}`);
             }
 
+            fullText = await parseOpenAIStream(res, controller, encoder);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', text: fullText })}\n\n`));
             controller.close();
             return;
           } catch (e) {
-            logger.error('[llm-stream] Anthropic FC stream failed, falling back:', e);
+            logger.error('[llm-stream] Gemini Pro stream failed, falling back to Flash:', e);
           }
         }
 
-        // 通常 → Gemini 2.5 Flash ストリーミング（OpenAI互換）
+        // 通常 → Gemini 2.5 Flash ストリーミング（全ユーザー共通）
         if (geminiKey) {
           try {
             const res = await fetch(

@@ -24,7 +24,7 @@ import { resolveCharacterId } from '@/lib/resolve-character';
 import { extractAndStoreMemories } from '@/lib/semantic-memory';
 import { callLLMStream } from '@/lib/llm-stream';
 import { logger } from '@/lib/logger';
-import { shouldUseDeepMode, calculateMessageWeight, calculateDelayMs, formatDelayText } from '@/lib/message-weight';
+import { shouldUseDeepMode, calculateMessageWeight, calculateDelayMs, formatDelayText, isEmotionalMessage } from '@/lib/message-weight';
 import { getThinkingReaction } from '@/lib/thinking-reactions';
 import { logSessionEnd } from '@/lib/engine/session-logger';
 import { generateNarrative } from '@/lib/engine/user-narrative';
@@ -212,12 +212,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── SystemPrompt構築 （character-engineの内部メソッドを公開して利用） ──
+    // ── SystemPrompt構築 ──
     const isFcMember = consumed === 'FC_UNLIMITED';
     const { systemPrompt, llmMessages, memoryRecalled } = await characterEngine.buildPromptContext(
       characterId, relationship.id, message, typeof locale === 'string' ? locale : 'ja',
       { isFcMember },
     );
+
+    // ── モデル切替判定: 感情的/哲学的な会話 → Gemini 2.5 Pro ──
+    const useDeepModel = isEmotionalMessage(message) || calculateMessageWeight(message) >= DEEP_THRESHOLD;
 
     // ── SSEレスポンス開始 ──
     const stream = new ReadableStream({
@@ -232,7 +235,7 @@ export async function POST(req: NextRequest) {
           }));
 
           // LLMストリーミング
-          const llmStream = await callLLMStream(systemPrompt, llmMessages, { isFcMember });
+          const llmStream = await callLLMStream(systemPrompt, llmMessages, { isDeepMode: useDeepModel });
           const reader = llmStream.getReader();
           const decoder = new TextDecoder();
           let fullText = '';
