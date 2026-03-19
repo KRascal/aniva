@@ -34,7 +34,8 @@ bash /home/openclaw/.openclaw/workspace/scripts/deploy-production.sh
 - ecosystem.config.cjs / ecosystem.staging.config.cjs から起動
 
 ## 指示管理
-- バックログ: `tasks/aniva-backlog.md`（正規。他のbacklogは統合予定）
+- バックログ: `tasks/aniva-backlog-unified.md`（17ファイルから統合済み。唯一の真実源）
+- 旧backlog(17ファイル)は参照のみ。新規タスクはunifiedに追記
 - 設計書: `tasks/designs/aniva/`
 - spec: `tasks/specs/aniva/{task}.md`
 
