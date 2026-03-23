@@ -148,72 +148,75 @@ export async function POST(req: NextRequest) {
       data: { conversationId: conversation.id, role: 'USER', content: message },
     });
 
-    // ── Deep Mode判定 ──
-    const recentCharMsgs = await prisma.message.findMany({
-      where: { conversationId: conversation.id, role: 'CHARACTER' },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: { metadata: true },
-    });
-    const recentDeepCount = recentCharMsgs.filter(
-      (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
-    ).length;
+    // ── Deep Mode判定（隔離: 失敗してもコア送信パスに影響しない） ──
+    try {
+      const recentCharMsgs = await prisma.message.findMany({
+        where: { conversationId: conversation.id, role: 'CHARACTER' },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { metadata: true },
+      });
+      const recentDeepCount = recentCharMsgs.filter(
+        (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
+      ).length;
 
-    if (shouldUseDeepMode(message, recentDeepCount)) {
-      // 遅延時間を計算してscheduledAtを設定
-      const weight = calculateMessageWeight(message);
-      const delayMs = calculateDelayMs(weight);
-      const scheduledAt = new Date(Date.now() + delayMs);
-      const delayText = formatDelayText(delayMs);
-      const thinkingContent = `ちょっと考えさせて…${delayText}に返事するね`;
-      const thinkingText = getThinkingReaction(cachedCharacter.slug);
-      const thinkingMsg = await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          role: 'CHARACTER',
-          content: thinkingContent,
-          metadata: { isThinking: true, scheduledAt: scheduledAt.toISOString() },
-        },
-      });
-      await prisma.deepReplyQueue.create({
-        data: {
-          userId,
-          characterId,
-          relationshipId: relationship.id,
-          conversationId: conversation.id,
-          userMessageId: userMsg.id,
-          thinkingMsgId: thinkingMsg.id,
-          scheduledAt,
-        },
-      });
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { updatedAt: new Date() },
-      });
-      if (access.type === 'FREE') {
-        await incrementMonthlyChat(userId, characterId);
+      if (shouldUseDeepMode(message, recentDeepCount)) {
+        const weight = calculateMessageWeight(message);
+        const delayMs = calculateDelayMs(weight);
+        const scheduledAt = new Date(Date.now() + delayMs);
+        const delayText = formatDelayText(delayMs);
+        const thinkingContent = `ちょっと考えさせて…${delayText}に返事するね`;
+        getThinkingReaction(cachedCharacter.slug); // side-effect only
+        const thinkingMsg = await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: thinkingContent,
+            metadata: { isThinking: true, scheduledAt: scheduledAt.toISOString() },
+          },
+        });
+        await prisma.deepReplyQueue.create({
+          data: {
+            userId,
+            characterId,
+            relationshipId: relationship.id,
+            conversationId: conversation.id,
+            userMessageId: userMsg.id,
+            thinkingMsgId: thinkingMsg.id,
+            scheduledAt,
+          },
+        });
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
+        if (access.type === 'FREE') {
+          await incrementMonthlyChat(userId, characterId);
+        }
+        const encoder2 = new TextEncoder();
+        const deepEvent = encoder2.encode(
+          `data: ${JSON.stringify({
+            type: 'deep_mode',
+            userMessageId: userMsg.id,
+            characterMessageId: thinkingMsg.id,
+            thinkingText: thinkingContent,
+            emotion: 'thinking',
+            isDeepProcessing: true,
+            scheduledAt: scheduledAt.toISOString(),
+            consumed,
+          })}\n\n`,
+        );
+        return new Response(deepEvent, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        });
       }
-      // Deep ModeはSSEで1イベントだけ返して即完了
-      const encoder2 = new TextEncoder();
-      const deepEvent = encoder2.encode(
-        `data: ${JSON.stringify({
-          type: 'deep_mode',
-          userMessageId: userMsg.id,
-          characterMessageId: thinkingMsg.id,
-          thinkingText: thinkingContent,
-          emotion: 'thinking',
-          isDeepProcessing: true,
-          scheduledAt: scheduledAt.toISOString(),
-          consumed,
-        })}\n\n`,
-      );
-      return new Response(deepEvent, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
+    } catch (deepModeErr) {
+      // Deep Mode判定失敗 → ログして通常送信にフォールスルー（コア機能を保護）
+      logger.error('[chat/stream] Deep mode check failed, falling through to normal reply:', deepModeErr);
     }
 
     // ── SystemPrompt構築 （character-engineの内部メソッドを公開して利用） ──

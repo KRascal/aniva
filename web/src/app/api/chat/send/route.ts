@@ -198,51 +198,52 @@ export async function POST(req: NextRequest) {
       (m) => (m.metadata as Record<string, unknown>)?.deepReply === true,
     ).length;
 
-    if (shouldUseDeepMode(message, recentDeepReplyCount)) {
-      // Deep Mode: 考え中メッセージ → キュー投入 → 即レス返却
-      const thinkingText = getThinkingReaction(cachedCharacter.slug);
+    // Deep Mode判定（隔離: 失敗してもコア送信パスに影響しない）
+    try {
+      if (shouldUseDeepMode(message, recentDeepReplyCount)) {
+        const thinkingText = getThinkingReaction(cachedCharacter.slug);
 
-      // 考え中メッセージをDB保存
-      const thinkingMsg = await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          role: 'CHARACTER',
-          content: thinkingText,
-          metadata: { isThinking: true },
-        },
-      });
+        const thinkingMsg = await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: thinkingText,
+            metadata: { isThinking: true },
+          },
+        });
 
-      // DeepReplyQueueにジョブ追加（scheduledAtを明示的にUTC new Date()で設定 — DB timezone不一致対策）
-      await prisma.deepReplyQueue.create({
-        data: {
-          userId,
-          characterId,
-          relationshipId: relationship.id,
-          conversationId: conversation.id,
-          userMessageId: userMsg.id,
-          thinkingMsgId: thinkingMsg.id,
-          scheduledAt: new Date(),
-        },
-      });
+        await prisma.deepReplyQueue.create({
+          data: {
+            userId,
+            characterId,
+            relationshipId: relationship.id,
+            conversationId: conversation.id,
+            userMessageId: userMsg.id,
+            thinkingMsgId: thinkingMsg.id,
+            scheduledAt: new Date(),
+          },
+        });
 
-      // 会話のupdatedAt更新
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { updatedAt: new Date() },
-      });
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
 
-      // FREE の場合、月次チャットカウントをインクリメント
-      if (access.type === 'FREE') {
-        await incrementMonthlyChat(userId, characterId);
+        if (access.type === 'FREE') {
+          await incrementMonthlyChat(userId, characterId);
+        }
+
+        return NextResponse.json({
+          userMessage: userMsg,
+          characterMessage: thinkingMsg,
+          emotion: 'thinking',
+          isDeepProcessing: true,
+          consumed,
+        });
       }
-
-      return NextResponse.json({
-        userMessage: userMsg,
-        characterMessage: thinkingMsg,
-        emotion: 'thinking',
-        isDeepProcessing: true,
-        consumed,
-      });
+    } catch (deepModeErr) {
+      // Deep Mode判定失敗 → ログして通常送信にフォールスルー（コア機能を保護）
+      logger.error('[chat/send] Deep mode check failed, falling through to normal reply:', deepModeErr);
     }
     // ─────────────────────────────────────────────────────────────
 

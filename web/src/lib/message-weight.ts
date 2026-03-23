@@ -8,8 +8,13 @@
 // - Deep Modeでも最大60秒（体感「ちょっと考えてる」レベル）
 // ============================================================
 
-/** Deep Mode発動閾値（引き上げ: 感情系を除外したため高めに設定） */
-export const DEEP_THRESHOLD = 6;
+/**
+ * Deep Mode発動閾値（引き上げ: 感情系を除外したため高めに設定）
+ * NOTE: shouldUseDeepMode内でリテラル比較に使用。
+ * Turbopackチャンク分割でexport constが消失するバグ対策として、
+ * 関数内ではリテラル値 6 を直接使用する。変更時は両方更新すること。
+ */
+export const DEEP_THRESHOLD = 6 as const;
 
 /**
  * 感情キーワード — Deep判定には使わない（即時応答する）
@@ -97,7 +102,8 @@ export function shouldUseDeepMode(
     weight -= 3;
   }
 
-  return weight >= DEEP_THRESHOLD;
+  // リテラル値を直接使用（Turbopackチャンク分割でDEEP_THRESHOLDが消失するバグ対策）
+  return weight >= 6; // === DEEP_THRESHOLD
 }
 
 /**
