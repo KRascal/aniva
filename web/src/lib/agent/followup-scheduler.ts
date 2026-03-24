@@ -51,8 +51,8 @@ export class FollowUpScheduler {
 
       for (const topic of topics) {
         candidates.push({
-          userId: conv.relationship.userId,
-          characterId: conv.relationship.characterId,
+          userId: conv.relationship?.userId ?? '',
+          characterId: conv.relationship?.characterId ?? '',
           topic,
           scheduledAt: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4時間後
           priority: topic === '体調' ? 10 : 5,

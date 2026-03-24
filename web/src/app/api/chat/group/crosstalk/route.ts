@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       where: { id: conversationId },
       include: { relationship: true },
     });
-    if (!conversation || conversation.relationship.userId !== userId) {
+    if (!conversation || conversation.relationship?.userId !== userId) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 

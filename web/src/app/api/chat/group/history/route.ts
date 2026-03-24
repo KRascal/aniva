@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    if (!conversation || conversation.relationship.userId !== userId) {
+    if (!conversation || conversation.relationship?.userId !== userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 

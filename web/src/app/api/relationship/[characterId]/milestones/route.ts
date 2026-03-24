@@ -25,7 +25,7 @@ export async function GET(
   const currentLevel = relationship?.level ?? 1;
 
   return NextResponse.json({
-    milestones: LUFFY_MILESTONES.map((m) => ({
+    milestones: LUFFY_MILESTONES.map((m: import('@/lib/milestones').Milestone) => ({
       ...m,
       achieved: currentLevel >= m.level,
     })),
