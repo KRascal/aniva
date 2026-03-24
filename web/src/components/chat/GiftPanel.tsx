@@ -17,7 +17,7 @@ interface GiftPanelProps {
   characterName: string;
   isOpen: boolean;
   onClose: () => void;
-  onGiftSent: (reaction: string, giftEmoji: string) => void;
+  onGiftSent: (reaction: string, giftEmoji: string, newBalance?: number) => void;
 }
 
 export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftSent }: GiftPanelProps) {
@@ -56,7 +56,7 @@ export function GiftPanel({ characterId, characterName, isOpen, onClose, onGiftS
       const data = await res.json();
       if (data.success) {
         setBalance(data.newBalance);
-        onGiftSent(data.reaction, gift.emoji);
+        onGiftSent(data.reaction, gift.emoji, data.newBalance);
         onClose();
       } else {
         setError(data.error || tc('sendFailed'));

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { RELATIONSHIP_LEVELS } from '@/types/character';
 import { FanStatsPanel } from '@/components/character/FanStatsPanel';
 import { MOMENT_CARD_STYLES } from '@/components/moments/MomentCard';
@@ -19,7 +19,8 @@ import {
 import { PostsTab } from '@/components/profile/tabs/PostsTab';
 import { DiaryTab } from '@/components/profile/tabs/DiaryTab';
 import { FcTab } from '@/components/profile/tabs/FcTab';
-import { DlTab } from '@/components/profile/tabs/DlTab';
+import { StoryTab } from '@/components/profile/tabs/StoryTab';
+import { ShopTab } from '@/components/profile/tabs/ShopTab';
 import { ProfileTab } from '@/components/profile/tabs/ProfileTab';
 import { logger } from '@/lib/logger';
 
@@ -28,7 +29,9 @@ export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const characterId = params.characterId as string;
+  const initialTab = searchParams.get('tab') as 'posts' | 'fc' | 'story' | 'shop' | 'profile' | null;
 
   const [userId, setUserId] = useState<string | null>(null);
   const [character, setCharacter] = useState<Character | null>(null);
@@ -42,9 +45,8 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [fanclubLoading, setFanclubLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'dl' | 'profile' | 'diary'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'fc' | 'story' | 'shop' | 'profile' | 'diary'>(initialTab ?? 'posts');
   const [dlContents, setDlContents] = useState<DlContent[]>([]);
-  const [dlLoading, setDlLoading] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [diaryLoading, setDiaryLoading] = useState(false);
   const [diaryPage, setDiaryPage] = useState(1);
@@ -92,32 +94,44 @@ export default function ProfilePage() {
   }, [characterId]);
 
   // Relationship + Milestones + Follow状態
-  useEffect(() => {
+  const loadProfileData = useCallback(async () => {
     if (!userId || !characterId) return;
-    const load = async () => {
-      try {
-        const [relRes, msRes, followRes] = await Promise.all([
-          fetch(`/api/relationship/${characterId}`),
-          fetch(`/api/relationship/${characterId}/milestones`),
-          fetch(`/api/relationship/${characterId}/follow`),
-        ]);
-        const [relData, msData, followData] = await Promise.all([
-          relRes.json(), msRes.json(), followRes.json(),
-        ]);
-        setRelationship(relData);
-        setMilestonesData(msData);
-        setIsFollowing(followData.isFollowing ?? false);
-        setIsFanclub(followData.isFanclub ?? false);
-        setFollowerCount(followData.followerCount ?? 0);
-      } catch (err) {
-        logger.error('Failed to load profile data', { error: err });
-      } finally {
-        setIsLoading(false);
-        setTimeout(() => setXpAnimated(true), 300);
+    try {
+      const [relRes, msRes, followRes] = await Promise.all([
+        fetch(`/api/relationship/${characterId}`),
+        fetch(`/api/relationship/${characterId}/milestones`),
+        fetch(`/api/relationship/${characterId}/follow`),
+      ]);
+      const [relData, msData, followData] = await Promise.all([
+        relRes.json(), msRes.json(), followRes.json(),
+      ]);
+      setRelationship(relData);
+      setMilestonesData(msData);
+      setIsFollowing(followData.isFollowing ?? false);
+      setIsFanclub(followData.isFanclub ?? false);
+      setFollowerCount(followData.followerCount ?? 0);
+    } catch (err) {
+      logger.error('Failed to load profile data', { error: err });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setXpAnimated(true), 300);
+    }
+  }, [userId, characterId]);
+
+  useEffect(() => {
+    loadProfileData();
+  }, [loadProfileData]);
+
+  // ページ復帰時にrelationship再フェッチ（チャット/ギフト後の絆ゲージ反映）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && userId && characterId) {
+        loadProfileData();
       }
     };
-    load();
-  }, [userId, characterId]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadProfileData, userId, characterId]);
 
   // プリファレンスをrelationshipデータから読み込み
   useEffect(() => {
@@ -222,14 +236,12 @@ export default function ProfilePage() {
   // 限定DLコンテンツ取得
   useEffect(() => {
     if (!characterId) return;
-    setDlLoading(true);
     fetch(`/api/content?characterId=${characterId}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.contents) setDlContents(data.contents as DlContent[]);
       })
-      .catch((err) => logger.error('content fetch error', { error: err }))
-      .finally(() => setDlLoading(false));
+      .catch((err) => logger.error('content fetch error', { error: err }));
   }, [characterId]);
 
   // ランキングフェッチ（嫉妬メカニクス）
@@ -566,7 +578,8 @@ export default function ProfilePage() {
             {[
               { id: 'posts' as const, label: '投稿' },
               { id: 'fc' as const, label: 'FC限定' },
-              { id: 'dl' as const, label: 'DL' },
+              { id: 'story' as const, label: 'ストーリー' },
+              { id: 'shop' as const, label: 'ショップ' },
               { id: 'profile' as const, label: '関係値' },
             ].map((tab) => (
               <button
@@ -620,14 +633,20 @@ export default function ProfilePage() {
             toSharedMoment={toSharedMoment}
             onLike={handleLike}
             onJoinFC={handleFanclub}
+            dlContents={dlContents}
           />
         )}
 
-        {activeTab === 'dl' && (
-          <DlTab
-            dlContents={dlContents}
-            dlLoading={dlLoading}
-            onFcClick={() => setActiveTab('fc')}
+        {activeTab === 'story' && (
+          <StoryTab
+            characterId={characterId}
+          />
+        )}
+
+        {activeTab === 'shop' && (
+          <ShopTab
+            characterId={characterId}
+            characterSlug={character?.slug}
           />
         )}
 

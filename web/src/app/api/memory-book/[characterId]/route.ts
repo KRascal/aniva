@@ -11,6 +11,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ characterId: string }> },
 ) {
+  try {
   const userId = await getAuthUserId(req);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -19,7 +20,7 @@ export async function GET(
   const { characterId: rawId } = await params;
 
   // slug→id解決
-  const characterId = await resolveCharacterId(rawId) ?? rawId;
+  const characterId = (await resolveCharacterId(rawId)) ?? rawId;
 
   // Relationship取得
   const relationship = await prisma.relationship.findFirst({
@@ -123,4 +124,8 @@ export async function GET(
     emotionalSummary: memo.conversationSummary ?? null,
     emotionalTrend: memo.emotionalTrend ?? null,
   });
+  } catch (err) {
+    console.error('[memory-book] GET error:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }

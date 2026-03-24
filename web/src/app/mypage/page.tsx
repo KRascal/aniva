@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 // ThemeToggle: ダークモード固定のため非表示
 import { CoinBalanceDisplay } from '@/components/CoinBalance';
 import DailyMissionsCard from '@/components/missions/DailyMissionsCard';
-import BondCalendar from '@/components/BondCalendar';
+import StreakRewardCard from '@/components/StreakRewardCard';
 import { useCoinPurchase } from '@/components/coins/CoinPurchaseContext';
 import AchievementsSection from '@/components/mypage/AchievementsSection';
 import BookmarkSection from '@/components/mypage/BookmarkSection';
@@ -557,8 +557,8 @@ export default function MyPage() {
         {/* 称号バッジ */}
         <AchievementsSection relationships={relationships} followingCount={following.length} />
 
-        {/* 絆カレンダー */}
-        <BondCalendar />
+        {/* ログインボーナス & ストリーク */}
+        <StreakRewardCard />
 
         {/* デイリーミッション */}
         <div id="daily-missions">
@@ -575,19 +575,24 @@ export default function MyPage() {
           </h3>
           {/* ガチャ・コレクションはカードタブに統一済み */}
           <a
+            href="/shop"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <div>
+              <p className="text-sm text-white">ショップ</p>
+              <p className="text-xs text-gray-500">限定コンテンツ</p>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+          <a
             href="/letters"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-white">{t('letters')}</p>
-                <p className="text-xs text-gray-500">{t('lettersSub')}</p>
-              </div>
+            <div>
+              <p className="text-sm text-white">{t('letters')}</p>
+              <p className="text-xs text-gray-500">{t('lettersSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -597,16 +602,9 @@ export default function MyPage() {
             href="/story"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-white">{t('storiesLabel')}</p>
-                <p className="text-xs text-gray-500">{t('storiesSub')}</p>
-              </div>
+            <div>
+              <p className="text-sm text-white">{t('storiesLabel')}</p>
+              <p className="text-xs text-gray-500">{t('storiesSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -616,16 +614,9 @@ export default function MyPage() {
             href="/polls"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-white">{t('pollsLabel')}</p>
-                <p className="text-xs text-gray-500">{t('pollsSub')}</p>
-              </div>
+            <div>
+              <p className="text-sm text-white">{t('pollsLabel')}</p>
+              <p className="text-xs text-gray-500">{t('pollsSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -635,16 +626,9 @@ export default function MyPage() {
             href="/events"
             className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-white">{t('eventsLabel')}</p>
-                <p className="text-xs text-gray-500">{t('eventsSub')}</p>
-              </div>
+            <div>
+              <p className="text-sm text-white">{t('eventsLabel')}</p>
+              <p className="text-xs text-gray-500">{t('eventsSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -654,16 +638,9 @@ export default function MyPage() {
             href="/ranking"
             className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-white">{t('rankingLabel')}</p>
-                <p className="text-xs text-gray-500">{t('rankingSub')}</p>
-              </div>
+            <div>
+              <p className="text-sm text-white">{t('rankingLabel')}</p>
+              <p className="text-xs text-gray-500">{t('rankingSub')}</p>
             </div>
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -710,6 +687,20 @@ export default function MyPage() {
               />
             </button>
           </div>
+
+          {/* コイン経済について */}
+          <a
+            href="/mypage/coin-guide"
+            className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+          >
+            <div>
+              <p className="text-sm text-white">コイン経済について</p>
+              <p className="text-xs text-gray-500">消費・獲得・購入の仕組み</p>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
           {/* プライバシーポリシー */}
           <a

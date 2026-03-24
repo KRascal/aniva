@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { birthday: birthDate.toISOString().slice(0, 10) },
+    data: { birthday },
+    
   });
 
   return NextResponse.json({ ok: true });

@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
               },
             })
           : [];
-        const convCharMap = new Map(conversations.map((c) => [c.id, c.relationship.characterId]));
+        const convCharMap = new Map(conversations.map((c) => [c.id, c.relationship?.characterId]));
 
         // characterId別メッセージ数をカウント
         const msgCountMap = new Map<string, number>();

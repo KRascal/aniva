@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getVerifiedUserId } from '@/lib/auth-helpers';
+import { resolveCharacterId } from '@/lib/resolve-character';
 import { logger } from '@/lib/logger';
 
 // ギフト定義（将来的にDBに移行可能）
@@ -29,11 +30,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { characterId, giftType } = await req.json();
+    const { characterId: rawCharacterId, giftType } = await req.json();
 
-    if (!characterId || !giftType) {
+    if (!rawCharacterId || !giftType) {
       return NextResponse.json({ error: 'Missing characterId or giftType' }, { status: 400 });
     }
+
+    // slug/UUID両対応（フロントがslugを送ってくるケースに対応）
+    const characterId = await resolveCharacterId(rawCharacterId) ?? rawCharacterId;
 
     const gift = GIFT_CATALOG.find(g => g.id === giftType);
     if (!gift) {
@@ -142,6 +146,67 @@ export async function POST(req: Request) {
       reaction = 'きゃー！💰 最高！！あんた分かってるじゃない！';
     } else if (character?.slug === 'chopper' && gift.id === 'heart') {
       reaction = 'う、うれしくなんかないんだからなっ！…えへへ';
+    }
+
+    // ギフト送信をチャットメッセージとしてDB保存（ページリロードでも残る）
+    try {
+      // Conversation検索: relationship経由 OR userId直接（グループチャット除外）
+      let conversation = await prisma.conversation.findFirst({
+        where: {
+          OR: [
+            { relationship: { userId, characterId } },
+            ...(relationship ? [{ userId, relationshipId: relationship.id }] : []),
+          ],
+          isActive: true,
+          NOT: { metadata: { path: ['type'], equals: 'group' } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      // Conversationが見つからない場合は新規作成
+      if (!conversation && relationship) {
+        conversation = await prisma.conversation.create({
+          data: {
+            relationshipId: relationship.id,
+            userId,
+            isActive: true,
+          },
+        });
+      }
+
+      if (conversation) {
+        // ユーザーのギフト送信メッセージ
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'USER',
+            content: `[ギフト] ${gift.emoji} ${gift.name}を贈りました`,
+            metadata: { type: 'gift', giftType: gift.id, giftEmoji: gift.emoji, giftName: gift.name },
+          },
+        });
+        // キャラの反応メッセージ
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'CHARACTER',
+            content: reaction,
+            metadata: { type: 'gift_reaction', giftType: gift.id, emotion: 'happy' },
+          },
+        });
+        // Conversation更新
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
+        await prisma.relationship.updateMany({
+          where: { userId, characterId },
+          data: { lastMessageAt: new Date() },
+        });
+      } else {
+        logger.warn('[gift/send] No conversation found and could not create one', { userId, characterId });
+      }
+    } catch (giftMsgErr) {
+      logger.error('[gift/send] Failed to save gift messages:', giftMsgErr);
     }
 
     return NextResponse.json({

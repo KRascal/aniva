@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -68,6 +68,30 @@ interface ReplyTarget {
 }
 
 /* ─── Helpers ─── */
+
+/** 画像URLを検出してimgタグに変換 */
+const IMAGE_URL_RE = /(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp)(?:\?\S*)?)/gi;
+
+function renderContentWithImages(content: string): React.ReactNode[] {
+  const parts = content.split(IMAGE_URL_RE);
+  return parts.map((part, i) => {
+    if (IMAGE_URL_RE.test(part)) {
+      IMAGE_URL_RE.lastIndex = 0; // reset regex state
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={i}
+          src={part}
+          alt=""
+          className="rounded-xl max-w-full my-2 cursor-pointer"
+          loading="lazy"
+          onClick={() => window.open(part, '_blank')}
+        />
+      );
+    }
+    return part ? <span key={i}>{part}</span> : null;
+  });
+}
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -189,9 +213,9 @@ function ReplyItem({
       {reply.quotedReply && <QuoteBlock quote={reply.quotedReply} />}
 
       {/* Content */}
-      <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed pl-7">
-        {reply.content}
-      </p>
+      <div className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed pl-7">
+        {renderContentWithImages(reply.content)}
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-4 pl-7 mt-1.5">
@@ -223,6 +247,7 @@ export default function ThreadPage() {
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -252,6 +277,10 @@ export default function ThreadPage() {
       quotedContent: null,
       quotedAuthor: null,
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleSetQuoteTarget = (reply: Reply) => {
@@ -261,6 +290,10 @@ export default function ThreadPage() {
       quotedContent: reply.content,
       quotedAuthor: getAuthorName(reply.author),
     });
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   const handleReply = async () => {
@@ -315,7 +348,7 @@ export default function ThreadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-32">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-40">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-3">
@@ -345,7 +378,22 @@ export default function ThreadPage() {
           <span className="text-[10px] text-white/30">{timeAgo(thread.createdAt)}</span>
           <span className="text-[10px] text-white/30">{thread.viewCount}回閲覧</span>
         </div>
-        <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">{thread.content}</p>
+        <div className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">{renderContentWithImages(thread.content)}</div>
+        {/* トップ投稿への返信ボタン */}
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            onClick={() => {
+              setReplyTarget(null);
+              inputRef.current?.focus();
+            }}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v6M3 10l6 6m-6-6l6-6" />
+            </svg>
+            返信する
+          </button>
+        </div>
       </div>
 
       {/* Replies */}
@@ -384,7 +432,7 @@ export default function ThreadPage() {
 
       {/* Reply Input */}
       {session?.user && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-white/5 px-4 py-3 pb-safe">
+        <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0a0a0a] border-t border-white/5 px-4 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}>
           {/* Quote preview */}
           {replyTarget && replyTarget.quotedContent && (
             <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-white/20 bg-white/[0.03] rounded-r-lg py-1.5 pr-2">
@@ -418,13 +466,14 @@ export default function ThreadPage() {
 
           <div className="flex gap-2">
             <input
+              ref={inputRef as React.Ref<HTMLInputElement>}
               type="text"
               placeholder={replyTarget ? '返信を入力...' : 'コメントを入力...'}
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
               maxLength={2000}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleReply()}
-              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20"
+              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-base text-white placeholder-white/30 focus:outline-none focus:border-white/20"
             />
             <button
               onClick={handleReply}

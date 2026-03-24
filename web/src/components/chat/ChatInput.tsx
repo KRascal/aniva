@@ -111,6 +111,7 @@ interface ChatInputProps {
   setShowPlusMenu: React.Dispatch<React.SetStateAction<boolean>>;
   onGift: () => void;
   onFcClick?: () => void;
+  onBuyStickers?: () => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   lastCharacterMessage?: string;
 }
@@ -135,6 +136,7 @@ export function ChatInput({
   setShowPlusMenu,
   onGift,
   onFcClick,
+  onBuyStickers,
   handleKeyDown,
   lastCharacterMessage,
 }: ChatInputProps) {
@@ -208,6 +210,7 @@ export function ChatInput({
         isOpen={showStickerPicker}
         onClose={() => setShowStickerPicker(false)}
         onSelect={(url, label) => onSendSticker?.(url, label)}
+        onBuyStickers={onBuyStickers}
       />
       {/* コイン残高 + FC加入バー（FC非加入時のみ） */}
       {!relationship?.isFanclub && coinBalance !== null && (

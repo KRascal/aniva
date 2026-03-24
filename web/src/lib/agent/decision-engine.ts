@@ -6,11 +6,31 @@
 
 import { logger } from '@/lib/logger';
 import type { UserStateSnapshot, AgentDecision, MessageType } from './types';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 interface CharacterInfo {
   id: string;
   name: string;
+  slug?: string;
   systemPrompt: string;
+}
+
+/**
+ * キャラ固有のAGENTS.mdを読み込む（存在しなければnull）
+ */
+function loadCharacterAgentsMd(slug: string | undefined): string | null {
+  if (!slug) return null;
+  const candidates = [
+    join(process.cwd(), '..', 'characters', slug, 'AGENTS.md'),
+    join(process.cwd(), 'characters', slug, 'AGENTS.md'),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      try { return readFileSync(p, 'utf-8'); } catch { /* ignore */ }
+    }
+  }
+  return null;
 }
 
 const DECISION_MODEL = 'grok-3-mini';
@@ -40,7 +60,14 @@ function buildDecisionPrompt(
     ? `\n## フォローアップしたい話題\n以前の会話で以下の話題が出ていました。自然なタイミングなら触れてください:\n${state.followUpTopics.map(t => `- ${t.topic}（優先度: ${t.priority}）`).join('\n')}\n`
     : '';
 
+  // キャラ固有の行動原則を読み込み
+  const agentsMd = loadCharacterAgentsMd(character.slug);
+  const characterRulesSection = agentsMd
+    ? `\n## ${character.name}固有の行動原則\n${agentsMd}\n`
+    : '';
+
   return `あなたは${character.name}というキャラクターの「行動判断エンジン」です。
+${characterRulesSection}
 以下のユーザー状態と自分（キャラ）の状態を見て、「今このユーザーにDMを送るべきか？」をJSONで判断してください。
 
 ## あなた（${character.name}）の現在の感情状態

@@ -1,0 +1,38 @@
+{
+  "task": "ANIVA 管理画面スタンプ追加機能",
+  "status": "completed",
+  "completedAt": "2026-03-16T19:53:00+09:00",
+  "files": {
+    "created": [
+      "src/app/admin/stickers/page.tsx",
+      "src/app/api/admin/stickers/route.ts",
+      "src/app/api/admin/stickers/[id]/route.ts",
+      "src/app/api/stickers/route.ts",
+      "src/app/api/stickers/purchase/route.ts"
+    ],
+    "modified": [
+      "prisma/schema.prisma",
+      "src/app/admin/layout.tsx"
+    ]
+  },
+  "schema": {
+    "models_added": ["StickerPack", "UserSticker"],
+    "user_relation_added": "userStickers UserSticker[]",
+    "note": "prisma generate was run; prisma db push was NOT run per instructions"
+  },
+  "api": {
+    "GET /api/admin/stickers": "一覧取得（editor以上）",
+    "POST /api/admin/stickers": "パック作成（editor以上）",
+    "PATCH /api/admin/stickers/[id]": "パック更新（editor以上）",
+    "DELETE /api/admin/stickers/[id]": "パック削除（super_admin以上）",
+    "GET /api/stickers": "公開用一覧（認証不要）",
+    "POST /api/stickers/purchase": "コイン購入（要認証）"
+  },
+  "sidebar": "コマースセクションにスタンプ管理リンク追加（IconSparkle使用）",
+  "typescript": {
+    "new_file_errors": 0,
+    "pre_existing_errors": 15,
+    "notes": "既存の relationship possibly null エラーは変更前から存在"
+  },
+  "upload": "既存 /api/admin/upload エンドポイント（folder=content）を使用してR2アップロード"
+}

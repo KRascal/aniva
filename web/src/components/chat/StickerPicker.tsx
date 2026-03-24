@@ -66,9 +66,10 @@ interface StickerPickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (stickerUrl: string, label: string) => void;
+  onBuyStickers?: () => void;
 }
 
-export function StickerPicker({ characterSlug, isOpen, onClose, onSelect }: StickerPickerProps) {
+export function StickerPicker({ characterSlug, isOpen, onClose, onSelect, onBuyStickers }: StickerPickerProps) {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   
   const stickers = STICKER_MAP[characterSlug] || DEFAULT_STICKERS;
@@ -91,12 +92,20 @@ export function StickerPicker({ characterSlug, isOpen, onClose, onSelect }: Stic
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-xs text-gray-400 font-medium">スタンプ</span>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-white transition-colors text-sm"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/coins"
+              className="text-[10px] px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+            >
+              🛍 購入する
+            </a>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-white transition-colors text-sm"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         
         {/* スタンプグリッド */}
@@ -129,6 +138,17 @@ export function StickerPicker({ characterSlug, isOpen, onClose, onSelect }: Stic
             );
           })}
         </div>
+        {/* スタンプ購入フッター */}
+        {onBuyStickers && (
+          <div className="mt-2 pt-2 border-t border-white/10">
+            <button
+              onClick={() => { onClose(); onBuyStickers(); }}
+              className="w-full text-center text-xs text-purple-400 hover:text-purple-300 py-1 transition-colors"
+            >
+              スタンプを購入する
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

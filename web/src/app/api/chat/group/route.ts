@@ -21,89 +21,57 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // グループチャット会話を取得（metadata.groupChat = true のメッセージがある会話）
-    // Relationship経由でユーザーの会話を取得し、グループフラグのあるものをフィルタ
-    const relationships = await prisma.relationship.findMany({
-      where: { userId },
-      select: { id: true, characterId: true },
-    });
-    const relIds = relationships.map(r => r.id);
-
-    // グループチャットメッセージがある会話を検索
-    const groupMessages = await prisma.message.findMany({
+    // グループチャット会話を取得（userId + metadata.type='group'）
+    const groupConvs = await prisma.conversation.findMany({
       where: {
-        conversation: { relationshipId: { in: relIds } },
-        metadata: { path: ['groupChat'], equals: true },
+        userId,
+        isActive: true,
+        metadata: { path: ['type'], equals: 'group' },
       },
-      select: {
-        conversationId: true,
-        metadata: true,
-        conversation: {
-          select: {
-            id: true,
-            updatedAt: true,
-            relationshipId: true,
-          },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { role: true, content: true, createdAt: true, metadata: true },
         },
       },
-      distinct: ['conversationId'],
-      orderBy: { createdAt: 'desc' },
-      take: 50,
     });
-
-    // 会話ごとにキャラ情報と最新メッセージを集める
-    const conversationMap = new Map<string, {
-      id: string;
-      updatedAt: Date;
-      characterIds: string[];
-    }>();
-
-    for (const msg of groupMessages) {
-      const conv = msg.conversation;
-      if (!conversationMap.has(conv.id)) {
-        const meta = msg.metadata as Record<string, unknown>;
-        const characterIds = Array.isArray(meta.characterIds)
-          ? (meta.characterIds as string[])
-          : [];
-        conversationMap.set(conv.id, {
-          id: conv.id,
-          updatedAt: conv.updatedAt,
-          characterIds,
-        });
-      }
-    }
 
     // キャラクター情報を一括取得
-    const allCharacterIds = [...new Set([...conversationMap.values()].flatMap(c => c.characterIds))];
-    const characters = await prisma.character.findMany({
-      where: { id: { in: allCharacterIds } },
-      select: { id: true, name: true, slug: true, avatarUrl: true },
-    });
+    const allCharacterIds = [...new Set(
+      groupConvs.flatMap(conv => {
+        const meta = conv.metadata as { characterIds?: string[] };
+        return meta?.characterIds ?? [];
+      })
+    )];
+    const characters = allCharacterIds.length > 0
+      ? await prisma.character.findMany({
+          where: { id: { in: allCharacterIds } },
+          select: { id: true, name: true, slug: true, avatarUrl: true },
+        })
+      : [];
     const charMap = new Map(characters.map(c => [c.id, c]));
 
-    // 各会話の最新メッセージを取得
-    const convIds = [...conversationMap.keys()];
-    const lastMessages = await prisma.message.findMany({
-      where: { conversationId: { in: convIds } },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['conversationId'],
-      select: {
-        conversationId: true,
-        role: true,
-        content: true,
-        createdAt: true,
-      },
-    });
-    const lastMsgMap = new Map(lastMessages.map(m => [m.conversationId, m]));
-
-    const conversations = [...conversationMap.values()]
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .map(conv => ({
+    const conversations = groupConvs.map(conv => {
+      const meta = conv.metadata as { characterIds?: string[]; isPinned?: boolean; pinnedAt?: string | null };
+      const charIds = meta?.characterIds ?? [];
+      const lastMsg = conv.messages[0] ?? null;
+      return {
         id: conv.id,
         updatedAt: conv.updatedAt.toISOString(),
-        characters: conv.characterIds.map(id => charMap.get(id)).filter(Boolean),
-        lastMessage: lastMsgMap.get(conv.id) ?? null,
-      }));
+        isPinned: meta?.isPinned ?? false,
+        pinnedAt: meta?.pinnedAt ?? null,
+        characters: charIds.map(id => charMap.get(id)).filter(Boolean),
+        lastMessage: lastMsg ? {
+          role: lastMsg.role,
+          content: lastMsg.content,
+          createdAt: lastMsg.createdAt,
+          characterName: (lastMsg.metadata as { characterName?: string })?.characterName,
+        } : null,
+      };
+    });
 
     return NextResponse.json({ conversations });
   } catch (error) {
@@ -304,47 +272,68 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 9.5. グループチャットメッセージをDBに保存（各キャラのConversationに）
+    // 9.5. グループチャットメッセージをDBに保存（1つのグループConversationに集約）
+    let groupConvId: string | null = null;
     try {
-      for (const character of orderedCharacters) {
-        const relationshipId = relationshipMap.get(character.id)!;
-        // Conversationを取得 or 作成
-        let conversation = await prisma.conversation.findFirst({
-          where: { relationshipId, isActive: true },
-          orderBy: { updatedAt: 'desc' },
-        });
-        if (!conversation) {
-          conversation = await prisma.conversation.create({
-            data: { relationshipId, metadata: { type: 'group' } },
-          });
-        }
-        // ユーザーメッセージ保存
-        await prisma.message.create({
+      // 同じキャラ組み合わせの既存グループ会話を検索
+      const sortedCharIds = [...characterIds].sort();
+      const existingGroupConvs = await prisma.conversation.findMany({
+        where: {
+          userId,
+          isActive: true,
+          metadata: { path: ['type'], equals: 'group' },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+      });
+      
+      let groupConversation = existingGroupConvs.find(conv => {
+        const meta = conv.metadata as { characterIds?: string[] };
+        const convCharIds = [...(meta?.characterIds ?? [])].sort();
+        return convCharIds.length === sortedCharIds.length && convCharIds.every((id, i) => id === sortedCharIds[i]);
+      });
+
+      if (!groupConversation) {
+        groupConversation = await prisma.conversation.create({
           data: {
-            conversationId: conversation.id,
-            role: 'USER',
-            content: message,
-            metadata: { groupChat: true, characterIds } as Prisma.InputJsonValue,
+            userId,
+            metadata: { type: 'group', characterIds: sortedCharIds } as Prisma.InputJsonValue,
           },
         });
-        // キャラ応答保存
-        const charMsg = groupMessages.find(m => m.characterId === character.id);
-        if (charMsg) {
-          await prisma.message.create({
-            data: {
-              conversationId: conversation.id,
-              role: 'CHARACTER',
-              content: charMsg.content,
-              metadata: { groupChat: true, characterIds, emotion: charMsg.emotion || null } as Prisma.InputJsonValue,
-            },
-          });
-        }
-        // Conversation updatedAt更新
-        await prisma.conversation.update({
-          where: { id: conversation.id },
-          data: { updatedAt: new Date() },
+      }
+      groupConvId = groupConversation.id;
+
+      // ユーザーメッセージ保存
+      await prisma.message.create({
+        data: {
+          conversationId: groupConvId,
+          role: 'USER',
+          content: message,
+          metadata: { groupChat: true, characterIds } as Prisma.InputJsonValue,
+        },
+      });
+      // 各キャラの応答保存
+      for (const charMsg of groupMessages) {
+        await prisma.message.create({
+          data: {
+            conversationId: groupConvId,
+            role: 'CHARACTER',
+            content: charMsg.content,
+            metadata: { 
+              groupChat: true, 
+              characterIds, 
+              characterId: charMsg.characterId,
+              characterName: charMsg.characterName,
+              emotion: charMsg.emotion || null,
+            } as Prisma.InputJsonValue,
+          },
         });
       }
+      // Conversation updatedAt更新
+      await prisma.conversation.update({
+        where: { id: groupConvId },
+        data: { updatedAt: new Date() },
+      });
     } catch (saveErr) {
       logger.error('[GroupChat] Failed to save messages to DB:', saveErr);
       // 保存失敗しても応答は返す
@@ -360,9 +349,49 @@ export async function POST(req: NextRequest) {
       messages: groupMessages,
       coinCost: totalCoinCost,
       coinBalance: newBalance,
+      conversationId: groupConvId,
+      characterIds,
     });
   } catch (error) {
     logger.error('[GroupChat] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * グループチャット削除（ソフト削除: isActive = false）
+ * DELETE /api/chat/group?conversationId=xxx
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const userId = await getVerifiedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const conversationId = searchParams.get('conversationId');
+    if (!conversationId) {
+      return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
+    }
+
+    // 所有確認
+    const conv = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+    if (!conv) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // ソフト削除（isActive = false）
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { isActive: false },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error('[GroupChat] DELETE error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

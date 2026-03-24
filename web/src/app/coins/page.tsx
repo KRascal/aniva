@@ -81,15 +81,23 @@ export default async function CoinsPage({
   // DBにデータがあればそれを使用、なければフォールバック
   const packages: PackageDisplayItem[] =
     dbPackages.length > 0
-      ? dbPackages.map((pkg, i) => ({
-          id: pkg.id,
-          name: pkg.name,
-          coinAmount: pkg.coinAmount,
-          priceWebJpy: pkg.priceWebJpy,
-          bonus: i === 0 ? 0 : i === 1 ? 5 : i === 2 ? 10 : 20,
-          popular: i === 2,
-          callMinutes: Math.floor(pkg.coinAmount / 60),
-        }))
+      ? (() => {
+          // スターター（最安パック）の単価を基準に割引率を計算
+          const basePricePerCoin = dbPackages[0] ? dbPackages[0].priceWebJpy / dbPackages[0].coinAmount : 2;
+          return dbPackages.map((pkg, i) => {
+            const pricePerCoin = pkg.priceWebJpy / pkg.coinAmount;
+            const discount = Math.round((1 - pricePerCoin / basePricePerCoin) * 100);
+            return {
+              id: pkg.id,
+              name: pkg.name,
+              coinAmount: pkg.coinAmount,
+              priceWebJpy: pkg.priceWebJpy,
+              bonus: discount > 0 ? discount : 0,
+              popular: i === 2,
+              callMinutes: Math.floor(pkg.coinAmount / 60),
+            };
+          });
+        })()
       : FALLBACK_PACKAGES;
 
   // 現在の残高（free/paid分離）

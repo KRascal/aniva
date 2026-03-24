@@ -33,8 +33,17 @@ pnpm install --no-frozen-lockfile
 echo "🔨 Running prisma generate..."
 npx prisma generate
 
+echo "🔍 退化防止チェック: resolveCharacterId..."
+if bash scripts/check-resolve-character-id.sh > /dev/null 2>&1; then
+  echo "✅ resolveCharacterId: 全[characterId]ルートOK"
+else
+  echo "❌ resolveCharacterId 未適用ルートあり — デプロイを中止します"
+  bash scripts/check-resolve-character-id.sh
+  exit 1
+fi
+
 echo "🗄️ Pushing schema to staging DB..."
-DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push
+DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push --accept-data-loss
 
 echo "🏗️ Building in staging..."
 pnpm build
