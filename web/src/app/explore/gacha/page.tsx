@@ -627,8 +627,8 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                       </div>
                     </div>
 
-                    {/* カード一覧（スクロール可能） — padding-top でヘッダーバーと重ならないように */}
-                    <div className="flex-1 overflow-y-auto px-5 pt-2 pb-4">
+                    {/* カード一覧（スクロール可能） */}
+                    <div className="flex-1 overflow-y-auto px-5 pb-4">
                       <div className={`grid ${pullResults.length === 1 ? 'grid-cols-1 max-w-[220px] mx-auto' : 'grid-cols-2'} gap-3 max-w-lg mx-auto`}>
                         {pullResults.map((result, i) => (
                           <div key={i} className="relative">
@@ -665,27 +665,15 @@ export function GachaContent({ embedded = false }: { embedded?: boolean }) {
                       </div>
                     </div>
 
-                    {/* フッター: もう一度引く + 閉じる（並列、BottomNavの上に確保） */}
-                    <div
-                      className="flex-shrink-0 px-5 pt-3"
-                      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
-                    >
-                      <div className="flex gap-3 max-w-lg mx-auto">
-                        <button
-                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                          className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white/70 transition-all active:scale-[0.97]"
-                          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                        >
-                          閉じる
-                        </button>
-                        <button
-                          onClick={() => { setPullResults([]); setFlippedCards([]); }}
-                          className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97]"
-                          style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.4), rgba(157,23,77,0.35))', border: '1px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 20px rgba(139,92,246,0.2)' }}
-                        >
-                          もう一度引く
-                        </button>
-                      </div>
+                    {/* フッター: もう一度引く（固定） */}
+                    <div className="flex-shrink-0 px-5 pt-3" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+                      <button
+                        onClick={() => { setPullResults([]); setFlippedCards([]); }}
+                        className="w-full max-w-lg mx-auto block py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97]"
+                        style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.4), rgba(157,23,77,0.35))', border: '1px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 20px rgba(139,92,246,0.2)' }}
+                      >
+                        もう一度引く
+                      </button>
                     </div>
                   </div>
                 )}

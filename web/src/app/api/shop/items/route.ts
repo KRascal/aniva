@@ -1,81 +1,71 @@
-/**
- * GET /api/shop/items
- * ショップ商品一覧
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { resolveCharacterId } from '@/lib/resolve-character';
+import { requireAdmin } from '@/lib/admin';
+import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
+// GET: 商品一覧取得（アクティブな商品のみ）
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const characterIdOrSlug = searchParams.get('characterId');
+    const characterId = searchParams.get('characterId');
     const type = searchParams.get('type');
-    const limit = Math.min(parseInt(searchParams.get('limit') ?? '20', 10), 100);
-    const offset = parseInt(searchParams.get('offset') ?? '0', 10);
 
-    // セッション取得（認証は任意）
-    const session = await auth();
-    const userId = session?.user?.id ?? null;
+    const where: Record<string, unknown> = { isActive: true };
+    if (characterId) where.characterId = characterId;
+    if (type) where.type = type;
 
-    // characterId/slug を解決
-    let characterId: string | null = null;
-    if (characterIdOrSlug) {
-      characterId = await resolveCharacterId(characterIdOrSlug);
-      if (!characterId) {
-        return NextResponse.json({ error: 'Character not found' }, { status: 404 });
-      }
-    }
-
-    const where = {
-      isActive: true,
-      ...(characterId ? { characterId } : {}),
-      ...(type ? { type } : {}),
-    };
-
-    const [items, total] = await Promise.all([
-      prisma.shopItem.findMany({
-        where,
-        include: {
-          character: {
-            select: { id: true, name: true, slug: true, avatarUrl: true },
-          },
+    const items = await prisma.shopItem.findMany({
+      where,
+      include: {
+        character: {
+          select: { id: true, name: true, avatarUrl: true, slug: true },
         },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.shopItem.count({ where }),
-    ]);
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    // 認証済みユーザーの場合、各商品の購入済みフラグを付与
-    if (userId && items.length > 0) {
-      const itemIds = items.map((item) => item.id);
-      const purchasedOrders = await prisma.shopOrder.findMany({
-        where: {
-          userId,
-          itemId: { in: itemIds },
-          status: { not: 'cancelled' },
-        },
-        select: { itemId: true },
-      });
-      const purchasedSet = new Set(purchasedOrders.map((o) => o.itemId));
-
-      const itemsWithFlag = items.map((item) => ({
-        ...item,
-        isPurchased: purchasedSet.has(item.id),
-      }));
-
-      return NextResponse.json({ items: itemsWithFlag, total });
-    }
-
-    const itemsWithFlag = items.map((item) => ({ ...item, isPurchased: false }));
-    return NextResponse.json({ items: itemsWithFlag, total });
+    return NextResponse.json({ items });
   } catch (error) {
-    logger.error('GET /api/shop/items failed', { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('[GET /api/shop/items]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// POST: 商品追加（管理者のみ）
+export async function POST(req: NextRequest) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  try {
+    const body = await req.json();
+    const { characterId, name, description, type, priceCoins, priceJpy, imageUrl, fileUrl, stock } = body;
+
+    if (!characterId || !name || !type || priceCoins === undefined) {
+      return NextResponse.json({ error: 'Missing required fields: characterId, name, type, priceCoins' }, { status: 400 });
+    }
+
+    const item = await prisma.shopItem.create({
+      data: {
+        characterId,
+        name,
+        description: description ?? null,
+        type,
+        priceCoins: Number(priceCoins),
+        priceJpy: priceJpy ? Number(priceJpy) : null,
+        imageUrl: imageUrl ?? null,
+        fileUrl: fileUrl ?? null,
+        stock: stock !== undefined && stock !== null ? Number(stock) : null,
+        isActive: true,
+      },
+      include: {
+        character: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    return NextResponse.json({ item }, { status: 201 });
+  } catch (error) {
+    logger.error('[POST /api/shop/items]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

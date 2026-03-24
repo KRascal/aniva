@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { deliverToChat } from '@/lib/chat-delivery';
 
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
@@ -116,7 +115,7 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
         const letterContent = data.choices?.[0]?.message?.content;
         if (!letterContent) continue;
 
-        const letter = await prisma.letter.create({
+        await prisma.letter.create({
           data: {
             relationshipId: rel.id,
             userId: rel.userId,
@@ -126,30 +125,6 @@ ${topics.length ? `- 最近の話題: ${topics.join(', ')}` : ''}
             isRead: false,
           },
         });
-
-        // チャットへの配信注入（疎結合: 失敗しても手紙作成には影響しない）
-        try {
-          // アクティブな会話を取得
-          const conversation = await prisma.conversation.findFirst({
-            where: { relationshipId: rel.id, isActive: true },
-            orderBy: { updatedAt: 'desc' },
-          });
-          if (conversation) {
-            const preview = isFc
-              ? `💌 ${rel.character.name}からFC限定の手紙が届きました`
-              : `💌 ${rel.character.name}から手紙が届きました`;
-            await deliverToChat({
-              conversationId: conversation.id,
-              userId: rel.userId,
-              characterId: rel.characterId,
-              deliveryType: 'letter',
-              referenceId: letter.id,
-              previewContent: preview,
-            });
-          }
-        } catch (deliveryErr) {
-          logger.error(`[monthly-letter] deliverToChat failed for ${rel.id}:`, deliveryErr);
-        }
 
         generated++;
       } catch (err) {

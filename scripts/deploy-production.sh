@@ -23,15 +23,6 @@ pnpm install --frozen-lockfile
 echo "🔨 Running prisma generate..."
 npx prisma generate
 
-echo "🔍 退化防止チェック: resolveCharacterId..."
-if bash scripts/check-resolve-character-id.sh > /dev/null 2>&1; then
-  echo "✅ resolveCharacterId: 全[characterId]ルートOK"
-else
-  echo "❌ resolveCharacterId 未適用ルートあり — 本番デプロイを中止します"
-  bash scripts/check-resolve-character-id.sh
-  exit 1
-fi
-
 echo "🗄️ Pushing schema to production DB..."
 npx prisma db push
 

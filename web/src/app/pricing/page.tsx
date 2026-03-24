@@ -408,7 +408,7 @@ export default function PricingPage() {
                 </svg>
                 <span>チャット1回</span>
               </div>
-              <span className="text-purple-400 font-medium">10コイン</span>
+              <span className="text-purple-400 font-medium">1コイン</span>
             </div>
             <div className="flex items-center justify-between text-gray-300">
               <div className="flex items-center gap-2">

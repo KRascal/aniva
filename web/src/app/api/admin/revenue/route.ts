@@ -79,10 +79,10 @@ export async function GET() {
       },
       _sum: { amount: true },
     });
-    // CoinTransaction.amount はコイン数なので、コイン単価を ¥1 として換算（1コイン = 1円）
+    // CoinTransaction.amount はコイン数なので、コイン単価を ¥1.1 として換算
     // （実際には Transaction テーブルの方が正確だが、簡易集計として）
     const coinCount = coinResult._sum.amount ?? 0;
-    const coinRevenue = coinCount; // 1コイン = 1円
+    const coinRevenue = Math.round(coinCount * 1.1); // 近似値
 
     // ── フランチャイズ別収益 ────────────────────────────────
     const franchiseMap = new Map<string, number>();

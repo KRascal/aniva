@@ -86,11 +86,12 @@ function pickTemplate(mood: string): string {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-function todayJst(): string {
+function todayJst(): Date {
   const now = new Date();
   // JST = UTC+9
   const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  return jst.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  // Return as Date with time zeroed (Date @db.Date only stores date part)
+  return new Date(jst.toISOString().slice(0, 10));
 }
 
 export async function POST(req: NextRequest) {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
 
   try {
-    const today = todayJst();
+    const today = todayJst().toISOString().slice(0, 10);
 
     // アクティブなキャラクターを取得
     const characters = await prisma.character.findMany({

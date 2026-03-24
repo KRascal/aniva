@@ -126,11 +126,6 @@ export function CharacterTable({
                         >🔊</button>
                       )}
                       <a
-                        href={`/admin/characters/${c.id}/launch`}
-                        className="text-amber-400 hover:text-amber-300 text-sm mr-3"
-                        title="ローンチ準備状況を確認"
-                      >📋ローンチ</a>
-                      <a
                         href={`/admin/characters/${c.id}/bible`}
                         className="text-blue-400 hover:text-blue-300 text-sm mr-3"
                       >バイブル</a>

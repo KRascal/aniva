@@ -49,17 +49,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     // LINE Login（環境変数未設定時はスキップ）
-    // Note: emailスコープはLINE Developer ConsoleでEmail address permissionの申請が必要
-    // 未申請の場合は openid+profile のみ使用（emailなしで登録）
     ...(process.env.LINE_CLIENT_ID ? [Line({
       clientId: process.env.LINE_CLIENT_ID!,
       clientSecret: process.env.LINE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
-      authorization: {
-        params: {
-          scope: 'openid profile',
-        },
-      },
     })] : []),
     // Email OTP (6-digit code) authentication
     Credentials({
@@ -126,7 +119,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.userId = user.id;
       }
 
-      // Google/LINE OAuthサインイン時: JWTモードではAdapterがUser作成をスキップする場合がある
+      // Google OAuthサインイン時: JWTモードではAdapterがUser作成をスキップする場合がある
       // DBにユーザーが存在しなければ作成する
       if (trigger === 'signIn' && token.userId) {
         const existingUser = await prisma.user.findUnique({
@@ -135,11 +128,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         if (!existingUser) {
           // JWTのsub/emailから作成を試みる
-          // LINE LoginはEmail未申請の場合emailが空になるため、line-{sub}@aniva.local形式で代替
-          const isLine = account?.provider === 'line';
-          const lineFallbackEmail = isLine && token.sub ? `line-${token.sub}@aniva.local` : '';
-          const email = (token.email ?? user?.email ?? lineFallbackEmail) as string;
-          const name = (token.name ?? user?.name ?? (token as { picture?: string }).picture ?? email.split('@')[0]) as string;
+          const email = (token.email ?? user?.email ?? '') as string;
+          const name = (token.name ?? user?.name ?? email.split('@')[0]) as string;
 
           // メールで既存ユーザーを検索（重複防止）
           let dbUser = email ? await prisma.user.findUnique({ where: { email } }) : null;

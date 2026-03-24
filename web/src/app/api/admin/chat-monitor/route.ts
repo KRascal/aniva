@@ -71,11 +71,11 @@ export async function GET(req: NextRequest) {
         content: m.content,
         createdAt: m.createdAt,
         conversationId: m.conversationId,
-        character: m.conversation.relationship?.character,
+        character: m.conversation.relationship.character,
         user: {
-          id: m.conversation.relationship?.user.id,
-          email: m.conversation.relationship?.user.email,
-          displayName: m.conversation.relationship?.user.displayName,
+          id: m.conversation.relationship.user.id,
+          email: m.conversation.relationship.user.email,
+          displayName: m.conversation.relationship.user.displayName,
         },
       })),
       filters: {

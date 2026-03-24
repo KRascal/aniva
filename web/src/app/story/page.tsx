@@ -48,36 +48,37 @@ interface StoryCharacter {
 
 // ─── カウントダウンフック ──────────────────────────────────────
 
-function useCountdown(endsAt: string): { label: string; isExpired: boolean; isUrgent: boolean } {
-  const [state, setState] = useState({ label: '', isExpired: false, isUrgent: false });
+function useCountdown(endsAt: string): string {
+  const [label, setLabel] = useState('');
 
   useEffect(() => {
     function update() {
       const diff = new Date(endsAt).getTime() - Date.now();
       if (diff <= 0) {
-        setState({ label: '投票終了', isExpired: true, isUrgent: false });
+        setLabel('終了');
         return;
       }
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      const urgent = diff < 6 * 3600000;
-
-      let label: string;
-      if (d > 0) {
-        label = `${d}日 ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      const totalSecs = Math.floor(diff / 1000);
+      const days = Math.floor(totalSecs / 86400);
+      const hours = Math.floor((totalSecs % 86400) / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      if (days > 0) {
+        setLabel(`残り${days}日${hours}時間`);
+      } else if (hours > 0) {
+        setLabel(`残り${hours}時間${mins}分`);
+      } else if (mins > 0) {
+        setLabel(`残り${mins}分${secs}秒`);
       } else {
-        label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        setLabel(`残り${secs}秒！`);
       }
-      setState({ label, isExpired: false, isUrgent: urgent });
     }
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [endsAt]);
 
-  return state;
+  return label;
 }
 
 // ─── 投票カード ───────────────────────────────────────────────
@@ -92,7 +93,7 @@ function PollCard({
   const countdown = useCountdown(poll.endsAt);
   const [voting, setVoting] = useState(false);
   const [optimisticVote, setOptimisticVote] = useState<string | null>(poll.myVote);
-  const isUrgent = countdown.isUrgent;
+  const isUrgent = poll.remainingHours <= 6;
   const hasVoted = optimisticVote !== null;
 
   const handleVote = useCallback(
@@ -158,18 +159,10 @@ function PollCard({
             </span>
           </div>
           {/* カウントダウン */}
-          <div className={`inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-lg border ${
-            countdown.isExpired
-              ? 'bg-gray-900/50 border-gray-700/30 text-gray-500'
-              : isUrgent
-                ? 'bg-red-950/40 border-red-700/40 text-red-400'
-                : 'bg-purple-950/30 border-purple-700/30 text-purple-300'
-          }`}>
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span className="font-mono text-xs font-bold tracking-wider">{countdown.label}</span>
+          <div className={`flex items-center gap-1 mt-0.5 text-xs font-semibold ${isUrgent ? 'text-red-400' : 'text-purple-400'}`}>
+            <span>⏰</span>
+            <span>{countdown}</span>
+            {isUrgent && <span className="text-red-300 font-bold">🔥</span>}
           </div>
         </div>
         <div className="text-gray-500 text-xs flex-shrink-0">

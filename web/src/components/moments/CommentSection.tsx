@@ -141,13 +141,12 @@ function CommentRow({
         <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-line mt-0.5">{comment.content}</p>
         <div className="flex items-center gap-4 mt-1.5">
           <button
-            className="flex items-center gap-1 text-white/30 hover:text-blue-400 transition-colors text-xs"
+            className="flex items-center gap-1 text-white/30 hover:text-blue-400 transition-colors"
             onClick={() => onReplyClick(comment.id, displayName)}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v6M3 10l6 6m-6-6l6-6" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span>返信</span>
           </button>
           <button
             className={`flex items-center gap-1 transition-colors ${commentLiked ? 'text-red-400' : 'text-white/30 hover:text-red-400'}`}

@@ -67,10 +67,6 @@ model User {
   reports                Report[]    @relation("ReportsMade")
   blocksMade             UserBlock[] @relation("BlocksMade")
   blocksReceived         UserBlock[] @relation("BlocksReceived")
-  chatMedia              ChatMedia[]
-  chatDeliveries         ChatDelivery[]
-  groupConversations     Conversation[] @relation("userConversations")
-  userStickers           UserSticker[]
 }
 
 model PushSubscription {
@@ -203,8 +199,6 @@ model Character {
   fanThreads              FanThread[]
   fanReplies              FanReply[]                   @relation("FanReplyCharacter")
   agentDecisions          CharacterAgentDecision[]
-  chatMedia               ChatMedia[]
-  chatDeliveries          ChatDelivery[]
 }
 
 model SecretContent {
@@ -249,8 +243,6 @@ model Relationship {
   agentLastDecisionAt    DateTime? // 最後にDecisionEngineが判断した時刻
   agentDailyContactCount Int                      @default(0) // 今日のエージェント接触数
   agentDailyResetAt      DateTime? // dailyContactCountのリセット日
-  // 体験品質 #2 ユーザーナラティブサマリー
-  narrativeSummary       String?                  @db.Text
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   user                   User                     @relation(fields: [userId], references: [id])
@@ -258,45 +250,22 @@ model Relationship {
   conversations          Conversation[]
   letters                Letter[]
   agentDecisions         CharacterAgentDecision[]
-  dailySessionLogs       DailySessionLog[]
 
   @@unique([userId, characterId, locale])
   @@index([userId, locale])
 }
 
-// 体験品質 #3 日次セッションログ
-model DailySessionLog {
-  id                 String       @id @default(cuid())
-  relationshipId     String
-  relationship       Relationship @relation(fields: [relationshipId], references: [id])
-  date               String       // "2026-03-16"
-  summary            String       @db.Text
-  followUpItems      Json         @default("[]")
-  nextDayHook        String?      @db.Text
-  emotionalHighlight String?      @db.Text
-  messageCount       Int          @default(0)
-  createdAt          DateTime     @default(now())
-
-  @@unique([relationshipId, date])
-  @@index([relationshipId, date])
-}
-
 model Conversation {
   id             String       @id @default(uuid())
-  relationshipId String?
-  userId         String?
+  relationshipId String
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   metadata       Json         @default("{}")
-  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
-  user           User?        @relation("userConversations", fields: [userId], references: [id])
+  relationship   Relationship @relation(fields: [relationshipId], references: [id])
   messages       Message[]
-  chatMedia      ChatMedia[]
-  chatDeliveries ChatDelivery[]
 
   @@index([relationshipId])
-  @@index([userId, updatedAt])
   @@index([updatedAt])
 }
 
@@ -310,7 +279,6 @@ model Message {
   metadata       Json         @default("{}")
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id])
-  media          ChatMedia[]
 
   @@index([conversationId, createdAt])
   @@index([conversationId, role])
@@ -548,6 +516,7 @@ model Letter {
   @@index([characterId])
 }
 
+// ========== ガチャシステム ==========
 
 enum GachaRarity {
   N
@@ -645,6 +614,7 @@ model UserDailyEvent {
   @@index([userId])
 }
 
+// ========== ストーリーモード ==========
 model StoryChapter {
   id            String              @id @default(cuid())
   characterId   String
@@ -705,6 +675,7 @@ model UserStoryProgress {
   @@index([userId, characterId])
 }
 
+// ========== ショップ（EC） ==========
 model ShopItem {
   id          String      @id @default(cuid())
   characterId String
@@ -742,6 +713,7 @@ model ShopOrder {
   @@index([itemId])
 }
 
+// ========== キャラ主導メッセージ ==========
 model CharacterProactiveMessage {
   id          String    @id @default(cuid())
   characterId String
@@ -764,6 +736,7 @@ model CharacterProactiveMessage {
   @@index([expiresAt])
 }
 
+// ========== 感情状態システム ==========
 model CharacterDailyState {
   id                String    @id @default(uuid())
   characterId       String
@@ -781,6 +754,7 @@ model CharacterDailyState {
   @@unique([characterId, date])
 }
 
+// ========== キャラ感情日記タイムライン ==========
 model CharacterDiary {
   id          String               @id @default(uuid())
   characterId String
@@ -809,6 +783,7 @@ model CharacterDiaryLike {
   @@index([diaryId])
 }
 
+// ========== 期間限定絆シナリオ（FOMO演出） ==========
 model LimitedScenario {
   id          String                @id @default(uuid())
   characterId String
@@ -837,6 +812,7 @@ model LimitedScenarioRead {
   @@unique([userId, scenarioId])
 }
 
+// ========== ユーザー投票型ストーリー ==========
 model StoryPoll {
   id             String          @id @default(uuid())
   characterId    String
@@ -904,7 +880,9 @@ model SemanticMemory {
   @@index([userId, characterId])
 }
 
+// ============================================================
 // キャラクターバイブルシステム（Layer 1）
+// ============================================================
 
 model CharacterSoul {
   id                String    @id @default(uuid())
@@ -972,7 +950,9 @@ model CharacterVoice {
   updatedAt       DateTime  @updatedAt
 }
 
+// ============================================================
 // ローアブック/World Info（Layer 2）
+// ============================================================
 
 model LoreFranchise {
   id          String      @id @default(uuid())
@@ -1001,7 +981,9 @@ model LoreEntry {
   @@index([franchiseId, importance])
 }
 
+// ============================================================
 // キャラ画像管理 + フィードバック
+// ============================================================
 
 model CharacterImage {
   id          String    @id @default(uuid())
@@ -1093,7 +1075,9 @@ model LetterDelivery {
 // ダウンロードコンテンツ（FC限定可）
 // ═══════════════════════════════════════════════════
 
+// ============================================
 // Phase 3: RBAC & マルチテナント
+// ============================================
 
 model AdminUser {
   id          String    @id @default(uuid())
@@ -1125,7 +1109,9 @@ model Tenant {
   characters Character[]
 }
 
+// ============================================
 // Phase 3: 権利・契約管理
+// ============================================
 
 model Contract {
   id               String   @id @default(uuid())
@@ -1172,7 +1158,9 @@ model Contract {
   @@index([endDate])
 }
 
+// ============================================
 // Phase 3: 監修・承認ワークフロー
+// ============================================
 
 model ApprovalRequest {
   id          String    @id @default(uuid())
@@ -1214,7 +1202,9 @@ model ApprovalAction {
   @@index([requestId])
 }
 
+// ============================================
 // Phase 3: ガードレール管理
+// ============================================
 
 model GuardrailRule {
   id          String     @id @default(uuid())
@@ -1258,7 +1248,9 @@ model GuardrailLog {
   @@index([action, resolved])
 }
 
+// ============================================
 // Phase 3: 管理操作監査ログ
+// ============================================
 
 model AdminAuditLog {
   id          String    @id @default(uuid())
@@ -1276,7 +1268,9 @@ model AdminAuditLog {
   @@index([action, createdAt])
 }
 
+// ============================================
 // Deep Chat — 非同期チャットパイプライン
+// ============================================
 
 model DeepReplyQueue {
   id             String          @id @default(cuid())
@@ -1327,7 +1321,9 @@ model CharacterRelationshipGraph {
   @@index([characterId])
 }
 
+// ============================================
 // ファン掲示板（キャラごとのコミュニティ）
+// ============================================
 
 model FanThread {
   id          String    @id @default(cuid())
@@ -1376,7 +1372,9 @@ model FanReply {
   @@index([quotedReplyId])
 }
 
+// ============================================
 // ユーザー理解エンジン（User Understanding Engine）
+// ============================================
 
 model UserProfile {
   id                 String                 @id @default(uuid())
@@ -1473,90 +1471,3 @@ model UserBlock {
 
   @@unique([blockerId, blockedId])
 }
-
-model ChatMedia {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  messageId      String?
-  message        Message?     @relation(fields: [messageId], references: [id])
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  characterId    String
-  character      Character    @relation(fields: [characterId], references: [id])
-
-  originalUrl    String       // R2 URL or local path
-  thumbnailUrl   String?      // 300px thumbnail
-  mimeType       String       @default("image/webp")
-  fileSizeBytes  Int          @default(0)
-  width          Int?
-  height         Int?
-
-  uploadedBy     String       @default("user") // "user" | "character" | "system"
-
-  createdAt      DateTime     @default(now())
-
-  @@index([conversationId, createdAt])
-  @@index([userId, characterId])
-  @@index([characterId])
-}
-
-// ═══════════════════════════════════════════════════
-// チャット配信（手紙・ストーリー章・限定イベントのチャット内通知）
-// ═══════════════════════════════════════════════════
-
-model ChatDelivery {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  characterId    String
-  character      Character    @relation(fields: [characterId], references: [id])
-
-  deliveryType   String       // "letter" | "story_chapter" | "event_scenario"
-  referenceId    String       // Letter.id or StoryChapter.id or LimitedScenario.id
-
-  messageId      String?      // 作成されたMessageのID（チャットに注入済みの場合）
-
-  isRead         Boolean      @default(false)
-  deliveredAt    DateTime     @default(now())
-  readAt         DateTime?
-
-  @@unique([conversationId, deliveryType, referenceId])
-  @@index([userId, isRead])
-  @@index([conversationId, deliveredAt])
-}
-
-// ═══════════════════════════════════════════════════
-// スタンプパック
-// ═══════════════════════════════════════════════════
-
-model StickerPack {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  price       Int      @default(100)
-  stickers    Json     // [{url: "...", label: "..."}, ...]
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  purchases   UserSticker[]
-
-  @@index([isActive])
-}
-
-model UserSticker {
-  id            String      @id @default(cuid())
-  userId        String
-  stickerPackId String
-  purchasedAt   DateTime    @default(now())
-
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stickerPack   StickerPack @relation(fields: [stickerPackId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, stickerPackId])
-  @@index([userId])
-}
-

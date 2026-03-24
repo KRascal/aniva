@@ -51,42 +51,16 @@ export default function DiscoverPage() {
     track(EVENTS.DISCOVER_VIEWED);
     (async () => {
       try {
-        // フォロー済みキャラIDを取得して除外
-        let followingCharIds: string[] = [];
-        try {
-          const followRes = await fetch('/api/relationship/all');
-          if (followRes.ok) {
-            const followData = await followRes.json();
-            followingCharIds = (followData.relationships ?? [])
-              .filter((r: { isFollowing?: boolean }) => r.isFollowing)
-              .map((r: { characterId?: string }) => r.characterId)
-              .filter(Boolean);
-          }
-        } catch { /* ignore */ }
-
-        const res = await fetch('/api/characters?limit=50&random=1');
+        const res = await fetch('/api/characters?limit=20&random=1');
         if (res.ok) {
           const data = await res.json();
           const skipped = getSkippedSlugs();
-          // Filter out skipped + already followed chars
-          const available = (data.characters ?? [])
+          // Filter out skipped chars, then shuffle and limit to 10
+          const chars = (data.characters ?? [])
             .filter((c: DiscoverCharacter) => !skipped.includes(c.slug))
-            .filter((c: DiscoverCharacter) => !followingCharIds.includes(c.id));
-          
-          // フォローできるキャラが10人未満の場合はスキップ済みも含めて表示
-          const pool = available.length >= 3 ? available : (data.characters ?? [])
-            .filter((c: DiscoverCharacter) => !followingCharIds.includes(c.id));
-          
-          const chars = pool
             .sort(() => Math.random() - 0.5)
-            .slice(0, Math.min(pool.length, 10));
-          
+            .slice(0, 10);
           setCharacters(chars);
-          
-          // フォローできるキャラが0人の場合
-          if (chars.length === 0) {
-            setCharacters([]);
-          }
         }
       } catch { /* ignore */ }
       setLoading(false);

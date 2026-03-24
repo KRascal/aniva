@@ -3,7 +3,6 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { prisma } from '@/lib/prisma';
 import { generateText } from '@/lib/llm';
 import { logger } from '@/lib/logger';
-import { getAutoPostsConfig } from '@/app/api/admin/auto-posts/route';
 
 /**
  * ストーリーズ自発投稿Cron
@@ -46,9 +45,6 @@ export async function GET(req: NextRequest) {
     const timeOfDay = getTimeOfDay();
     const storyGuide = STORY_PROMPTS[timeOfDay] || STORY_PROMPTS.afternoon;
     let postedCount = 0;
-
-    // 自動投稿設定を取得（normalRatioでFC限定比率を決定）
-    const autoPostsConfig = await getAutoPostsConfig().catch(() => null);
 
     for (const character of characters) {
       // 20%の確率（2時間おき × 20% = 約2.4件/日/キャラ）
@@ -108,19 +104,12 @@ ${recentTexts || '（なし）'}
         const randomMinutesAgo = Math.floor(Math.random() * 30);
         const staggeredPublishedAt = new Date(Date.now() - randomMinutesAgo * 60 * 1000);
 
-        // normalRatioに基づいてFC限定比率を決定
-        // normalRatio=85 → NORMAL:85%, FC限定(PREMIUM):15%
-        const charConfig = autoPostsConfig?.characters?.[character.id];
-        const normalRatio = charConfig?.normalRatio ?? autoPostsConfig?.defaultNormalRatio ?? 85;
-        const isFcOnly = Math.random() * 100 >= normalRatio;
-
         await prisma.moment.create({
           data: {
             characterId: character.id,
             type: 'TEXT',
             content: content.slice(0, 300),
-            visibility: isFcOnly ? 'PREMIUM' : 'PUBLIC',
-            isFcOnly,
+            visibility: 'PUBLIC',
             publishedAt: staggeredPublishedAt,
           },
         });

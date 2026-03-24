@@ -10,7 +10,7 @@ const HIDDEN_PATHS = ['/', '/login', '/signup', '/pricing', '/terms', '/privacy'
 // チャット中（個別チャット・グループチャット内）はBottomNavを非表示
 // /chat は表示、/chat/group は表示、/chat/group/[id] は非表示、/chat/[slug] は非表示
 const CHAT_VISIBLE_EXACT = ['/chat'];
-const HIDDEN_PREFIXES = ['/chat/', '/group-chat', '/community/'];
+const HIDDEN_PREFIXES = ['/chat/', '/group-chat'];
 
 const navItems = [
   {
@@ -208,11 +208,7 @@ export function BottomNav() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {isTimeline && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-400 rounded-full" />}
-              {notifUnreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1">
-                  {notifUnreadCount > 9 ? '9+' : notifUnreadCount}
-                </span>
-              )}
+              {/* タイムラインにはソーシャルバッジなし — 通知はMyPageで表示 */}
             </div>
             <span className={`text-[10px] font-semibold ${isTimeline ? 'text-purple-400' : 'text-gray-500'}`}>{t('moments')}</span>
           </Link>

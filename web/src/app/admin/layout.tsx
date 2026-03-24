@@ -223,7 +223,6 @@ const NAV_SECTIONS = [
     items: [
       { href: '/admin/gacha', label: 'ガチャ', icon: <IconDice />, minRole: 'editor' },
       { href: '/admin/shop', label: 'ショップ', icon: <IconShop />, minRole: 'editor' },
-      { href: '/admin/stickers', label: 'スタンプ管理', icon: <IconSparkle />, minRole: 'editor' },
       { href: '/admin/coins', label: 'コインパッケージ', icon: <IconCoin />, minRole: 'super_admin' },
       { href: '/admin/economy', label: 'コイン経済', icon: <IconCoin />, minRole: 'super_admin' },
       { href: '/admin/downloadable-content', label: '限定DL', icon: <IconDownload />, minRole: 'editor' },

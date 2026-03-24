@@ -175,9 +175,9 @@ export async function GET() {
         id: m.id,
         createdAt: m.createdAt,
         userName:
-          m.conversation.relationship?.user.displayName ??
-          m.conversation.relationship?.user.email,
-        characterName: m.conversation.relationship?.character.name,
+          m.conversation.relationship.user.displayName ??
+          m.conversation.relationship.user.email,
+        characterName: m.conversation.relationship.character.name,
         content: m.content.slice(0, 80),
       })),
       byHour: farewellByHour,

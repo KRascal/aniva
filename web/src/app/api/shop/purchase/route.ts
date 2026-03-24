@@ -1,171 +1,147 @@
-/**
- * POST /api/shop/purchase
- * コイン消費購入
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
+/**
+ * POST /api/shop/purchase
+ * コイン購入エンドポイント
+ * - デジタル商品: コイン消費 → ファイルURLを即返す
+ * - 物理商品: コイン or 円決済 → 注文受付（shippingAddress必須）
+ */
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // 認証必須
-    const session = await auth();
-    const userId = session?.user?.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { itemId } = body as { itemId?: string };
+    const { itemId, quantity = 1, shippingAddress } = body;
 
-    if (!itemId || typeof itemId !== 'string') {
-      return NextResponse.json({ error: 'itemId is required' }, { status: 400 });
+    if (!itemId) {
+      return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. 商品取得 & 在庫確認
-      const item = await tx.shopItem.findUnique({
-        where: { id: itemId },
-      });
+    // 商品取得
+    const item = await prisma.shopItem.findUnique({ where: { id: itemId } });
+    if (!item) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+    if (!item.isActive) {
+      return NextResponse.json({ error: 'Item is not available' }, { status: 400 });
+    }
 
-      if (!item || !item.isActive) {
-        throw new Error('ITEM_NOT_FOUND');
+    // 在庫チェック（物理商品）
+    if (item.stock !== null) {
+      if (item.stock < quantity) {
+        return NextResponse.json({ error: '在庫が不足しています' }, { status: 400 });
       }
-
-      if (item.stock !== null && item.stock <= 0) {
-        throw new Error('OUT_OF_STOCK');
+      // 物理商品は配送先住所が必要
+      if (!shippingAddress) {
+        return NextResponse.json({ error: '物理商品の購入には配送先住所が必要です' }, { status: 400 });
       }
+    }
 
-      // 2. 重複購入チェック
-      const existingOrder = await tx.shopOrder.findFirst({
-        where: {
-          userId,
-          itemId,
-          status: { not: 'cancelled' },
-        },
-      });
+    const isPhysical = item.stock !== null;
+    const totalCoins = item.priceCoins * quantity;
 
-      if (existingOrder) {
-        throw new Error('ALREADY_PURCHASED');
-      }
+    // コイン残高チェック
+    const coinBalance = await prisma.coinBalance.findUnique({ where: { userId } });
+    const freeBalance = coinBalance?.freeBalance ?? 0;
+    const paidBalance = coinBalance?.paidBalance ?? 0;
+    const totalBalance = freeBalance + paidBalance;
 
-      // 3. CoinBalance確認 + 消費（freeBalance優先）
-      const coinBalance = await tx.coinBalance.findUnique({
+    if (totalBalance < totalCoins) {
+      return NextResponse.json({ error: 'コインが不足しています', success: false }, { status: 402 });
+    }
+
+    // コイン消費（free優先）
+    const freeSpend = Math.min(freeBalance, totalCoins);
+    const paidSpend = totalCoins - freeSpend;
+    const newFree = freeBalance - freeSpend;
+    const newPaid = paidBalance - paidSpend;
+    const newTotal = newFree + newPaid;
+
+    // トランザクション処理
+    const [order] = await prisma.$transaction(async (tx) => {
+      // コイン残高更新
+      await tx.coinBalance.update({
         where: { userId },
-      });
-
-      const currentFree = coinBalance?.freeBalance ?? 0;
-      const currentPaid = coinBalance?.paidBalance ?? 0;
-      const totalBalance = currentFree + currentPaid;
-      const cost = item.priceCoins;
-
-      if (totalBalance < cost) {
-        throw new Error('INSUFFICIENT_COINS');
-      }
-
-      // freeBalance優先で消費
-      let newFreeBalance = currentFree;
-      let newPaidBalance = currentPaid;
-
-      if (currentFree >= cost) {
-        newFreeBalance = currentFree - cost;
-      } else {
-        const remaining = cost - currentFree;
-        newFreeBalance = 0;
-        newPaidBalance = currentPaid - remaining;
-      }
-
-      const newTotalBalance = newFreeBalance + newPaidBalance;
-
-      await tx.coinBalance.upsert({
-        where: { userId },
-        create: {
-          userId,
-          freeBalance: newFreeBalance,
-          paidBalance: newPaidBalance,
-          balance: newTotalBalance,
-        },
-        update: {
-          freeBalance: newFreeBalance,
-          paidBalance: newPaidBalance,
-          balance: newTotalBalance,
-        },
-      });
-
-      // 4. ShopOrder作成
-      const order = await tx.shopOrder.create({
         data: {
-          userId,
-          itemId,
-          quantity: 1,
-          totalCoins: cost,
-          status: 'completed',
+          freeBalance: newFree,
+          paidBalance: newPaid,
+          balance: newTotal,
         },
       });
 
-      // 5. CoinTransaction作成
+      // コイン取引記録
       await tx.coinTransaction.create({
         data: {
           userId,
           type: 'ITEM_PURCHASE',
-          amount: -cost,
-          balanceAfter: newTotalBalance,
-          refId: order.id,
+          amount: -totalCoins,
+          balanceAfter: newTotal,
           characterId: item.characterId,
-          description: `ショップ購入: ${item.name}`,
-          metadata: {
-            itemId: item.id,
-            itemName: item.name,
-            itemType: item.type,
-            orderId: order.id,
-          },
+          description: `ショップ購入: ${item.name} ×${quantity}`,
+          metadata: { itemId: item.id, itemType: item.type, quantity },
         },
       });
 
-      // 在庫がある場合は減らす
-      if (item.stock !== null) {
+      // 在庫減算（物理商品）
+      if (isPhysical) {
         await tx.shopItem.update({
           where: { id: itemId },
-          data: { stock: { decrement: 1 } },
+          data: { stock: { decrement: quantity } },
         });
       }
 
-      return {
-        order,
-        newBalance: newTotalBalance,
-        downloadUrl: item.fileUrl ?? null,
-      };
+      // 注文作成
+      const newOrder = await tx.shopOrder.create({
+        data: {
+          userId,
+          itemId,
+          quantity,
+          totalCoins,
+          status: isPhysical ? 'completed' : 'completed',
+          shippingAddress: shippingAddress ?? null,
+        },
+        include: {
+          item: { select: { id: true, name: true, type: true, fileUrl: true, imageUrl: true } },
+        },
+      });
+
+      return [newOrder];
     });
 
-    logger.info('Shop purchase completed', {
-      userId,
-      itemId,
-      orderId: result.order.id,
-      newBalance: result.newBalance,
-    });
-
-    return NextResponse.json({
+    // デジタル商品: ダウンロードURLを返す
+    const isDigital = item.type.startsWith('digital_') || item.fileUrl;
+    const response: Record<string, unknown> = {
       success: true,
-      newBalance: result.newBalance,
-      downloadUrl: result.downloadUrl,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      switch (error.message) {
-        case 'ITEM_NOT_FOUND':
-          return NextResponse.json({ error: '商品が見つかりません' }, { status: 404 });
-        case 'OUT_OF_STOCK':
-          return NextResponse.json({ error: '売り切れです' }, { status: 400 });
-        case 'ALREADY_PURCHASED':
-          return NextResponse.json({ error: 'すでに購入済みです' }, { status: 400 });
-        case 'INSUFFICIENT_COINS':
-          return NextResponse.json({ error: 'コインが足りません' }, { status: 400 });
-      }
+      order: {
+        id: order.id,
+        status: order.status,
+        item: {
+          id: order.item.id,
+          name: order.item.name,
+          type: order.item.type,
+          imageUrl: order.item.imageUrl,
+        },
+        quantity: order.quantity,
+        totalCoins: order.totalCoins,
+        createdAt: order.createdAt,
+      },
+      coinBalanceAfter: newTotal,
+    };
+
+    if (isDigital && item.fileUrl) {
+      response.downloadUrl = item.fileUrl;
     }
 
-    logger.error('POST /api/shop/purchase failed', { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(response);
+  } catch (error) {
+    logger.error('[POST /api/shop/purchase]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

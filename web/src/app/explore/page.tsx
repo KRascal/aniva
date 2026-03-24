@@ -127,16 +127,13 @@ export default function ExplorePage() {
       const charPromise = fetch('/api/characters').then(r => r.json()).then(charData => {
         const chars = charData.characters || [];
         setCharacters(chars);
-        // 初回フェッチで空だった場合、リトライして結果を待つ（セッション初期化遅延対策）
-        // リトライ完了までisLoadingを維持し「準備中」表示を防ぐ
+        // 初回フェッチで空だった場合、1秒後にリトライ（セッション初期化遅延対策）
         if (chars.length === 0) {
-          return new Promise<void>((resolve) => {
-            setTimeout(() => {
-              fetch('/api/characters').then(r => r.json()).then(d => {
-                if (d.characters?.length > 0) setCharacters(d.characters);
-              }).catch(() => {}).finally(resolve);
-            }, 1000);
-          });
+          setTimeout(() => {
+            fetch('/api/characters').then(r => r.json()).then(d => {
+              if (d.characters?.length > 0) setCharacters(d.characters);
+            }).catch(() => {});
+          }, 1000);
         }
       }).catch(err => console.error('Failed to fetch characters:', err));
 

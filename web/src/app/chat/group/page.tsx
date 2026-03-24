@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -247,7 +247,6 @@ function TypingIndicator({
 export default function GroupChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // ステップ: 'select' | 'chat'
   const [step, setStep] = useState<'select' | 'chat'>('select');
@@ -263,31 +262,6 @@ export default function GroupChatPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCrosstalk, setIsCrosstalk] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-
-  // URLのconversationIdクエリから既存会話を自動ロード（直接チャット画面に遷移）
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  useEffect(() => {
-    const urlConvId = searchParams.get('conversationId');
-    if (!urlConvId) return;
-    setConversationId(urlConvId);
-    setStep('chat'); // 直接チャット画面に遷移
-    setIsLoadingHistory(true);
-    (async () => {
-      try {
-        const histRes = await fetch(`/api/chat/group/history?conversationId=${urlConvId}&limit=30`);
-        if (histRes.ok) {
-          const histData = await histRes.json();
-          if (histData.messages && Array.isArray(histData.messages)) {
-            setMessages(histData.messages);
-          }
-          if (histData.characterIds && Array.isArray(histData.characterIds)) {
-            setSelectedIds(histData.characterIds);
-          }
-        }
-      } catch { /* ignore */ }
-      setIsLoadingHistory(false);
-    })();
-  }, [searchParams]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -676,40 +650,19 @@ export default function GroupChatPage() {
               ))
             ) : characters.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mx-auto mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mb-3">
                   <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
                 </div>
-                <p className="text-white/80 font-bold">まずはキャラをフォローしよう</p>
-                <p className="text-white/50 text-sm mt-1">掛け合いには2人以上のキャラが必要です</p>
+                <p className="text-white/50 text-sm">キャラをフォローして招待しよう</p>
                 <button
-                  onClick={() => router.push('/discover')}
+                  onClick={() => router.push('/explore')}
                   className="mt-4 px-5 py-2 rounded-full text-sm font-bold text-white"
                   style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}
                 >
                   キャラを探す →
                 </button>
-              </div>
-            ) : characters.length === 1 ? (
-              <div className="text-center py-8">
-                <CharacterSelectCard
-                  key={characters[0].id}
-                  character={characters[0]}
-                  selected={selectedIds.indexOf(characters[0].id) !== -1}
-                  colorIndex={0}
-                  disabled={false}
-                  onToggle={() => handleToggleChar(characters[0].id)}
-                />
-                <div className="mt-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-white/70 text-sm">掛け合いにはもう1人フォローが必要です</p>
-                  <button
-                    onClick={() => router.push('/discover')}
-                    className="mt-2 px-4 py-1.5 rounded-full text-xs font-bold text-white bg-purple-500/30 hover:bg-purple-500/50 transition-colors"
-                  >
-                    もう1人探す →
-                  </button>
-                </div>
               </div>
             ) : (
               characters.map(char => {
@@ -865,7 +818,7 @@ export default function GroupChatPage() {
 
       {/* メッセージエリア */}
       <main className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full relative z-10">
-        {messages.length === 0 && !isSending && !searchParams.get('conversationId') && (
+        {messages.length === 0 && !isSending && (
           <div className="text-center py-12">
             <div className="flex justify-center mb-4 -space-x-3">
               {selectedChars.map((c, i) => {

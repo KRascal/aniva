@@ -26,17 +26,7 @@ export function PostsTab({
 }: PostsTabProps) {
   return (
     <div className="space-y-3 pt-2 pb-24">
-      {moments.filter(m => {
-        // PUBLIC: 全員表示
-        if (m.visibility === 'PUBLIC') return true;
-        // FC限定: FC会員のみ
-        if (m.visibility === 'PREMIUM' && isFanclub) return true;
-        // Lv3+: 親密度Lv3以上で解放
-        if (m.visibility === 'PREMIUM' && level >= 3) return true;
-        // ロック解除済み
-        if (!m.isLocked) return true;
-        return false;
-      }).length === 0 ? (
+      {moments.filter(m => m.visibility !== 'PREMIUM' || isFanclub || !m.isLocked).length === 0 ? (
         <div className="text-center py-12">
           <div className="flex justify-center mb-3">
             <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -46,12 +36,7 @@ export function PostsTab({
           <p className="text-white/40 text-sm">まだ投稿がありません</p>
         </div>
       ) : (
-        moments.filter(m => {
-          if (m.visibility === 'PUBLIC') return true;
-          if (m.visibility === 'PREMIUM' && (isFanclub || level >= 3)) return true;
-          if (!m.isLocked) return true;
-          return false;
-        }).map((moment) => (
+        moments.map((moment) => (
           <SharedMomentCard key={moment.id} moment={toSharedMoment(moment)} onLike={onLike} currentUserId={userId} />
         ))
       )}

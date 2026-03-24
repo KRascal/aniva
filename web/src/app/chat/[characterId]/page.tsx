@@ -421,20 +421,11 @@ export default function ChatCharacterPage() {
   }, [characterId]);
 
   // チャット画面を開いた時刻をlocalStorageに記録（未読バッジのクリア用）
-  // URLパラム(slug)とcharacter.id(UUID)の両方で保存し、一覧ページのUUID参照と一致させる
   useEffect(() => {
     if (!characterId || typeof window === 'undefined') return;
     localStorage.setItem(`aniva_chat_visited_${characterId}`, Date.now().toString());
     track(EVENTS.CHAT_OPENED, { characterId });
   }, [characterId]);
-
-  // character.id（UUID）でも訪問時刻を保存（slug≠UUIDの場合に一覧の未読バッジをクリアするため）
-  useEffect(() => {
-    if (!character?.id || typeof window === 'undefined') return;
-    if (character.id !== characterId) {
-      localStorage.setItem(`aniva_chat_visited_${character.id}`, Date.now().toString());
-    }
-  }, [character?.id, characterId]);
 
   // プレゼンス（オンライン状態）取得
   useEffect(() => {
@@ -889,16 +880,9 @@ export default function ChatCharacterPage() {
                 // streak更新のハンドリング（既存のstreakロジックがあればここで呼ぶ）
               }
 
-              // XP・レベル更新
-              if (parsed.xp !== undefined) {
-                setRelationship(prev =>
-                  prev ? { ...prev, xp: parsed.xp, ...(parsed.levelUp ? { level: parsed.levelUp.newLevel } : {}) } : prev
-                );
-              }
-
               // レベルアップ
               if (parsed.levelUp) {
-                setLevelUpData({ newLevel: parsed.levelUp.newLevel });
+                // レベルアップ演出（既存があれば呼ぶ）
               }
             } else if (parsed.type === 'deep_mode') {
               // Deep Mode: 考え中メッセージに置換してストリーム終了
@@ -1078,41 +1062,23 @@ export default function ChatCharacterPage() {
 
     try {
       // スタンプ送信 (テキストメッセージとして送信)
-      const res = await fetch('/api/chat/send', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
           message: `[スタンプを送った: ${label}]`,
+          userId,
+          metadata: { stickerUrl },
         }),
       });
       if (res.ok) {
         const data = await res.json();
         setMessages((prev: Message[]) =>
-          prev.map((m: Message) => m.id === tempId ? { ...m, id: data.userMessage?.id || tempId } : m)
+          prev.map((m: Message) => m.id === tempId ? { ...m, id: data.userMessageId || tempId } : m)
         );
         if (data.characterMessage) {
           setMessages((prev: Message[]) => [...prev, data.characterMessage]);
-        }
-        // B4/B6: スタンプ送信後にXP/レベルを更新（絆ゲージリアルタイム + レベルアップ対応）
-        if (data.relationship) {
-          setRelationship(prev =>
-            prev ? { ...prev, xp: data.relationship.xp, ...(data.relationship.leveledUp ? { level: data.relationship.newLevel } : {}) } : prev
-          );
-          if (data.relationship.leveledUp && data.relationship.newLevel) {
-            setLevelUpData({ newLevel: data.relationship.newLevel });
-          }
-        } else {
-          // フォールバック: re-fetch
-          fetch(`/api/relationship/${characterId}`)
-            .then(r => r.json())
-            .then(d => {
-              if (d.relationship) {
-                setRelationship(d.relationship);
-                if (d.relationship.id) setRelationshipId(d.relationship.id);
-              }
-            })
-            .catch(() => {});
         }
       }
     } catch {
@@ -1347,7 +1313,7 @@ export default function ChatCharacterPage() {
           characterName={character.name}
           isOpen={showGift}
           onClose={() => setShowGift(false)}
-          onGiftSent={(reaction, giftEmoji, newBalance) => {
+          onGiftSent={(reaction, giftEmoji) => {
             // ギフトリアクションをメッセージとして表示
             const giftMsg: Message = {
               id: `gift-${Date.now()}`,
@@ -1358,7 +1324,6 @@ export default function ChatCharacterPage() {
             };
             setMessages((prev) => [...prev, giftMsg]);
             setCurrentEmotion('excited');
-            if (newBalance !== undefined) setCoinBalance(newBalance);
           }}
         />
       )}
@@ -1719,7 +1684,6 @@ export default function ChatCharacterPage() {
         setShowPlusMenu={setShowPlusMenu}
         onGift={() => setShowGift(true)}
         onFcClick={() => setShowFcModal(true)}
-        onBuyStickers={() => router.push('/coins')}
         handleKeyDown={handleKeyDown}
         lastCharacterMessage={
           [...messages].reverse().find((m: Message) => m.role === 'CHARACTER')?.content ?? undefined

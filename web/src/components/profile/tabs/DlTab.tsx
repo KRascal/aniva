@@ -6,39 +6,14 @@ interface DlTabProps {
   dlContents: DlContent[];
   dlLoading: boolean;
   onFcClick: () => void;
-  characterId?: string;
 }
 
-export function DlTab({ dlContents, dlLoading, onFcClick, characterId: _characterId }: DlTabProps) {
+export function DlTab({ dlContents, dlLoading, onFcClick }: DlTabProps) {
   return (
     <div className="space-y-4 pt-2 pb-24">
-      {/* ヘッダー: ショップリンク + ストーリーリンク */}
-      <div className="flex items-center justify-between px-1">
-        <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">
-          限定ダウンロードコンテンツ
-        </p>
-        <a
-          href="/story"
-          className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
-        >
-          ストーリーを見る →
-        </a>
-      </div>
-      {/* ショップリンクバナー */}
-      <a
-        href="/coins"
-        className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-amber-900/20 border border-amber-700/30 hover:bg-amber-900/30 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="10"/><path d="M12 7v10M9 10h6M9 14h6" strokeLinecap="round"/>
-          </svg>
-          <span className="text-xs text-amber-300 font-medium">コインを購入する</span>
-        </div>
-        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
+      <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest px-1">
+        限定ダウンロードコンテンツ
+      </p>
       {dlLoading ? (
         <div className="text-center py-10 text-white/30 text-sm">読み込み中...</div>
       ) : dlContents.length === 0 ? (

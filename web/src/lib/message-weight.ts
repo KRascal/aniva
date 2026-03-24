@@ -1,26 +1,12 @@
 // ============================================================
 // Message Weight Classifier — Deep Chat判定
 // メッセージの「重さ」を数値化し、Deep Modeを発動するか判定する
-//
-// 設計思想（2026-03-17 改訂）:
-// - 悩み・感情相談は即時応答（寄り添いが最優先。遅延は依存を切断する）
-// - Deep Modeは「哲学的質問」「複雑な相談」のみ（感情系は除外）
-// - Deep Modeでも最大60秒（体感「ちょっと考えてる」レベル）
 // ============================================================
 
-/**
- * Deep Mode発動閾値（引き上げ: 感情系を除外したため高めに設定）
- * NOTE: shouldUseDeepMode内でリテラル比較に使用。
- * Turbopackチャンク分割でexport constが消失するバグ対策として、
- * 関数内ではリテラル値 6 を直接使用する。変更時は両方更新すること。
- */
-export const DEEP_THRESHOLD = 6 as const;
+/** Deep Mode発動閾値 */
+export const DEEP_THRESHOLD = 3;
 
-/**
- * 感情キーワード — Deep判定には使わない（即時応答する）
- * calculateMessageWeight内ではスコア加算しない。
- * shouldUseDeepMode内でnegativeフラグとして使い、Deep発動を抑制する。
- */
+/** 感情キーワード（+2） */
 const EMOTION_KEYWORDS = [
   '辛い', 'つらい', '悩んでる', '悩み', '嬉しい', 'うれしい',
   '怖い', 'こわい', '寂しい', 'さみしい', '不安', '苦しい', 'くるしい',
@@ -30,27 +16,25 @@ const EMOTION_KEYWORDS = [
   '孤独', '絶望', '限界',
 ];
 
-/**
- * Deep Chat対象キーワード（哲学的・複雑な質問のみ）
- * 感情系は除外。「考えが必要」な質問だけがDeep対象。
- */
-const DEEP_TOPIC_KEYWORDS = [
-  '人生の意味', '生きる意味', '幸せとは', '正義とは', '愛とは',
-  '人間とは', '世界はなぜ', '宇宙', '哲学', '運命',
-  'もし〜だったら', 'もしも', '仮に',
+/** 人生相談キーワード（+3） */
+const LIFE_ADVICE_KEYWORDS = [
+  '仕事', '恋愛', '将来', '夢', '仲間',
+  '結婚', '転職', '人間関係', 'お金',
+  '家族', '親', '友達', '彼氏', '彼女',
+  '就活', '受験', '進路', '離婚', '別れ',
+  '生き方', '人生', '目標', '挫折', '失敗',
 ];
 
 /**
  * メッセージの重みスコアを計算する
- * 感情系キーワードはスコアに加算しない（即時応答させるため）
  * @param message ユーザーのメッセージ本文
  * @returns 重みスコア（0以上の整数）
  */
 export function calculateMessageWeight(message: string): number {
   let weight = 0;
 
-  // メッセージ長 > 120文字: +2（閾値を引き上げ）
-  if (message.length > 120) {
+  // メッセージ長 > 80文字: +2
+  if (message.length > 80) {
     weight += 2;
   }
 
@@ -59,29 +43,21 @@ export function calculateMessageWeight(message: string): number {
     weight += 1;
   }
 
-  // 哲学的/複雑な質問キーワード: +4
-  if (DEEP_TOPIC_KEYWORDS.some((kw) => message.includes(kw))) {
-    weight += 4;
+  // 感情キーワード: +2（1つでもヒットしたら）
+  if (EMOTION_KEYWORDS.some((kw) => message.includes(kw))) {
+    weight += 2;
   }
 
-  // 超長文（200文字超）: +2 追加
-  if (message.length > 200) {
-    weight += 2;
+  // 人生相談キーワード: +3（1つでもヒットしたら）
+  if (LIFE_ADVICE_KEYWORDS.some((kw) => message.includes(kw))) {
+    weight += 3;
   }
 
   return weight;
 }
 
 /**
- * 感情系メッセージかどうかを判定する（Deep Mode抑制用）
- */
-export function isEmotionalMessage(message: string): boolean {
-  return EMOTION_KEYWORDS.some((kw) => message.includes(kw));
-}
-
-/**
  * Deep Modeを使うべきかどうかを判定する
- * 感情系メッセージは即時応答するためDeep Modeを発動しない
  * @param message ユーザーのメッセージ本文
  * @param recentDeepReplyCount 直近5往復以内のDeep Reply回数
  * @returns true = Deep Mode発動
@@ -90,11 +66,6 @@ export function shouldUseDeepMode(
   message: string,
   recentDeepReplyCount: number,
 ): boolean {
-  // 感情系メッセージは絶対にDeep Modeにしない（即時応答で寄り添う）
-  if (isEmotionalMessage(message)) {
-    return false;
-  }
-
   let weight = calculateMessageWeight(message);
 
   // 連続Deep防止: 直近5往復以内にDeep Replyが2回以上 → -3ペナルティ
@@ -102,28 +73,30 @@ export function shouldUseDeepMode(
     weight -= 3;
   }
 
-  // リテラル値を直接使用（Turbopackチャンク分割でDEEP_THRESHOLDが消失するバグ対策）
-  return weight >= 6; // === DEEP_THRESHOLD
+  return weight >= DEEP_THRESHOLD;
 }
 
 /**
  * Deep Chatの遅延時間を計算（ミリ秒）
- * 2026-03-17改訂: 最大60秒。「ちょっと考えてる」体感に留める。
- * 数時間の遅延は依存を切断するため廃止。
+ * weight ≥ 5 → 4〜8時間（感情+人生相談）
+ * weight ≥ 3 → 2〜4時間（Deep Mode閾値）
+ * weight < 3 → 30分〜1時間
  */
 export function calculateDelayMs(weight: number): number {
-  if (weight >= 8) return (40 + Math.random() * 20) * 1000; // 40-60秒
-  if (weight >= 6) return (20 + Math.random() * 20) * 1000; // 20-40秒
-  return (15 + Math.random() * 15) * 1000; // 15-30秒
+  if (weight >= 5) return (4 + Math.random() * 4) * 60 * 60 * 1000; // 4-8h
+  if (weight >= 3) return (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4h
+  return (30 + Math.random() * 30) * 60 * 1000; // 30-60min
 }
 
 /**
  * 遅延時間（ミリ秒）をユーザー向けテキストに変換
+ * 例: "3時間後くらい", "30分後くらい"
  */
 export function formatDelayText(delayMs: number): string {
-  const secs = Math.round(delayMs / 1000);
-  if (secs <= 30) return 'すぐ';
-  return 'ちょっと待って';
+  const hours = Math.round(delayMs / (60 * 60 * 1000));
+  if (hours >= 1) return `${hours}時間後くらい`;
+  const mins = Math.round(delayMs / (60 * 1000));
+  return `${mins}分後くらい`;
 }
 
 /**

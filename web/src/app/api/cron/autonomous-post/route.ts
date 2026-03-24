@@ -138,23 +138,6 @@ export async function GET(req: NextRequest) {
       });
       if (todayPosts >= 3) continue;
 
-      // 長文投稿チェック（1キャラ1日最大1回）
-      const todayAllPosts = await prisma.moment.findMany({
-        where: {
-          characterId: character.id,
-          publishedAt: { gte: todayStart },
-          type: 'TEXT',
-          content: { not: null },
-        },
-        select: { content: true },
-      });
-      const todayLongFormCount = todayAllPosts.filter(
-        (m) => (m.content?.length ?? 0) >= 100,
-      ).length;
-
-      // 投稿タイプ判定: 15%の確率で長文、ただし既に長文投稿済みの場合はスキップ
-      const isLongForm = Math.random() < 0.15 && todayLongFormCount === 0;
-
       // AI生成で投稿内容を決定（キャラの人格を完全反映）
       let content: string;
 
@@ -174,29 +157,15 @@ export async function GET(req: NextRequest) {
           : '';
 
         const systemPromptCore = (character.systemPrompt || character.name).split(/\n##/)[0].trim();
-
-        const systemMessage = isLongForm
-          ? `${systemPromptCore}\n\n重要: SNSに投稿するテキストのみを出力せよ。説明や前置き・後書きは一切不要。\n今、深い気持ちを言葉にするようにSNSに投稿してください。\n3〜8文の少し長めの投稿。テーマは自由（思い出/人生観/夢/ファンへの気持ち/最近の気づき）。\n表面的な挨拶ではなく、キャラの内面や本音が垣間見える投稿にすること。`
-          : `${systemPromptCore}\n\n重要: SNSに投稿する短いテキストのみを出力せよ。説明や前置き・後書きは一切不要。`;
-
-        const userMessage = isLongForm
-          ? `あなたは${character.name}として、深い気持ちを言葉にしたSNS投稿（3〜8文）を書いてください。
-時間帯: ${timeOfDay === 'morning' ? '朝' : timeOfDay === 'afternoon' ? '昼' : timeOfDay === 'evening' ? '夕方' : '夜'}
-${weatherCtx ? weatherCtx + '\n' : ''}過去の投稿（被らないように）:
-${recentTexts || '（なし）'}
-
-キャラの口調・世界観を守り、内面や本音が垣間見える投稿テキストのみ返答してください。`
-          : `あなたは${character.name}として、今この瞬間にSNSに投稿する自然な短いひとこと（1〜3文）を書いてください。
+        const systemMessage = `${systemPromptCore}\n\n重要: SNSに投稿する短いテキストのみを出力せよ。説明や前置き・後書きは一切不要。`;
+        const userMessage = `あなたは${character.name}として、今この瞬間にSNSに投稿する自然な短いひとこと（1〜3文）を書いてください。
 時間帯: ${timeOfDay === 'morning' ? '朝' : timeOfDay === 'afternoon' ? '昼' : timeOfDay === 'evening' ? '夕方' : '夜'}
 ${weatherCtx ? weatherCtx + '\n' : ''}過去の投稿（被らないように）:
 ${recentTexts || '（なし）'}
 
 キャラの口調・世界観を守り、自然でリアルな投稿テキストのみ返答してください。`;
 
-        content = await generateText(systemMessage, userMessage, {
-          maxTokens: isLongForm ? 500 : 200,
-          temperature: isLongForm ? 0.95 : 0.9,
-        });
+        content = await generateText(systemMessage, userMessage, { maxTokens: 200, temperature: 0.9 });
         // フォールバック: AI失敗時はテンプレート
         if (!content) {
           const templates = TIME_TEMPLATES[timeOfDay] ?? TIME_TEMPLATES.afternoon;
@@ -214,19 +183,14 @@ ${recentTexts || '（なし）'}
       const randomMinutesAgo = Math.floor(Math.random() * 85) + 5; // 5〜90分前
       const staggeredPublishedAt = new Date(Date.now() - randomMinutesAgo * 60 * 1000);
 
-      // 15%の確率でFC限定投稿にする
-      const isPremiumPost = Math.random() < 0.15;
-      const visibility = isPremiumPost ? 'PREMIUM' : 'PUBLIC';
-
       // momentsに投稿
       await prisma.moment.create({
         data: {
           characterId: character.id,
           type: 'TEXT',
           content,
-          visibility,
+          visibility: 'PUBLIC',
           publishedAt: staggeredPublishedAt,
-          ...(isPremiumPost ? { isFcOnly: true } : {}),
         },
       });
 
