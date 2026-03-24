@@ -43,7 +43,7 @@ else
 fi
 
 echo "🗄️ Pushing schema to staging DB..."
-DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push
+DATABASE_URL="postgresql://repeai:repeai_prod_2026@localhost:5432/aniva_staging" npx prisma db push --accept-data-loss
 
 echo "🏗️ Building in staging..."
 pnpm build
