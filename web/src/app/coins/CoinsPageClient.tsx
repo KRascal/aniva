@@ -2,26 +2,57 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { playSound } from '@/lib/sound-effects';
-import { PackageDisplayItem } from './page';
+
+export type PackageDisplayItem = {
+  id: string;
+  name: string;
+  coinAmount: number;
+  priceWebJpy: number;
+  bonus: number;
+  popular: boolean;
+  callMinutes: number;
+};
 
 interface Props {
-  packages: PackageDisplayItem[];
-  currentBalance: number;
-  freeBalance?: number;
-  paidBalance?: number;
   status?: string;
 }
 
-export default function CoinsPageClient({ packages, currentBalance, freeBalance = 0, paidBalance = 0, status }: Props) {
-  const [balance, setBalance] = useState(currentBalance);
-  const [freeCoins, setFreeCoins] = useState(freeBalance);
-  const [paidCoins, setPaidCoins] = useState(paidBalance);
+export default function CoinsPageClient({ status }: Props) {
+  const [packages, setPackages] = useState<PackageDisplayItem[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [freeCoins, setFreeCoins] = useState(0);
+  const [paidCoins, setPaidCoins] = useState(0);
   const [loading, setLoading] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [showCelebration, setShowCelebration] = useState(status === 'success');
   const [message, setMessage] = useState<string | null>(
     status === 'success' ? '購入が完了しました！' : status === 'cancel' ? '購入がキャンセルされました' : null
   );
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // データ取得
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [pkgRes, balRes] = await Promise.all([
+          fetch('/api/coins/packages'),
+          fetch('/api/coins/balance'),
+        ]);
+        if (pkgRes.ok) {
+          const pkgData = await pkgRes.json();
+          setPackages(pkgData.packages ?? []);
+        }
+        if (balRes.ok) {
+          const balData = await balRes.json();
+          setBalance(balData.balance ?? 0);
+          setFreeCoins(balData.freeBalance ?? 0);
+          setPaidCoins(balData.paidBalance ?? 0);
+        }
+      } catch { /* ignore */ }
+      setInitialLoading(false);
+    };
+    fetchData();
+  }, []);
 
   // 紙吹雪パーティクル
   const spawnConfetti = useCallback(() => {
@@ -79,7 +110,7 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
     }
   }, [showCelebration, spawnConfetti]);
 
-  // Stripe復帰時に残高をリフレッシュ（Webhook処理後の最新残高を取得）
+  // Stripe復帰時に残高をリフレッシュ
   useEffect(() => {
     if (status === 'success') {
       const refreshBalance = async () => {
@@ -93,7 +124,6 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
           }
         } catch { /* ignore */ }
       };
-      // 少し遅延（Webhook処理を待つ）
       setTimeout(refreshBalance, 1500);
       setTimeout(refreshBalance, 5000);
     }
@@ -116,7 +146,6 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
         return;
       }
 
-      // デモモード: 残高即時反映
       if (data.success && data.balance !== undefined) {
         setBalance(data.balance);
         setPaidCoins(prev => prev + pkg.coinAmount);
@@ -125,7 +154,6 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
         return;
       }
 
-      // 本番: Stripe Checkoutへリダイレクト
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       }
@@ -135,6 +163,14 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
       setLoading(null);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white relative">
@@ -232,7 +268,6 @@ export default function CoinsPageClient({ packages, currentBalance, freeBalance 
                   : 'bg-gray-900 border-gray-700/50 hover:border-gray-600/70'
               }`}
             >
-              {/* 人気バッジ */}
               {pkg.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
