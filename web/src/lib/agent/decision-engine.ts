@@ -1,5 +1,6 @@
 /**
- * DecisionEngine — 軽量LLM（grok-3-mini-fast）でキャラの行動判断を行う
+ * DecisionEngine — 軽量LLM（Gemini 2.5 Flash）でキャラの行動判断を行う
+ * フォールバック: xAI → Anthropic
  * 入力: UserStateSnapshot + キャラ情報
  * 出力: AgentDecision（should/reason/messageType/urgency）
  */
@@ -13,7 +14,6 @@ interface CharacterInfo {
   systemPrompt: string;
 }
 
-const DECISION_MODEL = 'grok-3-mini';
 const MAX_TOKENS = 300;
 
 function buildDecisionPrompt(
@@ -80,7 +80,7 @@ ${state.currentHourJST}時
 }
 
 /**
- * grok-3-mini-fast を使って「今連絡すべきか」を判断する
+ * Gemini → xAI → Anthropic でキャラの行動判断を行う
  */
 export async function decideContact(
   character: CharacterInfo,
@@ -93,158 +93,134 @@ export async function decideContact(
     urgency: 'normal',
   };
 
-  const xaiKey = process.env.XAI_API_KEY;
-  if (!xaiKey) {
-    logger.warn('[DecisionEngine] XAI_API_KEY not set, skipping decision');
-    return fallback;
-  }
-
   const prompt = buildDecisionPrompt(character, state);
+  const systemMsg = 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。';
 
-  try {
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${xaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: DECISION_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: MAX_TOKENS,
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
+  // Gemini → xAI → Anthropic フォールバックチェーン
+  const providers = [
+    { name: 'Gemini', call: () => callGeminiDecision(systemMsg, prompt) },
+    { name: 'xAI', call: () => callXAIDecision(systemMsg, prompt) },
+    { name: 'Anthropic', call: () => callAnthropicDecision(systemMsg, prompt) },
+  ];
 
-    if (!res.ok) {
-      const errText = await res.text();
-      // 429 (rate limit / quota) → Anthropicへフォールバック
-      if (res.status === 429) {
-        logger.warn('[DecisionEngine] xAI quota exceeded, falling back to Anthropic');
-        return await decideContactAnthropicFallback(character, state, prompt, fallback);
-      }
-      logger.error(`[DecisionEngine] xAI API error ${res.status}: ${errText}`);
-      return fallback;
-    }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      logger.warn('[DecisionEngine] Empty response from xAI');
-      return fallback;
-    }
-
-    let parsed: Record<string, unknown>;
+  for (const provider of providers) {
     try {
-      parsed = JSON.parse(content);
-    } catch {
-      logger.warn('[DecisionEngine] JSON parse failed:', content);
-      return fallback;
+      const content = await provider.call();
+      if (!content) {
+        logger.warn(`[DecisionEngine] ${provider.name} returned empty, trying next`);
+        continue;
+      }
+
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (!match) { logger.warn(`[DecisionEngine] ${provider.name} JSON parse failed`); continue; }
+        parsed = JSON.parse(match[0]);
+      }
+
+      const should = Boolean(parsed.should);
+      const reason = String(parsed.reason ?? '');
+      const urgency = (['low', 'normal', 'high'].includes(parsed.urgency as string)
+        ? parsed.urgency
+        : 'normal') as 'low' | 'normal' | 'high';
+
+      const validTypes: MessageType[] = [
+        'check_in', 'miss_you', 'share_thought',
+        'follow_up_concern', 'celebrate', 'initiate_topic',
+      ];
+      const messageType = validTypes.includes(parsed.messageType as MessageType)
+        ? (parsed.messageType as MessageType)
+        : null;
+
+      logger.info(`[DecisionEngine/${provider.name}] ${character.name} → ${state.userName}: should=${should}, type=${messageType}, urgency=${urgency}`);
+      return { should, reason, messageType, urgency };
+    } catch (error) {
+      logger.error(`[DecisionEngine] ${provider.name} error:`, error);
     }
-
-    const should = Boolean(parsed.should);
-    const reason = String(parsed.reason ?? '');
-    const urgency = (['low', 'normal', 'high'].includes(parsed.urgency as string)
-      ? parsed.urgency
-      : 'normal') as 'low' | 'normal' | 'high';
-
-    const validTypes: MessageType[] = [
-      'check_in', 'miss_you', 'share_thought',
-      'follow_up_concern', 'celebrate', 'initiate_topic',
-    ];
-    const messageType = validTypes.includes(parsed.messageType as MessageType)
-      ? (parsed.messageType as MessageType)
-      : null;
-
-    logger.info(`[DecisionEngine] ${character.name} → ${state.userName}: should=${should}, type=${messageType}, urgency=${urgency}`);
-
-    return { should, reason, messageType, urgency };
-  } catch (error) {
-    logger.error('[DecisionEngine] Unexpected error:', error);
-    return fallback;
   }
+
+  logger.error('[DecisionEngine] All providers failed');
+  return fallback;
 }
 
-/**
- * Anthropic claude-haiku-3-5 フォールバック（xAI 429時）
- */
-async function decideContactAnthropicFallback(
-  character: CharacterInfo,
-  state: UserStateSnapshot,
-  prompt: string,
-  fallback: AgentDecision,
-): Promise<AgentDecision> {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) {
-    logger.warn('[DecisionEngine] ANTHROPIC_API_KEY not set, cannot fallback');
-    return fallback;
+/** Gemini呼び出し */
+async function callGeminiDecision(systemMsg: string, prompt: string): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: prompt }],
+      max_tokens: MAX_TOKENS,
+      temperature: 0.3,
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!res.ok) {
+    logger.error(`[DecisionEngine] Gemini error ${res.status}`);
+    return null;
   }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? null;
+}
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 300,
-        system: 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。',
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
+/** xAI呼び出し */
+async function callXAIDecision(systemMsg: string, prompt: string): Promise<string | null> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return null;
 
-    if (!res.ok) {
-      logger.error(`[DecisionEngine] Anthropic fallback error ${res.status}`);
-      return fallback;
-    }
+  const res = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'grok-3-mini',
+      messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: prompt }],
+      max_tokens: MAX_TOKENS,
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
 
-    const data = await res.json();
-    const content = data.content?.[0]?.text;
-    if (!content) return fallback;
-
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      // JSON前後のテキストを除去して再パース
-      const match = content.match(/\{[\s\S]*\}/);
-      if (!match) return fallback;
-      parsed = JSON.parse(match[0]);
-    }
-
-    const should = Boolean(parsed.should);
-    const reason = String(parsed.reason ?? '');
-    const urgency = (['low', 'normal', 'high'].includes(parsed.urgency as string)
-      ? parsed.urgency
-      : 'normal') as 'low' | 'normal' | 'high';
-    const validTypes: MessageType[] = [
-      'check_in', 'miss_you', 'share_thought',
-      'follow_up_concern', 'celebrate', 'initiate_topic',
-    ];
-    const messageType = validTypes.includes(parsed.messageType as MessageType)
-      ? (parsed.messageType as MessageType)
-      : null;
-
-    logger.info(`[DecisionEngine/anthropic-fallback] ${character.name} → ${state.userName}: should=${should}`);
-    return { should, reason, messageType, urgency };
-  } catch (err) {
-    logger.error('[DecisionEngine] Anthropic fallback error:', err);
-    return fallback;
+  if (!res.ok) {
+    logger.error(`[DecisionEngine] xAI error ${res.status}`);
+    return null;
   }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? null;
+}
+
+/** Anthropic呼び出し */
+async function callAnthropicDecision(systemMsg: string, prompt: string): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: MAX_TOKENS,
+      system: systemMsg,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!res.ok) {
+    logger.error(`[DecisionEngine] Anthropic error ${res.status}`);
+    return null;
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text ?? null;
 }

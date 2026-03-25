@@ -307,7 +307,7 @@ export async function getPendingCliffhanger(
 
 /**
  * resolveCliffhanger(userId, characterId)
- * 翌日に「続き」を話す内容を grok-3-mini で動的生成してクリア
+ * 翌日に「続き」を話す内容を Gemini 2.5 Flash で動的生成してクリア
  * character-engine の consumeCliffhanger はハードコードのfollowUpを使うが、
  * こちらは LLM で生成するより豊かなバリエーションを得る
  */
@@ -334,45 +334,61 @@ export async function resolveCliffhanger(
 
   let followUp = cliffhanger.followUp;
 
-  // grok-3-mini でより自然な続きを生成
+  // Gemini 2.5 Flash でより自然な続きを生成（xAIフォールバック）
+  const llmSystemPrompt = `あなたは${characterName}です。昨日「${cliffhanger.teaseMessage}」という予告をした。
+今日の会話冒頭で自然にその続きを話してください。
+キャラの口調を維持し、1〜2文で続きのセリフを生成してください。
+ユーザー名: ${userName}`;
+  const llmMessages = [{ role: 'user' as const, content: '昨日予告していた話、聞かせてください' }];
+  const llmBody = { max_tokens: 150, temperature: 0.9 };
+
+  // Try Gemini first
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
-  if (xaiKey) {
+  let llmGenerated: string | null = null;
+
+  if (geminiKey) {
+    try {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${geminiKey}` },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'system', content: llmSystemPrompt }, ...llmMessages],
+          ...llmBody,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { choices: { message: { content: string } }[] };
+        llmGenerated = data.choices?.[0]?.message?.content ?? null;
+      }
+    } catch (e) {
+      logger.warn('[resolveCliffhanger] Gemini failed:', e);
+    }
+  }
+
+  // Fallback to xAI
+  if (!llmGenerated && xaiKey) {
     try {
       const res = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${xaiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'grok-3-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `あなたは${characterName}です。昨日「${cliffhanger.teaseMessage}」という予告をした。
-今日の会話冒頭で自然にその続きを話してください。
-キャラの口調を維持し、1〜2文で続きのセリフを生成してください。
-ユーザー名: ${userName}`,
-            },
-            {
-              role: 'user',
-              content: '昨日予告していた話、聞かせてください',
-            },
-          ],
-          max_tokens: 150,
-          temperature: 0.9,
+          messages: [{ role: 'system', content: llmSystemPrompt }, ...llmMessages],
+          ...llmBody,
         }),
       });
-
       if (res.ok) {
         const data = await res.json() as { choices: { message: { content: string } }[] };
-        const generated = data.choices?.[0]?.message?.content;
-        if (generated) followUp = generated;
+        llmGenerated = data.choices?.[0]?.message?.content ?? null;
       }
     } catch (e) {
-      logger.warn('[resolveCliffhanger] LLM generation failed, using template:', e);
+      logger.warn('[resolveCliffhanger] xAI fallback failed, using template:', e);
     }
   }
+
+  if (llmGenerated) followUp = llmGenerated;
 
   // Relationship の pendingCliffhanger をクリア
   await prisma.relationship.update({

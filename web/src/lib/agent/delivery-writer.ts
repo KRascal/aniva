@@ -142,7 +142,7 @@ export async function recordAgentDecision(params: {
       messageType: decision.messageType ?? undefined,
       urgency: decision.urgency,
       skippedReason: skippedReason ?? undefined,
-      decisionModel: 'grok-3-mini-fast',
+      decisionModel: 'gemini-2.5-flash',
     },
     select: { id: true },
   });

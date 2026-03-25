@@ -102,7 +102,7 @@ ${conversationText}
 
 上記の会話から、ユーザーの情報を抽出してJSON形式で出力してください。`;
 
-    // 安価なモデルを使う（xAI grok-4-1-fast or Anthropic haiku）
+    // 安価なモデルを使う（Gemini 2.5 Flash → xAI → Anthropic haiku）
     const result = await callExtractionLLM(userPrompt);
     if (!result) return null;
 
@@ -118,20 +118,43 @@ ${conversationText}
 // ── LLM call (安価なモデル使用) ──────────────────────────────
 
 async function callExtractionLLM(userPrompt: string): Promise<string | null> {
+  const geminiKey = process.env.GEMINI_API_KEY;
   const xaiKey = process.env.XAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  // 優先: xAI (安価)
+  // 優先: Gemini 2.5 Flash（安価）
+  if (geminiKey) {
+    try {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${geminiKey}` },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt },
+          ],
+          max_tokens: 800,
+          temperature: 0.3,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content ?? null;
+      }
+    } catch (e) {
+      logger.warn('[ProfileExtractor] Gemini extraction failed:', e);
+    }
+  }
+
+  // フォールバック①: xAI
   if (xaiKey) {
     try {
       const res = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${xaiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: process.env.LLM_MODEL_EXTRACTION || 'grok-4-1-fast-non-reasoning',
+          model: 'grok-3-mini',
           messages: [
             { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
             { role: 'user', content: userPrompt },

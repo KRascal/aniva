@@ -13,43 +13,33 @@ interface ImageAnalysisResult {
 
 /**
  * 画像をVision APIで解析する
- * xAI grok-vision → Anthropic Claude Vision フォールバック
+ * Gemini 2.5 Flash (multimodal) → xAI grok-vision → Anthropic Claude Vision フォールバック
  */
 export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult | null> {
-  // xAI Grok Vision
-  const xaiKey = process.env.XAI_API_KEY;
-  if (xaiKey) {
-    try {
-      const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${xaiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'grok-2-vision-latest',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image_url',
-                  image_url: { url: imageUrl },
-                },
-                {
-                  type: 'text',
-                  text: `この画像を簡潔に分析して以下のJSON形式で返してください:
+  const visionPrompt = `この画像を簡潔に分析して以下のJSON形式で返してください:
 {
   "description": "画像の簡潔な説明（日本語、30文字以内）",
   "objects": ["主要な被写体1", "被写体2"],
   "mood": "画像全体の雰囲気（楽しい/美しい/面白い/美味しそう/可愛い/格好いい/感動的/日常的）",
   "suggestedReaction": "この画像を見たアニメキャラクターが言いそうな自然な反応のヒント（20文字以内）"
 }
-JSONのみ返してください。`,
-                },
-              ],
-            },
-          ],
+JSONのみ返してください。`;
+
+  const visionContent = [
+    { type: 'image_url' as const, image_url: { url: imageUrl } },
+    { type: 'text' as const, text: visionPrompt },
+  ];
+
+  // 1. Gemini 2.5 Flash (multimodal)
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${geminiKey}` },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'user', content: visionContent }],
           max_tokens: 300,
           temperature: 0.3,
         }),
@@ -59,9 +49,33 @@ JSONのみ返してください。`,
         const data = await response.json() as { choices: Array<{ message: { content: string } }> };
         const content = data.choices[0]?.message?.content ?? '';
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
-        }
+        if (jsonMatch) return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
+      }
+    } catch (err) {
+      logger.warn('[ImageAnalysis] Gemini Vision failed:', err);
+    }
+  }
+
+  // 2. xAI Grok Vision (fallback)
+  const xaiKey = process.env.XAI_API_KEY;
+  if (xaiKey) {
+    try {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'grok-2-vision-latest',
+          messages: [{ role: 'user', content: visionContent }],
+          max_tokens: 300,
+          temperature: 0.3,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+        const content = data.choices[0]?.message?.content ?? '';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
       }
     } catch (err) {
       logger.warn('[ImageAnalysis] xAI Vision failed:', err);

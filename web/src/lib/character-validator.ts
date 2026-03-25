@@ -364,7 +364,7 @@ export class CharacterValidator {
 
   /**
    * LLMによるキャラクターらしさ判定
-   * xAI grok-3-mini を使用（低コスト）
+   * Gemini 2.5 Flash を使用（低コスト）、xAI/Anthropicフォールバック
    * 
    * 10回に1回のサンプリング or フィードバック時に呼ばれる
    */
@@ -382,9 +382,6 @@ export class CharacterValidator {
     };
 
     try {
-      const apiKey = process.env.XAI_API_KEY;
-      if (!apiKey) return defaultResult;
-
       const judgePrompt = `あなたはキャラクターAIの品質審査員です。
 キャラクター「${characterName}」の返答を評価してください。
 
@@ -407,19 +404,40 @@ export class CharacterValidator {
 - knowledge_accuracy: 知識の正確性（作品設定に反していないか）
 - issues: 具体的な問題点（なければ空配列）`;
 
-      const res = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'grok-3-mini',
-          messages: [{ role: 'user', content: judgePrompt }],
-          temperature: 0.1,
-          max_tokens: 300,
-        }),
-      });
+      // Gemini → xAI → fallback
+      let res: Response | null = null;
+      const geminiKey = process.env.GEMINI_API_KEY;
+      const xaiKey = process.env.XAI_API_KEY;
+
+      if (geminiKey) {
+        res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${geminiKey}` },
+          body: JSON.stringify({
+            model: 'gemini-2.5-flash',
+            messages: [{ role: 'user', content: judgePrompt }],
+            temperature: 0.1,
+            max_tokens: 300,
+          }),
+        });
+        if (!res.ok) res = null;
+      }
+
+      if (!res && xaiKey) {
+        res = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${xaiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'grok-3-mini',
+            messages: [{ role: 'user', content: judgePrompt }],
+            temperature: 0.1,
+            max_tokens: 300,
+          }),
+        });
+        if (!res.ok) res = null;
+      }
+
+      if (!res) return defaultResult;
 
       if (!res.ok) return defaultResult;
 

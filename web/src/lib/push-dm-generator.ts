@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { callLLMWithFallback } from '@/lib/llm-provider';
 /**
  * push-dm-generator.ts
  * プッシュDM用 AI メッセージ生成ロジック
@@ -76,7 +77,7 @@ const TIME_SLOT_LABEL: Record<TimeSlot, string> = {
 
 /**
  * AI を呼び出してプッシュDM文章を生成する。
- * xAI grok-3-mini を優先し、失敗時は Anthropic にフォールバック。
+ * Gemini → xAI → Anthropic のフォールバック。
  */
 export async function generatePushDmMessage(input: PushDmInput): Promise<PushDmResult> {
   const {
@@ -131,53 +132,13 @@ ${recentConvText}
 }
 
 /**
- * LLM 呼び出し (xAI → Anthropic フォールバック)
+ * LLM 呼び出し (Gemini → xAI → Anthropic フォールバック)
  */
 async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
-  const xaiKey = process.env.XAI_API_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-  if (xaiKey) {
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${xaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'grok-3-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ],
-        max_tokens: 150,
-        temperature: 0.92,
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content?.trim();
-      if (text) return text;
-    } else {
-      const errText = await res.text();
-      logger.error(`[push-dm-generator] xAI error ${res.status}: ${errText}`);
-    }
-  }
-
-  if (anthropicKey) {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic({ apiKey: anthropicKey });
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 150,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    });
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text?.trim() : '';
-    if (text) return text;
-  }
-
-  throw new Error('[push-dm-generator] No LLM API key configured (set XAI_API_KEY or ANTHROPIC_API_KEY)');
+  return callLLMWithFallback({
+    systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+    maxTokens: 150,
+    temperature: 0.92,
+  });
 }
