@@ -129,6 +129,11 @@ export async function decideContact(
 
     if (!res.ok) {
       const errText = await res.text();
+      // 429 (rate limit / quota) → Anthropicへフォールバック
+      if (res.status === 429) {
+        logger.warn('[DecisionEngine] xAI quota exceeded, falling back to Anthropic');
+        return await decideContactAnthropicFallback(character, state, prompt, fallback);
+      }
       logger.error(`[DecisionEngine] xAI API error ${res.status}: ${errText}`);
       return fallback;
     }
@@ -168,6 +173,78 @@ export async function decideContact(
     return { should, reason, messageType, urgency };
   } catch (error) {
     logger.error('[DecisionEngine] Unexpected error:', error);
+    return fallback;
+  }
+}
+
+/**
+ * Anthropic claude-haiku-3-5 フォールバック（xAI 429時）
+ */
+async function decideContactAnthropicFallback(
+  character: CharacterInfo,
+  state: UserStateSnapshot,
+  prompt: string,
+  fallback: AgentDecision,
+): Promise<AgentDecision> {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) {
+    logger.warn('[DecisionEngine] ANTHROPIC_API_KEY not set, cannot fallback');
+    return fallback;
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 300,
+        system: 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!res.ok) {
+      logger.error(`[DecisionEngine] Anthropic fallback error ${res.status}`);
+      return fallback;
+    }
+
+    const data = await res.json();
+    const content = data.content?.[0]?.text;
+    if (!content) return fallback;
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      // JSON前後のテキストを除去して再パース
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match) return fallback;
+      parsed = JSON.parse(match[0]);
+    }
+
+    const should = Boolean(parsed.should);
+    const reason = String(parsed.reason ?? '');
+    const urgency = (['low', 'normal', 'high'].includes(parsed.urgency as string)
+      ? parsed.urgency
+      : 'normal') as 'low' | 'normal' | 'high';
+    const validTypes: MessageType[] = [
+      'check_in', 'miss_you', 'share_thought',
+      'follow_up_concern', 'celebrate', 'initiate_topic',
+    ];
+    const messageType = validTypes.includes(parsed.messageType as MessageType)
+      ? (parsed.messageType as MessageType)
+      : null;
+
+    logger.info(`[DecisionEngine/anthropic-fallback] ${character.name} → ${state.userName}: should=${should}`);
+    return { should, reason, messageType, urgency };
+  } catch (err) {
+    logger.error('[DecisionEngine] Anthropic fallback error:', err);
     return fallback;
   }
 }
