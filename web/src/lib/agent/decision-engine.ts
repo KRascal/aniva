@@ -96,11 +96,11 @@ export async function decideContact(
   const prompt = buildDecisionPrompt(character, state);
   const systemMsg = 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。';
 
-  // Gemini → xAI → Anthropic フォールバックチェーン
+  // Gemini → Anthropic → xAI フォールバックチェーン（xAI 429対策でAnthropicを優先）
   const providers = [
     { name: 'Gemini', call: () => callGeminiDecision(systemMsg, prompt) },
-    { name: 'xAI', call: () => callXAIDecision(systemMsg, prompt) },
     { name: 'Anthropic', call: () => callAnthropicDecision(systemMsg, prompt) },
+    { name: 'xAI', call: () => callXAIDecision(systemMsg, prompt) },
   ];
 
   for (const provider of providers) {
@@ -158,6 +158,7 @@ async function callGeminiDecision(systemMsg: string, prompt: string): Promise<st
       messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: prompt }],
       max_tokens: MAX_TOKENS,
       temperature: 0.3,
+      response_format: { type: 'json_object' },
     }),
     signal: AbortSignal.timeout(30000),
   });
@@ -189,7 +190,12 @@ async function callXAIDecision(systemMsg: string, prompt: string): Promise<strin
   });
 
   if (!res.ok) {
-    logger.error(`[DecisionEngine] xAI error ${res.status}`);
+    if (res.status === 429) {
+      logger.warn(`[DecisionEngine] xAI 429 rate limit — backing off 8s`);
+      await new Promise(r => setTimeout(r, 8000));
+    } else {
+      logger.error(`[DecisionEngine] xAI error ${res.status}`);
+    }
     return null;
   }
   const data = await res.json();
