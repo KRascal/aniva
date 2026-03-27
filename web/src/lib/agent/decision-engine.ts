@@ -96,10 +96,10 @@ export async function decideContact(
   const prompt = buildDecisionPrompt(character, state);
   const systemMsg = 'あなたはキャラクターの行動判断エンジンです。必ずJSONのみ返してください。';
 
-  // Gemini → Anthropic → xAI フォールバックチェーン（xAI 429対策でAnthropicを優先）
+  // Anthropic → Gemini → xAI フォールバックチェーン（xAI 429多発のため最後）
   const providers = [
-    { name: 'Gemini', call: () => callGeminiDecision(systemMsg, prompt) },
     { name: 'Anthropic', call: () => callAnthropicDecision(systemMsg, prompt) },
+    { name: 'Gemini', call: () => callGeminiDecision(systemMsg, prompt) },
     { name: 'xAI', call: () => callXAIDecision(systemMsg, prompt) },
   ];
 
