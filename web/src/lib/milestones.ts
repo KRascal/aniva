@@ -2,6 +2,7 @@
 // キャラクターとの絆レベルに応じた達成マイルストーン
 
 export interface Milestone {
+  id?: string;
   level: number;
   title: string;
   description: string;
